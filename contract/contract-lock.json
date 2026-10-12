@@ -1,9 +1,11 @@
 {
-  "source": "https://api.sess.si/openapi.json",
-  "source_runtime_commit": "31ce5d557e6c6dd14972c8e8923f68ea294ce9b3",
-  "source_git_blob_sha1": "1334a460f61d923871575ce8011d6b9616fa7a89",
-  "snapshot_sha256": "8d4c04593b1137cc9730e3836b77173c463e03c7fe1b6cc53a0d51de5890cc65",
+  "source": "https://github.com/w1991e/sess/blob/6bcd3ed516849f2b9cfd0006aad05806dd93cd68/packages/spec/openapi.json",
+  "source_runtime_commit": "6bcd3ed516849f2b9cfd0006aad05806dd93cd68",
+  "source_git_blob_sha1": "40ef1862de30c088c4d41514b085a0f6835ea217",
+  "snapshot_sha256": "89b30063163c9815d193577ee0245a5dc963a926dc6b0abb4b410e9a49ef767d",
   "generator": "openapi-typescript",
   "generator_version": "7.13.0",
-  "recorded_at": "2026-10-12T22:37:55.207Z"
+  "recorded_at": "2026-10-12",
+  "formatter": "prettier",
+  "formatter_version": "3.9.10"
 }

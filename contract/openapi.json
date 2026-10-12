@@ -3483,6 +3483,13 @@
                   "type": "string"
                 },
                 "description": "/v1/sessions/{id}"
+              },
+              "Sess-Workspace-Id": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": "The actual workspace in which this Session was created. Authenticated server-authoritative context for the receipt audience; not a request header or a human identity claim. Returned only on successful owner creation."
               }
             },
             "content": {
@@ -3563,6 +3570,13 @@
                 "schema": {
                   "type": "string"
                 }
+              },
+              "Sess-Workspace-Id": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": "The authorized Session resource’s actual workspace, including the original trial workspace when read through a claim. It can differ from the API credential’s workspace. Use as trusted receipt audience context, not as a human identity or permission to execute an operation. Absent on errors."
               }
             },
             "content": {
@@ -4613,7 +4627,7 @@
     "/.well-known/sess-receipt-keys.json": {
       "get": {
         "operationId": "receiptKeys",
-        "description": "The public decision-receipt verification keys as a JWK Set (Ed25519, alg EdDSA): the active signing key and every retained key of the rotation overlap. Verify a receipt (compact JWS, typ sess-receipt+jwt) with the key its protected header kid names, issuer = this origin, audience = the Session’s workspace (wks_operator for owner-API Sessions, the trial’s workspace_id for trial Sessions). No credential. 503 SERVICE_UNAVAILABLE while the receipt keys are not configured. Cache-Control: no-store, no-transform.",
+        "description": "The public decision-receipt verification keys as a JWK Set (Ed25519, alg EdDSA): the active signing key and every retained key of the rotation overlap. Verify a receipt (compact JWS, typ sess-receipt+jwt) with the key its protected header kid names. Expected issuer: configured SESS_RECEIPT_ISSUER, otherwise the origin of SESS_PUBLIC_BASE_URL. Expected audience: the Session’s actual workspace, from independently trusted configuration or Sess-Workspace-Id on authenticated owner create/retrieve. Claimed trials retain their original workspace. No credential. 503 SERVICE_UNAVAILABLE while the receipt keys are not configured. Cache-Control: no-store, no-transform.",
         "responses": {
           "200": {
             "description": "The JWK Set.",
