@@ -22,8 +22,8 @@ jobs:
           package-manager-cache: false
       - name: Resolve exact candidate dependencies without install scripts
         run: |
-          npm install --ignore-scripts --save-exact jose@6.2.12 canonicalize@latest standardwebhooks@1.1.1
-          npm install --ignore-scripts --save-dev --save-exact typescript@5.9.3 vitest@latest openapi-typescript@latest @types/node@22 esbuild@latest
+          npm install --ignore-scripts --save-exact jose@6.2.12 canonicalize@5.1.0 standardwebhooks@1.1.1
+          npm install --ignore-scripts --save-dev --save-exact typescript@5.9.3 vitest@5.0.4 openapi-typescript@7.13.0 @types/node@22.20.5 esbuild@0.28.2 prettier@latest typescript-current@npm:typescript@7.0.2
           node scripts/bootstrap-contract.mjs
       - name: Commit only generated baseline files to this implementation branch
         run: |
@@ -33,8 +33,11 @@ jobs:
           git commit -m 'build: pin generated public contract, wire types and dependency lock'
           git pull --rebase origin feat/sdk-v1-1
           git push origin HEAD:feat/sdk-v1-1
-      - name: Preserve an offline development bundle
-        run: tar -czf sdk-bootstrap.tgz node_modules package.json package-lock.json contract src/generated
+      - name: Preserve an offline development bundle (public npm cache only)
+        run: |
+          mkdir -p .offline-cache
+          cp -a "$(npm config get cache)/_cacache" .offline-cache/_cacache
+          tar -czf sdk-bootstrap.tgz node_modules package.json package-lock.json contract src/generated .offline-cache
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: sdk-bootstrap
