@@ -1,0 +1,112 @@
+{
+  "checked_at": "2026-10-12T22:01:19.726Z",
+  "node22": "22.23.3",
+  "node24": "24.21.0",
+  "npm": "11.19.0",
+  "typescript_consumer_current": "7.0.2",
+  "packages": [
+    {
+      "name": "jose",
+      "version": "6.2.12",
+      "license": "MIT",
+      "engines": null,
+      "repository": "panva/jose"
+    },
+    {
+      "name": "canonicalize",
+      "version": "5.1.0",
+      "license": "Apache-2.0",
+      "engines": {
+        "node": ">=22"
+      },
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/erdtman/canonicalize.git"
+      }
+    },
+    {
+      "name": "standardwebhooks",
+      "version": "1.1.1",
+      "license": "MIT",
+      "engines": null,
+      "repository": "https://github.com/standard-webhooks/standard-webhooks"
+    },
+    {
+      "name": "typescript",
+      "version": "5.9.3",
+      "license": "Apache-2.0",
+      "engines": {
+        "node": ">=14.17"
+      },
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/microsoft/TypeScript.git"
+      }
+    },
+    {
+      "name": "vitest",
+      "version": "5.0.4",
+      "license": "MIT",
+      "engines": {
+        "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
+      },
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitest-dev/vitest.git",
+        "directory": "packages/vitest"
+      }
+    },
+    {
+      "name": "openapi-typescript",
+      "version": "7.13.0",
+      "license": "MIT",
+      "engines": null,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/openapi-ts/openapi-typescript",
+        "directory": "packages/openapi-typescript"
+      }
+    },
+    {
+      "name": "@types/node",
+      "version": "22.20.5",
+      "license": "MIT",
+      "engines": null,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/node"
+      }
+    },
+    {
+      "name": "esbuild",
+      "version": "0.28.2",
+      "license": "MIT",
+      "engines": {
+        "node": ">=18"
+      },
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/evanw/esbuild.git"
+      }
+    }
+  ],
+  "audit": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "dependencies": {
+      "prod": 6,
+      "dev": 121,
+      "optional": 53,
+      "peer": 36,
+      "peerOptional": 0,
+      "total": 126
+    }
+  }
+}

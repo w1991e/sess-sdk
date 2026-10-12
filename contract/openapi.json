@@ -1,0 +1,4738 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sess owner API",
+    "version": "0.1.0",
+    "description": "Owner API (P0 display Sessions; P1 interactive Sessions). Request bodies are limited to 256 KiB; a Surface measure (UTF-8 bytes of the canonical Surface JSON) above 131072 bytes is rejected with 413 PAYLOAD_TOO_LARGE. Every table row must have the same key set. Every JSON response carries Cache-Control: no-store, no-transform. Interactive Sessions: active → responded (one accepted response per revision, response_policy first) → active (the owner publishes the next revision) … → completed (terminal)."
+  },
+  "components": {
+    "securitySchemes": {
+      "ownerKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "An owner credential: the deployment owner key (acts in the operator workspace) or a developer API key sess_sk_… from the account pages (acts only in its developer workspace; a revoked or expired key → 401 UNAUTHORIZED). A Session of another workspace is 404 SESSION_NOT_FOUND."
+      },
+      "managementCredential": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "The trial management credential (sess_mg_…), returned once at trial creation."
+      }
+    },
+    "schemas": {
+      "CreateSessionRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["interaction"],
+        "properties": {
+          "interaction": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["mode", "title", "source"],
+                "properties": {
+                  "mode": {
+                    "const": "display",
+                    "type": "string"
+                  },
+                  "title": {
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  "description": {
+                    "maxLength": 4000,
+                    "type": "string"
+                  },
+                  "source": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": ["kind", "data"],
+                    "properties": {
+                      "kind": {
+                        "const": "data",
+                        "type": "string"
+                      },
+                      "data": {
+                        "additionalProperties": {
+                          "anyOf": [
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            {
+                              "additionalProperties": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "minProperties": 1,
+                              "type": "object",
+                              "properties": {}
+                            },
+                            {
+                              "minItems": 1,
+                              "maxItems": 100,
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "minProperties": 1,
+                                "type": "object",
+                                "properties": {}
+                              }
+                            }
+                          ]
+                        },
+                        "minProperties": 1,
+                        "type": "object",
+                        "properties": {}
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["mode", "title", "source", "actions"],
+                "properties": {
+                  "mode": {
+                    "const": "interactive",
+                    "type": "string"
+                  },
+                  "title": {
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  "description": {
+                    "maxLength": 4000,
+                    "type": "string"
+                  },
+                  "source": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": ["kind", "components"],
+                    "properties": {
+                      "kind": {
+                        "const": "sess_surface",
+                        "type": "string"
+                      },
+                      "components": {
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": true,
+                          "description": "One SurfaceComponent (heading, text, record or field). An unrecognized type fails with 400 UNKNOWN_COMPONENT.",
+                          "type": "object",
+                          "required": ["type"],
+                          "properties": {
+                            "type": {
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "actions": {
+                    "minItems": 1,
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": ["id", "label"],
+                      "properties": {
+                        "id": {
+                          "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                          "type": "string"
+                        },
+                        "label": {
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "\\S",
+                          "type": "string"
+                        },
+                        "intent": {
+                          "anyOf": [
+                            {
+                              "const": "submit",
+                              "type": "string"
+                            },
+                            {
+                              "const": "continue",
+                              "type": "string"
+                            },
+                            {
+                              "const": "approve",
+                              "type": "string"
+                            },
+                            {
+                              "const": "reject",
+                              "type": "string"
+                            },
+                            {
+                              "const": "request_change",
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "response_policy": {
+                    "description": "One accepted response per revision (the only P1 policy; the default).",
+                    "const": "first",
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "CreateSessionResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["id", "revision", "human_url"],
+        "properties": {
+          "id": {
+            "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "human_url": {
+            "type": "string"
+          }
+        }
+      },
+      "SessionResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["id", "revision", "interaction"],
+        "properties": {
+          "id": {
+            "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "interaction": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["mode", "title", "source"],
+            "properties": {
+              "mode": {
+                "const": "display",
+                "type": "string"
+              },
+              "title": {
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              "description": {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              "source": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["kind", "data"],
+                "properties": {
+                  "kind": {
+                    "const": "data",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        {
+                          "additionalProperties": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "minProperties": 1,
+                          "type": "object",
+                          "properties": {}
+                        },
+                        {
+                          "minItems": 1,
+                          "maxItems": 100,
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "minProperties": 1,
+                            "type": "object",
+                            "properties": {}
+                          }
+                        }
+                      ]
+                    },
+                    "minProperties": 1,
+                    "type": "object",
+                    "properties": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "InteractiveSessionResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["id", "status", "revision", "interaction", "response_schema", "responses"],
+        "properties": {
+          "id": {
+            "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "const": "active",
+                "type": "string"
+              },
+              {
+                "const": "responded",
+                "type": "string"
+              },
+              {
+                "const": "completed",
+                "type": "string"
+              }
+            ]
+          },
+          "revision": {
+            "minimum": 1,
+            "description": "The current Surface revision.",
+            "type": "integer"
+          },
+          "interaction": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["mode", "title", "source", "actions", "response_policy"],
+            "properties": {
+              "mode": {
+                "const": "interactive",
+                "type": "string"
+              },
+              "title": {
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              "description": {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              "source": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["kind", "components"],
+                "properties": {
+                  "kind": {
+                    "const": "sess_surface",
+                    "type": "string"
+                  },
+                  "components": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "description": "A section heading (plain text).",
+                          "type": "object",
+                          "required": ["type", "text"],
+                          "properties": {
+                            "type": {
+                              "const": "heading",
+                              "type": "string"
+                            },
+                            "text": {
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "\\S",
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "additionalProperties": false,
+                          "description": "A paragraph of plain text (never markup).",
+                          "type": "object",
+                          "required": ["type", "text"],
+                          "properties": {
+                            "type": {
+                              "const": "text",
+                              "type": "string"
+                            },
+                            "text": {
+                              "minLength": 1,
+                              "maxLength": 4000,
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "additionalProperties": false,
+                          "description": "A read-only key/value record; keys and values are shown verbatim as text.",
+                          "type": "object",
+                          "required": ["type", "fields"],
+                          "properties": {
+                            "type": {
+                              "const": "record",
+                              "type": "string"
+                            },
+                            "label": {
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "\\S",
+                              "type": "string"
+                            },
+                            "fields": {
+                              "additionalProperties": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "minProperties": 1,
+                              "maxProperties": 50,
+                              "type": "object",
+                              "properties": {}
+                            }
+                          }
+                        },
+                        {
+                          "additionalProperties": false,
+                          "description": "A labeled input. string → text input (textarea when multiline); string with enum → select; number/integer → numeric input; boolean → checkbox; array of enum IDs → inline selection checkboxes.",
+                          "type": "object",
+                          "required": ["type", "name", "label", "schema"],
+                          "properties": {
+                            "type": {
+                              "const": "field",
+                              "type": "string"
+                            },
+                            "name": {
+                              "pattern": "^[a-z][a-z0-9_]{0,63}$",
+                              "type": "string"
+                            },
+                            "label": {
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "\\S",
+                              "type": "string"
+                            },
+                            "description": {
+                              "maxLength": 1000,
+                              "type": "string"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            },
+                            "multiline": {
+                              "description": "A string field rendered as a multi-line text area.",
+                              "type": "boolean"
+                            },
+                            "option_labels": {
+                              "additionalProperties": {
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "pattern": "\\S",
+                                "type": "string"
+                              },
+                              "maxProperties": 100,
+                              "description": "Display labels for enum values (default: the value itself).",
+                              "type": "object",
+                              "properties": {}
+                            },
+                            "schema": {
+                              "additionalProperties": true,
+                              "description": "The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true); title and description are allowed everywhere. Any other keyword fails with INVALID_SCHEMA.",
+                              "type": "object",
+                              "properties": {}
+                            },
+                            "value": {
+                              "description": "The proposed value shown to the person (a correction is a field with a proposed value). It must be valid against the field schema."
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "actions": {
+                "type": "array",
+                "items": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": ["id", "label"],
+                  "properties": {
+                    "id": {
+                      "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "\\S",
+                      "type": "string"
+                    },
+                    "intent": {
+                      "anyOf": [
+                        {
+                          "const": "submit",
+                          "type": "string"
+                        },
+                        {
+                          "const": "continue",
+                          "type": "string"
+                        },
+                        {
+                          "const": "approve",
+                          "type": "string"
+                        },
+                        {
+                          "const": "reject",
+                          "type": "string"
+                        },
+                        {
+                          "const": "request_change",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "response_policy": {
+                "const": "first",
+                "type": "string"
+              }
+            }
+          },
+          "response_schema": {
+            "additionalProperties": true,
+            "description": "The JSON Schema 2020-12 the current revision’s responses are validated against.",
+            "type": "object",
+            "properties": {}
+          },
+          "responses": {
+            "description": "Every accepted response, in sequence order, each bound to its revision.",
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "event_id",
+                "sequence",
+                "revision",
+                "action_id",
+                "data",
+                "actor",
+                "accepted_at",
+                "receipt"
+              ],
+              "properties": {
+                "event_id": {
+                  "pattern": "^evt_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "type": "string"
+                },
+                "sequence": {
+                  "minimum": 1,
+                  "description": "Monotonic per-Session Event sequence.",
+                  "type": "integer"
+                },
+                "revision": {
+                  "minimum": 1,
+                  "description": "The Surface revision it was accepted on.",
+                  "type": "integer"
+                },
+                "action_id": {
+                  "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                  "type": "string"
+                },
+                "data": {
+                  "additionalProperties": true,
+                  "description": "The normalized typed result, valid against that revision’s response_schema.",
+                  "type": "object",
+                  "properties": {}
+                },
+                "actor": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": ["assurance"],
+                  "properties": {
+                    "assurance": {
+                      "const": "link_holder",
+                      "type": "string"
+                    }
+                  }
+                },
+                "accepted_at": {
+                  "description": "ISO 8601 UTC time of acceptance.",
+                  "type": "string"
+                },
+                "receipt": {
+                  "description": "The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its human link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed.",
+                  "anyOf": [
+                    {
+                      "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "InteractiveSurfaceResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["id", "revision", "interaction", "response_schema"],
+        "properties": {
+          "id": {
+            "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "interaction": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["mode", "title", "source", "actions", "response_policy"],
+            "properties": {
+              "mode": {
+                "const": "interactive",
+                "type": "string"
+              },
+              "title": {
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              "description": {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              "source": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["kind", "components"],
+                "properties": {
+                  "kind": {
+                    "const": "sess_surface",
+                    "type": "string"
+                  },
+                  "components": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "description": "A section heading (plain text).",
+                          "type": "object",
+                          "required": ["type", "text"],
+                          "properties": {
+                            "type": {
+                              "const": "heading",
+                              "type": "string"
+                            },
+                            "text": {
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "\\S",
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "additionalProperties": false,
+                          "description": "A paragraph of plain text (never markup).",
+                          "type": "object",
+                          "required": ["type", "text"],
+                          "properties": {
+                            "type": {
+                              "const": "text",
+                              "type": "string"
+                            },
+                            "text": {
+                              "minLength": 1,
+                              "maxLength": 4000,
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "additionalProperties": false,
+                          "description": "A read-only key/value record; keys and values are shown verbatim as text.",
+                          "type": "object",
+                          "required": ["type", "fields"],
+                          "properties": {
+                            "type": {
+                              "const": "record",
+                              "type": "string"
+                            },
+                            "label": {
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "\\S",
+                              "type": "string"
+                            },
+                            "fields": {
+                              "additionalProperties": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "minProperties": 1,
+                              "maxProperties": 50,
+                              "type": "object",
+                              "properties": {}
+                            }
+                          }
+                        },
+                        {
+                          "additionalProperties": false,
+                          "description": "A labeled input. string → text input (textarea when multiline); string with enum → select; number/integer → numeric input; boolean → checkbox; array of enum IDs → inline selection checkboxes.",
+                          "type": "object",
+                          "required": ["type", "name", "label", "schema"],
+                          "properties": {
+                            "type": {
+                              "const": "field",
+                              "type": "string"
+                            },
+                            "name": {
+                              "pattern": "^[a-z][a-z0-9_]{0,63}$",
+                              "type": "string"
+                            },
+                            "label": {
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "\\S",
+                              "type": "string"
+                            },
+                            "description": {
+                              "maxLength": 1000,
+                              "type": "string"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            },
+                            "multiline": {
+                              "description": "A string field rendered as a multi-line text area.",
+                              "type": "boolean"
+                            },
+                            "option_labels": {
+                              "additionalProperties": {
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "pattern": "\\S",
+                                "type": "string"
+                              },
+                              "maxProperties": 100,
+                              "description": "Display labels for enum values (default: the value itself).",
+                              "type": "object",
+                              "properties": {}
+                            },
+                            "schema": {
+                              "additionalProperties": true,
+                              "description": "The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true); title and description are allowed everywhere. Any other keyword fails with INVALID_SCHEMA.",
+                              "type": "object",
+                              "properties": {}
+                            },
+                            "value": {
+                              "description": "The proposed value shown to the person (a correction is a field with a proposed value). It must be valid against the field schema."
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "actions": {
+                "type": "array",
+                "items": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": ["id", "label"],
+                  "properties": {
+                    "id": {
+                      "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "\\S",
+                      "type": "string"
+                    },
+                    "intent": {
+                      "anyOf": [
+                        {
+                          "const": "submit",
+                          "type": "string"
+                        },
+                        {
+                          "const": "continue",
+                          "type": "string"
+                        },
+                        {
+                          "const": "approve",
+                          "type": "string"
+                        },
+                        {
+                          "const": "reject",
+                          "type": "string"
+                        },
+                        {
+                          "const": "request_change",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "response_policy": {
+                "const": "first",
+                "type": "string"
+              }
+            }
+          },
+          "response_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      "SessionEventsResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["id", "events"],
+        "properties": {
+          "id": {
+            "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
+            "type": "string"
+          },
+          "events": {
+            "description": "Every Event of the Session, in sequence order (append-only; never rewritten).",
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": ["event_id", "sequence", "type", "revision", "actor", "created_at"],
+              "properties": {
+                "event_id": {
+                  "pattern": "^evt_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "type": "string"
+                },
+                "sequence": {
+                  "minimum": 1,
+                  "description": "Monotonic per-Session sequence.",
+                  "type": "integer"
+                },
+                "type": {
+                  "anyOf": [
+                    {
+                      "const": "response.accepted",
+                      "type": "string"
+                    },
+                    {
+                      "const": "revision.published",
+                      "type": "string"
+                    },
+                    {
+                      "const": "session.completed",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "revision": {
+                  "minimum": 1,
+                  "description": "response.accepted: the revision the response was accepted on; revision.published: the revision published; session.completed: the current revision at completion.",
+                  "type": "integer"
+                },
+                "actor": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": ["assurance"],
+                  "properties": {
+                    "assurance": {
+                      "anyOf": [
+                        {
+                          "const": "link_holder",
+                          "type": "string"
+                        },
+                        {
+                          "const": "owner",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "action_id": {
+                  "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                  "type": "string"
+                },
+                "data": {
+                  "additionalProperties": true,
+                  "description": "response.accepted only: the typed result, valid against that revision.",
+                  "type": "object",
+                  "properties": {}
+                },
+                "created_at": {
+                  "description": "ISO 8601 UTC time the Event was recorded.",
+                  "type": "string"
+                },
+                "receipt": {
+                  "description": "The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its human link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed.",
+                  "anyOf": [
+                    {
+                      "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "ReceiptKeysResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["keys"],
+        "properties": {
+          "keys": {
+            "description": "The active signing key and every retained verification key (rotation overlap). A receipt verifies with the key whose kid its protected header names; there is no fallback key.",
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": ["kty", "crv", "x", "kid", "alg", "use"],
+              "properties": {
+                "kty": {
+                  "const": "OKP",
+                  "type": "string"
+                },
+                "crv": {
+                  "const": "Ed25519",
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "kid": {
+                  "pattern": "^[A-Za-z0-9._-]{1,64}$",
+                  "type": "string"
+                },
+                "alg": {
+                  "const": "EdDSA",
+                  "type": "string"
+                },
+                "use": {
+                  "const": "sig",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "WebhookRegisterRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": {
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "Absolute https:// URL on port 443, without user info or fragment. Registering replaces the current endpoint (which stops receiving new deliveries); the new one receives nothing until verified.",
+            "type": "string"
+          }
+        }
+      },
+      "WebhookRegisterResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["endpoint", "signing_secret"],
+        "properties": {
+          "endpoint": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "url",
+              "status",
+              "created_at",
+              "verified_at",
+              "verification_expires_at"
+            ],
+            "properties": {
+              "id": {
+                "pattern": "^whe_[0-9A-HJKMNP-TV-Z]{26}$",
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "const": "pending",
+                    "type": "string"
+                  },
+                  {
+                    "const": "verified",
+                    "type": "string"
+                  }
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "verified_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification_expires_at": {
+                "description": "The verification lapses 30 days after it succeeds; after that the endpoint is pending again (no new deliveries; queued ones fail endpoint_unavailable) until re-verified.",
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "signing_secret": {
+            "description": "The workspace’s first signing secret when this registration created it, else null.",
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["kid", "secret"],
+                "properties": {
+                  "kid": {
+                    "pattern": "^wk_[0-9A-HJKMNP-TV-Z]{26}$",
+                    "type": "string"
+                  },
+                  "secret": {
+                    "pattern": "^whsec_[A-Za-z0-9+/]{43}=$",
+                    "description": "Shown once. Store it in the receiver; Sess keeps it only encrypted.",
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "WebhookResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["endpoint", "signing_secrets", "deliveries"],
+        "properties": {
+          "endpoint": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "id",
+                  "url",
+                  "status",
+                  "created_at",
+                  "verified_at",
+                  "verification_expires_at"
+                ],
+                "properties": {
+                  "id": {
+                    "pattern": "^whe_[0-9A-HJKMNP-TV-Z]{26}$",
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "pending",
+                        "type": "string"
+                      },
+                      {
+                        "const": "verified",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "created_at": {
+                    "type": "string"
+                  },
+                  "verified_at": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "verification_expires_at": {
+                    "description": "The verification lapses 30 days after it succeeds; after that the endpoint is pending again (no new deliveries; queued ones fail endpoint_unavailable) until re-verified.",
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "signing_secrets": {
+            "description": "Secrets in force, newest first (never the secret values).",
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": ["kid", "active", "retire_at"],
+              "properties": {
+                "kid": {
+                  "type": "string"
+                },
+                "active": {
+                  "type": "boolean"
+                },
+                "retire_at": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "deliveries": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["pending", "failed", "delivered", "oldest_pending_age_seconds"],
+            "properties": {
+              "pending": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "failed": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "delivered": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "oldest_pending_age_seconds": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "WebhookRotateResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["signing_secret", "previous"],
+        "properties": {
+          "signing_secret": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["kid", "secret"],
+            "properties": {
+              "kid": {
+                "pattern": "^wk_[0-9A-HJKMNP-TV-Z]{26}$",
+                "type": "string"
+              },
+              "secret": {
+                "pattern": "^whsec_[A-Za-z0-9+/]{43}=$",
+                "description": "Shown once. Store it in the receiver; Sess keeps it only encrypted.",
+                "type": "string"
+              }
+            }
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["kid", "retire_at"],
+                "properties": {
+                  "kid": {
+                    "type": "string"
+                  },
+                  "retire_at": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "DeliveriesResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["id", "deliveries"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deliveries": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "delivery_id",
+                "event_id",
+                "kind",
+                "status",
+                "endpoint_id",
+                "next_attempt_at",
+                "deadline_at",
+                "created_at",
+                "finished_at",
+                "last_outcome",
+                "attempts"
+              ],
+              "properties": {
+                "delivery_id": {
+                  "pattern": "^obx_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "type": "string"
+                },
+                "event_id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "anyOf": [
+                    {
+                      "const": "accepted",
+                      "type": "string"
+                    },
+                    {
+                      "const": "redelivery",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "status": {
+                  "anyOf": [
+                    {
+                      "const": "pending",
+                      "type": "string"
+                    },
+                    {
+                      "const": "delivered",
+                      "type": "string"
+                    },
+                    {
+                      "const": "failed",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "endpoint_id": {
+                  "type": "string"
+                },
+                "next_attempt_at": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "deadline_at": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "finished_at": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "last_outcome": {
+                  "description": "The job-level outcome: the last attempt’s, or `exhausted` when the attempt or time budget ran out, or `endpoint_unavailable` when its endpoint was replaced, disabled or its verification lapsed.",
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "const": "started",
+                          "type": "string"
+                        },
+                        {
+                          "const": "delivered",
+                          "type": "string"
+                        },
+                        {
+                          "const": "server_error",
+                          "type": "string"
+                        },
+                        {
+                          "const": "rate_limited",
+                          "type": "string"
+                        },
+                        {
+                          "const": "timeout",
+                          "type": "string"
+                        },
+                        {
+                          "const": "connection",
+                          "type": "string"
+                        },
+                        {
+                          "const": "dns",
+                          "type": "string"
+                        },
+                        {
+                          "const": "signing_unavailable",
+                          "type": "string"
+                        },
+                        {
+                          "const": "request_timeout",
+                          "type": "string"
+                        },
+                        {
+                          "const": "too_early",
+                          "type": "string"
+                        },
+                        {
+                          "const": "rejected",
+                          "type": "string"
+                        },
+                        {
+                          "const": "redirect",
+                          "type": "string"
+                        },
+                        {
+                          "const": "egress_refused",
+                          "type": "string"
+                        },
+                        {
+                          "const": "endpoint_unavailable",
+                          "type": "string"
+                        },
+                        {
+                          "const": "exhausted",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "attempts": {
+                  "description": "Every started attempt. `started` with no finish time: the attempt was interrupted (e.g. a crash); the outcome at the endpoint is unknown and the job is retried.",
+                  "type": "array",
+                  "items": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": ["attempt", "started_at", "finished_at", "outcome", "http_status"],
+                    "properties": {
+                      "attempt": {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "started_at": {
+                        "type": "string"
+                      },
+                      "finished_at": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "outcome": {
+                        "anyOf": [
+                          {
+                            "const": "started",
+                            "type": "string"
+                          },
+                          {
+                            "const": "delivered",
+                            "type": "string"
+                          },
+                          {
+                            "const": "server_error",
+                            "type": "string"
+                          },
+                          {
+                            "const": "rate_limited",
+                            "type": "string"
+                          },
+                          {
+                            "const": "timeout",
+                            "type": "string"
+                          },
+                          {
+                            "const": "connection",
+                            "type": "string"
+                          },
+                          {
+                            "const": "dns",
+                            "type": "string"
+                          },
+                          {
+                            "const": "signing_unavailable",
+                            "type": "string"
+                          },
+                          {
+                            "const": "request_timeout",
+                            "type": "string"
+                          },
+                          {
+                            "const": "too_early",
+                            "type": "string"
+                          },
+                          {
+                            "const": "rejected",
+                            "type": "string"
+                          },
+                          {
+                            "const": "redirect",
+                            "type": "string"
+                          },
+                          {
+                            "const": "egress_refused",
+                            "type": "string"
+                          },
+                          {
+                            "const": "endpoint_unavailable",
+                            "type": "string"
+                          },
+                          {
+                            "const": "exhausted",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "http_status": {
+                        "anyOf": [
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "WebhookDelivery": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "event_id",
+          "session_id",
+          "sequence",
+          "revision",
+          "action_id",
+          "data",
+          "accepted_at",
+          "receipt"
+        ],
+        "properties": {
+          "type": {
+            "const": "response.accepted",
+            "type": "string"
+          },
+          "event_id": {
+            "description": "Stable across retries and redeliveries: deduplicate on it.",
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "action_id": {
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {}
+          },
+          "accepted_at": {
+            "type": "string"
+          },
+          "receipt": {
+            "description": "The stored signed decision receipt (identical on every delivery).",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "WebhookVerification": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["type", "challenge"],
+        "properties": {
+          "type": {
+            "const": "sess.webhook.verification",
+            "type": "string"
+          },
+          "challenge": {
+            "type": "string"
+          }
+        }
+      },
+      "PatchSessionRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["interaction"],
+        "properties": {
+          "interaction": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["mode", "title", "source", "actions"],
+            "properties": {
+              "mode": {
+                "const": "interactive",
+                "type": "string"
+              },
+              "title": {
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              "description": {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              "source": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["kind", "components"],
+                "properties": {
+                  "kind": {
+                    "const": "sess_surface",
+                    "type": "string"
+                  },
+                  "components": {
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "additionalProperties": true,
+                      "description": "One SurfaceComponent (heading, text, record or field). An unrecognized type fails with 400 UNKNOWN_COMPONENT.",
+                      "type": "object",
+                      "required": ["type"],
+                      "properties": {
+                        "type": {
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "actions": {
+                "minItems": 1,
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": ["id", "label"],
+                  "properties": {
+                    "id": {
+                      "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "\\S",
+                      "type": "string"
+                    },
+                    "intent": {
+                      "anyOf": [
+                        {
+                          "const": "submit",
+                          "type": "string"
+                        },
+                        {
+                          "const": "continue",
+                          "type": "string"
+                        },
+                        {
+                          "const": "approve",
+                          "type": "string"
+                        },
+                        {
+                          "const": "reject",
+                          "type": "string"
+                        },
+                        {
+                          "const": "request_change",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "response_policy": {
+                "description": "One accepted response per revision (the only P1 policy; the default).",
+                "const": "first",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "SurfaceComponent": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "description": "A section heading (plain text).",
+            "type": "object",
+            "required": ["type", "text"],
+            "properties": {
+              "type": {
+                "const": "heading",
+                "type": "string"
+              },
+              "text": {
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "\\S",
+                "type": "string"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "description": "A paragraph of plain text (never markup).",
+            "type": "object",
+            "required": ["type", "text"],
+            "properties": {
+              "type": {
+                "const": "text",
+                "type": "string"
+              },
+              "text": {
+                "minLength": 1,
+                "maxLength": 4000,
+                "type": "string"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "description": "A read-only key/value record; keys and values are shown verbatim as text.",
+            "type": "object",
+            "required": ["type", "fields"],
+            "properties": {
+              "type": {
+                "const": "record",
+                "type": "string"
+              },
+              "label": {
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              "fields": {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "minProperties": 1,
+                "maxProperties": 50,
+                "type": "object",
+                "properties": {}
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "description": "A labeled input. string → text input (textarea when multiline); string with enum → select; number/integer → numeric input; boolean → checkbox; array of enum IDs → inline selection checkboxes.",
+            "type": "object",
+            "required": ["type", "name", "label", "schema"],
+            "properties": {
+              "type": {
+                "const": "field",
+                "type": "string"
+              },
+              "name": {
+                "pattern": "^[a-z][a-z0-9_]{0,63}$",
+                "type": "string"
+              },
+              "label": {
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              "description": {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "multiline": {
+                "description": "A string field rendered as a multi-line text area.",
+                "type": "boolean"
+              },
+              "option_labels": {
+                "additionalProperties": {
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S",
+                  "type": "string"
+                },
+                "maxProperties": 100,
+                "description": "Display labels for enum values (default: the value itself).",
+                "type": "object",
+                "properties": {}
+              },
+              "schema": {
+                "additionalProperties": true,
+                "description": "The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true); title and description are allowed everywhere. Any other keyword fails with INVALID_SCHEMA.",
+                "type": "object",
+                "properties": {}
+              },
+              "value": {
+                "description": "The proposed value shown to the person (a correction is a field with a proposed value). It must be valid against the field schema."
+              }
+            }
+          }
+        ]
+      },
+      "HumanSubmissionForm": {
+        "patternProperties": {
+          "^data\\.[a-z][a-z0-9_]{0,63}$": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["client_event_id", "surface_revision", "action_id"],
+        "properties": {
+          "client_event_id": {
+            "pattern": "^[A-Za-z0-9_-]{16,64}$",
+            "type": "string"
+          },
+          "surface_revision": {
+            "pattern": "^[1-9][0-9]{0,8}$",
+            "type": "string"
+          },
+          "action_id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "type": "string"
+          }
+        }
+      },
+      "Error": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["code", "message", "request_id"],
+            "properties": {
+              "code": {
+                "anyOf": [
+                  {
+                    "const": "INVALID_SCHEMA",
+                    "type": "string"
+                  },
+                  {
+                    "const": "PAYLOAD_TOO_LARGE",
+                    "type": "string"
+                  },
+                  {
+                    "const": "UNAUTHORIZED",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SESSION_NOT_FOUND",
+                    "type": "string"
+                  },
+                  {
+                    "const": "NOT_FOUND",
+                    "type": "string"
+                  },
+                  {
+                    "const": "INTERNAL",
+                    "type": "string"
+                  },
+                  {
+                    "const": "UNKNOWN_COMPONENT",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SESSION_REVISION_CONFLICT",
+                    "type": "string"
+                  },
+                  {
+                    "const": "IDEMPOTENCY_CONFLICT",
+                    "type": "string"
+                  },
+                  {
+                    "const": "PRECONDITION_REQUIRED",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SESSION_COMPLETED",
+                    "type": "string"
+                  },
+                  {
+                    "const": "ACTION_NOT_ALLOWED",
+                    "type": "string"
+                  },
+                  {
+                    "const": "ACTION_NOT_FOUND",
+                    "type": "string"
+                  },
+                  {
+                    "const": "VALIDATION_FAILED",
+                    "type": "string"
+                  },
+                  {
+                    "const": "RESPONSE_LIMIT_REACHED",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SERVICE_UNAVAILABLE",
+                    "type": "string"
+                  },
+                  {
+                    "const": "RATE_LIMITED",
+                    "type": "string"
+                  },
+                  {
+                    "const": "TRIAL_UNAVAILABLE",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGN_IN_UNAVAILABLE",
+                    "type": "string"
+                  },
+                  {
+                    "const": "WEBHOOK_INVALID_URL",
+                    "type": "string"
+                  },
+                  {
+                    "const": "WEBHOOK_VERIFICATION_FAILED",
+                    "type": "string"
+                  },
+                  {
+                    "const": "WEBHOOK_NOT_CONFIGURED",
+                    "type": "string"
+                  }
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "reason": {
+                "pattern": "^[a-z_]{1,40}$",
+                "description": "A stable machine-readable refinement of some codes (P1 A4 webhook errors).",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "HealthOk": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "const": "ok",
+            "type": "string"
+          }
+        }
+      },
+      "HealthUnavailable": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "const": "unavailable",
+            "type": "string"
+          }
+        }
+      },
+      "VersionResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["git_sha", "build_id", "build_time", "node_version"],
+        "properties": {
+          "git_sha": {
+            "description": "The deployed commit, from SESS_GIT_SHA. null when SESS_GIT_SHA is missing, empty or not exactly 40 lower-case hex characters; readiness then answers 503. Never derived from a checkout or normalized.",
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{40}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "build_id": {
+            "description": "SESS_BUILD_ID, else the BUILD_ID file at the workspace root of the image. null when neither supplies a valid one; readiness then answers 503.",
+            "anyOf": [
+              {
+                "pattern": "^[!-~]{1,128}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "build_time": {
+            "description": "ISO 8601 UTC build time, from SESS_BUILD_TIME, else the BUILD_TIME file at the workspace root of the image. Valid when it has real calendar components and is not more than 5 s after the current time, checked on every request. null when neither supplies a valid one, and readiness then answers 503; never the start time.",
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "node_version": {
+            "description": "The Node.js version (process.version).",
+            "type": "string"
+          }
+        }
+      },
+      "TrialCreateSessionRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["interaction"],
+        "properties": {
+          "interaction": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["mode", "title", "source", "actions"],
+            "properties": {
+              "mode": {
+                "const": "interactive",
+                "type": "string"
+              },
+              "title": {
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              "description": {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              "source": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["kind", "components"],
+                "properties": {
+                  "kind": {
+                    "const": "sess_surface",
+                    "type": "string"
+                  },
+                  "components": {
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "additionalProperties": true,
+                      "description": "One SurfaceComponent (heading, text, record or field). An unrecognized type fails with 400 UNKNOWN_COMPONENT.",
+                      "type": "object",
+                      "required": ["type"],
+                      "properties": {
+                        "type": {
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "actions": {
+                "minItems": 1,
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": ["id", "label"],
+                  "properties": {
+                    "id": {
+                      "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "\\S",
+                      "type": "string"
+                    },
+                    "intent": {
+                      "anyOf": [
+                        {
+                          "const": "submit",
+                          "type": "string"
+                        },
+                        {
+                          "const": "continue",
+                          "type": "string"
+                        },
+                        {
+                          "const": "approve",
+                          "type": "string"
+                        },
+                        {
+                          "const": "reject",
+                          "type": "string"
+                        },
+                        {
+                          "const": "request_change",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "response_policy": {
+                "description": "One accepted response per revision (the only P1 policy; the default).",
+                "const": "first",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "TrialCreateSessionResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "human_url",
+          "workspace_id",
+          "action_expires_at",
+          "result_available_until",
+          "trial_expires_at"
+        ],
+        "properties": {
+          "id": {
+            "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "human_url": {
+            "description": "The human link (a capability): share it only with the responder.",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "The trial workspace this Session belongs to.",
+            "type": "string"
+          },
+          "management_credential": {
+            "pattern": "^sess_mg_[A-Za-z0-9_-]{43}$",
+            "description": "Returned once, only when this request created the trial (no Authorization header). It reads this trial’s results and creates further Sessions in it; it is never retrievable again. Keep it secret; never put it in a URL.",
+            "type": "string"
+          },
+          "action_expires_at": {
+            "description": "After this instant the human link accepts no response.",
+            "type": "string"
+          },
+          "result_available_until": {
+            "description": "Until this instant the result can be read with the management credential.",
+            "type": "string"
+          },
+          "trial_expires_at": {
+            "description": "After this instant the trial creates no further Session.",
+            "type": "string"
+          }
+        }
+      },
+      "TrialSessionResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "revision",
+          "interaction",
+          "response_schema",
+          "responses",
+          "trial"
+        ],
+        "properties": {
+          "id": {
+            "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "const": "active",
+                "type": "string"
+              },
+              {
+                "const": "responded",
+                "type": "string"
+              },
+              {
+                "const": "completed",
+                "type": "string"
+              }
+            ]
+          },
+          "revision": {
+            "minimum": 1,
+            "description": "The current Surface revision.",
+            "type": "integer"
+          },
+          "interaction": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["mode", "title", "source", "actions", "response_policy"],
+            "properties": {
+              "mode": {
+                "const": "interactive",
+                "type": "string"
+              },
+              "title": {
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              "description": {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              "source": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["kind", "components"],
+                "properties": {
+                  "kind": {
+                    "const": "sess_surface",
+                    "type": "string"
+                  },
+                  "components": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "description": "A section heading (plain text).",
+                          "type": "object",
+                          "required": ["type", "text"],
+                          "properties": {
+                            "type": {
+                              "const": "heading",
+                              "type": "string"
+                            },
+                            "text": {
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "\\S",
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "additionalProperties": false,
+                          "description": "A paragraph of plain text (never markup).",
+                          "type": "object",
+                          "required": ["type", "text"],
+                          "properties": {
+                            "type": {
+                              "const": "text",
+                              "type": "string"
+                            },
+                            "text": {
+                              "minLength": 1,
+                              "maxLength": 4000,
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "additionalProperties": false,
+                          "description": "A read-only key/value record; keys and values are shown verbatim as text.",
+                          "type": "object",
+                          "required": ["type", "fields"],
+                          "properties": {
+                            "type": {
+                              "const": "record",
+                              "type": "string"
+                            },
+                            "label": {
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "\\S",
+                              "type": "string"
+                            },
+                            "fields": {
+                              "additionalProperties": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "minProperties": 1,
+                              "maxProperties": 50,
+                              "type": "object",
+                              "properties": {}
+                            }
+                          }
+                        },
+                        {
+                          "additionalProperties": false,
+                          "description": "A labeled input. string → text input (textarea when multiline); string with enum → select; number/integer → numeric input; boolean → checkbox; array of enum IDs → inline selection checkboxes.",
+                          "type": "object",
+                          "required": ["type", "name", "label", "schema"],
+                          "properties": {
+                            "type": {
+                              "const": "field",
+                              "type": "string"
+                            },
+                            "name": {
+                              "pattern": "^[a-z][a-z0-9_]{0,63}$",
+                              "type": "string"
+                            },
+                            "label": {
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "\\S",
+                              "type": "string"
+                            },
+                            "description": {
+                              "maxLength": 1000,
+                              "type": "string"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            },
+                            "multiline": {
+                              "description": "A string field rendered as a multi-line text area.",
+                              "type": "boolean"
+                            },
+                            "option_labels": {
+                              "additionalProperties": {
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "pattern": "\\S",
+                                "type": "string"
+                              },
+                              "maxProperties": 100,
+                              "description": "Display labels for enum values (default: the value itself).",
+                              "type": "object",
+                              "properties": {}
+                            },
+                            "schema": {
+                              "additionalProperties": true,
+                              "description": "The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true); title and description are allowed everywhere. Any other keyword fails with INVALID_SCHEMA.",
+                              "type": "object",
+                              "properties": {}
+                            },
+                            "value": {
+                              "description": "The proposed value shown to the person (a correction is a field with a proposed value). It must be valid against the field schema."
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "actions": {
+                "type": "array",
+                "items": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": ["id", "label"],
+                  "properties": {
+                    "id": {
+                      "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "\\S",
+                      "type": "string"
+                    },
+                    "intent": {
+                      "anyOf": [
+                        {
+                          "const": "submit",
+                          "type": "string"
+                        },
+                        {
+                          "const": "continue",
+                          "type": "string"
+                        },
+                        {
+                          "const": "approve",
+                          "type": "string"
+                        },
+                        {
+                          "const": "reject",
+                          "type": "string"
+                        },
+                        {
+                          "const": "request_change",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "response_policy": {
+                "const": "first",
+                "type": "string"
+              }
+            }
+          },
+          "response_schema": {
+            "additionalProperties": true,
+            "description": "The JSON Schema 2020-12 the current revision’s responses are validated against.",
+            "type": "object",
+            "properties": {}
+          },
+          "responses": {
+            "description": "Every accepted response, in sequence order, each bound to its revision.",
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "event_id",
+                "sequence",
+                "revision",
+                "action_id",
+                "data",
+                "actor",
+                "accepted_at",
+                "receipt"
+              ],
+              "properties": {
+                "event_id": {
+                  "pattern": "^evt_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "type": "string"
+                },
+                "sequence": {
+                  "minimum": 1,
+                  "description": "Monotonic per-Session Event sequence.",
+                  "type": "integer"
+                },
+                "revision": {
+                  "minimum": 1,
+                  "description": "The Surface revision it was accepted on.",
+                  "type": "integer"
+                },
+                "action_id": {
+                  "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                  "type": "string"
+                },
+                "data": {
+                  "additionalProperties": true,
+                  "description": "The normalized typed result, valid against that revision’s response_schema.",
+                  "type": "object",
+                  "properties": {}
+                },
+                "actor": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": ["assurance"],
+                  "properties": {
+                    "assurance": {
+                      "const": "link_holder",
+                      "type": "string"
+                    }
+                  }
+                },
+                "accepted_at": {
+                  "description": "ISO 8601 UTC time of acceptance.",
+                  "type": "string"
+                },
+                "receipt": {
+                  "description": "The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its human link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed.",
+                  "anyOf": [
+                    {
+                      "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "trial": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["workspace_id", "action_expires_at", "result_available_until"],
+            "properties": {
+              "workspace_id": {
+                "type": "string"
+              },
+              "action_expires_at": {
+                "description": "After this instant the human link accepts no response.",
+                "type": "string"
+              },
+              "result_available_until": {
+                "description": "Until this instant this result remains readable.",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "EmailLinkRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": {
+            "minLength": 3,
+            "maxLength": 254,
+            "description": "The address to send a sign-in link to. Trimmed and lower-cased.",
+            "type": "string"
+          }
+        }
+      },
+      "EmailLinkAccepted": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "description": "The link was handed to the email provider. The same answer for every address: it never says whether an account exists.",
+            "const": "accepted",
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {
+    "responseAccepted": {
+      "post": {
+        "operationId": "webhookResponseAccepted",
+        "description": "Sent for every accepted response while the workspace has a verified endpoint. Signed per workspace (Standard Webhooks v1): webhook-id = event_id (stable across retries and redeliveries: deduplicate on it), webhook-timestamp (seconds), webhook-signature = space-separated v1,<base64 HMAC-SHA256(secret, id.timestamp.body)>, one per secret in force (two during a 24-hour rotation overlap), sess-webhook-key-ids = their key IDs. HTTPS on port 443, no redirects followed, 10-second timeout, response read up to 64 KiB. 2xx = accepted by the endpoint (not that the workflow resumed); 5xx, 429 (Retry-After honored up to 1 h), 408, 425, timeouts and disconnects are retried with jitter up to 12 attempts within 24 h (a job out of budget ends exhausted); 3xx and other 4xx (including 401/403) are permanent. Delivery is at least once.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookDelivery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted by the endpoint."
+          }
+        }
+      }
+    },
+    "endpointVerification": {
+      "post": {
+        "operationId": "webhookEndpointVerification",
+        "description": "Sent by POST /v1/webhook/verify to the exact registered URL, signed like deliveries. Answer 2xx with a JSON body (at most 4 KiB) {\"challenge\": <the same value>}.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookVerification"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The echoed challenge."
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/v1/auth/email-link": {
+      "post": {
+        "operationId": "requestSignInLink",
+        "description": "Developer account sign-in. Emails a sign-in link to the address: it works once, expires 15 minutes after issue, and a newer link cancels it once the email provider has confirmed sending the newer one (an unconfirmed send cancels nothing). Signing in with one link cancels the address’s other links. The answer is the same whether or not an account exists. Opening the link shows a page whose Sign in button finishes the sign-in (GET never consumes it). Limits: 5 links per address and 20 per client per rolling hour. Developer sign-in never verifies a human responder.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailLinkRequest"
+              },
+              "examples": {
+                "request": {
+                  "value": {
+                    "email": "developer@example.test"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Handed to the email provider.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLinkAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_SCHEMA: not a plausible email address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED: too many links for this address or client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SIGN_IN_UNAVAILABLE (email is not configured on this deployment) or SERVICE_UNAVAILABLE (the email provider did not confirm the send: the outcome is unknown, so an email may or may not arrive; earlier links stay valid, and the attempt counts toward the limits)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app/confirm/{token}": {
+      "get": {
+        "operationId": "signInConfirmPage",
+        "description": "The page the emailed link opens (the token is a single-use secret; never log it). It only shows a Sign in button (with ?continue=key, a link requested to finish a key creation: \"Continue creating your key\"); it consumes nothing.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The confirm page.",
+            "content": {
+              "text/html": {}
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "signInConfirm",
+        "description": "Consumes the link once (same-origin requests only) and sets the account-page cookie: HttpOnly, Secure, SameSite=Strict, host-only, Path=/app, 12 hours. When the same browser holds a pending key creation of the same account (the key-intent cookie, set by a create post with an expired session of that account), the key is created now with that label and expiry, once, and the response is the one-time reveal; the intent cookie is cleared. A pending creation of another account creates nothing.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signed in; the pending key was not created because the expiry date its form showed is no longer the date a key created now would get (a new UTC day began): the keys page with a fresh form.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "201": {
+            "description": "Signed in and the pending key created: the keys page with it, shown once.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "303": {
+            "description": "Signed in: to /app/keys (/app/keys?resume=elsewhere when the link was for a key creation started in another browser), with Set-Cookie."
+          },
+          "400": {
+            "description": "SIGN_IN_LINK_INVALID: expired, used or replaced by a newer link.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "403": {
+            "description": "ACTION_NOT_ALLOWED: not a same-origin request.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "409": {
+            "description": "Signed in; the pending key was not created: KEY_LIMIT_REACHED (the account has 10 active keys).",
+            "content": {
+              "text/html": {}
+            }
+          }
+        }
+      }
+    },
+    "/app/keys": {
+      "get": {
+        "operationId": "apiKeysPage",
+        "description": "The account page listing the workspace’s API keys (label, fingerprint, created, last used, expiry, state). Without a live account session: 303 to /app/sign-in.",
+        "responses": {
+          "200": {
+            "description": "The keys page.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "303": {
+            "description": "To /app/sign-in."
+          }
+        }
+      },
+      "post": {
+        "operationId": "createApiKey",
+        "description": "Creates an owner API key (sess_sk_…) of the developer workspace and shows it once, in one post of the keys page’s create form. The form states each expiry choice’s exact date and carries a single-use nonce bound to the account session (15 minutes); creating consumes it, so a refresh or repeat never creates a second key or shows the secret again. The stored expiry has the date the form showed (rendered_at, bound to the nonce); when that date is no longer true the form is shown again (400). Form fields: csrf (the page’s token), nonce, rendered_at, label (optional, ≤ 64 characters, no control characters), expires_in_days (30, 90, 365 or never; required). Same-origin requests with the session’s CSRF token only. At most 10 active keys per account. With an expired account session (same-origin posts only), a valid label and expiry choice, bound to that account, is kept in a key-intent cookie (HMAC-protected, HttpOnly, Secure, SameSite=Strict, host-only, Path=/app, 15 minutes) and the answer is 303 to /app/sign-in (\"Verify it’s you\"); the key is created only after the email link is confirmed in the same browser. Revoke: POST /app/keys/{id}/revoke (same rules), immediate. Sign out: POST /app/sign-out.",
+        "responses": {
+          "201": {
+            "description": "The keys page with the new key, shown once.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "303": {
+            "description": "No live account session: to /app/sign-in (with the key-intent cookie for a valid choice)."
+          },
+          "400": {
+            "description": "INVALID_SCHEMA: an expiry that is not offered, an invalid label (the field shows the error), a form nonce that is missing, unknown, expired or issued to another account session, a changed rendered_at, or expiry dates that changed since the form was shown.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "403": {
+            "description": "ACTION_NOT_ALLOWED: cross-origin or a wrong CSRF token.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "409": {
+            "description": "KEY_LIMIT_REACHED, or KEY_ALREADY_CREATED (the same create form again: no second key, and the secret is not shown again).",
+            "content": {
+              "text/html": {}
+            }
+          }
+        }
+      }
+    },
+    "/app/trials/claim": {
+      "post": {
+        "operationId": "claimTrial",
+        "description": "Claims a no-signup trial for the signed-in developer account. Form fields: csrf (the page’s token) and management_credential (the trial’s sess_mg_… credential, in the form body only, never in a URL). Same-origin requests with the session’s CSRF token only; the human link can never claim. A claim records the account as the trial’s owner, once: nothing moves, the trial keeps its deadlines, limits and deletion time, its receipts stay as issued and its management credential keeps working. The account’s API keys can then read (only read) the trial’s Sessions with the owner read routes, each Session until its result_available_until (as with the management credential). Claiming the same trial again from the same account answers as the first claim.",
+        "responses": {
+          "303": {
+            "description": "Claimed (or already claimed by this account): to /app/keys?claimed=1. No live account session: to /app/sign-in."
+          },
+          "400": {
+            "description": "INVALID_SCHEMA: not a management credential.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "403": {
+            "description": "ACTION_NOT_ALLOWED: cross-origin or a wrong CSRF token.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "404": {
+            "description": "TRIAL_NOT_FOUND: no live trial for that credential (unknown, revoked, deleted or past its deletion time).",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "409": {
+            "description": "TRIAL_ALREADY_CLAIMED: another account claimed this trial.",
+            "content": {
+              "text/html": {}
+            }
+          }
+        }
+      }
+    },
+    "/v1/trial/sessions": {
+      "post": {
+        "operationId": "createTrialSession",
+        "security": [
+          {},
+          {
+            "managementCredential": []
+          }
+        ],
+        "description": "The no-signup trial. Without Authorization: creates a trial workspace and its first interactive Session, and returns the management credential once, in the body. With `Authorization: Bearer <management credential>`: creates a further Session in that trial. Interactive Sessions only (mode interactive); no return channel, webhook or outbound endpoint exists for a trial. Trial limits (published, reversible): human link and action window 1 hour; result readable 24 hours after the action window; at most 3 active Sessions and 10 Sessions per trial within its 24-hour creation window; at most 3 new trials per client and 200 overall per rolling 24 hours. Any other credential, or a management credential that is unknown, expired, revoked or bound to one Session → 404 NOT_FOUND. An Idempotency-Key header is refused (400 INVALID_SCHEMA): the credential and the human link cannot be replayed.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrialCreateSessionRequest"
+              },
+              "examples": {
+                "interactive": {
+                  "value": {
+                    "interaction": {
+                      "mode": "interactive",
+                      "title": "Review three synthetic invoices",
+                      "description": "Synthetic data. Correct the amount if needed and select the invoices to approve.",
+                      "source": {
+                        "kind": "sess_surface",
+                        "components": [
+                          {
+                            "type": "record",
+                            "label": "INV-1",
+                            "fields": {
+                              "id": "INV-1",
+                              "vendor": "Acme",
+                              "amount": 120
+                            }
+                          },
+                          {
+                            "type": "record",
+                            "label": "INV-2",
+                            "fields": {
+                              "id": "INV-2",
+                              "vendor": "Globex",
+                              "amount": 75.5
+                            }
+                          },
+                          {
+                            "type": "record",
+                            "label": "INV-3",
+                            "fields": {
+                              "id": "INV-3",
+                              "vendor": "Initech",
+                              "amount": 990
+                            }
+                          },
+                          {
+                            "type": "field",
+                            "name": "inv_3_amount",
+                            "label": "INV-3 amount",
+                            "required": true,
+                            "schema": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "value": 990
+                          },
+                          {
+                            "type": "field",
+                            "name": "approved",
+                            "label": "Invoices to approve",
+                            "schema": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": ["INV-1", "INV-2", "INV-3"]
+                              },
+                              "maxItems": 3
+                            },
+                            "value": []
+                          }
+                        ]
+                      },
+                      "actions": [
+                        {
+                          "id": "submit",
+                          "label": "Submit review",
+                          "intent": "submit"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session created at revision 1.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong: \"1.0\"."
+              },
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "/v1/trial/sessions/{id}"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialCreateSessionResponse"
+                },
+                "examples": {
+                  "created": {
+                    "value": {
+                      "id": "ses_01JABCDEFGHJKMNPQRSTVWXYZ0",
+                      "revision": 1,
+                      "human_url": "https://sess.example/s/{token}",
+                      "workspace_id": "wks_0123456789abcdef0123",
+                      "management_credential": "sess_mg_SYNTHETICxEXAMPLExNOTxAxCREDENTIALxxxxxxxxx",
+                      "action_expires_at": "2026-01-01T01:00:00.000Z",
+                      "result_available_until": "2026-01-02T01:00:00.000Z",
+                      "trial_expires_at": "2026-01-02T00:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_SCHEMA or UNKNOWN_COMPONENT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND: the credential does not authorize a trial, an unknown /v1/trial path or a malformed trial URL (never 401)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED: a trial limit (active Sessions, Sessions per trial, new trials per client or overall); also after the trial creation window has ended. The message names the limit in plain words for people; the code and Retry-After are the stable contract, so clients never parse the message.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds until the limit frees up, when a retry can succeed."
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TRIAL_UNAVAILABLE: the trial is not configured on this deployment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/trial/sessions/{id}": {
+      "get": {
+        "operationId": "getTrialSession",
+        "security": [
+          {
+            "managementCredential": []
+          }
+        ],
+        "description": "A trial Session and its accepted responses, read with the trial’s management credential, until result_available_until. Reading never consumes or changes it. A Session of another trial or workspace, an unknown, expired or revoked credential, a human link or an owner key → 404 NOT_FOUND (generic).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Session with its trial timing.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialSessionResponse"
+                },
+                "examples": {
+                  "responded": {
+                    "value": {
+                      "id": "ses_01JABCDEFGHJKMNPQRSTVWXYZ0",
+                      "status": "responded",
+                      "revision": 1,
+                      "interaction": {
+                        "mode": "interactive",
+                        "title": "Review three synthetic invoices",
+                        "description": "Synthetic data. Correct the amount if needed and select the invoices to approve.",
+                        "source": {
+                          "kind": "sess_surface",
+                          "components": [
+                            {
+                              "type": "record",
+                              "label": "INV-1",
+                              "fields": {
+                                "id": "INV-1",
+                                "vendor": "Acme",
+                                "amount": 120
+                              }
+                            },
+                            {
+                              "type": "record",
+                              "label": "INV-2",
+                              "fields": {
+                                "id": "INV-2",
+                                "vendor": "Globex",
+                                "amount": 75.5
+                              }
+                            },
+                            {
+                              "type": "record",
+                              "label": "INV-3",
+                              "fields": {
+                                "id": "INV-3",
+                                "vendor": "Initech",
+                                "amount": 990
+                              }
+                            },
+                            {
+                              "type": "field",
+                              "name": "inv_3_amount",
+                              "label": "INV-3 amount",
+                              "required": true,
+                              "schema": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 100000
+                              },
+                              "value": 990
+                            },
+                            {
+                              "type": "field",
+                              "name": "approved",
+                              "label": "Invoices to approve",
+                              "schema": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": ["INV-1", "INV-2", "INV-3"]
+                                },
+                                "maxItems": 3
+                              },
+                              "value": []
+                            }
+                          ]
+                        },
+                        "actions": [
+                          {
+                            "id": "submit",
+                            "label": "Submit review",
+                            "intent": "submit"
+                          }
+                        ],
+                        "response_policy": "first"
+                      },
+                      "response_schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "inv_3_amount": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100000
+                          },
+                          "approved": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": ["INV-1", "INV-2", "INV-3"]
+                            },
+                            "maxItems": 3,
+                            "uniqueItems": true
+                          }
+                        },
+                        "required": ["inv_3_amount"],
+                        "additionalProperties": false
+                      },
+                      "responses": [
+                        {
+                          "event_id": "evt_01JABCDEFGHJKMNPQRSTVWXYZ1",
+                          "sequence": 1,
+                          "revision": 1,
+                          "action_id": "submit",
+                          "data": {
+                            "inv_3_amount": 909,
+                            "approved": ["INV-1", "INV-3"]
+                          },
+                          "actor": {
+                            "assurance": "link_holder"
+                          },
+                          "accepted_at": "2026-01-01T00:00:00.000Z",
+                          "receipt": "synthetic-protected-header.synthetic-claims.synthetic-signature"
+                        }
+                      ],
+                      "trial": {
+                        "workspace_id": "wks_0123456789abcdef0123",
+                        "action_expires_at": "2026-01-01T01:00:00.000Z",
+                        "result_available_until": "2026-01-02T01:00:00.000Z"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND: any credential or isolation failure, an unknown /v1/trial path or a malformed trial URL (never 401 or 400)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TRIAL_UNAVAILABLE: the trial is not configured on this deployment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sessions": {
+      "post": {
+        "operationId": "createSession",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "Creates a display Session (mode display, source.kind data) or an interactive one (mode interactive, source.kind sess_surface; components: SurfaceComponent). An unrecognized component type → 400 UNKNOWN_COMPONENT; a field-schema keyword outside the supported subset → 400 INVALID_SCHEMA. An Idempotency-Key header is refused (400 INVALID_SCHEMA): the human link cannot be replayed (it is stored only as a hash). Retention: the human link expires 720 hours after creation with the deployment owner key and 168 hours with a developer API key (free plan). The Session’s content, accepted results and receipts are purged 720 hours (owner key) or 168 hours (developer API key) after the earlier of its completion and its link’s expiry, and outstanding webhook deliveries are cancelled; afterwards every owner route answers 404 SESSION_NOT_FOUND. A webhook already delivered is not recalled.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSessionRequest"
+              },
+              "examples": {
+                "display": {
+                  "value": {
+                    "interaction": {
+                      "mode": "display",
+                      "title": "Synthetic example",
+                      "description": "Synthetic data.",
+                      "source": {
+                        "kind": "data",
+                        "data": {
+                          "reference": "REF-1",
+                          "profile": {
+                            "name": "Example",
+                            "active": true
+                          },
+                          "rows": [
+                            {
+                              "id": "r1",
+                              "amount": 1
+                            },
+                            {
+                              "id": "r2",
+                              "amount": 2
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "interactive": {
+                  "value": {
+                    "interaction": {
+                      "mode": "interactive",
+                      "title": "Review three synthetic invoices",
+                      "description": "Synthetic data. Correct the amount if needed and select the invoices to approve.",
+                      "source": {
+                        "kind": "sess_surface",
+                        "components": [
+                          {
+                            "type": "record",
+                            "label": "INV-1",
+                            "fields": {
+                              "id": "INV-1",
+                              "vendor": "Acme",
+                              "amount": 120
+                            }
+                          },
+                          {
+                            "type": "record",
+                            "label": "INV-2",
+                            "fields": {
+                              "id": "INV-2",
+                              "vendor": "Globex",
+                              "amount": 75.5
+                            }
+                          },
+                          {
+                            "type": "record",
+                            "label": "INV-3",
+                            "fields": {
+                              "id": "INV-3",
+                              "vendor": "Initech",
+                              "amount": 990
+                            }
+                          },
+                          {
+                            "type": "field",
+                            "name": "inv_3_amount",
+                            "label": "INV-3 amount",
+                            "required": true,
+                            "schema": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "value": 990
+                          },
+                          {
+                            "type": "field",
+                            "name": "approved",
+                            "label": "Invoices to approve",
+                            "schema": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": ["INV-1", "INV-2", "INV-3"]
+                              },
+                              "maxItems": 3
+                            },
+                            "value": []
+                          }
+                        ]
+                      },
+                      "actions": [
+                        {
+                          "id": "submit",
+                          "label": "Submit review",
+                          "intent": "submit"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session created at revision 1.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Display: the quoted revision (\"1\"). Interactive: the strong \"<revision>.<sequence>\" (\"1.0\")."
+              },
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "/v1/sessions/{id}"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_SCHEMA or UNKNOWN_COMPONENT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sessions/{id}": {
+      "get": {
+        "operationId": "getSession",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "The Session. Interactive Sessions return status, the current revision, its response_schema and every accepted response bound to its revision; repeated reads of an unchanged Session are byte-identical. A developer API key also reads the Sessions of trials its account claimed (read-only), each until that Session’s result_available_until.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current revision of the Session.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/SessionResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InteractiveSessionResponse"
+                    }
+                  ]
+                },
+                "examples": {
+                  "interactive": {
+                    "value": {
+                      "id": "ses_01JABCDEFGHJKMNPQRSTVWXYZ0",
+                      "status": "responded",
+                      "revision": 1,
+                      "interaction": {
+                        "mode": "interactive",
+                        "title": "Review three synthetic invoices",
+                        "description": "Synthetic data. Correct the amount if needed and select the invoices to approve.",
+                        "source": {
+                          "kind": "sess_surface",
+                          "components": [
+                            {
+                              "type": "record",
+                              "label": "INV-1",
+                              "fields": {
+                                "id": "INV-1",
+                                "vendor": "Acme",
+                                "amount": 120
+                              }
+                            },
+                            {
+                              "type": "record",
+                              "label": "INV-2",
+                              "fields": {
+                                "id": "INV-2",
+                                "vendor": "Globex",
+                                "amount": 75.5
+                              }
+                            },
+                            {
+                              "type": "record",
+                              "label": "INV-3",
+                              "fields": {
+                                "id": "INV-3",
+                                "vendor": "Initech",
+                                "amount": 990
+                              }
+                            },
+                            {
+                              "type": "field",
+                              "name": "inv_3_amount",
+                              "label": "INV-3 amount",
+                              "required": true,
+                              "schema": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 100000
+                              },
+                              "value": 990
+                            },
+                            {
+                              "type": "field",
+                              "name": "approved",
+                              "label": "Invoices to approve",
+                              "schema": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": ["INV-1", "INV-2", "INV-3"]
+                                },
+                                "maxItems": 3
+                              },
+                              "value": []
+                            }
+                          ]
+                        },
+                        "actions": [
+                          {
+                            "id": "submit",
+                            "label": "Submit review",
+                            "intent": "submit"
+                          }
+                        ],
+                        "response_policy": "first"
+                      },
+                      "response_schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "inv_3_amount": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100000
+                          },
+                          "approved": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": ["INV-1", "INV-2", "INV-3"]
+                            },
+                            "maxItems": 3,
+                            "uniqueItems": true
+                          }
+                        },
+                        "required": ["inv_3_amount"],
+                        "additionalProperties": false
+                      },
+                      "responses": [
+                        {
+                          "event_id": "evt_01JABCDEFGHJKMNPQRSTVWXYZ1",
+                          "sequence": 1,
+                          "revision": 1,
+                          "action_id": "submit",
+                          "data": {
+                            "inv_3_amount": 909,
+                            "approved": ["INV-1", "INV-3"]
+                          },
+                          "actor": {
+                            "assurance": "link_holder"
+                          },
+                          "accepted_at": "2026-01-01T00:00:00.000Z",
+                          "receipt": "synthetic-protected-header.synthetic-claims.synthetic-signature"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_SCHEMA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SESSION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "publishRevision",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "Publishes the next immutable Surface revision of an interactive Session, from responded or active (superseding the unanswered revision). The Session returns to active on the same Session ID and human link; a submission against an older revision is then refused with SESSION_REVISION_CONFLICT.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "description": "The strong ETag from the latest GET (e.g. \"2.3\"). Required: absent or `*` → 428 PRECONDITION_REQUIRED. A weak tag (W/\"…\") never matches (strong comparison); a stale tag → 412 SESSION_REVISION_CONFLICT.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "description": "Scoped to the owner credential, the operation and the Session. The same canonical request (body and If-Match) returns the original result (status, ETag, body); a different request with the same key → 409 IDEMPOTENCY_CONFLICT. Only successful results are recorded.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The Session at its new revision.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong: \"<revision>.<sequence>\"."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteractiveSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_SCHEMA or UNKNOWN_COMPONENT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ACTION_NOT_ALLOWED: a Session of a claimed trial (read-only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SESSION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "SESSION_COMPLETED, ACTION_NOT_ALLOWED (display Session) or IDEMPOTENCY_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "SESSION_REVISION_CONFLICT (If-Match does not match the current ETag)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "PRECONDITION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sessions/{id}/complete": {
+      "post": {
+        "operationId": "completeSession",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "Completes an interactive Session explicitly. Terminal: a completed Session accepts no further submission or revision. No request body.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "description": "The strong ETag from the latest GET (e.g. \"2.3\"). Required: absent or `*` → 428 PRECONDITION_REQUIRED. A weak tag (W/\"…\") never matches (strong comparison); a stale tag → 412 SESSION_REVISION_CONFLICT.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "description": "Scoped to the owner credential, the operation and the Session. The same canonical request (body and If-Match) returns the original result (status, ETag, body); a different request with the same key → 409 IDEMPOTENCY_CONFLICT. Only successful results are recorded.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The completed Session.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong: \"<revision>.<sequence>\"."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteractiveSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_SCHEMA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ACTION_NOT_ALLOWED: a Session of a claimed trial (read-only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SESSION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "SESSION_COMPLETED, ACTION_NOT_ALLOWED (display Session) or IDEMPOTENCY_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "SESSION_REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "PRECONDITION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sessions/{id}/events": {
+      "get": {
+        "operationId": "listSessionEvents",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "Every Event of the Session in sequence order: response.accepted (actor link_holder, the revision it was accepted on, action_id and the typed data), revision.published and session.completed (actor owner). Append-only: Event IDs and sequences never change, and every accepted result stays listed after later revisions and completion. Not paginated in P1 (a Session has a few Events per round). Display Sessions have none. Cache-Control: no-store, no-transform.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Event log.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionEventsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SESSION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sessions/{id}/surfaces/{revision}": {
+      "get": {
+        "operationId": "getSurfaceRevision",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "One immutable Surface revision exactly as stored: the interaction (and, for an interactive Session, the response schema) that responses on that revision are bound to. Cache-Control: no-store, no-transform.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,8}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The revision.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/SessionResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InteractiveSurfaceResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_SCHEMA (revision is not a positive integer)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SESSION_NOT_FOUND, or NOT_FOUND for a revision that does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/s/{token}": {
+      "post": {
+        "operationId": "submitHumanAction",
+        "description": "The human form submission (the human link is the capability; never log it). Accepted only from the page itself: Sec-Fetch-Site same-origin, or without Fetch Metadata an Origin equal to the public origin. The server resolves action_id from the exact stored revision and validates data against its response_schema. Responses are HTML pages whose stable code is in a data-error-code attribute.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanSubmissionForm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted (with a signed decision receipt stored with its Event, returned by the owner GET and the Event log), or a repeated client_event_id with the same request (original result and the same receipt, never re-signed).",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "400": {
+            "description": "INVALID_SCHEMA or ACTION_NOT_FOUND.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "403": {
+            "description": "ACTION_NOT_ALLOWED: not a same-origin submission.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "404": {
+            "description": "Unknown, expired or revoked link (generic).",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "405": {
+            "description": "ACTION_NOT_ALLOWED: a display Session.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "409": {
+            "description": "SESSION_REVISION_CONFLICT (the current revision, prefilled with the safe draft), RESPONSE_LIMIT_REACHED, SESSION_COMPLETED or IDEMPOTENCY_CONFLICT.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "415": {
+            "description": "INVALID_SCHEMA: not application/x-www-form-urlencoded.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED: the form with field errors.",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: the receipt keys are not configured; nothing is accepted.",
+            "content": {
+              "text/html": {}
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhook": {
+      "put": {
+        "operationId": "registerWebhook",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "Registers the owner workspace’s webhook endpoint (one return channel). It replaces the current endpoint, whose pending deliveries are not redirected (they fail as endpoint_unavailable; redeliver explicitly), and receives nothing until verified. The first registration also creates the signing secret, returned once. 503 SERVICE_UNAVAILABLE while data-encryption keys are not configured.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookRegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registered (pending).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookRegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "WEBHOOK_INVALID_URL (reason: not_https, port, credentials, fragment, non_public_address, malformed, too_long) or INVALID_SCHEMA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getWebhook",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "The endpoint, the signing secrets in force (key IDs only) and delivery counts with the age of the oldest pending delivery.",
+        "responses": {
+          "200": {
+            "description": "The webhook state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhook/verify": {
+      "post": {
+        "operationId": "verifyWebhook",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "POSTs a fresh random challenge to the exact registered URL through the delivery egress policy; the endpoint is verified when it echoes it, for 30 days (verification_expires_at). Verifying again renews it; an expired verification reads as pending (no new deliveries; queued ones fail endpoint_unavailable). Every connection resolves the host and refuses non-public addresses.",
+        "responses": {
+          "200": {
+            "description": "Verified."
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "WEBHOOK_NOT_CONFIGURED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "WEBHOOK_VERIFICATION_FAILED (reason: egress_refused, redirect, rejected, bad_answer, timeout, connection, dns)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhook/secrets/rotate": {
+      "post": {
+        "operationId": "rotateWebhookSecret",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "Creates a new signing secret (returned once). The previous one keeps signing for a 24-hour overlap, so deliveries carry both signatures until then.",
+        "responses": {
+          "201": {
+            "description": "Rotated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookRotateResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "WEBHOOK_NOT_CONFIGURED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sessions/{id}/deliveries": {
+      "get": {
+        "operationId": "listDeliveries",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "Every webhook delivery job of the Session’s accepted responses with every attempt (outcome and HTTP status), including permanent failures and exhausted retries.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The delivery log.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveriesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SESSION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sessions/{id}/events/{event_id}/redeliver": {
+      "post": {
+        "operationId": "redeliverEvent",
+        "security": [
+          {
+            "ownerKey": []
+          }
+        ],
+        "description": "Queues the accepted Event for delivery again to the current verified endpoint, with a fresh retry budget. The message is the same bytes (same event_id and receipt). A delivery already pending for the Event to the current endpoint is returned instead; one pending for a replaced endpoint is ended (endpoint_unavailable) and a new one queued.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Queued."
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ACTION_NOT_ALLOWED: a Session of a claimed trial (read-only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND (no such accepted Event in this Session)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "WEBHOOK_NOT_CONFIGURED (no verified endpoint)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/sess-receipt-keys.json": {
+      "get": {
+        "operationId": "receiptKeys",
+        "description": "The public decision-receipt verification keys as a JWK Set (Ed25519, alg EdDSA): the active signing key and every retained key of the rotation overlap. Verify a receipt (compact JWS, typ sess-receipt+jwt) with the key its protected header kid names, issuer = this origin, audience = the Session’s workspace (wks_operator for owner-API Sessions, the trial’s workspace_id for trial Sessions). No credential. 503 SERVICE_UNAVAILABLE while the receipt keys are not configured. Cache-Control: no-store, no-transform.",
+        "responses": {
+          "200": {
+            "description": "The JWK Set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptKeysResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "operationId": "openApi",
+        "description": "This document: the generated, CI-drift-checked contract of the artifact.",
+        "responses": {
+          "200": {
+            "description": "The OpenAPI 3.1 document.",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "healthLive",
+        "description": "Process liveness only: no dependency is called. Cache-Control: no-store.",
+        "responses": {
+          "200": {
+            "description": "The process is running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOk"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "healthReady",
+        "description": "Readiness, checked within a bound and never cached: the owner key and the decision-receipt signing keys are configured and usable, the build identity is complete and valid (git_sha, build_id and build_time are all non-null in /version), the database answers, and every migration bundled with the artifact is applied. Concurrent requests share the check in progress; the next request after it settles runs a new one. Never migrates and never calls a telemetry backend. Query parameters are ignored. Cache-Control: no-store.",
+        "responses": {
+          "200": {
+            "description": "Ready to serve.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOk"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not ready: configuration, database or schema. No detail is disclosed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthUnavailable"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "operationId": "version",
+        "description": "Non-secret build identity. Answers 200 even when readiness does not. git_sha, build_id and build_time are each null when not supplied or invalid (git_sha: SESS_GIT_SHA missing, empty or malformed; build_time also while it is more than 5 s in the future, checked per request); any null fails readiness (503). Cache-Control: no-store.",
+        "responses": {
+          "200": {
+            "description": "The build identity of the running artifact.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                },
+                "examples": {
+                  "configured": {
+                    "value": {
+                      "git_sha": "0123456789abcdef0123456789abcdef01234567",
+                      "build_id": "synthetic-build-1",
+                      "build_time": "2026-01-01T00:00:00Z",
+                      "node_version": "v24.21.0"
+                    }
+                  },
+                  "withoutGitSha": {
+                    "value": {
+                      "git_sha": null,
+                      "build_id": "synthetic-build-1",
+                      "build_time": "2026-01-01T00:00:00Z",
+                      "node_version": "v24.21.0"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

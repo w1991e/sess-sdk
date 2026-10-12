@@ -1,0 +1,9 @@
+{
+  "source": "https://api.sess.si/openapi.json",
+  "source_runtime_commit": "31ce5d557e6c6dd14972c8e8923f68ea294ce9b3",
+  "source_git_blob_sha1": "1334a460f61d923871575ce8011d6b9616fa7a89",
+  "snapshot_sha256": "8d4c04593b1137cc9730e3836b77173c463e03c7fe1b6cc53a0d51de5890cc65",
+  "generator": "openapi-typescript",
+  "generator_version": "7.13.0",
+  "recorded_at": "2026-10-12T22:01:19.226Z"
+}
