@@ -1,0 +1,42 @@
+name: SDK bootstrap (temporary)
+on:
+  push:
+    branches: [feat/sdk-v1-1]
+    paths: [.github/workflows/bootstrap-sdk.yml, scripts/bootstrap-contract.mjs]
+permissions:
+  contents: read
+jobs:
+  bootstrap:
+    if: github.repository == 'w1991e/sess-sdk' && github.actor == 'w1991e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: feat/sdk-v1-1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Resolve exact candidate dependencies without install scripts
+        run: |
+          npm install --ignore-scripts --save-exact jose@6.2.12 canonicalize@latest standardwebhooks@1.1.1
+          npm install --ignore-scripts --save-dev --save-exact typescript@5.9.3 vitest@latest openapi-typescript@latest @types/node@22 esbuild@latest
+          node scripts/bootstrap-contract.mjs
+      - name: Commit only generated baseline files to this implementation branch
+        run: |
+          git config user.name 'SESS SDK bootstrap'
+          git config user.email '144073500+w1991e@users.noreply.github.com'
+          git add package.json package-lock.json contract/openapi.json contract/contract-lock.json contract/toolchain.json src/generated/openapi.ts
+          git commit -m 'build: pin generated public contract, wire types and dependency lock'
+          git pull --rebase origin feat/sdk-v1-1
+          git push origin HEAD:feat/sdk-v1-1
+      - name: Preserve an offline development bundle
+        run: tar -czf sdk-bootstrap.tgz node_modules package.json package-lock.json contract src/generated
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sdk-bootstrap
+          path: sdk-bootstrap.tgz
+          retention-days: 3
