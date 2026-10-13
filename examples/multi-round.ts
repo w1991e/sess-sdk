@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { open, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import canonicalize from 'canonicalize';
-import { Sess, SessError, type InteractiveInteraction, type WaitResult } from '@sess/sdk';
+import { Sess, SessError, type InteractiveInteraction, type WaitResult } from '@sess.si/sdk';
 import { invoiceInteraction } from './quickstart.js';
 
 type Intent = {

@@ -1,7 +1,7 @@
 # API reference
 
-Import `Sess`, `SessError`, public request/response types and `isInteractiveSession` from `@sess/sdk`.
-Use `@sess/sdk/receipts` for `verifyDecisionReceipt` and verification types, and `@sess/sdk/webhooks`
+Import `Sess`, `SessError`, public request/response types and `isInteractiveSession` from `@sess.si/sdk`.
+Use `@sess.si/sdk/receipts` for `verifyDecisionReceipt` and verification types, and `@sess.si/sdk/webhooks`
 for `verifyWebhook` and incoming-message types. No wildcard/deep imports are supported.
 
 ## Client configuration

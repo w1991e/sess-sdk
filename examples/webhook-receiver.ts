@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { verifyWebhook, type WebhookEvent, type WebhookHeaders } from '@sess/sdk/webhooks';
-import type { DeepReadonly } from '@sess/sdk/receipts';
+import { verifyWebhook, type WebhookEvent, type WebhookHeaders } from '@sess.si/sdk/webhooks';
+import type { DeepReadonly } from '@sess.si/sdk/receipts';
 
 /** Implement this with your database/queue transaction and a UNIQUE(workspace_id,event_id). */
 export interface DurableInbox {

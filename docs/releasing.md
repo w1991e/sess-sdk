@@ -1,12 +1,16 @@
-# Releasing @sess/sdk
+# Releasing @sess.si/sdk
 
 ## Current state and owner prerequisites
 
 This is an unpublished code candidate. Do not equate a green tarball check with a public release.
-Before the first release, the owner must establish actual `@sess` scope control and permission to
-publish `@sess/sdk`, approve source/package visibility, confirm copyright-holder/license notices,
-enable a verified private vulnerability-reporting channel, and authorize the exact candidate.
-No substitute package name, visibility change, production deployment or token creation is automatic.
+The owner confirmed creation of the npm organization `sess.si` and approved `@sess.si/sdk`
+as the public package name, superseding the previously proposed `@sess/sdk`. Organization creation
+and naming approval do not verify package publication, account MFA, trusted-publisher configuration
+or permission to publish this exact candidate. Before the first release, the owner must verify those
+prerequisites, approve source/package visibility, confirm copyright-holder/license notices, enable a
+verified private vulnerability-reporting channel, and authorize the exact candidate. No alias or
+compatibility package under `@sess/sdk` is planned; no visibility change, production deployment or
+token creation is automatic.
 
 The candidate uses Apache-2.0 terms and preserves dependency notices; final copyright-holder and
 publication approval remain explicit prerequisites. The existing MIT testbed is not relicensed.

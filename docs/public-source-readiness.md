@@ -1,8 +1,14 @@
 # Public SDK source readiness
 
-`@sess/sdk` is intended for public source and npm distribution after the owner's release
+`@sess.si/sdk` is intended for public source and npm distribution after the owner's release
 decision. The runtime/renderer and testbed remain private. Package checks and public-source
 checks cover different boundaries; passing either is not publication authorization.
+
+The approved current distribution is `@sess.si/sdk`, with `/receipts` and `/webhooks` subpaths.
+The preserved R1 reports in `docs/reviews/` and retained Git history still describe earlier
+`@sess/sdk` candidates and their original source/archive identities. Those references are historical
+evidence, not aliases or instructions to install the former name. Private runtime workspace
+packages, GitHub repository names, API hosts, receipt issuers and wire contracts retain their names.
 
 ## Automated source and history coverage
 

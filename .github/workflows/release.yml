@@ -43,7 +43,7 @@ jobs:
           if (process.env.GITHUB_REPOSITORY !== 'w1991e/sess-sdk' ||
               !validVersion.test(manifest.version) ||
               process.env.GITHUB_REF !== `refs/tags/v${manifest.version}` ||
-              manifest.name !== '@sess/sdk' || manifest.private === true ||
+              manifest.name !== '@sess.si/sdk' || manifest.private === true ||
               manifest.publishConfig?.access !== 'public') {
             throw new Error('Release identity, version or visibility guard failed.');
           }
@@ -125,10 +125,13 @@ jobs:
           import { readFileSync } from 'node:fs';
           const manifest = JSON.parse(readFileSync('package.json', 'utf8'));
           const result = JSON.parse(readFileSync('.artifacts/package-result.json', 'utf8'));
-          const filename = `sess-sdk-${manifest.version}.tgz`;
+          // npm pack's JSON record is authoritative for the scoped archive filename.
+          const filename = result.filename;
           const distTag = manifest.version.includes('-rc.') ? 'next' : 'latest';
-          if (manifest.version !== process.env.RELEASE_VERSION || result.version !== manifest.version ||
-              distTag !== process.env.RELEASE_DIST_TAG || result.filename !== filename ||
+          if (manifest.name !== '@sess.si/sdk' || result.name !== manifest.name ||
+              !/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/.test(filename) ||
+              manifest.version !== process.env.RELEASE_VERSION || result.version !== manifest.version ||
+              distTag !== process.env.RELEASE_DIST_TAG ||
               result.tarball !== `.artifacts/${filename}` || result.node !== 'v24.21.0' ||
               result.sourceCommit !== process.env.GITHUB_SHA || result.sourceTreeDirty !== false) {
             throw new Error('Tested artifact does not match the approved release.');

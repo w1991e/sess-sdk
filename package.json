@@ -1,5 +1,5 @@
 {
-  "name": "@sess/sdk",
+  "name": "@sess.si/sdk",
   "version": "0.1.0-rc.3",
   "description": "Server-side SESS API client, exact-revision human interaction polling, and receipt/webhook verification.",
   "type": "module",

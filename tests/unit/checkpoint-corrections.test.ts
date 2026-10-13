@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { Sess } from '@sess/sdk';
+import { Sess } from '@sess.si/sdk';
 import {
   decodeCheckpoint,
   fileCheckpointStore,

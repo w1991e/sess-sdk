@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as ts from 'typescript';
-import { Sess } from '@sess/sdk';
+import { Sess } from '@sess.si/sdk';
 import type { InteractiveSession, SurfaceRevision } from '../../src/index.js';
 import {
   assertCurrentStep,
@@ -126,7 +126,7 @@ describe('compiled examples and continuation safeguards', () => {
       /<!-- example:quickstart -->\s*```ts\n([\s\S]*?)\n```\s*<!-- \/example:quickstart -->/,
     );
     expect(snippet?.[1]).toBeTruthy();
-    const source = snippet![1]!.replace(/^import \{ Sess \} from '@sess\/sdk';\r?\n/m, '');
+    const source = snippet![1]!.replace(/^import \{ Sess \} from '@sess\.si\/sdk';\r?\n/m, '');
     const compiled = ts.transpileModule(source, {
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
     }).outputText;

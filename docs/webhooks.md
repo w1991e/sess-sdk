@@ -27,7 +27,7 @@ metadata and renew explicitly. The SDK does not start renewal or delivery timers
 
 ## Authenticate the exact raw body
 
-`verifyWebhook(rawBody, headers, options)` from `@sess/sdk/webhooks` accepts a `Uint8Array`
+`verifyWebhook(rawBody, headers, options)` from `@sess.si/sdk/webhooks` accepts a `Uint8Array`
 (including Node `Buffer`) or the exact original UTF-8 string. Supply either
 `{ secret }` or `{ secrets: [oldSecret, newSecret] }` from your trusted workspace
 configuration. `headers` can be a Web `Headers` object or a case-insensitive record
@@ -85,8 +85,8 @@ Do not choose a workspace or secret by trusting the receipt's decoded audience.
 The [Node HTTP receiver example](../examples/webhook-receiver.ts) exposes:
 
 ```ts
-import type { DeepReadonly } from '@sess/sdk/receipts';
-import type { WebhookEvent } from '@sess/sdk/webhooks';
+import type { DeepReadonly } from '@sess.si/sdk/receipts';
+import type { WebhookEvent } from '@sess.si/sdk/webhooks';
 
 interface DurableInbox {
   accept(message: {
