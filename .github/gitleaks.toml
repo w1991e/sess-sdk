@@ -1,0 +1,45 @@
+# Policy fragment combined by scripts/scan-source-history.mjs with the SHA-pinned
+# upstream rules. The upstream global suppression block is removed, so tracked
+# lockfiles, scanner configuration, tests and every extension remain in scope.
+# Any change to detection rules or exceptions requires non-author focused review.
+
+[[rules]]
+id = "sess-credential"
+description = "SESS owner, trial-management, trial or management credential"
+regex = '''sess_(?:sk|mg|tk|mk)_[A-Za-z0-9_-]{30,}'''
+keywords = ["sess_sk_", "sess_mg_", "sess_tk_", "sess_mk_"]
+
+[[rules.allowlists]]
+description = "The single pinned public OpenAPI example, never an issued credential"
+condition = "AND"
+paths = ['''(?:^|/)contract/openapi\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"management_credential": "sess_mg_(?:SYNTHETICxEXAMPLExNOTxAxCREDENTIALxxxxxxxxx)",?\s*$''']
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Public synthetic replay identity exercises preserved punctuation bytes, not authentication"
+condition = "AND"
+paths = ['''(?:^|/)tests/unit/checkpoint-corrections\.test\.ts$''']
+regexTarget = "line"
+regexes = ['''^\s*const idempotencyKey = 'Original\.Key:with_Bytes-128';\s*$''']
+
+[[rules]]
+id = "sess-webhook-secret"
+description = "Once-returned SESS webhook signing secret"
+regex = '''whsec_[A-Za-z0-9+/]{43}='''
+keywords = ["whsec_"]
+
+[[rules]]
+id = "sess-human-capability"
+description = "Private hosted human capability URL"
+regex = '''https?://[^\s"'<>]+/s/[A-Za-z0-9_-]{43}(?:[\s"'<>]|$)'''
+keywords = ["/s/"]
+
+[[rules]]
+id = "private-key-header"
+description = "Private key header, including truncated private material"
+regex = '''-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'''
+keywords = ["-----BEGIN"]
