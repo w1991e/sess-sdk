@@ -12,9 +12,18 @@ import {
   type Checkpoint,
   type CheckpointStore,
 } from '../../examples/multi-round.js';
-import { reviewInvoice } from '../../examples/quickstart.js';
+import { invoiceInteraction, reviewInvoice } from '../../examples/quickstart.js';
 import { formRequest, previewForm } from '../../examples/form-controls.js';
-import { API_KEY, RESPONSE, SESSION_ID, WORKSPACE, creation, json, session } from '../fixtures/api.js';
+import {
+  API_KEY,
+  INTERACTION,
+  RESPONSE,
+  SESSION_ID,
+  WORKSPACE,
+  creation,
+  json,
+  session,
+} from '../fixtures/api.js';
 import { fixture, digest, signClaims } from '../security/fixtures.js';
 
 function mockLifecycle() {
@@ -157,7 +166,25 @@ describe('compiled examples and continuation safeguards', () => {
     };
     const sdk = new Sess({ apiKey: API_KEY, fetch: runtime.fetch });
     const handoff = vi.fn(async () => {});
-    await runMultiRound(sdk, store, handoff);
+    await runMultiRound(sdk, store, handoff, undefined, 'credential-slot-v1');
+    expect(runtime.counts()).toEqual({ creates: 1, publishes: 2, completes: 1 });
+    expect(saved?.verification).toBe('verified');
+    const legacyCompleted = structuredClone(saved!);
+    legacyCompleted.version = 1;
+    delete legacyCompleted.credentialScope;
+    delete legacyCompleted.verification;
+    await runMultiRound(
+      sdk,
+      {
+        async load() {
+          return legacyCompleted;
+        },
+        async save() {
+          throw new Error('Legacy state must remain untouched');
+        },
+      },
+      handoff,
+    );
     expect(runtime.counts()).toEqual({ creates: 1, publishes: 2, completes: 1 });
     expect(handoff).toHaveBeenCalledTimes(1);
     expect(runtime.current().responses).toHaveLength(3);
@@ -170,7 +197,7 @@ describe('compiled examples and continuation safeguards', () => {
         ifMatch: expect.stringMatching(/^"/),
       });
     }
-    await runMultiRound(sdk, store, handoff);
+    await runMultiRound(sdk, store, handoff, undefined, 'credential-slot-v1');
     expect(runtime.counts()).toEqual({ creates: 1, publishes: 2, completes: 1 });
   });
   it.each(['advanced', 'completed', 'already_processed'] as const)(
@@ -225,9 +252,11 @@ describe('compiled examples and continuation safeguards', () => {
   it('saved uncertain mutation replays its original identity without a newer read', async () => {
     const current = session({ status: 'responded', responses: [RESPONSE] });
     const state: Checkpoint = {
-      version: 1,
+      version: 2,
       phase: 'running',
       sessionId: SESSION_ID,
+      humanUrl: 'https://human.example/s/synthetic',
+      credentialScope: 'credential-slot-v1',
       revision: 1,
       processedEvents: [RESPONSE.event_id],
       intent: {
@@ -235,7 +264,27 @@ describe('compiled examples and continuation safeguards', () => {
         sessionId: SESSION_ID,
         ifMatch: '"original"',
         idempotencyKey: 'original-key',
-        body: { interaction: { ...current.interaction } as never },
+        nextRevision: 2,
+        credentialScope: 'credential-slot-v1',
+        body: {
+          interaction: {
+            ...invoiceInteraction,
+            title: 'Review round 2',
+            source: {
+              kind: 'sess_surface',
+              components: [
+                {
+                  type: 'field',
+                  name: 'amount',
+                  label: 'Confirm amount',
+                  required: true,
+                  schema: { type: 'number', minimum: 0 },
+                  value: 120,
+                },
+              ],
+            },
+          },
+        },
       },
     };
     const fetch: typeof globalThis.fetch = vi.fn(async (_url, init) => {
@@ -257,6 +306,8 @@ describe('compiled examples and continuation safeguards', () => {
           async save() {},
         },
         async () => {},
+        undefined,
+        'credential-slot-v1',
       ),
     ).rejects.toMatchObject({ status: 412 });
     expect(fetch).toHaveBeenCalledTimes(1);

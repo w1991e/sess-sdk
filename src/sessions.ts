@@ -6,6 +6,7 @@ import {
   decodeEvents,
   decodeSession,
   decodeSurface,
+  decodeRedelivery,
 } from './internal/decode.js';
 import { boundedNumber } from './internal/time.js';
 import { waitForResponse } from './polling.js';
@@ -24,7 +25,35 @@ import type {
   VersionedResult,
   WaitOptions,
   WaitResult,
+  RedeliverResponse,
 } from './types.js';
+
+function mutationIdentity(options: MutationOptions): {
+  ifMatch: string;
+  idempotencyKey?: string;
+  requestOptions: RequestOptions;
+} {
+  const source = options ?? ({} as MutationOptions);
+  if (typeof source !== 'object' || Array.isArray(source))
+    throw new SessError('configuration', 'Mutation options must be an object.', { outcome: 'not_sent' });
+  // Inspect the two replay identity fields before spreading/accessing caller options.
+  // Accessor or inherited identities are not immutable primitive options.
+  for (const name of ['ifMatch', 'idempotencyKey'] as const) {
+    const descriptor = Object.getOwnPropertyDescriptor(source, name);
+    if (
+      (name in source && !descriptor) ||
+      (descriptor && !('value' in descriptor)) ||
+      (name === 'idempotencyKey' && descriptor && typeof descriptor.value !== 'string')
+    )
+      throw new SessError(
+        'configuration',
+        'Mutation identity options must be primitive string data properties.',
+        { outcome: 'not_sent' },
+      );
+  }
+  const { ifMatch, idempotencyKey, ...requestOptions } = source;
+  return { ifMatch, idempotencyKey, requestOptions };
+}
 
 export class Sessions {
   #transport: Transport;
@@ -72,12 +101,12 @@ export class Sessions {
     ) as Promise<VersionedResult<Session>>;
   }
   /** Full next interaction, with the original concurrency and replay identity. */
-  publish(
+  async publish(
     id: string,
     body: PublishSessionRequest,
     options: MutationOptions,
   ): Promise<VersionedResult<InteractiveSession>> {
-    const { ifMatch, idempotencyKey, ...requestOptions } = options ?? ({} as MutationOptions);
+    const { ifMatch, idempotencyKey, requestOptions } = mutationIdentity(options);
     return this.#transport.request(
       {
         name: 'sessions.publish',
@@ -101,8 +130,8 @@ export class Sessions {
       requestOptions,
     ) as Promise<VersionedResult<InteractiveSession>>;
   }
-  complete(id: string, options: MutationOptions): Promise<VersionedResult<InteractiveSession>> {
-    const { ifMatch, idempotencyKey, ...requestOptions } = options ?? ({} as MutationOptions);
+  async complete(id: string, options: MutationOptions): Promise<VersionedResult<InteractiveSession>> {
+    const { ifMatch, idempotencyKey, requestOptions } = mutationIdentity(options);
     return this.#transport.request(
       {
         name: 'sessions.complete',
@@ -169,7 +198,11 @@ export class Sessions {
       options,
     );
   }
-  redeliverEvent(id: string, eventId: string, options?: RequestOptions): Promise<ApiResult<void>> {
+  redeliverEvent(
+    id: string,
+    eventId: string,
+    options?: RequestOptions,
+  ): Promise<ApiResult<RedeliverResponse>> {
     return this.#transport.request(
       {
         name: 'sessions.redeliverEvent',
@@ -177,6 +210,7 @@ export class Sessions {
         path: `/v1/sessions/${pathSegment(id)}/events/${pathSegment(eventId)}/redeliver`,
         status: 202,
         retry: 'never',
+        parse: (value) => decodeRedelivery(value, eventId),
       },
       options,
     );

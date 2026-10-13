@@ -10,6 +10,8 @@ import type {
   WebhookRegisterResponse,
   WebhookResponse,
   WebhookRotateResponse,
+  WebhookVerifyResponse,
+  RedeliverResponse,
 } from '../types.js';
 
 export const ulid = '[0-9A-HJKMNP-TV-Z]{26}';
@@ -27,7 +29,13 @@ export function object(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 export function string(value: unknown, pattern?: RegExp, max = 4096): string {
-  if (typeof value !== 'string' || !value.length || value.length > max || (pattern && !pattern.test(value)))
+  // The wire contract uses Unicode code points, independently of UTF-8 body caps.
+  if (
+    typeof value !== 'string' ||
+    !value.length ||
+    [...value].length > max ||
+    (pattern && !pattern.test(value))
+  )
     protocol();
   return value;
 }
@@ -47,7 +55,7 @@ function array(value: unknown): unknown[] {
   return value;
 }
 function oneOf(value: unknown, values: readonly string[]): void {
-  if (!values.includes(String(value)) || typeof value !== 'string') protocol();
+  if (typeof value !== 'string' || !values.includes(value)) protocol();
 }
 function receipt(value: unknown): void {
   if (value !== null) string(value, receiptPattern, 65536);
@@ -67,11 +75,12 @@ function interaction(value: unknown, mode: 'display' | 'interactive'): void {
   for (const item of array(source.components)) {
     const c = object(item);
     oneOf(c.type, ['heading', 'text', 'record', 'field']);
-    if (c.type === 'heading' || c.type === 'text') string(c.text);
+    if (c.type === 'heading') string(c.text, undefined, 200);
+    if (c.type === 'text') string(c.text, undefined, 4000);
     if (c.type === 'record') object(c.fields);
     if (c.type === 'field') {
       string(c.name, /^[a-z][a-z0-9_]{0,63}$/);
-      string(c.label);
+      string(c.label, undefined, 200);
       oneOf(object(c.schema).type, ['string', 'number', 'integer', 'boolean', 'array']);
     }
   }
@@ -81,7 +90,7 @@ function interaction(value: unknown, mode: 'display' | 'interactive'): void {
     const id = string(a.id, actionPattern);
     if (seen.has(id)) protocol();
     seen.add(id);
-    string(a.label);
+    string(a.label, undefined, 200);
     if (a.intent !== undefined)
       oneOf(a.intent, ['submit', 'continue', 'approve', 'reject', 'request_change']);
   }
@@ -167,6 +176,11 @@ export function decodeSession(value: unknown, expectedId: string): Session {
 export function decodeSurface(value: unknown, expectedId: string, revision: number): SurfaceRevision {
   const v = object(value);
   if (string(v.id, sessionPattern) !== expectedId || integer(v.revision) !== revision) protocol();
+  if (object(v.interaction).mode === 'display') {
+    interaction(v.interaction, 'display');
+    if ('response_schema' in v || 'status' in v || 'responses' in v) protocol();
+    return value as SurfaceRevision;
+  }
   interaction(v.interaction, 'interactive');
   object(v.response_schema);
   return value as SurfaceRevision;
@@ -216,6 +230,12 @@ export function decodeWebhookRegister(value: unknown): WebhookRegisterResponse {
   if (v.signing_secret !== null) secret(v.signing_secret);
   return value as WebhookRegisterResponse;
 }
+export function decodeWebhookVerify(value: unknown): WebhookVerifyResponse {
+  const v = object(value);
+  endpoint(v.endpoint);
+  if (object(v.endpoint).status !== 'verified' || object(v.endpoint).verified_at === null) protocol();
+  return value as WebhookVerifyResponse;
+}
 export function decodeWebhook(value: unknown): WebhookResponse {
   const v = object(value);
   if (v.endpoint !== null) endpoint(v.endpoint);
@@ -262,29 +282,36 @@ const outcomes = [
 export function decodeDeliveries(value: unknown, expectedId: string): Deliveries {
   const v = object(value);
   if (string(v.id) !== expectedId) protocol();
-  for (const item of array(v.deliveries)) {
-    const d = object(item);
-    string(d.delivery_id, new RegExp(`^obx_${ulid}$`));
-    string(d.event_id, eventPattern);
-    string(d.endpoint_id);
-    oneOf(d.kind, ['accepted', 'redelivery']);
-    oneOf(d.status, ['pending', 'delivered', 'failed']);
-    nullableDate(d.next_attempt_at);
-    date(d.deadline_at);
-    date(d.created_at);
-    nullableDate(d.finished_at);
-    if (d.last_outcome !== null) oneOf(d.last_outcome, outcomes);
-    for (const item of array(d.attempts)) {
-      const a = object(item);
-      integer(a.attempt);
-      date(a.started_at);
-      nullableDate(a.finished_at);
-      oneOf(a.outcome, outcomes);
-      if (a.http_status !== null) {
-        const status = integer(a.http_status, 100);
-        if (status > 599) protocol();
-      }
+  for (const item of array(v.deliveries)) decodeDelivery(item);
+  return value as Deliveries;
+}
+function decodeDelivery(item: unknown): void {
+  const d = object(item);
+  string(d.delivery_id, new RegExp(`^obx_${ulid}$`));
+  string(d.event_id, eventPattern);
+  string(d.endpoint_id);
+  oneOf(d.kind, ['accepted', 'redelivery']);
+  oneOf(d.status, ['pending', 'delivered', 'failed']);
+  nullableDate(d.next_attempt_at);
+  date(d.deadline_at);
+  date(d.created_at);
+  nullableDate(d.finished_at);
+  if (d.last_outcome !== null) oneOf(d.last_outcome, outcomes);
+  for (const item of array(d.attempts)) {
+    const a = object(item);
+    integer(a.attempt);
+    date(a.started_at);
+    nullableDate(a.finished_at);
+    oneOf(a.outcome, outcomes);
+    if (a.http_status !== null) {
+      const status = integer(a.http_status, 100);
+      if (status > 599) protocol();
     }
   }
-  return value as Deliveries;
+}
+export function decodeRedelivery(value: unknown, expectedEvent: string): RedeliverResponse {
+  const v = object(value);
+  decodeDelivery(v.delivery);
+  if (object(v.delivery).event_id !== expectedEvent) protocol();
+  return value as RedeliverResponse;
 }

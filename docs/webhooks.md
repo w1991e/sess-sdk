@@ -19,7 +19,7 @@ durable inbox storage, worker scheduling, business authorization, and side effec
 Registration can replace an existing endpoint and is never automatic. Registration
 or rotation may return a secret only once; store it immediately in your secret manager.
 Neither log the secret nor put it in a URL. These management writes are not retried
-automatically. A successful endpoint verification call can have an empty HTTP response.
+automatically. Successful endpoint verification returns `{endpoint}` with the verified endpoint; event redelivery returns `{delivery}` for the new or existing pending delivery. Both bodies are validated and returned in `data`.
 
 The verification challenge must be answered before normal delivery starts. Endpoint
 verification has a runtime-managed expiry; inspect the returned `verification_expires_at`

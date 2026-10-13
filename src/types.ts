@@ -9,7 +9,9 @@ export type CreateSessionResponse = Schemas['CreateSessionResponse'];
 export type DisplaySession = Schemas['SessionResponse'];
 export type InteractiveSession = Schemas['InteractiveSessionResponse'];
 export type Session = DisplaySession | InteractiveSession;
-export type SurfaceRevision = Schemas['InteractiveSurfaceResponse'];
+export type DisplaySurfaceRevision = Schemas['SessionResponse'];
+export type InteractiveSurfaceRevision = Schemas['InteractiveSurfaceResponse'];
+export type SurfaceRevision = DisplaySurfaceRevision | InteractiveSurfaceRevision;
 export type AcceptedResponse = InteractiveSession['responses'][number];
 export type SessionEvents = Schemas['SessionEventsResponse'];
 export type SessionEvent = SessionEvents['events'][number];
@@ -18,6 +20,8 @@ export type WebhookRegisterRequest = Schemas['WebhookRegisterRequest'];
 export type WebhookRegisterResponse = Schemas['WebhookRegisterResponse'];
 export type WebhookResponse = Schemas['WebhookResponse'];
 export type WebhookRotateResponse = Schemas['WebhookRotateResponse'];
+export type WebhookVerifyResponse = Schemas['WebhookVerifyResponse'];
+export type RedeliverResponse = Schemas['RedeliverResponse'];
 export type WebhookDelivery = Schemas['WebhookDelivery'];
 export type WebhookVerification = Schemas['WebhookVerification'];
 export type DisplayInteraction = DisplaySession['interaction'];
@@ -38,7 +42,7 @@ export type FieldSchema = SchemaDocumentation &
     | { type: 'boolean' }
     | {
         type: 'array';
-        items: SchemaDocumentation & { type: 'string'; enum: string[] };
+        items: { type: 'string'; enum: string[] };
         minItems?: number;
         maxItems?: number;
         uniqueItems?: true;
@@ -121,4 +125,9 @@ export interface SessOptions {
 /** Narrow a retrieved display/interactive Session without asserting business data. */
 export function isInteractiveSession(session: Session): session is InteractiveSession {
   return 'status' in session && session.interaction.mode === 'interactive';
+}
+
+/** Narrow immutable content before accessing interactive-only schema or actions. */
+export function isInteractiveSurface(surface: SurfaceRevision): surface is InteractiveSurfaceRevision {
+  return 'response_schema' in surface && surface.interaction.mode === 'interactive';
 }

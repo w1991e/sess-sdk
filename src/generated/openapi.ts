@@ -538,7 +538,7 @@ export interface components {
                 option_labels?: {
                   [key: string]: string;
                 };
-                /** @description The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true); title and description are allowed everywhere. Any other keyword fails with INVALID_SCHEMA. */
+                /** @description The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true). title and description are allowed on the field value schema itself; array items permit only type and enum. Any other keyword fails with INVALID_SCHEMA. */
                 schema: {
                   [key: string]: unknown;
                 };
@@ -624,7 +624,7 @@ export interface components {
                 option_labels?: {
                   [key: string]: string;
                 };
-                /** @description The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true); title and description are allowed everywhere. Any other keyword fails with INVALID_SCHEMA. */
+                /** @description The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true). title and description are allowed on the field value schema itself; array items permit only type and enum. Any other keyword fails with INVALID_SCHEMA. */
                 schema: {
                   [key: string]: unknown;
                 };
@@ -704,6 +704,17 @@ export interface components {
         /** @description Shown once. Store it in the receiver; Sess keeps it only encrypted. */
         secret: string;
       } | null;
+    };
+    WebhookVerifyResponse: {
+      endpoint: {
+        id: string;
+        url: string;
+        status: 'pending' | 'verified';
+        created_at: string;
+        verified_at: string | null;
+        /** @description The verification lapses 30 days after it succeeds; after that the endpoint is pending again (no new deliveries; queued ones fail endpoint_unavailable) until re-verified. */
+        verification_expires_at: string | null;
+      };
     };
     WebhookResponse: {
       endpoint: {
@@ -796,6 +807,62 @@ export interface components {
         }[];
       }[];
     };
+    RedeliverResponse: {
+      delivery: {
+        delivery_id: string;
+        event_id: string;
+        kind: 'accepted' | 'redelivery';
+        status: 'pending' | 'delivered' | 'failed';
+        endpoint_id: string;
+        next_attempt_at: string | null;
+        deadline_at: string;
+        created_at: string;
+        finished_at: string | null;
+        /** @description The job-level outcome: the last attempt’s, or `exhausted` when the attempt or time budget ran out, or `endpoint_unavailable` when its endpoint was replaced, disabled or its verification lapsed. */
+        last_outcome:
+          | (
+              | 'started'
+              | 'delivered'
+              | 'server_error'
+              | 'rate_limited'
+              | 'timeout'
+              | 'connection'
+              | 'dns'
+              | 'signing_unavailable'
+              | 'request_timeout'
+              | 'too_early'
+              | 'rejected'
+              | 'redirect'
+              | 'egress_refused'
+              | 'endpoint_unavailable'
+              | 'exhausted'
+            )
+          | null;
+        /** @description Every started attempt. `started` with no finish time: the attempt was interrupted (e.g. a crash); the outcome at the endpoint is unknown and the job is retried. */
+        attempts: {
+          attempt: number;
+          started_at: string;
+          finished_at: string | null;
+          outcome:
+            | 'started'
+            | 'delivered'
+            | 'server_error'
+            | 'rate_limited'
+            | 'timeout'
+            | 'connection'
+            | 'dns'
+            | 'signing_unavailable'
+            | 'request_timeout'
+            | 'too_early'
+            | 'rejected'
+            | 'redirect'
+            | 'egress_refused'
+            | 'endpoint_unavailable'
+            | 'exhausted';
+          http_status: number | null;
+        }[];
+      };
+    };
     WebhookDelivery: {
       /** @constant */
       type: 'response.accepted';
@@ -876,7 +943,7 @@ export interface components {
           option_labels?: {
             [key: string]: string;
           };
-          /** @description The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true); title and description are allowed everywhere. Any other keyword fails with INVALID_SCHEMA. */
+          /** @description The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true). title and description are allowed on the field value schema itself; array items permit only type and enum. Any other keyword fails with INVALID_SCHEMA. */
           schema: {
             [key: string]: unknown;
           };
@@ -1027,7 +1094,7 @@ export interface components {
                 option_labels?: {
                   [key: string]: string;
                 };
-                /** @description The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true); title and description are allowed everywhere. Any other keyword fails with INVALID_SCHEMA. */
+                /** @description The field value schema, JSON Schema 2020-12 restricted to: type string (minLength, maxLength, enum), number or integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: string, enum}, minItems, maxItems, uniqueItems: true). title and description are allowed on the field value schema itself; array items permit only type and enum. Any other keyword fails with INVALID_SCHEMA. */
                 schema: {
                   [key: string]: unknown;
                 };
@@ -2153,12 +2220,14 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Verified. */
+      /** @description Verified; the updated endpoint and its verification expiry. */
       200: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['WebhookVerifyResponse'];
+        };
       };
       /** @description UNAUTHORIZED */
       401: {
@@ -2297,12 +2366,14 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Queued. */
+      /** @description Queued, or the existing pending delivery for the same Event/endpoint. */
       202: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['RedeliverResponse'];
+        };
       };
       /** @description UNAUTHORIZED */
       401: {

@@ -1,5 +1,13 @@
 import { SessError } from '../errors.js';
-import type { AcceptedResponse, ApiResult, Session, SurfaceRevision, VersionedResult } from '../types.js';
+import { isInteractiveSurface } from '../types.js';
+import type {
+  AcceptedResponse,
+  ApiResult,
+  InteractiveSurfaceRevision,
+  Session,
+  SurfaceRevision,
+  VersionedResult,
+} from '../types.js';
 import { ReceiptKeyCache } from './key-cache.js';
 import {
   abortError,
@@ -46,7 +54,7 @@ export interface VerifyResponseInput {
 export interface VerifiedResponse {
   claims: DeepReadonly<ReceiptClaims>;
   response: DeepReadonly<AcceptedResponse>;
-  surface: DeepReadonly<SurfaceRevision>;
+  surface: DeepReadonly<InteractiveSurfaceRevision>;
 }
 
 export interface ReceiptResource {
@@ -172,6 +180,12 @@ export function createReceiptResource(context: Context): ReceiptResource {
           throw verificationError(
             'RECORD_BINDING_MISMATCH',
             'The retrieved Surface is not the requested immutable revision.',
+          );
+        }
+        if (!isInteractiveSurface(surface)) {
+          throw verificationError(
+            'RECORD_BINDING_MISMATCH',
+            'An accepted response requires an interactive immutable Surface.',
           );
         }
         const claims = await verifyDecisionReceipt(

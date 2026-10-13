@@ -15,7 +15,7 @@ To update the public contract, first inspect the runtime change, replace the rev
 provenance lock together, and run `npm run generate`. Do not download schemas on import or installation.
 Use `npx --no-install prettier --write .` only after the locked dependency installation.
 
-`npm run check:package` writes `.artifacts/sess-sdk-0.1.0-rc.1.tgz` and a digest/size result. Consumers
+`npm run check:package` writes `.artifacts/sess-sdk-0.1.0-rc.2.tgz` and a digest/size result. Consumers
 can explicitly install that tarball for development; it is not a registry release. The package has
 no install, prepare, prepack or publish lifecycle hook and no private runtime dependency.
 

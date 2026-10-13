@@ -265,7 +265,11 @@ export class Transport {
           'Publish and complete require an original strong quoted If-Match ETag.',
           { code: 'INVALID_IF_MATCH', outcome: 'not_sent' },
         );
-      idempotencyKey = op.idempotencyKey ?? randomUUID();
+      if (op.idempotencyKey !== undefined && typeof op.idempotencyKey !== 'string')
+        throw new SessError('configuration', 'idempotencyKey must be a primitive string.', {
+          outcome: 'not_sent',
+        });
+      idempotencyKey = op.idempotencyKey === undefined ? randomUUID() : op.idempotencyKey;
       if (!/^[\x21-\x7e]{1,128}$/.test(idempotencyKey))
         throw new SessError('configuration', 'idempotencyKey must contain 1–128 visible ASCII characters.', {
           outcome: 'not_sent',

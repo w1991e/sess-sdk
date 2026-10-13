@@ -91,6 +91,15 @@ Choose a transactional database/store and platform-appropriate permissions for a
 on Windows, Unix file modes do not establish a complete ACL. Local checkpoints contain a bearer link.
 The reference testbed implements its own startup lock and checkpoint handling.
 
+Pass an application-owned credential slot/version label as the fifth argument to `runMultiRound`,
+for example `owner-key-v1`. This is a stable label for the exact owner credential, never the key
+itself; change it when the credential changes. New version-2 checkpoints persist the label and
+original replay identity. A resumed mutation requires the same label. Every loaded checkpoint,
+including an injected store's result, is decoded before network dispatch. Malformed records stay
+on disk and stop execution; no key or ETag is regenerated. Version-1 records did not record scope:
+they remain readable for completed verification or read-only inspection of already-applied intent,
+and require manual reconciliation before further writes. Do not guess a missing old scope.
+
 Creation has no replay key. Save a pre-create intent and stop on restart if no confirmed resource
 was saved; creating again can orphan a Session whose private URL cannot be recovered. If the SDK
 received a valid creation body but defective headers, `SessError.getRecoveryResult()` exposes it

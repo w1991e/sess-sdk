@@ -1,5 +1,5 @@
 import { compactVerify, importJWK } from 'jose';
-import type { SurfaceRevision } from '../types.js';
+import type { InteractiveSurfaceRevision } from '../types.js';
 import {
   abortError,
   canonicalJson,
@@ -80,7 +80,7 @@ export interface VerifyDecisionReceiptInput {
   };
   input: Record<string, unknown>;
   /** The complete normalized `interaction` from the immutable Surface endpoint. */
-  interaction: SurfaceRevision['interaction'];
+  interaction: InteractiveSurfaceRevision['interaction'];
   keys?: ReceiptKeySet;
   keyResolver?: ReceiptKeyResolver;
 }

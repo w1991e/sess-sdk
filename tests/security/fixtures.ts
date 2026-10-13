@@ -1,5 +1,5 @@
 import { createHash, createPrivateKey, createPublicKey, sign } from 'node:crypto';
-import type { AcceptedResponse, InteractiveSession, SurfaceRevision } from '../../src/types.js';
+import type { AcceptedResponse, InteractiveSession, InteractiveSurfaceRevision } from '../../src/types.js';
 import type { ReceiptClaims, ReceiptKeySet, VerifyDecisionReceiptInput } from '../../src/receipts/verify.js';
 
 // RFC 8032 §7.1 test 1 seed. This public test vector is never a runtime or fixture-secret input.
@@ -48,7 +48,7 @@ export function signClaims(claims: ReceiptClaims, header?: unknown): string {
 }
 
 export function fixture(acceptedMillis = now - 1000) {
-  const interaction: SurfaceRevision['interaction'] = {
+  const interaction: InteractiveSurfaceRevision['interaction'] = {
     mode: 'interactive',
     title: 'Review synthetic Café invoice',
     description: 'Complete immutable description.',
@@ -100,7 +100,7 @@ export function fixture(acceptedMillis = now - 1000) {
     accepted_at: acceptedAt,
     receipt,
   };
-  const surface: SurfaceRevision = {
+  const surface: InteractiveSurfaceRevision = {
     id: sessionId,
     revision: 1,
     interaction,

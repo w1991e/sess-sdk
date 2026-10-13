@@ -1,5 +1,10 @@
 import { Transport } from './transport.js';
-import { decodeWebhook, decodeWebhookRegister, decodeWebhookRotate } from './internal/decode.js';
+import {
+  decodeWebhook,
+  decodeWebhookRegister,
+  decodeWebhookRotate,
+  decodeWebhookVerify,
+} from './internal/decode.js';
 import type {
   ApiResult,
   RequestOptions,
@@ -7,6 +12,7 @@ import type {
   WebhookRegisterResponse,
   WebhookResponse,
   WebhookRotateResponse,
+  WebhookVerifyResponse,
 } from './types.js';
 
 export class WebhookResource {
@@ -45,7 +51,7 @@ export class WebhookResource {
       options,
     );
   }
-  verifyEndpoint(options?: RequestOptions): Promise<ApiResult<void>> {
+  verifyEndpoint(options?: RequestOptions): Promise<ApiResult<WebhookVerifyResponse>> {
     return this.#transport.request(
       {
         name: 'webhooks.verifyEndpoint',
@@ -53,6 +59,7 @@ export class WebhookResource {
         path: '/v1/webhook/verify',
         status: 200,
         retry: 'never',
+        parse: decodeWebhookVerify,
       },
       options,
     );

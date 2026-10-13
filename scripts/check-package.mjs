@@ -170,7 +170,7 @@ await assert.rejects(import('@sess/sdk/transport'), { code: 'ERR_PACKAGE_PATH_NO
   await writeFile(
     join(consumer, 'consumer.mts'),
     `
-import { Sess, type InteractiveInteraction, type Session, isInteractiveSession, type FieldSchema } from '@sess/sdk';
+import { Sess, type InteractiveInteraction, type Session, isInteractiveSession, isInteractiveSurface, type SurfaceRevision, type FieldSchema } from '@sess/sdk';
 import { verifyDecisionReceipt, type ReceiptKeySet } from '@sess/sdk/receipts';
 import { verifyWebhook } from '@sess/sdk/webhooks';
 const interaction = { mode: 'interactive', title: 'Review', source: { kind: 'sess_surface', components: [{ type: 'field', name: 'amount', label: 'Amount', schema: { type: 'number' }, value: 12 }] }, actions: [{ id: 'submit', label: 'Submit' }] } satisfies InteractiveInteraction;
@@ -178,13 +178,20 @@ const sess = new Sess({ apiKey: 'synthetic-owner-key' });
 void sess.sessions.create({ interaction });
 declare const current: Session;
 if (isInteractiveSession(current)) { const unknownValue: unknown = current.responses[0]?.data.amount; void unknownValue; }
+declare const surface: SurfaceRevision;
+if (isInteractiveSurface(surface)) { void surface.response_schema; void surface.interaction.actions; }
+else { const mode: 'display' = surface.interaction.mode; void mode; }
+// @ts-expect-error display Surface has no interactive response schema before narrowing
+void surface.response_schema;
 // @ts-expect-error no unsupported JSON Schema keyword in ergonomic authoring
 const bad: FieldSchema = { type: 'string', pattern: '[a-z]+' };
+// @ts-expect-error array item annotations are not supported by the runtime subset
+const badItems: FieldSchema = { type: 'array', items: { type: 'string', enum: ['A'], title: 'unsupported' } };
 // @ts-expect-error no invented cancellation endpoint
 void sess.sessions.cancel;
 // @ts-expect-error business results are not an unchecked generic cast
 void sess.sessions.waitForResponse<{ amount: number }>;
-void verifyDecisionReceipt; void verifyWebhook; void (null as ReceiptKeySet | null); void bad;
+void verifyDecisionReceipt; void verifyWebhook; void (null as ReceiptKeySet | null); void bad; void badItems;
 `,
   );
   await writeFile(

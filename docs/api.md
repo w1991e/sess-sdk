@@ -44,17 +44,17 @@ and require strong quoted ETags. ETags are opaque; preserve their quotes and ori
 | `sessions.publish(id, body, options)`              | PATCH `/v1/sessions/{id}` → 200                            | Active `InteractiveSession`                            |
 | `sessions.complete(id, options)`                   | POST `/v1/sessions/{id}/complete` → 200                    | Completed `InteractiveSession`                         |
 | `sessions.listEvents(id, options?)`                | GET `/v1/sessions/{id}/events` → 200                       | `SessionEvents`; current full unpaginated history      |
-| `sessions.retrieveSurface(id, revision, options?)` | GET `/v1/sessions/{id}/surfaces/{revision}` → 200          | Exact immutable `SurfaceRevision`                      |
+| `sessions.retrieveSurface(id, revision, options?)` | GET `/v1/sessions/{id}/surfaces/{revision}` → 200          | Exact immutable display/interactive `SurfaceRevision`  |
 | `sessions.listDeliveries(id, options?)`            | GET `/v1/sessions/{id}/deliveries` → 200                   | `Deliveries` diagnostics                               |
-| `sessions.redeliverEvent(id, eventId, options?)`   | POST `/v1/sessions/{id}/events/{event_id}/redeliver` → 202 | `undefined` (empty body)                               |
+| `sessions.redeliverEvent(id, eventId, options?)`   | POST `/v1/sessions/{id}/events/{event_id}/redeliver` → 202 | `RedeliverResponse` containing `delivery`              |
 | `webhooks.register({url}, options?)`               | PUT `/v1/webhook` → 201                                    | `WebhookRegisterResponse`; secret may be returned once |
 | `webhooks.retrieve(options?)`                      | GET `/v1/webhook` → 200                                    | `WebhookResponse`                                      |
-| `webhooks.verifyEndpoint(options?)`                | POST `/v1/webhook/verify` → 200                            | `undefined` (empty body)                               |
+| `webhooks.verifyEndpoint(options?)`                | POST `/v1/webhook/verify` → 200                            | `WebhookVerifyResponse` containing `endpoint`          |
 | `webhooks.rotateSecret(options?)`                  | POST `/v1/webhook/secrets/rotate` → 201                    | `WebhookRotateResponse`; once-returned secret          |
 
 Publish is a complete next interaction, not JSON merge patch. Publish/complete options require
-`ifMatch` and accept `idempotencyKey`. A missing key is generated once and returned, providing
-in-process retries only. Completion has no request body. Register/verify/rotate/redeliver are
+`ifMatch` and accept `idempotencyKey`. An omitted key is generated once and returned, providing
+in-process retries only. Explicit keys must be primitive strings containing 1–128 visible ASCII characters; null, undefined, boxed strings, arrays, objects and accessors are rejected before credential resolution or dispatch. Completion has no request body. Register/verify/rotate/redeliver are
 explicit operations and never run automatically.
 
 `sessions.waitForResponse(id, {revision, timeoutMs?, intervalMs?, ...options})` returns

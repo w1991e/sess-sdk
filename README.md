@@ -6,12 +6,12 @@ Surface revision, verify its receipt, and continue on the same Session.
 `@sess/sdk` is a server-side TypeScript and JavaScript library. Your application supplies the
 interaction and business logic; SESS owns the hosted UI, state, routing and authorization.
 
-**Candidate status:** `0.1.0-rc.1` is under review and has not been published. For development,
+**Candidate status:** `0.1.0-rc.2` is under review and has not been published. For development,
 build and test an npm tarball using [Contributing](CONTRIBUTING.md). After an authorized candidate
 release, the registry install command is:
 
 ```sh
-npm install @sess/sdk@0.1.0-rc.1
+npm install @sess/sdk@0.1.0-rc.2
 ```
 
 ## Create and verify an interaction
@@ -116,7 +116,7 @@ contract is served at [OpenAPI](https://api.sess.si/openapi.json).
 
 ## Guides
 
-- [API reference](docs/api.md): supported operations, options, errors and empty responses.
+- [API reference](docs/api.md): supported operations, validated responses, options and errors.
 - [Integration](docs/integration.md): authoring, lifecycle, validation, durability and future boundaries.
 - [Security](docs/security.md) and [receipt example](examples/receipt-verification.ts).
 - [Webhooks](docs/webhooks.md) and [Node receiver with a durable-inbox boundary](examples/webhook-receiver.ts).

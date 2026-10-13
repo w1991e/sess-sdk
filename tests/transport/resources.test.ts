@@ -12,6 +12,28 @@ import {
   session,
 } from '../fixtures/api.js';
 
+const verifiedEndpoint = {
+  id: 'whe_00000000000000000000000001',
+  url: 'https://receiver.example/hooks',
+  status: 'verified',
+  created_at: RESPONSE.accepted_at,
+  verified_at: RESPONSE.accepted_at,
+  verification_expires_at: '2026-11-12T12:00:00.000Z',
+};
+const queuedDelivery = {
+  delivery_id: 'obx_00000000000000000000000001',
+  event_id: EVENT_ID,
+  endpoint_id: verifiedEndpoint.id,
+  kind: 'redelivery',
+  status: 'pending',
+  next_attempt_at: RESPONSE.accepted_at,
+  deadline_at: '2026-10-13T12:00:00.000Z',
+  created_at: RESPONSE.accepted_at,
+  finished_at: null,
+  last_outcome: null,
+  attempts: [],
+};
+
 describe('documented owner resource mapping', () => {
   it('reads exact immutable Surfaces, event history and delivery diagnostics', async () => {
     const requests: string[] = [];
@@ -55,19 +77,66 @@ describe('documented owner resource mapping', () => {
       `/v1/sessions/${SESSION_ID}/deliveries`,
     ]);
   });
-  it('supports the documented empty 200 and 202 success bodies', async () => {
+  it('returns actual management success bodies with bounded operation-specific decoding', async () => {
     const seen: { url: string; options?: RequestInit }[] = [];
     const fetch: typeof globalThis.fetch = vi.fn(async (url, options) => {
       seen.push({ url: String(url), options });
-      return new Response(null, { status: String(url).endsWith('/redeliver') ? 202 : 200 });
+      return String(url).endsWith('/redeliver')
+        ? json({ delivery: queuedDelivery }, 202)
+        : json({ endpoint: verifiedEndpoint });
     });
     const sdk = new Sess({ apiKey: API_KEY, fetch });
-    expect((await sdk.webhooks.verifyEndpoint()).data).toBeUndefined();
-    expect((await sdk.sessions.redeliverEvent(SESSION_ID, EVENT_ID)).meta.status).toBe(202);
+    expect((await sdk.webhooks.verifyEndpoint()).data).toEqual({ endpoint: verifiedEndpoint });
+    expect((await sdk.sessions.redeliverEvent(SESSION_ID, EVENT_ID)).data).toEqual({
+      delivery: queuedDelivery,
+    });
     for (const item of seen) {
       expect(item.options?.method).toBe('POST');
       expect(item.options?.body).toBeUndefined();
     }
+  });
+  it.each([
+    null,
+    {},
+    { endpoint: null },
+    { endpoint: { ...verifiedEndpoint, status: 'unknown' } },
+    { endpoint: { ...verifiedEndpoint, id: 'bad' } },
+    { endpoint: { ...verifiedEndpoint, verified_at: 'bad-date' } },
+  ])('rejects malformed verification success without a retry', async (value) => {
+    const fetch = vi.fn(async () => json(value));
+    await expect(
+      new Sess({ apiKey: API_KEY, fetch, maxRetries: 10 }).webhooks.verifyEndpoint(),
+    ).rejects.toMatchObject({ kind: 'protocol', outcome: 'unknown', attempts: 1 });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    null,
+    {},
+    { delivery: null },
+    { delivery: { ...queuedDelivery, event_id: 'evt_00000000000000000000000002' } },
+    { delivery: { ...queuedDelivery, status: 'unknown' } },
+    { delivery: { ...queuedDelivery, delivery_id: 'bad' } },
+    { delivery: { ...queuedDelivery, attempts: [{ attempt: 0 }] } },
+  ])('rejects malformed/misbound redelivery success without retry', async (value) => {
+    const fetch = vi.fn(async () => json(value, 202));
+    await expect(
+      new Sess({ apiKey: API_KEY, fetch, maxRetries: 10 }).sessions.redeliverEvent(SESSION_ID, EVENT_ID),
+    ).rejects.toMatchObject({ kind: 'protocol', outcome: 'unknown', attempts: 1 });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it('rejects empty management success bodies rather than guessing acceptance data', async () => {
+    const fetch = vi.fn(
+      async (url) => new Response(null, { status: String(url).endsWith('/redeliver') ? 202 : 200 }),
+    );
+    const sdk = new Sess({ apiKey: API_KEY, fetch });
+    await expect(sdk.webhooks.verifyEndpoint()).rejects.toMatchObject({
+      kind: 'protocol',
+      outcome: 'unknown',
+    });
+    await expect(sdk.sessions.redeliverEvent(SESSION_ID, EVENT_ID)).rejects.toMatchObject({
+      kind: 'protocol',
+      outcome: 'unknown',
+    });
   });
   it('registers, reads and rotates one workspace endpoint with once-returned secrets', async () => {
     const signing_secret = {
