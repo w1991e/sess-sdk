@@ -22,20 +22,14 @@
       "CreateSessionRequest": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "interaction"
-        ],
+        "required": ["interaction"],
         "properties": {
           "interaction": {
             "anyOf": [
               {
                 "additionalProperties": false,
                 "type": "object",
-                "required": [
-                  "mode",
-                  "title",
-                  "source"
-                ],
+                "required": ["mode", "title", "source"],
                 "properties": {
                   "mode": {
                     "const": "display",
@@ -54,10 +48,7 @@
                   "source": {
                     "additionalProperties": false,
                     "type": "object",
-                    "required": [
-                      "kind",
-                      "data"
-                    ],
+                    "required": ["kind", "data"],
                     "properties": {
                       "kind": {
                         "const": "data",
@@ -142,12 +133,7 @@
               {
                 "additionalProperties": false,
                 "type": "object",
-                "required": [
-                  "mode",
-                  "title",
-                  "source",
-                  "actions"
-                ],
+                "required": ["mode", "title", "source", "actions"],
                 "properties": {
                   "mode": {
                     "const": "interactive",
@@ -166,10 +152,7 @@
                   "source": {
                     "additionalProperties": false,
                     "type": "object",
-                    "required": [
-                      "kind",
-                      "components"
-                    ],
+                    "required": ["kind", "components"],
                     "properties": {
                       "kind": {
                         "const": "sess_surface",
@@ -183,9 +166,7 @@
                           "additionalProperties": true,
                           "description": "One SurfaceComponent (heading, text, record or field). An unrecognized type fails with 400 UNKNOWN_COMPONENT.",
                           "type": "object",
-                          "required": [
-                            "type"
-                          ],
+                          "required": ["type"],
                           "properties": {
                             "type": {
                               "minLength": 1,
@@ -204,10 +185,7 @@
                     "items": {
                       "additionalProperties": false,
                       "type": "object",
-                      "required": [
-                        "id",
-                        "label"
-                      ],
+                      "required": ["id", "label"],
                       "properties": {
                         "id": {
                           "pattern": "^[a-z][a-z0-9_]{0,31}$",
@@ -260,11 +238,7 @@
       "CreateSessionResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "id",
-          "revision",
-          "human_url"
-        ],
+        "required": ["id", "revision", "human_url"],
         "properties": {
           "id": {
             "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
@@ -282,11 +256,7 @@
       "SessionResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "id",
-          "revision",
-          "interaction"
-        ],
+        "required": ["id", "revision", "interaction"],
         "properties": {
           "id": {
             "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
@@ -299,11 +269,7 @@
           "interaction": {
             "additionalProperties": false,
             "type": "object",
-            "required": [
-              "mode",
-              "title",
-              "source"
-            ],
+            "required": ["mode", "title", "source"],
             "properties": {
               "mode": {
                 "const": "display",
@@ -322,10 +288,7 @@
               "source": {
                 "additionalProperties": false,
                 "type": "object",
-                "required": [
-                  "kind",
-                  "data"
-                ],
+                "required": ["kind", "data"],
                 "properties": {
                   "kind": {
                     "const": "data",
@@ -412,14 +375,7 @@
       "InteractiveSessionResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "id",
-          "status",
-          "revision",
-          "interaction",
-          "response_schema",
-          "responses"
-        ],
+        "required": ["id", "status", "revision", "interaction", "response_schema", "responses"],
         "properties": {
           "id": {
             "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
@@ -449,13 +405,7 @@
           "interaction": {
             "additionalProperties": false,
             "type": "object",
-            "required": [
-              "mode",
-              "title",
-              "source",
-              "actions",
-              "response_policy"
-            ],
+            "required": ["mode", "title", "source", "actions", "response_policy"],
             "properties": {
               "mode": {
                 "const": "interactive",
@@ -474,10 +424,7 @@
               "source": {
                 "additionalProperties": false,
                 "type": "object",
-                "required": [
-                  "kind",
-                  "components"
-                ],
+                "required": ["kind", "components"],
                 "properties": {
                   "kind": {
                     "const": "sess_surface",
@@ -491,10 +438,7 @@
                           "additionalProperties": false,
                           "description": "A section heading (plain text).",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "text"
-                          ],
+                          "required": ["type", "text"],
                           "properties": {
                             "type": {
                               "const": "heading",
@@ -512,10 +456,7 @@
                           "additionalProperties": false,
                           "description": "A paragraph of plain text (never markup).",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "text"
-                          ],
+                          "required": ["type", "text"],
                           "properties": {
                             "type": {
                               "const": "text",
@@ -532,10 +473,7 @@
                           "additionalProperties": false,
                           "description": "A read-only key/value record; keys and values are shown verbatim as text.",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "fields"
-                          ],
+                          "required": ["type", "fields"],
                           "properties": {
                             "type": {
                               "const": "record",
@@ -575,12 +513,7 @@
                           "additionalProperties": false,
                           "description": "A labeled input. string → text input (textarea when multiline); string with enum → select; number/integer → numeric input; boolean → checkbox; array of enum IDs → inline selection checkboxes.",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "name",
-                            "label",
-                            "schema"
-                          ],
+                          "required": ["type", "name", "label", "schema"],
                           "properties": {
                             "type": {
                               "const": "field",
@@ -640,10 +573,7 @@
                 "items": {
                   "additionalProperties": false,
                   "type": "object",
-                  "required": [
-                    "id",
-                    "label"
-                  ],
+                  "required": ["id", "label"],
                   "properties": {
                     "id": {
                       "pattern": "^[a-z][a-z0-9_]{0,31}$",
@@ -738,9 +668,7 @@
                 "actor": {
                   "additionalProperties": false,
                   "type": "object",
-                  "required": [
-                    "assurance"
-                  ],
+                  "required": ["assurance"],
                   "properties": {
                     "assurance": {
                       "const": "link_holder",
@@ -772,12 +700,7 @@
       "InteractiveSurfaceResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "id",
-          "revision",
-          "interaction",
-          "response_schema"
-        ],
+        "required": ["id", "revision", "interaction", "response_schema"],
         "properties": {
           "id": {
             "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
@@ -790,13 +713,7 @@
           "interaction": {
             "additionalProperties": false,
             "type": "object",
-            "required": [
-              "mode",
-              "title",
-              "source",
-              "actions",
-              "response_policy"
-            ],
+            "required": ["mode", "title", "source", "actions", "response_policy"],
             "properties": {
               "mode": {
                 "const": "interactive",
@@ -815,10 +732,7 @@
               "source": {
                 "additionalProperties": false,
                 "type": "object",
-                "required": [
-                  "kind",
-                  "components"
-                ],
+                "required": ["kind", "components"],
                 "properties": {
                   "kind": {
                     "const": "sess_surface",
@@ -832,10 +746,7 @@
                           "additionalProperties": false,
                           "description": "A section heading (plain text).",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "text"
-                          ],
+                          "required": ["type", "text"],
                           "properties": {
                             "type": {
                               "const": "heading",
@@ -853,10 +764,7 @@
                           "additionalProperties": false,
                           "description": "A paragraph of plain text (never markup).",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "text"
-                          ],
+                          "required": ["type", "text"],
                           "properties": {
                             "type": {
                               "const": "text",
@@ -873,10 +781,7 @@
                           "additionalProperties": false,
                           "description": "A read-only key/value record; keys and values are shown verbatim as text.",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "fields"
-                          ],
+                          "required": ["type", "fields"],
                           "properties": {
                             "type": {
                               "const": "record",
@@ -916,12 +821,7 @@
                           "additionalProperties": false,
                           "description": "A labeled input. string → text input (textarea when multiline); string with enum → select; number/integer → numeric input; boolean → checkbox; array of enum IDs → inline selection checkboxes.",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "name",
-                            "label",
-                            "schema"
-                          ],
+                          "required": ["type", "name", "label", "schema"],
                           "properties": {
                             "type": {
                               "const": "field",
@@ -981,10 +881,7 @@
                 "items": {
                   "additionalProperties": false,
                   "type": "object",
-                  "required": [
-                    "id",
-                    "label"
-                  ],
+                  "required": ["id", "label"],
                   "properties": {
                     "id": {
                       "pattern": "^[a-z][a-z0-9_]{0,31}$",
@@ -1039,10 +936,7 @@
       "SessionEventsResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "id",
-          "events"
-        ],
+        "required": ["id", "events"],
         "properties": {
           "id": {
             "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
@@ -1054,14 +948,7 @@
             "items": {
               "additionalProperties": false,
               "type": "object",
-              "required": [
-                "event_id",
-                "sequence",
-                "type",
-                "revision",
-                "actor",
-                "created_at"
-              ],
+              "required": ["event_id", "sequence", "type", "revision", "actor", "created_at"],
               "properties": {
                 "event_id": {
                   "pattern": "^evt_[0-9A-HJKMNP-TV-Z]{26}$",
@@ -1096,9 +983,7 @@
                 "actor": {
                   "additionalProperties": false,
                   "type": "object",
-                  "required": [
-                    "assurance"
-                  ],
+                  "required": ["assurance"],
                   "properties": {
                     "assurance": {
                       "anyOf": [
@@ -1148,9 +1033,7 @@
       "ReceiptKeysResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "keys"
-        ],
+        "required": ["keys"],
         "properties": {
           "keys": {
             "description": "The active signing key and every retained verification key (rotation overlap). A receipt verifies with the key whose kid its protected header names; there is no fallback key.",
@@ -1158,14 +1041,7 @@
             "items": {
               "additionalProperties": false,
               "type": "object",
-              "required": [
-                "kty",
-                "crv",
-                "x",
-                "kid",
-                "alg",
-                "use"
-              ],
+              "required": ["kty", "crv", "x", "kid", "alg", "use"],
               "properties": {
                 "kty": {
                   "const": "OKP",
@@ -1198,9 +1074,7 @@
       "WebhookRegisterRequest": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "url"
-        ],
+        "required": ["url"],
         "properties": {
           "url": {
             "minLength": 1,
@@ -1213,10 +1087,7 @@
       "WebhookRegisterResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "endpoint",
-          "signing_secret"
-        ],
+        "required": ["endpoint", "signing_secret"],
         "properties": {
           "endpoint": {
             "additionalProperties": false,
@@ -1281,10 +1152,7 @@
               {
                 "additionalProperties": false,
                 "type": "object",
-                "required": [
-                  "kid",
-                  "secret"
-                ],
+                "required": ["kid", "secret"],
                 "properties": {
                   "kid": {
                     "pattern": "^wk_[0-9A-HJKMNP-TV-Z]{26}$",
@@ -1307,9 +1175,7 @@
       "WebhookVerifyResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "endpoint"
-        ],
+        "required": ["endpoint"],
         "properties": {
           "endpoint": {
             "additionalProperties": false,
@@ -1373,11 +1239,7 @@
       "WebhookResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "endpoint",
-          "signing_secrets",
-          "deliveries"
-        ],
+        "required": ["endpoint", "signing_secrets", "deliveries"],
         "properties": {
           "endpoint": {
             "anyOf": [
@@ -1449,11 +1311,7 @@
             "items": {
               "additionalProperties": false,
               "type": "object",
-              "required": [
-                "kid",
-                "active",
-                "retire_at"
-              ],
+              "required": ["kid", "active", "retire_at"],
               "properties": {
                 "kid": {
                   "type": "string"
@@ -1477,12 +1335,7 @@
           "deliveries": {
             "additionalProperties": false,
             "type": "object",
-            "required": [
-              "pending",
-              "failed",
-              "delivered",
-              "oldest_pending_age_seconds"
-            ],
+            "required": ["pending", "failed", "delivered", "oldest_pending_age_seconds"],
             "properties": {
               "pending": {
                 "minimum": 0,
@@ -1514,18 +1367,12 @@
       "WebhookRotateResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "signing_secret",
-          "previous"
-        ],
+        "required": ["signing_secret", "previous"],
         "properties": {
           "signing_secret": {
             "additionalProperties": false,
             "type": "object",
-            "required": [
-              "kid",
-              "secret"
-            ],
+            "required": ["kid", "secret"],
             "properties": {
               "kid": {
                 "pattern": "^wk_[0-9A-HJKMNP-TV-Z]{26}$",
@@ -1543,10 +1390,7 @@
               {
                 "additionalProperties": false,
                 "type": "object",
-                "required": [
-                  "kid",
-                  "retire_at"
-                ],
+                "required": ["kid", "retire_at"],
                 "properties": {
                   "kid": {
                     "type": "string"
@@ -1566,10 +1410,7 @@
       "DeliveriesResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "id",
-          "deliveries"
-        ],
+        "required": ["id", "deliveries"],
         "properties": {
           "id": {
             "type": "string"
@@ -1735,13 +1576,7 @@
                   "items": {
                     "additionalProperties": false,
                     "type": "object",
-                    "required": [
-                      "attempt",
-                      "started_at",
-                      "finished_at",
-                      "outcome",
-                      "http_status"
-                    ],
+                    "required": ["attempt", "started_at", "finished_at", "outcome", "http_status"],
                     "properties": {
                       "attempt": {
                         "minimum": 1,
@@ -1845,9 +1680,7 @@
       "RedeliverResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "delivery"
-        ],
+        "required": ["delivery"],
         "properties": {
           "delivery": {
             "additionalProperties": false,
@@ -2008,13 +1841,7 @@
                 "items": {
                   "additionalProperties": false,
                   "type": "object",
-                  "required": [
-                    "attempt",
-                    "started_at",
-                    "finished_at",
-                    "outcome",
-                    "http_status"
-                  ],
+                  "required": ["attempt", "started_at", "finished_at", "outcome", "http_status"],
                   "properties": {
                     "attempt": {
                       "minimum": 1,
@@ -2173,10 +2000,7 @@
       "WebhookVerification": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "type",
-          "challenge"
-        ],
+        "required": ["type", "challenge"],
         "properties": {
           "type": {
             "const": "sess.webhook.verification",
@@ -2190,19 +2014,12 @@
       "PatchSessionRequest": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "interaction"
-        ],
+        "required": ["interaction"],
         "properties": {
           "interaction": {
             "additionalProperties": false,
             "type": "object",
-            "required": [
-              "mode",
-              "title",
-              "source",
-              "actions"
-            ],
+            "required": ["mode", "title", "source", "actions"],
             "properties": {
               "mode": {
                 "const": "interactive",
@@ -2221,10 +2038,7 @@
               "source": {
                 "additionalProperties": false,
                 "type": "object",
-                "required": [
-                  "kind",
-                  "components"
-                ],
+                "required": ["kind", "components"],
                 "properties": {
                   "kind": {
                     "const": "sess_surface",
@@ -2238,9 +2052,7 @@
                       "additionalProperties": true,
                       "description": "One SurfaceComponent (heading, text, record or field). An unrecognized type fails with 400 UNKNOWN_COMPONENT.",
                       "type": "object",
-                      "required": [
-                        "type"
-                      ],
+                      "required": ["type"],
                       "properties": {
                         "type": {
                           "minLength": 1,
@@ -2259,10 +2071,7 @@
                 "items": {
                   "additionalProperties": false,
                   "type": "object",
-                  "required": [
-                    "id",
-                    "label"
-                  ],
+                  "required": ["id", "label"],
                   "properties": {
                     "id": {
                       "pattern": "^[a-z][a-z0-9_]{0,31}$",
@@ -2316,10 +2125,7 @@
             "additionalProperties": false,
             "description": "A section heading (plain text).",
             "type": "object",
-            "required": [
-              "type",
-              "text"
-            ],
+            "required": ["type", "text"],
             "properties": {
               "type": {
                 "const": "heading",
@@ -2337,10 +2143,7 @@
             "additionalProperties": false,
             "description": "A paragraph of plain text (never markup).",
             "type": "object",
-            "required": [
-              "type",
-              "text"
-            ],
+            "required": ["type", "text"],
             "properties": {
               "type": {
                 "const": "text",
@@ -2357,10 +2160,7 @@
             "additionalProperties": false,
             "description": "A read-only key/value record; keys and values are shown verbatim as text.",
             "type": "object",
-            "required": [
-              "type",
-              "fields"
-            ],
+            "required": ["type", "fields"],
             "properties": {
               "type": {
                 "const": "record",
@@ -2400,12 +2200,7 @@
             "additionalProperties": false,
             "description": "A labeled input. string → text input (textarea when multiline); string with enum → select; number/integer → numeric input; boolean → checkbox; array of enum IDs → inline selection checkboxes.",
             "type": "object",
-            "required": [
-              "type",
-              "name",
-              "label",
-              "schema"
-            ],
+            "required": ["type", "name", "label", "schema"],
             "properties": {
               "type": {
                 "const": "field",
@@ -2465,11 +2260,7 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "client_event_id",
-          "surface_revision",
-          "action_id"
-        ],
+        "required": ["client_event_id", "surface_revision", "action_id"],
         "properties": {
           "client_event_id": {
             "pattern": "^[A-Za-z0-9_-]{16,64}$",
@@ -2488,18 +2279,12 @@
       "Error": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "properties": {
           "error": {
             "additionalProperties": false,
             "type": "object",
-            "required": [
-              "code",
-              "message",
-              "request_id"
-            ],
+            "required": ["code", "message", "request_id"],
             "properties": {
               "code": {
                 "anyOf": [
@@ -2612,9 +2397,7 @@
       "HealthOk": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "properties": {
           "status": {
             "const": "ok",
@@ -2625,9 +2408,7 @@
       "HealthUnavailable": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "properties": {
           "status": {
             "const": "unavailable",
@@ -2638,12 +2419,7 @@
       "VersionResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "git_sha",
-          "build_id",
-          "build_time",
-          "node_version"
-        ],
+        "required": ["git_sha", "build_id", "build_time", "node_version"],
         "properties": {
           "git_sha": {
             "description": "The deployed commit, from SESS_GIT_SHA. null when SESS_GIT_SHA is missing, empty or not exactly 40 lower-case hex characters; readiness then answers 503. Never derived from a checkout or normalized.",
@@ -2690,19 +2466,12 @@
       "TrialCreateSessionRequest": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "interaction"
-        ],
+        "required": ["interaction"],
         "properties": {
           "interaction": {
             "additionalProperties": false,
             "type": "object",
-            "required": [
-              "mode",
-              "title",
-              "source",
-              "actions"
-            ],
+            "required": ["mode", "title", "source", "actions"],
             "properties": {
               "mode": {
                 "const": "interactive",
@@ -2721,10 +2490,7 @@
               "source": {
                 "additionalProperties": false,
                 "type": "object",
-                "required": [
-                  "kind",
-                  "components"
-                ],
+                "required": ["kind", "components"],
                 "properties": {
                   "kind": {
                     "const": "sess_surface",
@@ -2738,9 +2504,7 @@
                       "additionalProperties": true,
                       "description": "One SurfaceComponent (heading, text, record or field). An unrecognized type fails with 400 UNKNOWN_COMPONENT.",
                       "type": "object",
-                      "required": [
-                        "type"
-                      ],
+                      "required": ["type"],
                       "properties": {
                         "type": {
                           "minLength": 1,
@@ -2759,10 +2523,7 @@
                 "items": {
                   "additionalProperties": false,
                   "type": "object",
-                  "required": [
-                    "id",
-                    "label"
-                  ],
+                  "required": ["id", "label"],
                   "properties": {
                     "id": {
                       "pattern": "^[a-z][a-z0-9_]{0,31}$",
@@ -2899,13 +2660,7 @@
           "interaction": {
             "additionalProperties": false,
             "type": "object",
-            "required": [
-              "mode",
-              "title",
-              "source",
-              "actions",
-              "response_policy"
-            ],
+            "required": ["mode", "title", "source", "actions", "response_policy"],
             "properties": {
               "mode": {
                 "const": "interactive",
@@ -2924,10 +2679,7 @@
               "source": {
                 "additionalProperties": false,
                 "type": "object",
-                "required": [
-                  "kind",
-                  "components"
-                ],
+                "required": ["kind", "components"],
                 "properties": {
                   "kind": {
                     "const": "sess_surface",
@@ -2941,10 +2693,7 @@
                           "additionalProperties": false,
                           "description": "A section heading (plain text).",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "text"
-                          ],
+                          "required": ["type", "text"],
                           "properties": {
                             "type": {
                               "const": "heading",
@@ -2962,10 +2711,7 @@
                           "additionalProperties": false,
                           "description": "A paragraph of plain text (never markup).",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "text"
-                          ],
+                          "required": ["type", "text"],
                           "properties": {
                             "type": {
                               "const": "text",
@@ -2982,10 +2728,7 @@
                           "additionalProperties": false,
                           "description": "A read-only key/value record; keys and values are shown verbatim as text.",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "fields"
-                          ],
+                          "required": ["type", "fields"],
                           "properties": {
                             "type": {
                               "const": "record",
@@ -3025,12 +2768,7 @@
                           "additionalProperties": false,
                           "description": "A labeled input. string → text input (textarea when multiline); string with enum → select; number/integer → numeric input; boolean → checkbox; array of enum IDs → inline selection checkboxes.",
                           "type": "object",
-                          "required": [
-                            "type",
-                            "name",
-                            "label",
-                            "schema"
-                          ],
+                          "required": ["type", "name", "label", "schema"],
                           "properties": {
                             "type": {
                               "const": "field",
@@ -3090,10 +2828,7 @@
                 "items": {
                   "additionalProperties": false,
                   "type": "object",
-                  "required": [
-                    "id",
-                    "label"
-                  ],
+                  "required": ["id", "label"],
                   "properties": {
                     "id": {
                       "pattern": "^[a-z][a-z0-9_]{0,31}$",
@@ -3188,9 +2923,7 @@
                 "actor": {
                   "additionalProperties": false,
                   "type": "object",
-                  "required": [
-                    "assurance"
-                  ],
+                  "required": ["assurance"],
                   "properties": {
                     "assurance": {
                       "const": "link_holder",
@@ -3220,11 +2953,7 @@
           "trial": {
             "additionalProperties": false,
             "type": "object",
-            "required": [
-              "workspace_id",
-              "action_expires_at",
-              "result_available_until"
-            ],
+            "required": ["workspace_id", "action_expires_at", "result_available_until"],
             "properties": {
               "workspace_id": {
                 "type": "string"
@@ -3244,9 +2973,7 @@
       "EmailLinkRequest": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "email"
-        ],
+        "required": ["email"],
         "properties": {
           "email": {
             "minLength": 3,
@@ -3259,9 +2986,7 @@
       "EmailLinkAccepted": {
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "properties": {
           "status": {
             "description": "The link was handed to the email provider. The same answer for every address: it never says whether an account exists.",
@@ -3621,11 +3346,7 @@
                               "type": "array",
                               "items": {
                                 "type": "string",
-                                "enum": [
-                                  "INV-1",
-                                  "INV-2",
-                                  "INV-3"
-                                ]
+                                "enum": ["INV-1", "INV-2", "INV-3"]
                               },
                               "maxItems": 3
                             },
@@ -3851,11 +3572,7 @@
                                 "type": "array",
                                 "items": {
                                   "type": "string",
-                                  "enum": [
-                                    "INV-1",
-                                    "INV-2",
-                                    "INV-3"
-                                  ]
+                                  "enum": ["INV-1", "INV-2", "INV-3"]
                                 },
                                 "maxItems": 3
                               },
@@ -3885,19 +3602,13 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": [
-                                "INV-1",
-                                "INV-2",
-                                "INV-3"
-                              ]
+                              "enum": ["INV-1", "INV-2", "INV-3"]
                             },
                             "maxItems": 3,
                             "uniqueItems": true
                           }
                         },
-                        "required": [
-                          "inv_3_amount"
-                        ],
+                        "required": ["inv_3_amount"],
                         "additionalProperties": false
                       },
                       "responses": [
@@ -3908,10 +3619,7 @@
                           "action_id": "submit",
                           "data": {
                             "inv_3_amount": 909,
-                            "approved": [
-                              "INV-1",
-                              "INV-3"
-                            ]
+                            "approved": ["INV-1", "INV-3"]
                           },
                           "actor": {
                             "assurance": "link_holder"
@@ -4066,11 +3774,7 @@
                               "type": "array",
                               "items": {
                                 "type": "string",
-                                "enum": [
-                                  "INV-1",
-                                  "INV-2",
-                                  "INV-3"
-                                ]
+                                "enum": ["INV-1", "INV-2", "INV-3"]
                               },
                               "maxItems": 3
                             },
@@ -4275,11 +3979,7 @@
                                 "type": "array",
                                 "items": {
                                   "type": "string",
-                                  "enum": [
-                                    "INV-1",
-                                    "INV-2",
-                                    "INV-3"
-                                  ]
+                                  "enum": ["INV-1", "INV-2", "INV-3"]
                                 },
                                 "maxItems": 3
                               },
@@ -4309,19 +4009,13 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": [
-                                "INV-1",
-                                "INV-2",
-                                "INV-3"
-                              ]
+                              "enum": ["INV-1", "INV-2", "INV-3"]
                             },
                             "maxItems": 3,
                             "uniqueItems": true
                           }
                         },
-                        "required": [
-                          "inv_3_amount"
-                        ],
+                        "required": ["inv_3_amount"],
                         "additionalProperties": false
                       },
                       "responses": [
@@ -4332,10 +4026,7 @@
                           "action_id": "submit",
                           "data": {
                             "inv_3_amount": 909,
-                            "approved": [
-                              "INV-1",
-                              "INV-3"
-                            ]
+                            "approved": ["INV-1", "INV-3"]
                           },
                           "actor": {
                             "assurance": "link_holder"

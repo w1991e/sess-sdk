@@ -1,8 +1,8 @@
 {
-  "source": "https://github.com/w1991e/sess/blob/fda9179577fbcd95591310ee2c21f825dabf245e/packages/spec/openapi.json",
-  "source_runtime_commit": "fda9179577fbcd95591310ee2c21f825dabf245e",
-  "source_git_blob_sha1": "35f80275333aad40be30d4b694f0ab59e21acac2",
-  "snapshot_sha256": "c44c783eade15d59989e7264abf0a1c8c193632c5363ab7a166cf412f0cfb5df",
+  "source": "https://github.com/w1991e/sess/blob/6007a406ff0a64fe0fdfe484a0a568e49e97f0b0/packages/spec/openapi.json",
+  "source_runtime_commit": "6007a406ff0a64fe0fdfe484a0a568e49e97f0b0",
+  "source_git_blob_sha1": "59b806a1d50554e2705592d5ab622d3672536e40",
+  "snapshot_sha256": "68acc8dfe74c2f33b266e06536405d3c8c7cca49787d62e0e3d1c6cf5a191ce5",
   "generator": "openapi-typescript",
   "generator_version": "7.13.0",
   "recorded_at": "2026-10-13",

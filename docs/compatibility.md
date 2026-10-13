@@ -4,8 +4,8 @@ SDK version: **0.1.0-rc.2**, under review and unpublished. This version is indep
 `info.version` 0.1.0 and the runtime's Git commit.
 
 The reviewed snapshot includes authenticated workspace context on owner create/retrieve from runtime
-commit `fda9179577fbcd95591310ee2c21f825dabf245e`. Its SHA-256 is
-`c44c783eade15d59989e7264abf0a1c8c193632c5363ab7a166cf412f0cfb5df`; exact provenance and generator
+commit `6007a406ff0a64fe0fdfe484a0a568e49e97f0b0`. Its SHA-256 is
+`68acc8dfe74c2f33b266e06536405d3c8c7cca49787d62e0e3d1c6cf5a191ce5`; exact provenance and generator
 version are in [contract-lock.json](../contract/contract-lock.json). That companion change is under
 review, not asserted deployed. Existing baseline `31ce5d557e6c6dd14972c8e8923f68ea294ce9b3` works with
 an explicit trusted expected workspace. The original snapshot SHA-256 was
