@@ -270,10 +270,12 @@ export class Transport {
           outcome: 'not_sent',
         });
       idempotencyKey = op.idempotencyKey === undefined ? randomUUID() : op.idempotencyKey;
-      if (!/^[\x21-\x7e]{1,128}$/.test(idempotencyKey))
-        throw new SessError('configuration', 'idempotencyKey must contain 1–128 visible ASCII characters.', {
-          outcome: 'not_sent',
-        });
+      if (!/^[A-Za-z0-9_.:-]{1,128}$/.test(idempotencyKey))
+        throw new SessError(
+          'configuration',
+          'idempotencyKey must contain 1–128 characters using only letters, digits, underscore, period, colon, or hyphen.',
+          { outcome: 'not_sent' },
+        );
       headers['If-Match'] = op.ifMatch;
       headers['Idempotency-Key'] = idempotencyKey;
     }

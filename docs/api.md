@@ -30,6 +30,11 @@ High-level receipt verification shares one total operation budget across all its
 `RequestOptions` permits `signal`, attempt/operation timeouts, retry count and response-byte bound.
 These options cannot make an unsafe write retryable, change the origin or override headers.
 Human waiting has its own total `timeoutMs`; see [Integration](integration.md).
+Each poll's logical operation inherits the client's `operationTimeoutMs` unless a valid per-wait
+override is supplied, and is bounded by the remaining human-wait time. The client's per-attempt
+`timeoutMs` still applies to each attempt, including its response stream. Credential lookup,
+retries and backoff share that poll's logical-operation budget. Invalid overrides fail before
+credential resolution or fetch; values are never coerced or clamped into valid durations.
 
 ## Owner resources
 
@@ -54,7 +59,11 @@ and require strong quoted ETags. ETags are opaque; preserve their quotes and ori
 
 Publish is a complete next interaction, not JSON merge patch. Publish/complete options require
 `ifMatch` and accept `idempotencyKey`. An omitted key is generated once and returned, providing
-in-process retries only. Explicit keys must be primitive strings containing 1–128 visible ASCII characters; null, undefined, boxed strings, arrays, objects and accessors are rejected before credential resolution or dispatch. Completion has no request body. Register/verify/rotate/redeliver are
+in-process retries only. Explicit keys must be primitive strings matching
+`^[A-Za-z0-9_.:-]{1,128}$`: letters, digits, underscore, period, colon and hyphen only. Whitespace,
+controls, other punctuation, overlength values, null, explicit undefined, boxed strings, arrays,
+objects and accessors are rejected before credential resolution or dispatch. Valid key bytes
+are preserved exactly. Completion has no request body. Register/verify/rotate/redeliver are
 explicit operations and never run automatically.
 
 `sessions.waitForResponse(id, {revision, timeoutMs?, intervalMs?, ...options})` returns

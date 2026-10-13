@@ -93,7 +93,7 @@ export interface RequestOptions {
 }
 export interface MutationOptions extends RequestOptions {
   ifMatch: string;
-  /** Persist this with the original body and If-Match before a durable operation. */
+  /** Persist with the original body/If-Match. Primitive string matching ^[A-Za-z0-9_.:-]{1,128}$. */
   idempotencyKey?: string;
 }
 export interface WaitOptions extends Omit<RequestOptions, 'timeoutMs'> {
@@ -101,6 +101,8 @@ export interface WaitOptions extends Omit<RequestOptions, 'timeoutMs'> {
   /** Total human wait, default ten minutes. */
   timeoutMs?: number;
   intervalMs?: number;
+  /** Each poll inherits the client's logical-operation budget unless overridden, bounded by the remaining human wait. */
+  operationTimeoutMs?: number;
 }
 export interface WaitResult {
   session: InteractiveSession;

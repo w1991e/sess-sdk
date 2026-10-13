@@ -3,7 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { Sess } from '@sess/sdk';
-import { fileCheckpointStore, runMultiRound, type Checkpoint } from '../../examples/multi-round.js';
+import {
+  decodeCheckpoint,
+  fileCheckpointStore,
+  runMultiRound,
+  type Checkpoint,
+} from '../../examples/multi-round.js';
 import { API_KEY, EVENT_ID, INTERACTION, SESSION_ID, json, session } from '../fixtures/api.js';
 import { invoiceInteraction } from '../../examples/quickstart.js';
 
@@ -88,7 +93,95 @@ malformed.push(
   },
   { ...current, version: 3 },
 );
+const invalidReplayKeys: unknown[] = [
+  'key/with+punctuation',
+  'key,value',
+  'key=value',
+  'key value',
+  'key\t',
+  'key\r',
+  'key\n',
+  'key\u0000',
+  'key\u007f',
+  'key\u2028',
+  'key\u2029',
+  'a'.repeat(129),
+  '',
+  null,
+  undefined,
+  42,
+  [],
+  {},
+];
+for (const state of [original, current]) {
+  for (const idempotencyKey of invalidReplayKeys)
+    malformed.push({ ...state, intent: { ...state.intent, idempotencyKey } });
+}
 describe('T-01 durable SDK example checkpoint boundary', () => {
+  it.each([original, current])(
+    'refuses inherited or accessor keys in schema $version without evaluating them',
+    async (state) => {
+      const getter = vi.fn(() => 'valid-looking-key');
+      const inherited = Object.assign(Object.create({ idempotencyKey: 'valid-looking-key' }), state.intent);
+      delete inherited.idempotencyKey;
+      const accessor = Object.defineProperty({ ...state.intent }, 'idempotencyKey', {
+        enumerable: true,
+        get: getter,
+      });
+      for (const intent of [inherited, accessor]) {
+        const provider = vi.fn(() => API_KEY);
+        const fetch = vi.fn();
+        const save = vi.fn();
+        await expect(
+          runMultiRound(
+            new Sess({ apiKey: provider, fetch }),
+            { load: async () => ({ ...state, intent }) as Checkpoint, save },
+            async () => {},
+            undefined,
+            current.credentialScope,
+          ),
+        ).rejects.toThrow('Checkpoint');
+        expect(provider).not.toHaveBeenCalled();
+        expect(fetch).not.toHaveBeenCalled();
+        expect(save).not.toHaveBeenCalled();
+      }
+      expect(getter).not.toHaveBeenCalled();
+    },
+  );
+  it.each([original, current])('preserves schema $version valid replay-key bytes on decoding', (state) => {
+    for (const idempotencyKey of ['a', 'A0_.:-', 'a'.repeat(128)]) {
+      const saved = { ...state, intent: { ...state.intent, idempotencyKey } };
+      expect(decodeCheckpoint(saved).intent?.idempotencyKey).toBe(idempotencyKey);
+      expect(saved.intent.idempotencyKey).toBe(idempotencyKey);
+    }
+  });
+  it('replays the original valid current intent before any lookup and retains it on uncertain failure', async () => {
+    const idempotencyKey = 'Original.Key:with_Bytes-128';
+    const saved = { ...current, intent: { ...current.intent, idempotencyKey } };
+    const save = vi.fn();
+    const fetch = vi.fn(async () => {
+      throw new Error('synthetic lost reply');
+    });
+    await expect(
+      runMultiRound(
+        new Sess({ apiKey: API_KEY, fetch, maxRetries: 0 }),
+        { load: async () => saved as Checkpoint, save },
+        async () => {},
+        undefined,
+        current.credentialScope,
+      ),
+    ).rejects.toMatchObject({ kind: 'transport', outcome: 'unknown', idempotencyKey });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = fetch.mock.calls[0]! as unknown as [string, RequestInit];
+    expect(url).toBe(`https://api.sess.si/v1/sessions/${SESSION_ID}`);
+    expect(options.method).toBe('PATCH');
+    const headers = new Headers(options.headers);
+    expect(headers.get('if-match')).toBe(current.intent.ifMatch);
+    expect(headers.get('idempotency-key')).toBe(idempotencyKey);
+    expect(options.body).toBe(JSON.stringify(current.intent.body));
+    expect(save).not.toHaveBeenCalled();
+    expect(saved.intent.idempotencyKey).toBe(idempotencyKey);
+  });
   it('retains valid old intent without inventing credential scope or replaying', async () => {
     const save = vi.fn();
     const fetch = vi.fn(async (url) =>
