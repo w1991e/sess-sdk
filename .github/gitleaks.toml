@@ -24,7 +24,31 @@ description = "Public synthetic replay identity exercises preserved punctuation 
 condition = "AND"
 paths = ['''(?:^|/)tests/unit/checkpoint-corrections\.test\.ts$''']
 regexTarget = "line"
-regexes = ['''^\s*const idempotencyKey = 'Original\.Key:with_Bytes-128';\s*$''']
+regexes = ['''^\s*const idempotencyKey = 'Original[.]Key[:]with_Bytes-128';\s*$''']
+
+[[rules.allowlists]]
+description = "Retained correction checkpoint's original exact synthetic replay-control definition, no credential"
+condition = "AND"
+paths = ['''(?:^|/)scripts/test-source-scan\.mjs$''']
+regexTarget = "line"
+regexes = ['''^\s*const identity = \['Original', 'Key[:]with_Bytes-128'\]\.join\('\.'\);\s*$''']
+
+[[rules.allowlists]]
+description = "Retained correction checkpoint's original exact replay-fixture regex definition, no credential"
+condition = "AND"
+paths = ['''(?:^|/)\.github/gitleaks\.toml$''']
+regexTarget = "line"
+regexes = ['''^\s*regexes = \['{3}\^\\s\*const idempotencyKey = 'Original\\[.]Key[:]with_Bytes-128';\\s\*\$'{3}\]\s*$''']
+
+[[rules]]
+id = "aws-amazon-bedrock-api-key-short-lived"
+
+[[rules.allowlists]]
+description = "SHA-verified upstream detection regex contains a constant provider domain marker, no credential"
+condition = "AND"
+paths = ['''(?:^|/)\.github/gitleaks-upstream-v8\.30\.1\.toml$''']
+regexTarget = "line"
+regexes = ["^\\s*regex = '''bedrock-api-key-(?:YmVkcm9jay5hbWF6b25hd3MuY29t)'''\\s*$"]
 
 [[rules]]
 id = "sess-webhook-secret"

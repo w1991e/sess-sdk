@@ -142,7 +142,8 @@ test('the exact public replay-identity fixture is benign while nearby/path/value
     const config = await prepareConfig(workspace);
     const source = join(workspace, 'source');
     const path = 'tests/unit/checkpoint-corrections.test.ts';
-    const identity = ['Original', 'Key:with_Bytes-128'].join('.');
+    const parts = ['Original', 'Key', 'with', 'Bytes', '128'];
+    const identity = `${parts[0]}.${parts[1]}:${parts[2]}_${parts[3]}-${parts[4]}`;
     const benign = `    const idempotencyKey = '${identity}';\n`;
     await file(source, path, benign);
     assert.equal((await scan(binary, config.path, workspace, 'dir', source)).status, 'PASS');
@@ -157,6 +158,75 @@ test('the exact public replay-identity fixture is benign while nearby/path/value
     await rm(join(source, path));
     await file(source, 'tests/other.test.ts', benign);
     assert.equal((await scan(binary, config.path, workspace, 'dir', source)).status, 'FAIL');
+  });
+});
+
+test('the SHA-verified upstream provider-domain detection regex is benign only on its original whole line/path', async () => {
+  await withScanWorkspace(async (workspace) => {
+    const config = await prepareConfig(workspace);
+    const source = join(workspace, 'source');
+    const path = '.github/gitleaks-upstream-v8.30.1.toml';
+    const upstream = await readFile(
+      new URL('../.github/gitleaks-upstream-v8.30.1.toml', import.meta.url),
+      'utf8',
+    );
+    const benign = upstream.split('\n').find((line) => line.startsWith("regex = '''bedrock-api-key-"));
+    assert.ok(benign);
+    await file(source, path, upstream);
+    assert.equal((await scan(binary, config.path, workspace, 'dir', source)).status, 'PASS');
+    await file(source, path, `${benign}\n`);
+    assert.equal((await scan(binary, config.path, workspace, 'dir', source)).status, 'PASS');
+    for (const content of [`${benign} extra\n`, `${benign}\n${marker}\n`]) {
+      await file(source, path, content);
+      assert.equal((await scan(binary, config.path, workspace, 'dir', source)).status, 'FAIL');
+    }
+    await rm(join(source, path));
+    await file(source, 'tests/provider.txt', `${benign}\n`);
+    const result = await scan(binary, config.path, workspace, 'dir', source);
+    assert.equal(result.status, 'FAIL');
+    assert.ok(result.findings.some((finding) => finding.rule === 'aws-amazon-bedrock-api-key-short-lived'));
+  });
+});
+
+test('the two retained checkpoint scanner definitions are benign only at their exact original paths/lines', async () => {
+  await withScanWorkspace(async (workspace) => {
+    const config = await prepareConfig(workspace);
+    const source = join(workspace, 'source');
+    const parts = ['Original', 'Key', 'with', 'Bytes', '128'];
+    const identity = `${parts[0]}.${parts[1]}:${parts[2]}_${parts[3]}-${parts[4]}`;
+    const definitions = [
+      {
+        path: 'scripts/test-source-scan.mjs',
+        line: "const identity = ['Original', '" + identity.split('.')[1] + "'].join('.');\n",
+      },
+      {
+        path: '.github/gitleaks.toml',
+        line: "regexes = ['''^\\s*const idempotencyKey = '" + identity.replace('.', '\\.') + "';\\s*$''']\n",
+      },
+    ];
+    for (const definition of definitions) {
+      await file(source, definition.path, definition.line);
+      assert.equal((await scan(binary, config.path, workspace, 'dir', source)).status, 'PASS');
+      for (const content of [
+        definition.line.replace('128', '129'),
+        definition.line.trimEnd() + ' extra\n',
+        definition.line + marker,
+      ]) {
+        await file(source, definition.path, content);
+        assert.equal((await scan(binary, config.path, workspace, 'dir', source)).status, 'FAIL');
+      }
+      await rm(join(source, definition.path));
+      await file(source, 'tests/historical-control.txt', definition.line);
+      assert.equal((await scan(binary, config.path, workspace, 'dir', source)).status, 'FAIL');
+      await rm(join(source, 'tests/historical-control.txt'));
+    }
+    initialize(source);
+    for (const definition of definitions) await file(source, definition.path, definition.line);
+    commit(source, 'Synthetic exact historical scanner definitions');
+    assert.equal(
+      (await scan(binary, config.path, workspace, 'git', source, '--full-history --all -m')).status,
+      'PASS',
+    );
   });
 });
 

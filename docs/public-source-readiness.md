@@ -44,6 +44,16 @@ credential example. One `generic-api-key` exception covers the deliberately publ
 identity in `tests/unit/checkpoint-corrections.test.ts`; that identity proves punctuation-byte
 preservation and provides no authentication. The controls prove each fixture is benign and
 that another path, one changed byte, extra line content or a neighboring marker still fails.
+One provider-rule exception covers only the original whole-line detection regex in the
+SHA-verified upstream file: it contains the fixed encoding of the provider's public domain,
+not a credential. Wrong-path/extra-content/neighbor controls still detect its marker.
+The retained correction checkpoint `0cec1c12c78b19ea91c9c631e2d00a890ff8ce63` also contains
+two original definitions of that deliberately public replay fixture: its control in
+`scripts/test-source-scan.mjs` and its literal rule in `.github/gitleaks.toml`. The first
+all-history run classified each as `generic-api-key` at lines 145 and 27, respectively.
+Each has its own exact path/whole-line exception, demonstrated benign source/history
+controls, and changed-path/value/extra-content/neighbor negatives. Their history remains
+intact; no commit/range or entire configuration/test file is suppressed.
 Every proposed exception requires its own benign positive control and adjacent negative
 controls plus a non-author focused review. No test-directory, generic digest, broad
 high-entropy or commit-range exception is permitted.
