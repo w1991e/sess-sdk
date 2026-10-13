@@ -1,0 +1,8 @@
+SESS SDK
+
+This package is prepared for distribution under the Apache License, Version 2.0.
+It contains generated types from the SESS public HTTP contract and independent client code.
+The hosted SESS runtime and renderer are not included.
+
+Runtime dependencies retain their own notices and licenses: jose (MIT),
+canonicalize (Apache-2.0), and standardwebhooks (MIT). They are not bundled.
