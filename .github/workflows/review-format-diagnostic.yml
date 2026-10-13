@@ -1,0 +1,33 @@
+name: Temporary review formatting diagnostic
+on:
+  pull_request:
+    paths:
+      - .github/workflows/review-format-diagnostic.yml
+permissions:
+  contents: read
+jobs:
+  format:
+    if: github.repository == 'w1991e/sess-sdk' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: cc7309a28c802192420450ca35931d29ea846ec4
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Format the two historical review documents with the locked formatter
+        run: |
+          node node_modules/prettier/bin/prettier.cjs --write docs/reviews/sess-sdk-v1.1-2026-10-13-r1/README.md docs/reviews/sess-sdk-v1.1-2026-10-13-r1/REPO_REVIEW.md
+          node node_modules/prettier/bin/prettier.cjs --check docs/reviews/sess-sdk-v1.1-2026-10-13-r1/README.md docs/reviews/sess-sdk-v1.1-2026-10-13-r1/REPO_REVIEW.md
+          git diff --check
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: formatted-sdk-review
+          path: docs/reviews/sess-sdk-v1.1-2026-10-13-r1/*.md
+          if-no-files-found: error
+          retention-days: 7
