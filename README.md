@@ -6,13 +6,20 @@ Surface revision, verify its receipt, and continue on the same Session.
 `@sess.si/sdk` is a server-side TypeScript and JavaScript library. Your application supplies the
 interaction and business logic; SESS owns the hosted UI, state, routing and authorization.
 
-**Candidate status:** `0.1.0-rc.3` is under review and has not been published. For development,
-build and test an npm tarball using [Contributing](CONTRIBUTING.md). After an authorized candidate
-release, the registry install command is:
+**Start here:** the [plain-Node quickstart](examples/quickstart-node/README.md) is a runnable
+program. It needs only `SESS_API_KEY`; it prints the private human link before it starts waiting,
+then verifies the person's answer and completes the Session.
+
+**Release status:** the [changelog](CHANGELOG.md) describes each version. To see which versions the
+registry actually serves and under which tag, run `npm view @sess.si/sdk dist-tags`. Install a published version with:
 
 ```sh
-npm install @sess.si/sdk@0.1.0-rc.3
+npm install @sess.si/sdk@<version>
 ```
+
+If the version you need is not on the registry, the [quickstart](examples/quickstart-node/README.md)
+explains how to install a digest-checked candidate tarball instead (see also
+[Contributing](CONTRIBUTING.md)).
 
 ## Create and verify an interaction
 

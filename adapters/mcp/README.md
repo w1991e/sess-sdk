@@ -221,15 +221,17 @@ exact dependency `@sess.si/sdk@0.1.0-rc.3`. `package-lock.json` is a maintainer 
 ships it to consumers. The real hold is that the SDK is not published yet: until then the lock
 resolves the SDK to a local, gitignored **candidate** tarball `.candidate/sess.si-sdk-0.1.0-rc.3.tgz`.
 npm does not enforce lock integrity for `file:` tarballs, so `scripts/sdk-candidate.mjs` accepts the
-tarball only if its SHA-256 equals the reviewed candidate (`b4d29d8f…a0502`), which `npm pack` of
-the SDK root reproduces (checked on macOS and on Linux with Node 22.14.0 and 24.21.0).
+tarball only if its SHA-256 equals the reviewed candidate (`b4d29d8f…a0502`). The repository root
+may hold a later successor candidate, so the tarball is rebuilt from its pinned reviewed source commit
+by the root helper `scripts/rc3-candidate.mjs` (git archive of `cea3f1e`, `npm ci`, build, pack), never
+by packing the current root.
 
 From a clean clone, one command prepares everything. A plain `npm ci` without it fails because
 `.candidate/` does not exist yet.
 
 ```sh
 cd adapters/mcp
-npm run setup    # builds the SDK root if needed, accepts the candidate by digest, then npm ci
+npm run setup    # rebuilds rc.3 from its pinned source, accepts it by digest, then npm ci
 npm run check    # digest, build, typecheck, unit tests, packed-consumer check
 ```
 

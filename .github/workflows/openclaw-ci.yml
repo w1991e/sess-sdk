@@ -1,8 +1,9 @@
 name: OpenClaw adapter CI
 
 # Companion package @sess.si/openclaw (adapters/openclaw). Independent of the root SDK lanes in
-# ci.yml, which stay unchanged. The unpublished SDK dependency is the CANDIDATE packed from this
-# checkout's root and verified against its pinned sha256 before use (release hold until published).
+# ci.yml, which stay unchanged. The unpublished SDK dependency is the approved rc.3 CANDIDATE,
+# rebuilt from its pinned reviewed source commit by scripts/rc3-candidate.mjs and accepted only by
+# digest (release hold until published). The current root may be a later successor candidate.
 on:
   pull_request:
   push:
@@ -24,16 +25,14 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Full history: the pinned rc.3 source commit must be available locally.
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24.21.0'
-      - name: Pack the candidate SDK from the root source
-        run: |
-          npm ci --ignore-scripts --no-audit --no-fund
-          npm run build
-          mkdir -p "$RUNNER_TEMP/sdk"
-          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/sdk"
+      - name: Rebuild the approved rc.3 SDK candidate from its pinned source (digest-gated)
+        run: node scripts/rc3-candidate.mjs --out "$RUNNER_TEMP/sdk"
       - name: Install adapter dependencies (candidate SDK, integrity-locked)
         working-directory: adapters/openclaw
         run: node scripts/candidate-sdk.mjs "$RUNNER_TEMP/sdk/sess.si-sdk-0.1.0-rc.3.tgz" -- npm ci --ignore-scripts --no-audit --no-fund
@@ -55,16 +54,14 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Full history: the pinned rc.3 source commit must be available locally.
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24.21.0'
-      - name: Pack the candidate SDK from the root source
-        run: |
-          npm ci --ignore-scripts --no-audit --no-fund
-          npm run build
-          mkdir -p "$RUNNER_TEMP/sdk"
-          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/sdk"
+      - name: Rebuild the approved rc.3 SDK candidate from its pinned source (digest-gated)
+        run: node scripts/rc3-candidate.mjs --out "$RUNNER_TEMP/sdk"
       - name: Install adapter dependencies (candidate SDK, integrity-locked)
         working-directory: adapters/openclaw
         run: node scripts/candidate-sdk.mjs "$RUNNER_TEMP/sdk/sess.si-sdk-0.1.0-rc.3.tgz" -- npm ci --ignore-scripts --no-audit --no-fund

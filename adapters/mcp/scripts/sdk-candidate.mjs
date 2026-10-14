@@ -11,11 +11,12 @@
 //
 // Commands:
 //   setup [--require-registry]
-//                            registry mode: npm ci. candidate mode: prepare --build-root, then
+//                            registry mode: npm ci. candidate mode: prepare, then
 //                            npm ci. --require-registry refuses candidate mode (used by releases).
-//   prepare [--build-root]   obtain the candidate (SESS_SDK_CANDIDATE_TGZ, or `npm pack` of the SDK
-//                            repository root; --build-root first runs `npm ci --ignore-scripts` and
-//                            `npm run build` there when dist/ is missing) and accept it by digest.
+//   prepare [--build-root]   obtain the candidate (SESS_SDK_CANDIDATE_TGZ, or the root helper
+//                            scripts/rc3-candidate.mjs, which rebuilds it from its pinned reviewed
+//                            source commit) and accept it by digest. --build-root is accepted for
+//                            compatibility; the helper always builds from the pinned source.
 //   verify                   check the lock entry (either mode), the candidate bytes (candidate
 //                            mode) and the installed identity.
 //   switch-to-registry [--apply]
@@ -58,6 +59,13 @@ function digests(path) {
 function fail(message, code = 1) {
   console.error(`sdk-candidate: ${message}`);
   process.exit(code);
+}
+/** Returns a refusal message for bytes that are not the pinned candidate, otherwise undefined. */
+function refusalFor(path) {
+  const d = digests(path);
+  return d.sha256 !== pinned.sha256 || d.integrity !== pinned.integrity
+    ? `tarball digest ${d.sha256} is not the pinned candidate ${pinned.sha256}. Refusing it.`
+    : undefined;
 }
 function accept(path) {
   const d = digests(path);
@@ -110,30 +118,29 @@ if (command === 'setup') {
     accept(supplied);
     copyFileSync(supplied, target);
   } else {
+    // The repository root may carry a later successor candidate, so the approved bytes are rebuilt
+    // from their pinned reviewed source commit by the root helper, never by packing the current root.
     const root = resolve(adapter, '..', '..');
-    const manifest = readJson(join(root, 'package.json'));
-    if (manifest.name !== pinned.name || manifest.version !== pinned.version)
-      fail(`repository root is ${manifest.name}@${manifest.version}, not the pinned ${spec}.`);
-    if (!existsSync(join(root, 'dist', 'index.js'))) {
-      if (!flags.includes('--build-root'))
-        fail(
-          'the SDK root is not built. Run `npm run setup` (builds it), or at the repository root run `npm ci --ignore-scripts && npm run build`.',
-        );
-      console.log('sdk-candidate: building the SDK root (npm ci --ignore-scripts && npm run build)');
-      npm(['ci', '--ignore-scripts', '--no-audit', '--no-fund'], root, 'inherit');
-      npm(['run', 'build'], root, 'inherit');
-    }
     const out = mkdtempSync(join(tmpdir(), 'sess-sdk-candidate-'));
+    // Refusals are decided inside, reported only after the temporary directory is removed.
+    let refusal;
     try {
-      const packed = JSON.parse(
-        npm(['pack', '--json', '--ignore-scripts', '--pack-destination', out], root),
-      )[0];
-      const produced = join(out, packed.filename);
-      accept(produced);
-      copyFileSync(produced, target);
+      const produced = execFileSync(
+        process.execPath,
+        [join(root, 'scripts', 'rc3-candidate.mjs'), '--out', out],
+        { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
+      )
+        .trim()
+        .split('\n')
+        .pop();
+      refusal = refusalFor(produced);
+      if (!refusal) copyFileSync(produced, target);
+    } catch {
+      refusal = 'the approved candidate could not be rebuilt from its pinned source (see the output above).';
     } finally {
       rmSync(out, { recursive: true, force: true });
     }
+    if (refusal) fail(refusal);
   }
   console.log(`sdk-candidate: accepted CANDIDATE ${spec} sha256=${pinned.sha256}`);
 } else if (command === 'verify') {
@@ -177,12 +184,14 @@ if (command === 'setup') {
   if (lockMode() !== 'registry')
     fail('the regenerated lock does not resolve the genuine registry tarball with the pinned integrity.');
   const out = mkdtempSync(join(tmpdir(), 'sess-sdk-registry-'));
+  let refusal;
   try {
     const packed = JSON.parse(npm(['pack', spec, '--json', '--pack-destination', out], adapter))[0];
-    accept(join(out, packed.filename));
+    refusal = refusalFor(join(out, packed.filename));
   } finally {
     rmSync(out, { recursive: true, force: true });
   }
+  if (refusal) fail(refusal);
   compatibility.sessSdk = {
     ...pinned,
     status: 'published (registry)',
