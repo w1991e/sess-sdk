@@ -5,6 +5,12 @@ changes an external system is a separate owner action.
 
 ## Prerequisites (owner actions, in order)
 
+> **Do not push an `openclaw-v*` tag until the `npm-openclaw-release` environment (with required
+> reviewers and the `openclaw-v*` tag rule) and the npm trusted publisher for `@sess.si/openclaw`
+> exist.** A job that references a missing environment makes GitHub create it automatically without
+> protection rules, so the publish job would run without maintainer approval. (The guard still
+> refuses while the SDK is unpublished, but do not rely on that.)
+
 1. **SDK publication.** `@sess.si/sdk` at the exact version in `package.json` (currently
    `0.1.0-rc.3`) must be published on the public npm registry with the same bytes the lockfile pins
    (`package-lock.json` integrity). Until then the release guard refuses to run: candidate SDK
