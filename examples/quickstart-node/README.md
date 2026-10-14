@@ -8,49 +8,74 @@ published package.
 
 ## Prerequisites
 
-- Node.js 24 or later.
-- A SESS API key for the workspace you want to use. Use synthetic data; this example pays and sends
-  nothing.
+- Node.js 22.14.0 or later (checked on 22.14.0 and 24.21.0).
+- A SESS API key for the workspace you want to use. That is the only setting the ordinary path
+  needs: the workspace is taken from the API's authenticated responses. Use synthetic data; this
+  example pays and sends nothing.
 
 ## Install
 
-Copy this directory somewhere outside the SDK repository, then install the SDK into it.
+Copy this directory somewhere outside the SDK repository. [package.json](package.json) declares the
+exact SDK version, `"@sess.si/sdk": "0.1.0-rc.3"`. No lockfile is shipped.
 
-Today (release candidate, not yet published): install the candidate tarball you were given or
-built with `npm pack` in the SDK repository. This is a local candidate, not a published release:
+### Release candidate (current: not yet published)
+
+`@sess.si/sdk@0.1.0-rc.3` is a **candidate**, not a published release, so `npm install` alone cannot
+resolve it yet. Install the candidate tarball explicitly, and only after checking that its SHA-256
+equals the reviewed candidate digest:
 
 ```sh
-npm install --ignore-scripts /path/to/sess.si-sdk-0.1.0-rc.3.tgz
+# In the SDK repository: build and pack the candidate (or use the tarball you were given).
+npm ci --ignore-scripts && npm run build
+npm pack --ignore-scripts --pack-destination /tmp/sess-candidate
+
+# Verify the digest. It must print exactly:
+# b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502
+sha256sum /tmp/sess-candidate/sess.si-sdk-0.1.0-rc.3.tgz      # Linux
+shasum -a 256 /tmp/sess-candidate/sess.si-sdk-0.1.0-rc.3.tgz   # macOS
+
+# In your copy of this directory: install the verified tarball without lifecycle scripts.
+npm install --ignore-scripts /tmp/sess-candidate/sess.si-sdk-0.1.0-rc.3.tgz
 ```
 
-After publication:
+Do not install a tarball whose digest differs. Installing a tarball records a local `file:`
+dependency in your copy's package.json; that is expected for the candidate.
+
+### Published release (after publication)
+
+Once `0.1.0-rc.3` (or a later version you set in package.json) is published to npm, the declared
+dependency resolves normally:
 
 ```sh
-npm install @sess.si/sdk@<version>
+npm install --ignore-scripts
 ```
 
 ## Run
 
-Provide the key through the environment, never as a command-line argument:
+Enter the key without echoing it and without putting it in your shell history or on a command line,
+then start the program:
 
 ```sh
-export SESS_API_KEY=...   # or load it from your secret manager
+read -rs SESS_API_KEY && export SESS_API_KEY   # paste the key, then press Enter
 npm start
+unset SESS_API_KEY                             # when you are done
 ```
 
-Optional environment:
+You can also load `SESS_API_KEY` from your secret manager. Never pass it as an argument.
 
-| Variable                        | Meaning                                                                        |
-| ------------------------------- | ------------------------------------------------------------------------------ |
-| `SESS_API_URL`                  | Non-default API origin. HTTPS only.                                            |
-| `SESS_ALLOW_INSECURE_LOCALHOST` | `1` permits `http://localhost` for local runtime tests only.                   |
-| `SESS_EXPECTED_WORKSPACE_ID`    | Expected workspace for receipt verification. Normally supplied by the runtime. |
-| `SESS_WAIT_SECONDS`             | Total wait, 5 to 900 seconds. Default 180.                                     |
-| `SESS_SESSION_ID`               | Resume waiting on an existing Session instead of creating a new one.           |
-
-The program prints the human URL before it starts waiting. That URL is a bearer link: anyone who
-holds it can respond, so open it yourself or deliver it privately to the intended person. Do not
+The program prints the human URL **before** it starts waiting. That URL is a bearer link: anyone
+who holds it can respond, so open it yourself or deliver it privately to the intended person. Do not
 paste it into logs, tickets or chat channels.
+
+Optional environment (not needed for the ordinary path):
+
+| Variable                        | Meaning                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------- |
+| `SESS_API_URL`                  | Non-default API origin. HTTPS only.                                       |
+| `SESS_ALLOW_INSECURE_LOCALHOST` | `1` permits `http://localhost` for local runtime tests only.              |
+| `SESS_EXPECTED_WORKSPACE_ID`    | Pin an expected workspace for receipt verification instead of the header. |
+| `SESS_WAIT_SECONDS`             | Total wait, 5 to 900 seconds. Default 180.                                |
+| `SESS_SESSION_ID`               | Resume waiting on an existing Session instead of creating a new one.      |
 
 ## What the person sees
 
@@ -60,7 +85,7 @@ response. SESS renders the page; the example sends only typed data.
 
 ## What the program prints
 
-- The Session ID and the human URL (once, at creation).
+- The Session ID and the human URL (once, at creation, before waiting).
 - `Still waiting` and a resume command if the wait ends without a response (exit code 3), or a
   resume command after Ctrl+C (exit code 130). Neither creates another Session; resuming with
   `SESS_SESSION_ID=ses_... npm start` waits on the same Session and revision.
@@ -69,6 +94,26 @@ response. SESS renders the page; the example sends only typed data.
 
 It never prints the API key or receipt contents. An uncertain create or complete outcome is
 reported as uncertain, never as success, and creation is never retried automatically.
+
+## Clean install check (maintainers and CI)
+
+[scripts/clean-install-check.mjs](scripts/clean-install-check.mjs) copies this directory to a fresh
+temporary directory outside the repository (no `node_modules` in any ancestor), packs the SDK root
+(or takes `--tarball <path>` / `SESS_SDK_CANDIDATE_TGZ`) and accepts the tarball only if its SHA-256
+is the pinned candidate digest above, installs it with `--ignore-scripts`, then runs `index.mjs`
+against a deterministic fake SESS API on loopback. The fake serves create, retrieve, the immutable
+Surface, complete, and a genuinely Ed25519-signed receipt with its key set. The program's
+environment holds only `SESS_API_KEY` plus the loopback API URL and opt-in, so the check proves the
+key alone suffices, the human URL is printed before waiting, the response verifies and the Session
+completes. No SESS traffic leaves loopback; `npm install` fetches the SDK's pinned public
+dependencies from the configured npm registry or cache. Run it after building the SDK root:
+
+```sh
+npm ci --ignore-scripts && npm run build
+node examples/quickstart-node/scripts/clean-install-check.mjs
+```
+
+CI runs it on Node 22.14.0 and 24.21.0 (`.github/workflows/quickstart-ci.yml`).
 
 ## Local smoke (maintainers)
 
