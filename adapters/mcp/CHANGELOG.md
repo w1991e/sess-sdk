@@ -33,3 +33,10 @@
   revision; a confirmed complete must also report that revision. Otherwise the record blocks.
 - Removed an unreachable branch: SDK `rejected` outcomes are always definitive and block.
 - README documents the error-code → class mapping and the receipt-key rotation window.
+- Re-vendored the hardened shared core (rejects sparse arrays, non-plain objects and cycles; all
+  digested bodies are validated plain JSON or `JSON.parse` output).
+- SDK `protocol`/`configuration` errors during read, wait or verification are non-retryable
+  (`SESS_PROTOCOL_ERROR`/`NOT_CONFIGURED`) with no state change; `not_sent` with kind
+  `configuration` on a saved publish/complete blocks; a failed `SESSION_COMPLETED` read-back keeps
+  the completion pending and retryable.
+- Packed check scans multi-line, side-effect and dynamic imports and rejects `require()`.

@@ -95,9 +95,25 @@ function createdNotSaved(): AdapterError {
   );
 }
 
+/**
+ * Maps an SDK error from a read, wait or verification (no state change in any case):
+ * `configuration` and `protocol` are deterministic and not retryable; `api`, `transport`,
+ * `timeout`, `unknown_outcome` and anything unrecognized are retryable unavailability. Callers
+ * handle `aborted`, `wait_ended` and `receipt_verification` before this.
+ */
 function unavailable(error: unknown): AdapterError {
   const code = safeCode(error);
   const detail = code ? ` (${code})` : '';
+  if (error instanceof SessError && error.kind === 'configuration')
+    return new AdapterError(
+      'NOT_CONFIGURED',
+      `The SESS client rejected the request before sending it${detail}. Check the MCP server configuration. Nothing was changed.`,
+    );
+  if (error instanceof SessError && error.kind === 'protocol')
+    return new AdapterError(
+      'SESS_PROTOCOL_ERROR',
+      `SESS returned a response this client cannot accept${detail}. Check that SESS_API_ORIGIN is a compatible SESS API. Nothing was changed.`,
+    );
   return new AdapterError(
     'SESS_UNAVAILABLE',
     `SESS could not be reached or returned an error${detail}. Nothing was changed locally; the same call can be repeated.`,
@@ -564,6 +580,16 @@ export class SessMcpAdapter {
     // The SDK reports `rejected` only for a definitive coded 4xx from its rejection table with no
     // possible earlier write; such a saved request cannot succeed by replay. Everything else
     // (not_sent, unknown, 408/429/5xx, transport, timeout, abort) stays pending and retryable.
+    // A not_sent failure from the SDK's own deterministic input/configuration checks (for example a
+    // corrupt saved If-Match) can never succeed on identical replay either.
+    if (error instanceof SessError && error.outcome === 'not_sent' && error.kind === 'configuration') {
+      const reason = code ?? 'SDK_CONFIGURATION';
+      await this.#block(record, reason, false);
+      throw new AdapterError(
+        'MUTATION_REJECTED',
+        `The SESS client refused to send the saved ${operation} (${reason}). The interaction is blocked for owner review.`,
+      );
+    }
     if (error instanceof SessError && error.outcome === 'rejected') {
       const reason = code ?? `HTTP_${error.status ?? 'REJECTED'}`;
       await this.#block(record, reason, false);
@@ -604,7 +630,13 @@ export class SessMcpAdapter {
             current.data.status === 'completed' &&
             current.data.revision === pending.expectedRevision;
         } catch (readError) {
-          return this.#mutationFailed(record, 'complete', readError);
+          // The read-back failed: the completion stays pending and the same call reconciles later.
+          this.#options.diagnostics('complete_readback_failed', { code: sessCode(readError) });
+          throw new AdapterError(
+            'OUTCOME_UNKNOWN',
+            'SESS reports the interaction completed, but it could not be read back to confirm. Repeat the same sess_complete call later.',
+            true,
+          );
         }
       } else {
         return this.#mutationFailed(record, 'complete', error);

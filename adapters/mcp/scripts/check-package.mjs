@@ -75,19 +75,32 @@ for (const required of [
 // Import boundary: shipped modules import only Node built-ins, their own relative files, the MCP
 // library and the SESS SDK. The vendored shared core is a package file; no sibling adapter path
 // (../shared, adapters/, openclaw) is ever imported at runtime.
-for (const file of packed.files.filter((f) => f.path.endsWith('.js'))) {
+// The scan is deliberately conservative: it may reject harmless text, never accept a hidden import.
+const allowedSpecifier = (file, specifier) =>
+  specifier.startsWith('node:') ||
+  (/^\.\.?\//.test(specifier) &&
+    resolve(dirname(join(installed, file)), specifier).startsWith(join(installed, 'dist'))) ||
+  specifier.startsWith('@modelcontextprotocol/sdk/') ||
+  specifier === '@sess.si/sdk';
+for (const file of packed.files.filter((f) => /\.[cm]?js$/.test(f.path))) {
   const text = await readFile(join(installed, file.path), 'utf8');
-  for (const [, specifier] of text.matchAll(
-    /(?:^|\n)\s*(?:import|export)[^'"\n]*?from\s*['"]([^'"]+)['"]/g,
-  )) {
-    const ok =
-      specifier.startsWith('node:') ||
-      (/^\.\.?\//.test(specifier) &&
-        resolve(dirname(join(installed, file.path)), specifier).startsWith(join(installed, 'dist'))) ||
-      specifier.startsWith('@modelcontextprotocol/sdk/') ||
-      specifier === '@sess.si/sdk';
-    assert(ok, `${file.path} imports outside the package boundary: ${specifier}`);
+  const specifiers = [
+    // static import/export ... from '...' (including multi-line clauses)
+    ...[...text.matchAll(/\bfrom\s*['"]([^'"]+)['"]/g)].map((m) => m[1]),
+    // side-effect import '...'
+    ...[...text.matchAll(/(?:^|[;\n}])\s*import\s*['"]([^'"]+)['"]/g)].map((m) => m[1]),
+  ];
+  for (const m of text.matchAll(/\bimport\s*\(\s*([^)]*?)\s*\)/g)) {
+    const literal = /^(['"])([^'"`]+)\1$/.exec(m[1]);
+    assert(literal, `${file.path} has a non-literal dynamic import`);
+    specifiers.push(literal[2]);
   }
+  assert(!/\brequire\s*\(/.test(text), `${file.path} uses require()`);
+  for (const specifier of specifiers)
+    assert(
+      allowedSpecifier(file.path, specifier),
+      `${file.path} imports outside the package boundary: ${specifier}`,
+    );
   assert(!/openclaw|adapters\/shared/i.test(text), `${file.path} references a sibling adapter`);
 }
 const state = await mkdtemp(join(tmpdir(), 'sess-mcp-state-'));
