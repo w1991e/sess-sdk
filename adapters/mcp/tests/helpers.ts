@@ -1,10 +1,11 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Sess } from '@sess.si/sdk';
 import type { AdapterConfig } from '../src/config.js';
 import { SessMcpAdapter, type SessClient } from '../src/operations.js';
+import { canonicalJson, type JsonValue } from '../src/validate.js';
 
 export const ORIGIN = 'https://api.sess.test';
 // Synthetic, never a real credential format.
@@ -66,7 +67,53 @@ export class FakeSess {
     return `"v${this.#version}"`;
   }
 
-  answer(data: Json, actionId = 'submit', receipt: string | null = 'aaaa.bbbb.cccc'): string {
+  /** Test-only Ed25519 receipt key, generated per fake; served at the receipt-key endpoint. */
+  #receiptKey = generateKeyPairSync('ed25519');
+
+  /** Records an accepted answer with a genuinely signed receipt (the SDK verifies it fully). */
+  answerSigned(data: Json, actionId = 'submit'): string {
+    const s = this.session!;
+    const eventId = `evt_0000000000000000000000000${s.responses.length + 1}`;
+    const acceptedMillis = Math.floor(Date.now() / 1000) * 1000 - 1000;
+    const acceptedAt = new Date(acceptedMillis).toISOString();
+    const action = (s.interaction.actions as Json[]).find((a) => a.id === actionId)!;
+    const digest = (value: unknown) =>
+      `sha256:${createHash('sha256')
+        .update(canonicalJson(value as JsonValue))
+        .digest('hex')}`;
+    const workspace = 'wks_synthetic';
+    const claims = {
+      sess_receipt: 1,
+      iss: ORIGIN,
+      aud: workspace,
+      jti: eventId,
+      iat: acceptedMillis / 1000,
+      exp: acceptedMillis / 1000 + 3600,
+      accepted_at: acceptedAt,
+      workspace_id: workspace,
+      session_id: s.id,
+      step_id: `rev_${s.revision}`,
+      event_id: eventId,
+      surface: { revision: s.revision, hash: digest(s.interaction), renderer_version: 'sess-html-form-1' },
+      action: { id: action.id, label: action.label, summary: action.intent ?? '' },
+      input_hash: digest(data),
+      actor: { assurance: 'link_holder', subject: `${workspace}:human_link:${s.id}` },
+      return_binding: { recipient: workspace, return_channel_id: null },
+    };
+    const header = { alg: 'EdDSA', kid: 'test-receipt-1', typ: 'sess-receipt+jwt' };
+    const input = `${Buffer.from(JSON.stringify(header)).toString('base64url')}.${Buffer.from(
+      canonicalJson(claims as JsonValue),
+    ).toString('base64url')}`;
+    const receipt = `${input}.${sign(null, Buffer.from(input), this.#receiptKey.privateKey).toString('base64url')}`;
+    return this.answer(data, actionId, receipt, acceptedAt);
+  }
+
+  answer(
+    data: Json,
+    actionId = 'submit',
+    receipt: string | null = 'aaaa.bbbb.cccc',
+    acceptedAt = '2026-10-13T12:00:00.000Z',
+  ): string {
     const s = this.session!;
     const eventId = `evt_0000000000000000000000000${s.responses.length + 1}`;
     s.responses.push({
@@ -76,7 +123,7 @@ export class FakeSess {
       action_id: actionId,
       data,
       actor: { assurance: 'link_holder' },
-      accepted_at: '2026-10-13T12:00:00.000Z',
+      accepted_at: acceptedAt,
       receipt,
     });
     s.status = 'responded';
@@ -144,6 +191,20 @@ export class FakeSess {
         { etag: this.etag() },
       );
     }
+    if (method === 'GET' && path === '/.well-known/sess-receipt-keys.json')
+      return this.#json(200, {
+        keys: [
+          {
+            kty: 'OKP',
+            crv: 'Ed25519',
+            x: this.#receiptKey.publicKey.export({ format: 'jwk' }).x,
+            kid: 'test-receipt-1',
+            alg: 'EdDSA',
+            use: 'sig',
+            key_ops: ['verify'],
+          },
+        ],
+      });
     const s = this.session;
     if (!s || !path.startsWith(`/v1/sessions/${SESSION_ID}`))
       return this.#json(404, { error: { code: 'NOT_FOUND', request_id: 'req_2', message: 'x' } });
@@ -178,8 +239,6 @@ export class FakeSess {
       this.#replays.set(key, { status: 200, body: structuredClone(s), etag: this.etag() });
       return this.#json(200, s, { etag: this.etag() });
     }
-    if (method === 'GET' && path === '/.well-known/sess-receipt-keys.json')
-      return this.#json(200, { keys: [] });
     return this.#json(404, { error: { code: 'NOT_FOUND', request_id: 'req_5', message: 'x' } });
   }
 }

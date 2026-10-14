@@ -17,3 +17,9 @@
   from it. Records of another format version stop before any request.
 - Blocking is compare-and-apply; deterministic mutation rejections block with a stable code;
   a save failure after a confirmed create is `CREATED_NOT_SAVED` (do not repeat).
+- A receipt-key fetch failure (`KEY_RESOLUTION_FAILED`, `KEY_FETCH_COOLDOWN`) is now a retryable
+  `SESS_UNAVAILABLE` that records nothing and leaves the state unchanged; a later
+  `sess_response` re-reads and fully verifies the answer. Only genuine verification failures
+  block. Previously a one-off key-endpoint 5xx or timeout permanently blocked a valid answer.
+- A save failure after an unknown create outcome is reported as non-retryable
+  `CREATE_OUTCOME_UNKNOWN` instead of a retryable store error.
