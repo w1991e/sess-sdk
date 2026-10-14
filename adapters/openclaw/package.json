@@ -40,7 +40,8 @@
     "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.check.json --noEmit",
     "test": "vitest run",
     "check:package": "node scripts/check-package.mjs",
-    "check": "npm run build && npm run typecheck && npm test && npm run check:package"
+    "check": "npm run build && npm run typecheck && npm test && npm run test:release-guard && npm run check:package",
+    "test:release-guard": "node --test scripts/test-release-guard.mjs"
   },
   "dependencies": {
     "@sess.si/sdk": "0.1.0-rc.3"

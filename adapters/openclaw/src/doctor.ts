@@ -1,6 +1,6 @@
 import { parseConfig } from './config.js';
 import { SessAdapterError } from './errors.js';
-import type { PruneReport, StateCounts } from './store.js';
+import type { PruneReport, RetireReport, StateCounts } from './store.js';
 
 export const PLUGIN_VERSION = '0.1.0-rc.1';
 export const QUALIFIED_HOST = '2026.10.3';
@@ -13,8 +13,15 @@ export function doctorReport(
   rawConfig: unknown,
   state: unknown,
   env: Readonly<Record<string, string | undefined>>,
+  hostVersion?: string,
 ): string {
   const lines = [`SESS for OpenClaw ${PLUGIN_VERSION} (qualified host: OpenClaw ${QUALIFIED_HOST})`];
+  if (typeof hostVersion === 'string')
+    lines.push(
+      hostVersion === QUALIFIED_HOST
+        ? `host: OpenClaw ${hostVersion} (qualified)`
+        : `warning: host OpenClaw ${hostVersion} is not a qualified version; only ${QUALIFIED_HOST} has been tested`,
+    );
   try {
     const config = parseConfig(rawConfig);
     lines.push(`config: valid; SESS origin ${config.baseUrl}; wait budget ${config.waitBudgetMs} ms`);
@@ -29,7 +36,7 @@ export function doctorReport(
   const keyed = typeof (state as { openKeyedStore?: unknown } | undefined)?.openKeyedStore === 'function';
   lines.push(`durable plugin state: ${keyed ? 'available' : 'NOT available'}`);
   lines.push(
-    'tools: optional; add sess_request, sess_response, sess_publish and sess_complete to tools.alsoAllow (keep any existing entries; do not replace tools.allow)',
+    'tools: optional; add sess_request, sess_response, sess_publish and sess_complete to tools.alsoAllow (keep any existing entries; do not replace tools.allow), or preview with: openclaw sess setup',
   );
   lines.push('network: not contacted by doctor');
   return lines.join('\n');
@@ -56,4 +63,14 @@ export function formatPrune(report: PruneReport, applied: boolean): string {
   return applied
     ? `prune: compacted ${report.compacted} of ${report.eligible} terminal records (removed retained human links); conflicts ${report.conflicts}; replay tombstones untouched`
     : `prune (dry run): ${report.eligible} terminal records hold a retained human link; rerun with --apply to remove only those links`;
+}
+
+export function formatRetire(report: RetireReport, days: number, applied: boolean): string {
+  const skipped = Object.entries(report.skippedByState)
+    .map(([state, n]) => `${state}=${n}`)
+    .join(', ');
+  const head = applied
+    ? `retire: retired ${report.retired} of ${report.eligible} interactions idle >= ${days} days (archived ${report.archived}); conflicts ${report.conflicts}`
+    : `retire (dry run): ${report.eligible} waiting/needs_resume/answered interactions idle >= ${days} days; rerun with --apply to retire them`;
+  return `${head}\nnever retired (pending or ambiguous): ${skipped || 'none'}`;
 }

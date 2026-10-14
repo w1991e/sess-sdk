@@ -101,7 +101,6 @@ export interface BoundStore {
   registerIfAbsent(key: string, value: Stored): Promise<boolean>;
   lookup(key: string): Promise<Stored | undefined>;
   entries(): Promise<{ key: string; value: Stored }[]>;
-  count(): Promise<number>;
   moveEntriesFrom(source: {
     namespace: string;
     entries: { sourceKey: string; targetKey: string }[];
@@ -111,6 +110,12 @@ export interface BoundStore {
 export interface HostKeyedStore {
   withCurrent?: (authority: { assertCurrent: () => void }) => unknown;
   entries?: () => Promise<{ key: string; value: unknown }[]>;
+  entriesInKeyRange?: (range: {
+    keyStartInclusive: string;
+    keyEndExclusive: string;
+    limit: number;
+    order?: 'asc' | 'desc';
+  }) => Promise<{ key: string; value: unknown }[]>;
   observe?: BoundStore['observe'];
   compareAndApply?: BoundStore['compareAndApply'];
 }
@@ -150,7 +155,6 @@ const BOUND_REQUIRED = [
   'registerIfAbsent',
   'lookup',
   'entries',
-  'count',
   'moveEntriesFrom',
 ] as const;
 
@@ -351,19 +355,33 @@ async function upgradeLegacy(views: { legacy: BoundStore; active: BoundStore; ar
 async function archiveOne(active: BoundStore, archive: BoundStore, record: RecoveryRecord): Promise<boolean> {
   const keys = [recordKey(record.handle), ...(record.claimKey ? [record.claimKey] : [])];
   const pending: { sourceKey: string; targetKey: string }[] = [];
+  const sources = new Map<string, Stored>();
   for (const key of keys) {
     const source = await active.observe(key);
     if (source.value === undefined) continue;
     const existing = await archive.lookup(key);
-    if (existing === undefined) pending.push({ sourceKey: key, targetKey: key });
-    else if (canonicalJson(existing) === canonicalJson(source.value))
+    if (existing === undefined) {
+      pending.push({ sourceKey: key, targetKey: key });
+      sources.set(key, source.value);
+    } else if (canonicalJson(existing) === canonicalJson(source.value))
       // An identical copy is already archived (an earlier interrupted move): drop the duplicate.
       await active.compareAndApply(key, source.comparison, { operation: 'delete', action: 'delete' });
     else return false; // Collision: never overwrite; the record stays active for the operator.
   }
-  if (pending.length)
-    await archive.moveEntriesFrom({ namespace: ACTIVE_OPTIONS.namespace, entries: pending });
-  return true;
+  if (!pending.length) return true;
+  await archive.moveEntriesFrom({ namespace: ACTIVE_OPTIONS.namespace, entries: pending });
+  // On openclaw@2026.10.3 a move onto an existing destination keeps the destination and still
+  // removes the source (probed). Re-read every destination; if a concurrent writer won, put the
+  // source value back so nothing is lost, and leave the record active for the operator.
+  let intact = true;
+  for (const [key, value] of sources) {
+    const landed = await archive.lookup(key);
+    if (landed === undefined || canonicalJson(landed) !== canonicalJson(value)) {
+      intact = false;
+      await active.registerIfAbsent(key, value);
+    }
+  }
+  return intact;
 }
 
 async function archiveTerminalSweep(active: BoundStore, archive: BoundStore): Promise<number> {
@@ -387,7 +405,15 @@ export class LayoutGate {
   #running: Promise<void> | undefined;
   async ensure(store: RecoveryStore): Promise<void> {
     if (this.#done) return;
-    this.#running ??= store.upgrade().then(
+    if (this.#running) {
+      // A waiter must not inherit the runner's own failure (for example its revoked authority).
+      try {
+        return await this.#running;
+      } catch {
+        fail('STATE_CONFLICT', 'The SESS state upgrade was interrupted by another call; retry.');
+      }
+    }
+    this.#running = store.upgrade().then(
       () => {
         this.#done = true;
       },
@@ -503,6 +529,14 @@ export class RecoveryStore {
     if (!isRecordShape(found.value, 2) || found.value.handle !== handle)
       fail('RECOVERY_BLOCKED', 'This interaction record has an unsupported format and was left unchanged.');
     this.#location.set(handle, found.where);
+    if (found.where === 'active' && TERMINAL_STATES.has(found.value.state)) {
+      // An earlier archival failed after the terminal state was saved: retry it now (best effort).
+      try {
+        if (await archiveOne(this.#active, this.#archive, found.value)) this.#location.set(handle, 'archive');
+      } catch {
+        /* the record stays correct in active; a later call retries */
+      }
+    }
     return found.value;
   }
 
@@ -558,30 +592,56 @@ export interface StateCounts {
   readonly legacy: Record<string, number>;
 }
 
-function tally(rows: { value: unknown }[], legacy: boolean): Record<string, number> {
-  const counts: Record<string, number> = {};
-  const add = (k: string) => void (counts[k] = (counts[k] ?? 0) + 1);
-  for (const { value } of rows) {
-    if (isRecordShape(value, 2) || (legacy && isRecordShape(value, 1)))
-      add(legacy ? `schema1_record_${(value as RecoveryRecord).state}` : (value as RecoveryRecord).state);
-    else if (isClaim(value, 2) || (legacy && isClaim(value, 1))) add(legacy ? 'schema1_claim' : 'claim');
-    else if (legacy && isLegacyOnly(value)) add(`${(value as { kind: string }).kind}`);
-    else add('unknown');
+const PAGE = 500;
+const KEY_END = '\uffff';
+
+/**
+ * Visits every entry in bounded pages with the public entriesInKeyRange (present on
+ * openclaw@2026.10.3, probed); falls back to entries() only where the host lacks it.
+ */
+async function forEachEntry(
+  store: HostKeyedStore,
+  visit: (entry: { key: string; value: unknown }) => Promise<void> | void,
+): Promise<void> {
+  if (typeof store.entriesInKeyRange === 'function') {
+    let start = '';
+    for (;;) {
+      const page = await store.entriesInKeyRange({
+        keyStartInclusive: start,
+        keyEndExclusive: KEY_END,
+        limit: PAGE,
+        order: 'asc',
+      });
+      for (const entry of page) await visit(entry);
+      if (page.length < PAGE) return;
+      start = `${page.at(-1)!.key}\u0000`;
+    }
   }
-  return counts;
+  if (typeof store.entries !== 'function')
+    fail('HOST_CAPABILITY_MISSING', 'Plugin state entries cannot be listed on this host.');
+  for (const entry of await store.entries()) await visit(entry);
+}
+
+function tallyOne(counts: Record<string, number>, value: unknown, legacy: boolean): void {
+  const add = (k: string) => void (counts[k] = (counts[k] ?? 0) + 1);
+  if (isRecordShape(value, 2) || (legacy && isRecordShape(value, 1)))
+    add(legacy ? `schema1_record_${(value as RecoveryRecord).state}` : (value as RecoveryRecord).state);
+  else if (isClaim(value, 2) || (legacy && isClaim(value, 1))) add(legacy ? 'schema1_claim' : 'claim');
+  else if (legacy && isLegacyOnly(value)) add(`${(value as { kind: string }).kind}`);
+  else add('unknown');
 }
 
 /** Redacted counts only: states and kinds, never handles, URLs, keys or Session IDs. */
 export async function countStates(stores: HostStores): Promise<StateCounts> {
-  const read = async (store: HostKeyedStore) => {
-    if (typeof store.entries !== 'function')
-      fail('HOST_CAPABILITY_MISSING', 'Plugin state entries cannot be listed on this host.');
-    return store.entries();
+  const count = async (store: HostKeyedStore, legacy: boolean) => {
+    const counts: Record<string, number> = {};
+    await forEachEntry(store, ({ value }) => tallyOne(counts, value, legacy));
+    return counts;
   };
   return {
-    active: tally(await read(stores.active), false),
-    archive: tally(await read(stores.archive), false),
-    legacy: tally(await read(stores.legacy), true),
+    active: await count(stores.active, false),
+    archive: await count(stores.archive, false),
+    legacy: await count(stores.legacy, true),
   };
 }
 
@@ -594,37 +654,131 @@ export interface PruneReport {
 /**
  * Compacts terminal secret payload only: removes the retained human URL from completed/blocked
  * records. Claims (replay tombstones), identities and every non-terminal record are untouched.
+ * Refused while unmigrated schema-1 data remains, so nothing is pruned beside an unfinished upgrade.
  */
 export async function pruneTerminal(stores: HostStores, apply: boolean): Promise<PruneReport> {
+  let legacyPending = 0;
+  await forEachEntry(stores.legacy, ({ value }) => {
+    if (isRecordShape(value, 1) || isClaim(value, 1)) legacyPending++;
+  });
+  if (legacyPending)
+    fail(
+      'CONFIGURATION',
+      'The SESS state upgrade has not completed (legacy schema-1 data remains); make one SESS tool call to finish it, then prune.',
+    );
   let eligible = 0;
   let compacted = 0;
   let conflicts = 0;
   for (const store of [stores.active, stores.archive]) {
-    if (
-      typeof store.entries !== 'function' ||
-      typeof store.observe !== 'function' ||
-      typeof store.compareAndApply !== 'function'
-    )
+    if (typeof store.observe !== 'function' || typeof store.compareAndApply !== 'function')
       fail('HOST_CAPABILITY_MISSING', 'Plugin state compare-and-apply is not available on this host.');
-    for (const { key, value } of await store.entries()) {
+    await forEachEntry(store, async ({ key, value }) => {
       if (!isRecordShape(value, 2) || !TERMINAL_STATES.has(value.state) || value.humanUrl === undefined)
-        continue;
+        return;
       eligible++;
-      if (!apply) continue;
-      const observed = await store.observe(key);
+      if (!apply) return;
+      const observed = await store.observe!(key);
       if (!isRecordShape(observed.value, 2) || observed.value.generation !== value.generation) {
         conflicts++;
-        continue;
+        return;
       }
       const { humanUrl: _drop, ...rest } = observed.value;
-      const result = await store.compareAndApply(key, observed.comparison, {
+      const result = await store.compareAndApply!(key, observed.comparison, {
         operation: 'update',
         action: 'set',
         value: { ...rest, generation: value.generation + 1, updatedAt: new Date().toISOString() },
       });
       if (result.status === 'conflict') conflicts++;
       else compacted++;
-    }
+    });
   }
   return { eligible, compacted, conflicts };
+}
+
+export interface RetireReport {
+  readonly eligible: number;
+  readonly retired: number;
+  readonly conflicts: number;
+  readonly archived: number;
+  readonly skippedByState: Record<string, number>;
+}
+
+/** Only states without a pending mutation or create ambiguity can be retired by the operator. */
+const RETIRABLE: ReadonlySet<RecoveryState> = new Set(['waiting', 'needs_resume', 'answered']);
+
+/**
+ * Operator remedy for abandoned interactions filling active capacity: marks waiting/needs_resume/
+ * answered records idle for at least `olderThanMs` as blocked (reason operator_retired), drops their
+ * human link and moves record and claim to the archive. The claim (replay tombstone) is kept, so a
+ * redelivered call reports blocked and never creates again. create_intent, create_unknown and
+ * pending publish/complete records are never touched. Dry run unless `apply`.
+ */
+export async function retireIdle(
+  stores: HostStores,
+  olderThanMs: number,
+  apply: boolean,
+  now = Date.now(),
+): Promise<RetireReport> {
+  const { active, archive } = stores;
+  if (typeof active.observe !== 'function' || typeof active.compareAndApply !== 'function')
+    fail('HOST_CAPABILITY_MISSING', 'Plugin state compare-and-apply is not available on this host.');
+  let eligible = 0;
+  let retired = 0;
+  let conflicts = 0;
+  let archived = 0;
+  const skippedByState: Record<string, number> = {};
+  const candidates: { key: string; value: RecoveryRecord }[] = [];
+  await forEachEntry(active, ({ key, value }) => {
+    if (!isRecordShape(value, 2)) return;
+    if (!RETIRABLE.has(value.state)) {
+      skippedByState[value.state] = (skippedByState[value.state] ?? 0) + 1;
+      return;
+    }
+    if (now - Date.parse(value.updatedAt) >= olderThanMs) candidates.push({ key, value });
+  });
+  eligible = candidates.length;
+  if (!apply) return { eligible, retired, conflicts, archived, skippedByState };
+  for (const { key, value } of candidates) {
+    const observed = await active.observe!(key);
+    if (!isRecordShape(observed.value, 2) || observed.value.generation !== value.generation) {
+      conflicts++;
+      continue;
+    }
+    const { humanUrl: _drop, ...rest } = observed.value;
+    const next: RecoveryRecord = {
+      ...rest,
+      state: 'blocked',
+      blockedReason: 'operator_retired',
+      generation: value.generation + 1,
+      updatedAt: new Date(now).toISOString(),
+    };
+    const result = await active.compareAndApply!(key, observed.comparison, {
+      operation: 'update',
+      action: 'set',
+      value: next,
+    });
+    if (result.status === 'conflict') {
+      conflicts++;
+      continue;
+    }
+    retired++;
+    const move = (archive as { moveEntriesFrom?: BoundStore['moveEntriesFrom'] }).moveEntriesFrom;
+    const lookup = (archive as { lookup?: BoundStore['lookup'] }).lookup;
+    const register = (active as { registerIfAbsent?: BoundStore['registerIfAbsent'] }).registerIfAbsent;
+    if (typeof move !== 'function' || typeof lookup !== 'function' || typeof register !== 'function')
+      continue;
+    // Same collision-safe move as tool-time archival.
+    const view = {
+      observe: active.observe!.bind(active),
+      compareAndApply: active.compareAndApply!.bind(active),
+      registerIfAbsent: register.bind(active),
+      lookup: (active as { lookup: BoundStore['lookup'] }).lookup.bind(active),
+    } as unknown as BoundStore;
+    const archiveView = {
+      lookup: lookup.bind(archive),
+      moveEntriesFrom: move.bind(archive),
+    } as unknown as BoundStore;
+    if (await archiveOne(view, archiveView, next)) archived++;
+  }
+  return { eligible, retired, conflicts, archived, skippedByState };
 }
