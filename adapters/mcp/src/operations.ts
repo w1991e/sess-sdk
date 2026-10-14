@@ -262,6 +262,7 @@ export class SessMcpAdapter {
   async response(args: ResponseArgs, signal?: AbortSignal): Promise<AdapterResult> {
     const { config, store, client } = await this.#ctx();
     const record = await store.load(args.handle);
+    if (record.state === 'answered') return this.#releaseCached(record, args.revision, signal);
     const settled = this.#settled(record, args.revision);
     if (settled) return settled;
     const sessionId = record.sessionId!;
@@ -356,17 +357,27 @@ export class SessMcpAdapter {
         'The verified answer did not match the requested revision.',
       );
     }
+    // R-01: the verifier proves the retained historical event, not that it is still the current
+    // step. An authenticated current-revision read after verification gates every release.
+    const fresh = await this.#confirmCurrent(sessionId, args.revision, response.event_id, signal);
+    if (fresh.kind === 'aborted') return await this.#transition(record, 'needs_resume');
+    if (fresh.kind === 'progress') return await this.#block(record, fresh.reason);
     const data = plainJson(JSON.parse(JSON.stringify(response.data)), 'data') as JsonObject;
     return store.withLock(record.handle, async () => {
       const current = await store.load(record.handle);
-      if (current.state === 'answered' && current.answer?.eventId === response.event_id)
+      // Same accepted event already saved by a concurrent call; this call made its own fresh read.
+      if (
+        current.state === 'answered' &&
+        current.answer?.eventId === response.event_id &&
+        current.revision === args.revision
+      )
         return this.#answered(current);
       if (
         (current.state !== 'waiting' && current.state !== 'needs_resume') ||
         current.revision !== args.revision
       ) {
-        const again = this.#settled(current, args.revision);
-        if (again) return again;
+        // A stale observation never overwrites a concurrently changed record or releases data.
+        this.#settledWithoutAnswer(current, args.revision);
         throw new AdapterError(
           'INVALID_STATE',
           'The interaction changed while waiting. Call sess_response again.',
@@ -374,7 +385,7 @@ export class SessMcpAdapter {
       }
       Object.assign(current, {
         state: 'answered',
-        etag: found.etag,
+        etag: fresh.etag,
         answer: { revision: args.revision, eventId: response.event_id, actionId: response.action_id, data },
         updatedAt: this.#now(),
       });
@@ -419,6 +430,83 @@ export class SessMcpAdapter {
     }
   }
 
+  /**
+   * Like #settled, but never releases a cached answer: answer data is released only by a call that
+   * made its own post-verification current-revision read. Returns undefined only for waiting states.
+   */
+  #settledWithoutAnswer(record: HandleRecord, revision: number): AdapterResult | undefined {
+    if (record.state === 'answered')
+      throw new AdapterError(
+        'INVALID_STATE',
+        'The interaction changed while this call was running. Call sess_response again.',
+      );
+    return this.#settled(record, revision);
+  }
+
+  /**
+   * Authenticated current-revision evidence for releasing an answer. Current only if the Session
+   * is still at `revision` and retains exactly the verified event: `responded` there, or
+   * `completed` at that same revision (a legitimate terminal state for the same answer).
+   * A failed read changes nothing and is reported as unavailable; it never releases data.
+   */
+  async #confirmCurrent(
+    sessionId: string,
+    revision: number,
+    eventId: string,
+    signal?: AbortSignal,
+  ): Promise<{ kind: 'current'; etag: string } | { kind: 'progress'; reason: string } | { kind: 'aborted' }> {
+    const { client } = await this.#ctx();
+    let current;
+    try {
+      current = await client.sessions.retrieve(sessionId, signal ? { signal } : {});
+    } catch (error) {
+      if (error instanceof SessError && error.kind === 'aborted') return { kind: 'aborted' };
+      this.#options.diagnostics('currentness_read_failed', { code: sessCode(error) });
+      throw unavailable(error);
+    }
+    const session = current.data;
+    if (!('responses' in session)) return { kind: 'progress', reason: 'NOT_INTERACTIVE' };
+    const retained = session.responses.some((r) => r.event_id === eventId && r.revision === revision);
+    if (
+      retained &&
+      session.revision === revision &&
+      (session.status === 'responded' || session.status === 'completed')
+    )
+      return { kind: 'current', etag: current.meta.etag };
+    this.#options.diagnostics('answer_superseded', { revision, remoteRevision: session.revision });
+    return { kind: 'progress', reason: 'UNEXPECTED_PROGRESS' };
+  }
+
+  /** Cached answered result: re-released only after a fresh current-revision read. */
+  async #releaseCached(record: HandleRecord, revision: number, signal?: AbortSignal): Promise<AdapterResult> {
+    const { store } = await this.#ctx();
+    const answer = record.answer!;
+    if (revision !== answer.revision) throw this.#revisionMismatch(record);
+    const fresh = await this.#confirmCurrent(record.sessionId!, revision, answer.eventId, signal);
+    if (fresh.kind === 'aborted')
+      throw new AdapterError(
+        'SESS_UNAVAILABLE',
+        'The read was cancelled before the answer could be confirmed as current. Nothing changed; call sess_response again.',
+        true,
+      );
+    if (fresh.kind === 'progress') return await this.#block(record, fresh.reason);
+    return store.withLock(record.handle, async () => {
+      const current = await store.load(record.handle);
+      if (
+        current.state !== 'answered' ||
+        current.revision !== record.revision ||
+        current.answer?.eventId !== answer.eventId
+      ) {
+        this.#settledWithoutAnswer(current, revision);
+        throw new AdapterError(
+          'INVALID_STATE',
+          'The interaction changed while this call was running. Call sess_response again.',
+        );
+      }
+      return this.#answered(current);
+    });
+  }
+
   #revisionMismatch(record: HandleRecord): AdapterError {
     return new AdapterError('REVISION_MISMATCH', `This interaction is at revision ${record.revision}.`);
   }
@@ -439,7 +527,8 @@ export class SessMcpAdapter {
         return this.#result(current, state);
       }
       return (
-        this.#settled(current, record.revision) ?? this.#result(current, current.state as InteractionState)
+        this.#settledWithoutAnswer(current, record.revision) ??
+        this.#result(current, current.state as InteractionState)
       );
     });
   }

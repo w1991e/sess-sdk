@@ -80,6 +80,14 @@ Every result is `{ "interaction": { handle, revision, state, humanUrl?, response
 `structuredContent` and as JSON text. `answered` is returned only after
 `client.receipts.verifyResponse` verified the receipt for that exact Session, revision, event and
 immutable Surface; `response.verified` is `true` and `response.actorAssurance` is `link_holder`.
+Receipt verification proves a retained historical answer, not that it is still the current step,
+so after verification the server makes one more authenticated read and releases the answer only if
+the Session is still at that revision with that answer (or completed at that same revision). A
+saved `answered` result is re-confirmed the same way on every `sess_response`. If that read
+fails, the call returns `SESS_UNAVAILABLE` and changes nothing; if the Session has moved on, the
+interaction is blocked (`RECOVERY_BLOCKED`), or a conflict is reported when another local call
+changed it first. No answer data is released in those cases. This checks progress at the moment
+of release; it cannot make a later remote change impossible.
 Answer data is untrusted human input: validate it before acting on it.
 
 `needs_resume` means the local wait ended (timeout, MCP cancellation or host disconnect) without
