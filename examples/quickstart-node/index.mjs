@@ -43,6 +43,19 @@ function waitSeconds() {
   return value;
 }
 
+/** The SDK's safe error fields: never response bodies, keys or human URLs. */
+function describe(error) {
+  if (!(error instanceof Error)) return 'unknown error';
+  if (!(error instanceof SessError)) return error.message;
+  const fields = [
+    ['kind', error.kind],
+    ['status', error.status],
+    ['code', error.code],
+    ['request', error.requestId],
+  ].filter(([, value]) => value !== undefined);
+  return `${error.message} (${fields.map(([name, value]) => `${name} ${value}`).join(', ')})`;
+}
+
 function resumeHint(sessionId) {
   return `Resume without creating another Session:\n  SESS_SESSION_ID=${sessionId} npm start`;
 }
@@ -85,9 +98,16 @@ if (sessionId === undefined) {
     // Creation is never retried: a lost reply may still mean the Session exists.
     created = await sess.sessions.create({ interaction });
   } catch (error) {
-    if (error instanceof SessError && error.outcome === 'unknown')
-      fail('Creation outcome is unknown. A Session may exist; do not re-run blindly.');
-    fail(`Could not create the Session: ${error instanceof Error ? error.message : 'unknown error'}`);
+    if (error instanceof SessError && error.outcome === 'unknown') {
+      // A valid creation body with a defective header is retained for explicit recovery.
+      const recovered = error.getRecoveryResult();
+      if (recovered)
+        fail(
+          `Creation reply was defective, but Session ${recovered.id} exists.\n${resumeHint(recovered.id)}`,
+        );
+      fail(`Creation outcome is unknown. A Session may exist; do not re-run blindly. ${describe(error)}`);
+    }
+    fail(`Could not create the Session: ${describe(error)}`);
   }
   sessionId = created.data.id;
   console.log(`Created Session ${sessionId} (revision ${created.data.revision}).`);
@@ -99,7 +119,8 @@ if (sessionId === undefined) {
 
 const seconds = waitSeconds();
 const controller = new AbortController();
-process.once('SIGINT', () => controller.abort());
+const stopWaiting = () => controller.abort();
+process.once('SIGINT', stopWaiting);
 console.log(`Waiting up to ${seconds} s for the response (Ctrl+C stops waiting; the Session stays open)...`);
 
 let answer;
@@ -120,7 +141,10 @@ try {
     console.log(resumeHint(sessionId));
     process.exit(3);
   }
-  fail(`Waiting ended: ${error instanceof Error ? error.message : 'unknown error'}`);
+  fail(`Waiting ended: ${describe(error)}\n${resumeHint(sessionId)}`);
+} finally {
+  // After the wait, Ctrl+C regains its default meaning (stop the program).
+  process.off('SIGINT', stopWaiting);
 }
 
 let amount;
@@ -132,11 +156,15 @@ try {
   });
   amount = acceptedAmount(verified.response);
 } catch (error) {
-  fail(`Response rejected: ${error instanceof Error ? error.message : 'verification failed'}`);
+  fail(`Could not verify or accept the response: ${describe(error)}`);
 }
 console.log(`Verified response ${answer.response.event_id}: amount = ${amount}`);
 
 let status = answer.session.status;
+// This example completes a single-revision Session with no business side effect, so after an
+// uncertain completion a re-run re-reads, re-verifies and completes with a fresh If-Match and key.
+// Durable or multi-revision applications must instead persist and replay the original mutation
+// (docs/integration.md) and keep a processed-event ledger before any real side effect.
 if (status === 'responded' && answer.session.revision === REVISION) {
   try {
     const completed = await sess.sessions.complete(sessionId, {
@@ -147,7 +175,7 @@ if (status === 'responded' && answer.session.revision === REVISION) {
   } catch (error) {
     if (error instanceof SessError && error.outcome === 'unknown')
       fail(`Completion outcome is unknown; it is not reported as done.\n${resumeHint(sessionId)}`);
-    fail(`Could not complete the Session: ${error instanceof Error ? error.message : 'unknown error'}`);
+    fail(`Could not complete the Session: ${describe(error)}`);
   }
 }
 if (status !== 'completed') fail(`Session is ${status}, not completed. Reconcile before continuing.`);
