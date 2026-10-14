@@ -124,8 +124,8 @@ async function main() {
   const pending = await invoke('sess_response', a.key, { handle: first.handle, revision: 1, wait_ms: 0 });
   log('sess_response(pending)', { ms: pending.ms, details: pending.details });
   check(
-    pending.ok && pending.details?.interaction?.state === 'needs_resume',
-    'unanswered read returns needs_resume',
+    pending.ok && pending.details?.interaction?.state === 'waiting',
+    'unanswered read-once (wait_ms 0) returns waiting (contract "Response outcomes")',
   );
 
   // 3. another conversation cannot use the handle.
@@ -167,8 +167,8 @@ async function main() {
   check(
     publish.ok &&
       publish.details?.interaction?.revision === 2 &&
-      publish.details.interaction.humanUrl === first.humanUrl,
-    'revision 2 published on the same link',
+      publish.details.interaction.humanUrl === undefined,
+    'revision 2 published (same Session; link released only by request)',
   );
   const waiting2 = invoke('sess_response', a.key, { handle: first.handle, revision: 2, wait_ms: 45000 });
   await sleep(1500);

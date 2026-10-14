@@ -51,7 +51,10 @@ describe('OC-08 closed, bounded tool schemas', () => {
   });
 
   it('rejects oversized, over-count and deeply nested input without truncation', () => {
-    reject((i) => void (i.description = 'x'.repeat(LIMITS.requestBytes)), /exceed|characters/);
+    // Contract "Validation": interaction <= 32 KiB serialized, arguments <= 40 KiB.
+    const texts = (n: number) => Array.from({ length: n }, () => ({ type: 'text', text: 'x'.repeat(4000) }));
+    reject((i) => void i.source.components.push(...texts(8)), /exceeds 32768 bytes serialized/);
+    reject((i) => void i.source.components.push(...texts(11)), /arguments exceed 40960 bytes/);
     reject((i) => {
       i.actions = Array.from({ length: LIMITS.actions + 1 }, (_, n) => ({ id: `a${n}`, label: `A${n}` }));
     });

@@ -59,6 +59,8 @@ export class FakeSess {
   surfaces = new Map<number, unknown>();
   responses: FakeResponse[] = [];
   requests: { method: string; path: string; headers: Record<string, string>; body?: unknown }[] = [];
+  /** Omits the authenticated workspace header (verification context missing). */
+  omitWorkspace = false;
   /** Optional per-request override (fault injection). */
   intercept?: (method: string, path: string) => Response | Promise<Response> | undefined;
   private mutations = new Map<string, unknown>();
@@ -124,8 +126,8 @@ export class FakeSess {
   private json(status: number, body: unknown, versioned = false) {
     const headers: Record<string, string> = {
       'content-type': 'application/json',
-      'sess-workspace-id': WORKSPACE,
     };
+    if (!this.omitWorkspace) headers['sess-workspace-id'] = WORKSPACE;
     if (versioned) headers.etag = `"r${this.revision}-${this.status}"`;
     return new Response(JSON.stringify(body), { status, headers });
   }
