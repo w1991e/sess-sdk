@@ -107,6 +107,7 @@ one class of the shared adapter contract:
 | `UNAVAILABLE`              | `unavailable`         | Retryable: SESS or receipt keys unreachable; nothing changed           |
 | `CANCELLED`                | `unavailable`         | The local wait was cancelled; nothing was cancelled in SESS            |
 | `AUTHORITY_REVOKED`        | `unavailable`         | The host revoked this invocation; retry in a new admitted call         |
+| `PROTOCOL_ERROR`           | `configuration`       | SESS returned an invalid response; not retryable, nothing changed      |
 | `CONFIGURATION`            | `configuration`       | Plugin configuration is invalid or incomplete                          |
 | `CREDENTIAL_MISSING`       | `configuration`       | The API key variable is not set in the Gateway process                 |
 | `HOST_CAPABILITY_MISSING`  | `configuration`       | The OpenClaw host lacks a required capability                          |
@@ -121,6 +122,9 @@ one class of the shared adapter contract:
 - Per-call create-claim records are retained and count toward the plugin's bounded
   interaction store (2200 entries, never evicted); there is no cleanup yet.
 - Uninstall/reinstall effects on stored interactions are not qualified.
+- A receipt signed with a key the SDK cannot find (`UNKNOWN_KEY_ID`) fails closed: during a
+  signing-key rotation inside the SDK's key-refresh cooldown, a valid answer can block and needs
+  operator review.
 
 ## Not included
 

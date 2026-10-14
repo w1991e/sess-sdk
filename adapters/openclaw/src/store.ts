@@ -53,8 +53,8 @@ export interface ConfirmedMutation {
   readonly operation: 'publish' | 'complete';
   readonly expectedRevision: number;
   readonly responseEventId: string;
-  /** sha256 of the canonical JSON body (null for complete). */
-  readonly bodyDigest: string;
+  /** sha256 of the canonical JSON body; publish only (complete has no body). */
+  readonly bodyDigest?: string;
 }
 
 interface CreateClaim {

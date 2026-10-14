@@ -275,3 +275,140 @@ describe('Convergence: shared core and error classes', () => {
       expect(readme).toMatch(new RegExp(`\\|\\s*\`${code}\`\\s*\\|\\s*\`${errorClass}\`\\s*\\|`));
   });
 });
+
+describe('Contract clarifications (sess-sdk #10 revision)', () => {
+  it('Response outcomes: a revision other than the current one is a conflict with no network call', async () => {
+    const { host, conv, handle } = await started();
+    const before = sess.requests.length;
+    await expect(call(host, 'sess_response', conv, { handle, revision: 2, wait_ms: 0 })).rejects.toThrow(
+      /^STATE_CONFLICT: /,
+    );
+    expect(sess.requests.length).toBe(before);
+  });
+
+  it('Response outcomes: protocol errors are non-retryable and transport errors retryable, both without state change', async () => {
+    const { host, conv, handle } = await started();
+    sess.intercept = (method, path) =>
+      method === 'GET' && path.startsWith('/v1/sessions/')
+        ? new Response('{"not":"a session"}', {
+            status: 200,
+            headers: { 'content-type': 'application/json', etag: '"x"' },
+          })
+        : undefined;
+    await expect(call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 })).rejects.toThrow(
+      /^PROTOCOL_ERROR: /,
+    );
+    sess.intercept = (method, path) => {
+      if (method === 'GET' && path.startsWith('/v1/sessions/')) throw new TypeError('network down');
+      return undefined;
+    };
+    await expect(call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 })).rejects.toThrow(
+      /^UNAVAILABLE: /,
+    );
+    sess.intercept = undefined;
+    const read = await call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 });
+    expect(read.details.interaction.state).toBe('waiting');
+  });
+
+  it('Replay: an exact publish repeat after the handle advanced is a conflict and sends nothing', async () => {
+    const { host, conv, handle, eventId } = await answered();
+    const args = {
+      handle,
+      expected_revision: 1,
+      response_event_id: eventId,
+      interaction: fixtures('round-2.json'),
+    };
+    await call(host, 'sess_publish', conv, args);
+    sess.answer(2, 'confirm', { confirmed: true });
+    await call(host, 'sess_response', conv, { handle, revision: 2, wait_ms: 0 });
+    const before = sess.requests.length;
+    await expect(call(host, 'sess_publish', conv, args)).rejects.toThrow(/^STATE_CONFLICT: /);
+    expect(sess.requests.length).toBe(before);
+  });
+
+  it('Mutation outcomes: a failed SESSION_COMPLETED read-back keeps the complete pending', async () => {
+    const { host, conv, handle, eventId } = await answered();
+    let readBackFails = false;
+    sess.intercept = (method, path) => {
+      if (method === 'POST' && path.endsWith('/complete')) {
+        if (
+          !sess.requests.some(
+            (r) => r.method === 'POST' && r.path.endsWith('/complete') && r !== sess.requests.at(-1),
+          )
+        )
+          readBackFails = true; // only the first attempt's read-back fails
+        sess.status = 'completed';
+        return new Response('{"error":{"code":"SESSION_COMPLETED","message":"done"}}', {
+          status: 409,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (readBackFails && method === 'GET') throw new TypeError('network down');
+      return undefined;
+    };
+    const args = { handle, expected_revision: 1, response_event_id: eventId };
+    await expect(call(host, 'sess_complete', conv, args)).rejects.toThrow(/^MUTATION_OUTCOME_UNKNOWN: /);
+    await expect(call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 })).rejects.toThrow(
+      /^STATE_CONFLICT: .*pending/,
+    );
+    readBackFails = false;
+    const done = await call(host, 'sess_complete', conv, args);
+    expect(done.details.interaction.state).toBe('completed');
+  });
+
+  it('Mutation outcomes: an SDK configuration not_sent for the saved identity blocks', async () => {
+    const { host, conv, handle, eventId } = await answered();
+    sess.intercept = (method, path) => {
+      if (method === 'POST' && path.endsWith('/complete')) throw new TypeError('network down');
+      return undefined;
+    };
+    const args = { handle, expected_revision: 1, response_event_id: eventId };
+    await expect(call(host, 'sess_complete', conv, args)).rejects.toThrow(/^MUTATION_OUTCOME_UNKNOWN: /);
+    // Corrupt the saved If-Match (not a strong ETag): no identical replay can ever succeed.
+    const key = `i:${handle}`;
+    const row = JSON.parse(host.store.rows.get(key)!);
+    row.pending.ifMatch = 'not-a-strong-etag';
+    host.store.rows.set(key, JSON.stringify(row));
+    const before = sess.requests.length;
+    await expect(call(host, 'sess_complete', conv, args)).rejects.toThrow(/^RECOVERY_BLOCKED: /);
+    expect(sess.requests.length).toBe(before);
+    expect(JSON.parse(host.store.rows.get(key)!).state).toBe('blocked');
+  });
+
+  it('Replay: complete keeps no body digest', async () => {
+    const { host, conv, handle, eventId } = await answered();
+    await call(host, 'sess_complete', conv, { handle, expected_revision: 1, response_event_id: eventId });
+    const row = JSON.parse(host.store.rows.get(`i:${handle}`)!);
+    expect(row.lastMutation).toEqual({
+      operation: 'complete',
+      expectedRevision: 1,
+      responseEventId: eventId,
+    });
+  });
+
+  it('Duplicate request delivery: another blocked record reports the blocked error', async () => {
+    const host = await registerPlugin();
+    const conv = conversation();
+    const { handle } = (
+      await call(host, 'sess_request', conv, { interaction: round1() }, { toolCallId: 'b' })
+    ).details.interaction;
+    sess.answer(1, 'submit', { activity: 'cafe', hours: 2 }, { tamper: true });
+    await expect(call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 })).rejects.toThrow(
+      /^VERIFICATION_FAILED: /,
+    );
+    await expect(
+      call(host, 'sess_request', conv, { interaction: round1() }, { toolCallId: 'b' }),
+    ).rejects.toThrow(/^RECOVERY_BLOCKED: /);
+  });
+
+  it('Validation: __proto__, constructor and prototype keys are rejected at every depth', () => {
+    for (const key of ['__proto__', 'constructor', 'prototype']) {
+      const inRecord = round1();
+      inRecord.source.components[1] = JSON.parse(`{"type":"record","fields":{"${key}":"v"}}`);
+      expect(() => parseRequestArgs({ interaction: inRecord })).toThrow(/unsafe object key/);
+      const inLabels = round1();
+      inLabels.source.components[2].option_labels = JSON.parse(`{"walk":"Walk","${key}":"x"}`);
+      expect(() => parseRequestArgs({ interaction: inLabels })).toThrow(/unsafe object key/);
+    }
+  });
+});

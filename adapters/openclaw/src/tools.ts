@@ -107,6 +107,34 @@ function asSessError(error: unknown): SessError | undefined {
 }
 
 /**
+ * SDK errors during a read, wait or verification that change no state (contract "Response
+ * outcomes"): api/transport/timeout/unknown_outcome are retryable; protocol and configuration are
+ * not. Local cancellation is handled by the caller.
+ */
+function sdkReadFailure(error: unknown, what: string): never {
+  if (error instanceof SessAdapterError) throw error;
+  const kind = asSessError(error)?.kind;
+  if (kind === 'configuration')
+    fail('CONFIGURATION', `The SESS client rejected its configuration while ${what}; nothing was changed.`);
+  if (kind === 'protocol')
+    fail('PROTOCOL_ERROR', `SESS returned an invalid response while ${what}; nothing was changed.`);
+  fail('UNAVAILABLE', `SESS was unavailable while ${what}; nothing was changed. Try again later.`);
+}
+
+async function cancelled(deps: InvocationDeps, record: RecoveryRecord): Promise<never> {
+  // Local cancellation only: nothing is cancelled remotely, and the handle stays resumable.
+  if (record.state === 'waiting')
+    await deps.store.replace(record, { ...strip(record), state: 'needs_resume' }).catch(() => undefined);
+  fail(
+    'CANCELLED',
+    'The wait was cancelled locally. The form is still available; nothing was cancelled in SESS.',
+  );
+}
+
+const isAborted = (deps: InvocationDeps, error: unknown) =>
+  asSessError(error)?.kind === 'aborted' || !!deps.lease.signal?.aborted;
+
+/**
  * Verification errors by shared class (contract "Response outcomes"): genuine failures block;
  * transient key problems are retryable; a missing workspace context is a configuration error.
  * Neither of the latter records anything.
@@ -130,8 +158,8 @@ async function verificationFailure(
       'CONFIGURATION',
       'Receipt verification needs a trusted workspace: set plugins.entries.sess.config.expectedWorkspaceId. Nothing was changed.',
     );
-  if (error instanceof SessAdapterError) throw error;
-  fail('UNAVAILABLE', `The answer could not be ${verb} right now; it was not used. Try again later.`);
+  if (isAborted(deps, error)) return cancelled(deps, record);
+  return sdkReadFailure(error, `the answer was ${verb}`);
 }
 
 /** A repeated delivery of the same host call reports the stored state; the URL only while live. */
@@ -294,26 +322,14 @@ export async function sessResponse(deps: InvocationDeps, args: ResponseArgs): Pr
   } catch (error) {
     const sessError = asSessError(error);
     if (sessError?.kind === 'wait_ended' && sessError.code === 'WAIT_TIMEOUT') timedOut = true;
-    else if (sessError?.kind === 'aborted' || deps.lease.signal?.aborted) {
-      // Local cancellation only: nothing is cancelled remotely, and the handle stays resumable.
-      if (record.state === 'waiting')
-        await deps.store.replace(record, { ...strip(record), state: 'needs_resume' }).catch(() => undefined);
-      fail(
-        'CANCELLED',
-        'The wait was cancelled locally. The form is still available; nothing was cancelled in SESS.',
-      );
-    } else if (sessError?.kind === 'wait_ended') {
+    else if (isAborted(deps, error)) return cancelled(deps, record);
+    else if (sessError?.kind === 'wait_ended') {
       await block(deps, record, `wait_${sessError.code ?? 'ended'}`);
       fail(
         'RECOVERY_BLOCKED',
         'The Session progressed unexpectedly for this revision; operator resolution is required.',
       );
-    } else if (error instanceof SessAdapterError) throw error;
-    else
-      fail(
-        'UNAVAILABLE',
-        `SESS could not be read (${sessError?.code ?? sessError?.kind ?? 'error'}). Try again later.`,
-      );
+    } else sdkReadFailure(error, 'reading the Session');
   }
   if (!response) {
     // Read-once with no answer while open -> waiting; an ended wait -> needs_resume.
@@ -410,8 +426,8 @@ async function prepareMutation(
   try {
     current = await deps.client.sess.sessions.retrieve(sessionId, options);
   } catch (error) {
-    if (error instanceof SessAdapterError) throw error;
-    fail('UNAVAILABLE', 'SESS could not be read; nothing was changed. Try again later.');
+    if (isAborted(deps, error)) return cancelled(deps, record);
+    return sdkReadFailure(error, 'reading the Session');
   }
   const session = current.data;
   const retained = 'responses' in session ? session.responses.find((r) => r.event_id === eventId) : undefined;
@@ -501,6 +517,15 @@ async function dispatchMutation(
         'SESS reports the Session completed differently; operator resolution is required.',
       );
     }
+    if (sessError?.outcome === 'not_sent' && sessError.kind === 'configuration') {
+      // Contract "Mutation outcomes": the SDK's deterministic checks refuse the saved identity, so
+      // an identical replay can never succeed.
+      await block(deps, record, `${p.operation}_saved_identity_invalid`);
+      fail(
+        'RECOVERY_BLOCKED',
+        `The saved ${p.operation} cannot be replayed; operator resolution is required.`,
+      );
+    }
     if (sessError?.outcome === 'rejected') {
       await block(deps, record, `${p.operation}_rejected_${sessError.code ?? sessError.status ?? 'error'}`);
       fail(
@@ -522,7 +547,12 @@ function confirmedIdentity(
   responseEventId: string,
   body: unknown,
 ): ConfirmedMutation {
-  return { operation, expectedRevision, responseEventId, bodyDigest: bodyDigest(body ?? null) };
+  return {
+    operation,
+    expectedRevision,
+    responseEventId,
+    ...(operation === 'publish' ? { bodyDigest: bodyDigest(body) } : {}),
+  };
 }
 
 const sameMutation = (a: ConfirmedMutation | undefined, b: ConfirmedMutation) =>
@@ -537,12 +567,17 @@ export async function sessPublish(deps: InvocationDeps, args: PublishArgs): Prom
   const identity = confirmedIdentity('publish', args.expected_revision, args.response_event_id, {
     interaction: args.interaction,
   });
-  // Contract "Replay": an exact repeat of the confirmed publish answers without any network call.
-  if (
-    record.state !== 'publish_pending' &&
-    record.state !== 'completed' &&
-    sameMutation(record.lastMutation, identity)
-  ) {
+  // Contract "Replay": an exact repeat of the confirmed publish answers without any network call,
+  // only while that is still true; otherwise it is a conflict and nothing is sent.
+  if (record.state !== 'publish_pending' && sameMutation(record.lastMutation, identity)) {
+    if (
+      !(record.state === 'waiting' || record.state === 'needs_resume') ||
+      record.revision !== args.expected_revision + 1
+    )
+      fail(
+        'STATE_CONFLICT',
+        'This publish was confirmed earlier and the interaction has moved on; nothing was sent.',
+      );
     deps.lease.assertCurrent();
     return {
       result: {

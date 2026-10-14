@@ -21,6 +21,7 @@ export type AdapterErrorCode =
   | 'MUTATION_REJECTED'
   | 'VERIFICATION_FAILED'
   | 'CANCELLED'
+  | 'PROTOCOL_ERROR'
   | 'UNAVAILABLE';
 
 /** Contract error classes (adapters/CONTRACT.md, "Error classes"). */
@@ -55,6 +56,8 @@ export const ERROR_CLASSES: Readonly<Record<AdapterErrorCode, ErrorClass>> = Obj
   CANCELLED: 'unavailable',
   AUTHORITY_REVOKED: 'unavailable',
   CONFIGURATION: 'configuration',
+  // Non-retryable with no state change; the contract has no dedicated protocol class.
+  PROTOCOL_ERROR: 'configuration',
   CREDENTIAL_MISSING: 'configuration',
   HOST_CAPABILITY_MISSING: 'configuration',
   HOST_BINDING_UNAVAILABLE: 'configuration',
