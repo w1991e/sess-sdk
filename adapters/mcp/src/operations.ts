@@ -263,7 +263,7 @@ export class SessMcpAdapter {
     const { config, store, client } = await this.#ctx();
     const record = await store.load(args.handle);
     if (record.state === 'answered') return this.#releaseCached(record, args.revision, signal);
-    const settled = this.#settled(record, args.revision);
+    const settled = this.#settledWithoutAnswer(record, args.revision);
     if (settled) return settled;
     const sessionId = record.sessionId!;
     const waitMs = Math.min(args.waitMs ?? config.maxWaitMs, config.maxWaitMs);
@@ -421,8 +421,12 @@ export class SessMcpAdapter {
         );
       }
       case 'answered':
-        if (revision !== record.answer!.revision) throw this.#revisionMismatch(record);
-        return this.#answered(record);
+        // Unreachable by design: cached answers are released only by #releaseCached after a fresh
+        // current-revision read. Fail closed rather than release cached data.
+        throw new AdapterError(
+          'INVALID_STATE',
+          'The interaction changed while this call was running. Call sess_response again.',
+        );
       case 'waiting':
       case 'needs_resume':
         if (revision !== record.revision) throw this.#revisionMismatch(record);
@@ -627,7 +631,7 @@ export class SessMcpAdapter {
           record.state === 'create_intent' ||
           record.state === 'create_unknown'
         )
-          this.#settled(record, args.expectedRevision);
+          this.#settledWithoutAnswer(record, args.expectedRevision);
         throw new AdapterError(
           'INVALID_STATE',
           `This interaction has no verified, unused answer to ${operation} from. Call sess_response first.`,

@@ -341,3 +341,93 @@ export function parseCompleteArgs(raw: unknown): CompleteArgs {
     responseEventId: pattern(a.response_event_id, 'response_event_id', EVENT_ID_PATTERN),
   };
 }
+
+/** sess_ask: a question plus a small field list, expanded into an ordinary interaction. */
+export const ASK_LIMITS = Object.freeze({ fields: 12, options: LIMITS.enumValues });
+const ASK_TYPES = ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice'] as const;
+
+function askField(value: JsonValue | undefined, path: string): JsonObject {
+  const f = object(value, path);
+  closed(
+    f,
+    path,
+    ['name', 'label', 'type', 'required', 'options', 'default', 'multiline', 'minimum', 'maximum'],
+    ['name', 'label', 'type'],
+  );
+  const type = f.type as (typeof ASK_TYPES)[number];
+  if (!ASK_TYPES.includes(type)) invalid(`${path}.type`, `must be one of ${ASK_TYPES.join(', ')}`);
+  const choice = type === 'choice' || type === 'multi_choice';
+  if (choice !== (f.options !== undefined))
+    invalid(
+      `${path}.options`,
+      choice ? 'is required for choice fields' : 'is only allowed for choice fields',
+    );
+  if (f.multiline !== undefined && type !== 'text') invalid(`${path}.multiline`, 'is only allowed for text');
+  if ((f.minimum !== undefined || f.maximum !== undefined) && type !== 'number' && type !== 'integer')
+    invalid(path, 'minimum/maximum are only allowed for number and integer');
+  let schema: JsonObject;
+  switch (type) {
+    case 'text':
+      schema = { type: 'string' };
+      break;
+    case 'number':
+    case 'integer':
+      schema = {
+        type,
+        ...(f.minimum !== undefined ? { minimum: f.minimum } : {}),
+        ...(f.maximum !== undefined ? { maximum: f.maximum } : {}),
+      };
+      break;
+    case 'boolean':
+      schema = { type: 'boolean' };
+      break;
+    case 'choice':
+    case 'multi_choice': {
+      const options = f.options;
+      if (!Array.isArray(options) || options.length < 1 || options.length > ASK_LIMITS.options)
+        invalid(`${path}.options`, `must list 1..${ASK_LIMITS.options} options`);
+      if (new Set(options).size !== options.length) invalid(`${path}.options`, 'must be unique');
+      schema =
+        type === 'choice'
+          ? { type: 'string', enum: options }
+          : { type: 'array', items: { type: 'string', enum: options }, uniqueItems: true };
+      break;
+    }
+  }
+  return {
+    type: 'field',
+    name: f.name as JsonValue,
+    label: f.label as JsonValue,
+    required: f.required === undefined ? type !== 'boolean' : f.required,
+    schema,
+    ...(f.multiline !== undefined ? { multiline: f.multiline } : {}),
+    ...(f.default !== undefined ? { value: f.default } : {}),
+  };
+}
+
+/**
+ * Builds the interaction for sess_ask and validates it with exactly the same rules and limits as
+ * sess_request. The result goes through the ordinary request operation.
+ */
+export function parseAskArgs(raw: unknown): RequestArgs {
+  const a = args(raw, ['question', 'details', 'fields', 'submit_label'], ['question', 'fields']);
+  const fields = a.fields;
+  if (!Array.isArray(fields) || fields.length < 1 || fields.length > ASK_LIMITS.fields)
+    invalid('fields', `must contain 1..${ASK_LIMITS.fields} fields`);
+  const components: JsonValue[] = [];
+  if (a.details !== undefined) components.push({ type: 'text', text: text(a.details, 'details', 4000) });
+  fields.forEach((f, i) => components.push(askField(f, `fields[${i}]`)));
+  const interaction: JsonObject = {
+    mode: 'interactive',
+    title: text(a.question, 'question', 200),
+    source: { kind: 'sess_surface', components },
+    actions: [
+      {
+        id: 'submit',
+        label: a.submit_label === undefined ? 'Send' : text(a.submit_label, 'submit_label', 200),
+        intent: 'submit',
+      },
+    ],
+  };
+  return { interaction: validateInteraction(interaction) };
+}

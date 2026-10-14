@@ -1,8 +1,14 @@
-import { LIMITS } from './validate.js';
+import { ASK_LIMITS, LIMITS } from './validate.js';
 
 /** Versioned tool contract. Changing any input or output schema requires a new version. */
-export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/1';
-export const TOOL_NAMES = ['sess_request', 'sess_response', 'sess_publish', 'sess_complete'] as const;
+export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/2';
+export const TOOL_NAMES = [
+  'sess_request',
+  'sess_response',
+  'sess_publish',
+  'sess_complete',
+  'sess_ask',
+] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 
 const text = (max: number) => ({ type: 'string', minLength: 1, maxLength: max });
@@ -251,6 +257,55 @@ export const TOOLS = [
     },
     outputSchema: resultSchema,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    _meta: meta,
+  },
+  {
+    name: 'sess_ask',
+    title: 'Ask a short question through SESS',
+    description:
+      'Shortcut for sess_request: give a question and up to 12 simple fields; it creates the same hosted form and returns ' +
+      'immediately with a private link (interaction.humanUrl) and a handle, in state "waiting". It never waits and never returns an answer. ' +
+      'Continue exactly as after sess_request: give the link only to the intended person, then call sess_response. Do not call it again for the same question.',
+    inputSchema: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['question', 'fields'],
+      properties: {
+        question: { ...text(200), description: 'Shown as the form title.' },
+        details: {
+          type: 'string',
+          maxLength: 4000,
+          description: 'Optional plain-text context shown above the fields.',
+        },
+        submit_label: text(200),
+        fields: {
+          type: 'array',
+          minItems: 1,
+          maxItems: ASK_LIMITS.fields,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['name', 'label', 'type'],
+            properties: {
+              name: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,63}$' },
+              label: text(200),
+              type: { enum: ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice'] },
+              required: { type: 'boolean', description: 'Default true, except boolean fields.' },
+              options: { type: 'array', minItems: 1, maxItems: ASK_LIMITS.options, items: text(200) },
+              default: {
+                description: 'Proposed value the person can correct.',
+                anyOf: [primitive, { type: 'array', items: { type: 'string' } }],
+              },
+              multiline: { type: 'boolean' },
+              minimum: { type: 'number' },
+              maximum: { type: 'number' },
+            },
+          },
+        },
+      },
+    },
+    outputSchema: resultSchema,
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     _meta: meta,
   },
 ] as const;
