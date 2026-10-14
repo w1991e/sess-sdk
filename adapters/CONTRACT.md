@@ -78,8 +78,8 @@ observation reports a conflict.
 
 ## Invariants
 
-- Create is never retried automatically; `create_unknown` needs explicit resolution or a
-  validated `SessError.getRecoveryResult()` body.
+- Create is never retried automatically; `create_unknown` is left only by explicit operator
+  resolution.
 - Publish and complete replay only the saved resource, body, `If-Match`, idempotency key and
   credential scope.
 - `verified: true` only after `client.receipts.verifyResponse` for the exact Session, revision,
@@ -95,24 +95,32 @@ observation reports a conflict.
   Return a non-retryable create-rejected error with no handle and no URL. The adapter deletes the
   intent, or keeps it `blocked` when it must remember a host call identity; a redelivery of that
   call reports the same class and sends nothing.
-- Any other failure is `create_unknown`, unless `SessError.getRecoveryResult()` returns a validated
-  body, which is a confirmed create.
+- Any other failure is `create_unknown`, unless the original create call's error yields a validated
+  `SessError.getRecoveryResult()` body, which is a confirmed create (the adapter still reports the
+  protocol defect). A later call cannot resolve `create_unknown`.
 - If a confirmed or recovered create cannot be saved locally, return a non-retryable error saying a
   Session was created and the request must not be repeated.
 
 ## Response outcomes
 
-- `wait_ms: 0` with no answer while the Session is open at that revision → `waiting`.
+- `revision` different from the handle's current revision → conflict, with no network call and no
+  state change.
+- `wait_ms: 0` is a single authenticated read (`sessions.retrieve`; `waitForResponse` requires a
+  positive timeout). No answer while the Session is open at that revision → `waiting`.
   `WAIT_TIMEOUT` → `needs_resume`.
 - Local cancellation persists `needs_resume` where possible and cancels nothing remotely.
-- `NOT_INTERACTIVE`, `CLOSED_WITHOUT_RESPONSE`, `REVISION_SUPERSEDED` (wait or read-once path), or
-  an answer whose Session has moved past the requested revision → `blocked`, before any answer data
-  is released.
+- For a read at the handle's current revision: `NOT_INTERACTIVE`, `CLOSED_WITHOUT_RESPONSE`,
+  `REVISION_SUPERSEDED` (wait or read-once path), or an answer whose Session has moved past that
+  revision → `blocked`, before any answer data is released.
 - `receipt_verification` with `KEY_RESOLUTION_FAILED` or `KEY_FETCH_COOLDOWN` → retryable
   unavailable. `VERIFICATION_CONTEXT_MISSING` → configuration error naming the expected-workspace
   setting. Neither records anything nor changes state.
-- Every other `receipt_verification` code → `blocked` with a verification-failed error.
-- Other SDK errors (`api`, `transport`, `timeout`) → retryable unavailable, no state change.
+- Every other `receipt_verification` code → `blocked` with a verification-failed error. This
+  includes `UNKNOWN_KEY_ID`, which fails closed: during a signing-key rotation inside the SDK's key
+  refresh cooldown a valid answer can block and needs operator review (documented limitation).
+- Other SDK errors during the read, wait or verification (`api`, `transport`, `timeout`,
+  `unknown_outcome`) → retryable unavailable, no state change. `aborted` → local cancellation
+  above. `protocol` and `configuration` → non-retryable error, no state change.
 - While a publish or complete is pending, `response` returns a conflict telling the caller to
   repeat the pending call.
 
@@ -121,7 +129,11 @@ observation reports a conflict.
 - `SessError.outcome === 'rejected'` (a definitive coded 4xx from the SDK rejection table with no
   possible earlier write) → `blocked`, not retryable.
 - Exception: `SESSION_COMPLETED` on complete. Read the Session; if it is completed at
-  `expected_revision`, record and report `completed`; otherwise block.
+  `expected_revision`, record and report `completed`; if the read fails, keep the mutation pending
+  (retryable); otherwise block.
+- A `not_sent` failure caused by the SDK's own deterministic input or configuration checks (kind
+  `configuration`, for example a corrupt saved `If-Match`) → `blocked`, because an identical replay
+  can never succeed.
 - Every other failure (`not_sent`, `unknown`, 408/429/5xx, transport, timeout, abort, host
   revocation) keeps the mutation pending and is reported as a retryable unknown outcome.
 - A confirmed result with an unexpected Session, revision or status → `blocked`.
@@ -134,20 +146,30 @@ observation reports a conflict.
 - While pending, a call with the same operation, `expected_revision`, `response_event_id` and a
   canonical-JSON-equal body replays the saved identity; any other call is a conflict and sends
   nothing.
-- After confirmation the adapter keeps `{operation, expected_revision, response_event_id,
-sha256(canonical body)}`. An exact repeat returns the confirmed result without a network call
-  (publish → `waiting` at `expected_revision + 1` while the handle is there; complete →
-  `completed`). Any other repeat is a conflict and sends nothing.
+- After confirmation the adapter keeps `{operation, expected_revision, response_event_id}` plus,
+  for publish only, `sha256(canonical body)` (complete has no body). An exact repeat returns the
+  confirmed result without a network call only while it is still true: publish → `waiting` at
+  `expected_revision + 1` only while the handle is `waiting` or `needs_resume` at exactly that
+  revision; complete → `completed`. Any other repeat, including an exact publish repeat after the
+  handle has advanced, is a conflict and sends nothing.
 - Canonical JSON: object keys sorted by UTF-16 code units, no whitespace, `JSON.stringify` for
   primitives, finite numbers only.
 
 ## Duplicate request delivery
 
 A host with a durable tool-call identity claims it atomically with the create intent; a redelivery
-never creates again and reports `waiting` with `humanUrl` while waiting and still admitted,
-`completed`, a conflict while a mutation is pending, create-outcome-unknown for `create_intent` or
-`create_unknown`, otherwise `needs_resume` without a URL (meaning: read again with `response`). A
-host without a durable call identity treats every call as new, and its tool description tells the
+never creates again and reports, by stored state:
+
+- `waiting` with `humanUrl` while `waiting` and still admitted;
+- `completed` (no URL);
+- a conflict while a mutation is pending;
+- create-outcome-unknown for `create_intent` or `create_unknown`;
+- create-rejected for a `blocked` record with reason `create_not_created`;
+- the blocked error for any other `blocked` record;
+- `needs_resume` without a URL only for `answered` or `needs_resume` (meaning: read again with
+  `response`).
+
+A host without a durable call identity treats every call as new, and its tool description tells the
 model not to repeat `request`.
 
 ## Human URL release
@@ -166,8 +188,9 @@ Each adapter documents how its codes map to: `invalid_arguments`, `not_found`, `
 ## Validation
 
 Interaction ≤ 32 KiB serialized; arguments ≤ 40 KiB. Reject C0 controls except tab, LF and CR, DEL,
-C1 controls and bidi overrides (U+202A–U+202E, U+2066–U+2069) in every string. Field names
-`constructor` and `prototype` are reserved. 1–5 actions, 1–64 components, ≤ 24 fields, ≤ 50
+C1 controls and bidi overrides (U+202A–U+202E, U+2066–U+2069) in every string. Reject the object
+keys `__proto__`, `constructor` and `prototype` at every depth (including record and
+`option_labels` keys); field names `constructor` and `prototype` are therefore reserved. 1–5 actions, 1–64 components, ≤ 24 fields, ≤ 50
 record entries, ≤ 100 enum values. Field-schema rules converge on one shared validator.
 
 ## Shared fixtures

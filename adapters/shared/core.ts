@@ -3,21 +3,44 @@
 // asserts equality with this file. No package imports this path at runtime.
 import { createHash } from 'node:crypto';
 
-/** Deterministic JSON: object keys sorted by UTF-16 code units, no whitespace. */
+/**
+ * Deterministic JSON: object keys sorted by UTF-16 code units, no whitespace. Accepts plain JSON
+ * values only (null, booleans, finite numbers, strings, dense arrays and plain objects); anything
+ * else, including cycles, throws a TypeError.
+ */
 export function canonicalJson(value: unknown): string {
+  return encode(value, new Set());
+}
+
+function encode(value: unknown, path: Set<object>): string {
   if (typeof value === 'number' && !Number.isFinite(value))
     throw new TypeError('Canonical JSON accepts finite numbers only.');
-  if (value === null || typeof value !== 'object') {
-    const text = JSON.stringify(value);
-    if (text === undefined) throw new TypeError('Canonical JSON accepts JSON values only.');
-    return text;
+  if (value === null || typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string')
+    return JSON.stringify(value);
+  if (typeof value !== 'object') throw new TypeError('Canonical JSON accepts JSON values only.');
+  if (path.has(value)) throw new TypeError('Canonical JSON does not accept cycles.');
+  path.add(value);
+  try {
+    if (Array.isArray(value)) {
+      const items: string[] = [];
+      for (let index = 0; index < value.length; index += 1) {
+        if (!Object.prototype.hasOwnProperty.call(value, index))
+          throw new TypeError('Canonical JSON does not accept sparse arrays.');
+        items.push(encode(value[index], path));
+      }
+      return `[${items.join(',')}]`;
+    }
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null)
+      throw new TypeError('Canonical JSON accepts plain objects only.');
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${encode(record[key], path)}`)
+      .join(',')}}`;
+  } finally {
+    path.delete(value);
   }
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  const record = value as Record<string, unknown>;
-  return `{${Object.keys(record)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
-    .join(',')}}`;
 }
 
 /** SHA-256 (hex) of the canonical JSON of a mutation body. */
