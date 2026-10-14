@@ -46,6 +46,25 @@
           "isRequired": false,
           "isSecret": false,
           "format": "filepath"
+        },
+        {
+          "name": "SESS_EXPECTED_WORKSPACE_ID",
+          "description": "Trusted workspace for a runtime that does not return Sess-Workspace-Id.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "SESS_RECEIPT_ISSUER",
+          "description": "Receipt issuer, only if it differs from the API origin.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "SESS_MCP_MAX_WAIT_MS",
+          "description": "Lower the 45000 ms ceiling of one sess_response wait.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "number"
         }
       ]
     }
