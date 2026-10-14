@@ -2,7 +2,8 @@
 
 ## Current state and owner prerequisites
 
-This is an unpublished code candidate. Do not equate a green tarball check with a public release.
+`0.1.0-rc.4` is published on npm under the `next` dist-tag with provenance; `latest` is a deprecated
+`0.0.0-stage` placeholder. Do not equate a green tarball check with a public release.
 The owner confirmed creation of the npm organization `sess.si` and approved `@sess.si/sdk`
 as the public package name, superseding the previously proposed `@sess/sdk`. Organization creation
 and naming approval do not verify package publication, account MFA, trusted-publisher configuration
@@ -20,9 +21,10 @@ publication approval remain explicit prerequisites. The existing MIT testbed is 
 **`0.1.0-rc.4` is the first SDK candidate to be published** (owner decision, 2026-10-14). Its exact
 bytes are pinned in [`release/sdk-candidate.json`](../release/sdk-candidate.json): name, version,
 tarball filename, SHA-256 and SHA-512. That file is the single source for every consumer. The MCP and
-OpenClaw adapters, the Node quickstart and CI pack the current repository root with
+OpenClaw adapters and CI pack the current repository root with
 `node scripts/sdk-pin.mjs pack [--build] [--out <dir>]`, which accepts the tarball only if its bytes
-equal the pin. `npm run check` ends with `check:pin`. It fails if the packed root differs from the pin,
+equal the pin. The Node quickstart check instead installs the published version from the npm registry
+and accepts it only if npm's recorded integrity equals the pinned SHA-512. `npm run check` ends with `check:pin`. It fails if the packed root differs from the pin,
 or if any consumer (adapter dependency, lockfile entry and integrity, MCP compatibility record,
 quickstart dependency) disagrees with it.
 

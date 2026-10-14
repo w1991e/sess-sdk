@@ -7,8 +7,8 @@ The displaced production HTTP/verifier implementation is removed; raw HTTP remai
 
 During candidate development, install the exact tested npm tarball into a disposable consumer.
 Do not commit a `file:../sess-sdk`, private Git dependency, `npm link`, or hidden install hook.
-Because the registry package has not yet been published, companion CI uses a digest-pinned test-only
-tarball and explicit candidate staging. The public manifest/lock must be updated to the exact real
+`0.1.0-rc.4` is now published on npm under `next`; until the testbed switches to that registry
+version, companion CI uses a digest-pinned test-only tarball and explicit candidate staging. The public manifest/lock must be updated to the exact real
 registry candidate after authorized publication; no nonexistent registry integrity is fabricated.
 
 The public launch flow after that transition is `npm ci`, then `npm run demo`. Installation is now
