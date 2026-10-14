@@ -80,6 +80,7 @@ const sha256 = createHash('sha256').update(bytes).digest('hex');
 // 2. Exact content allowlist: compiled output, manifest, skill, compatibility record, notices.
 const allowed = [
   /^dist\/[a-z-]+\.js$/,
+  /^dist\/internal\/shared\.js$/,
   /^openclaw\.plugin\.json$/,
   /^package\.json$/,
   /^skills\/sess\/SKILL\.md$/,
@@ -119,6 +120,31 @@ assert(
   'packed content references private/runtime/testbed/MCP sources',
 );
 pass('pack-allowlist', { files: files.length });
+
+// No import leaves the package: compiled modules may import only relative files inside dist/,
+// node: built-ins, the SDK dependency and the one public host entry subpath (no sibling adapter,
+// no adapters/shared path at runtime).
+const allowedImports =
+  /^(\.\.?\/[a-z/.-]+\.js|node:[a-z]+|@sess\.si\/sdk|openclaw\/plugin-sdk\/plugin-entry)$/;
+const specifiers = [];
+for (const file of files.filter((f) => f.endsWith('.js'))) {
+  const source = readFileSync(join(root, file), 'utf8');
+  for (const [, spec] of source.matchAll(
+    /(?:^|\s)(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]/gm,
+  ))
+    if (spec) specifiers.push(spec);
+  for (const [, spec] of source.matchAll(/import\(\s*['"]([^'"]+)['"]/g)) specifiers.push(spec);
+  for (const spec of source.matchAll(/(?:^|\s)import\s*['"]([^'"]+)['"]/gm)) specifiers.push(spec[1]);
+  for (const spec of specifiers.splice(0)) {
+    assert(allowedImports.test(spec), `${file} imports ${spec}, which leaves the package`);
+    if (spec.startsWith('.')) {
+      const target = resolve(root, file, '..', spec);
+      assert(target.startsWith(join(root, 'dist') + '/'), `${file} imports ${spec} outside dist/`);
+      assert(existsSync(target), `${file} imports missing ${spec}`);
+    }
+  }
+}
+pass('imports-stay-in-package');
 
 // 3. Manifest: no lifecycle scripts, exact registry-shaped dependency, peer host only.
 const manifest = JSON.parse(

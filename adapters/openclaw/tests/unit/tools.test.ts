@@ -65,12 +65,8 @@ describe('one round through the registered entry (fake host, real SDK)', () => {
       response_event_id: eventId,
       interaction: fixtures('round-2.json'),
     });
-    expect(published.details.interaction).toMatchObject({
-      handle,
-      revision: 2,
-      state: 'waiting',
-      humanUrl: HUMAN_URL,
-    });
+    // Contract "Human URL release": only request returns the link.
+    expect(published.details.interaction).toEqual({ handle, revision: 2, state: 'waiting' });
     const patch = sess.requests.find((r) => r.method === 'PATCH')!;
     expect(patch.headers['if-match']).toBe('"r1-responded"');
     expect(patch.headers['idempotency-key']).toMatch(/^sessoc_/);
@@ -230,7 +226,7 @@ describe('OC-11/OC-12 live authority is checked before every dispatch', () => {
       return bound;
     };
     await expect(call(host, 'sess_request', conv, { interaction: round1() })).rejects.toThrow(
-      /AUTHORITY_REVOKED: The host revoked this invocation before the request was sent/,
+      /CREATE_REJECTED: The host revoked this invocation before the request was sent/,
     );
     expect(sess.requests).toHaveLength(0);
   });

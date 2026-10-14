@@ -87,6 +87,34 @@ agent to continue the same SESS interaction. The agent is not woken up automatic
 - The private link is a bearer capability: anyone holding it can answer. It is not logged.
   Do not use these tools in shared or group conversations.
 
+## Errors
+
+Failures use OpenClaw's tool-error contract. Each message starts with a code; the code maps to
+one class of the shared adapter contract:
+
+| Code                       | Class                 | Meaning                                                                |
+| -------------------------- | --------------------- | ---------------------------------------------------------------------- |
+| `INVALID_ARGUMENTS`        | `invalid_arguments`   | Arguments failed validation; nothing was sent                          |
+| `NOT_FOUND`                | `not_found`           | No interaction with this handle belongs to this conversation           |
+| `STATE_CONFLICT`           | `conflict`            | Wrong revision/answer, a pending or different mutation, or a lost race |
+| `CREATE_REJECTED`          | `create_rejected`     | No Session was created; do not retry unchanged                         |
+| `CREATE_OUTCOME_UNKNOWN`   | `create_unknown`      | A Session may exist; never created again automatically                 |
+| `CREATED_NOT_SAVED`        | `created_not_saved`   | A Session was created but not saved locally; do not repeat the request |
+| `MUTATION_OUTCOME_UNKNOWN` | `outcome_unknown`     | Retryable: repeat the same call to replay the saved request            |
+| `MUTATION_REJECTED`        | `mutation_rejected`   | SESS rejected the saved publish/complete; the interaction is blocked   |
+| `VERIFICATION_FAILED`      | `verification_failed` | The answer failed receipt verification; the interaction is blocked     |
+| `RECOVERY_BLOCKED`         | `blocked`             | Needs explicit operator resolution                                     |
+| `UNAVAILABLE`              | `unavailable`         | Retryable: SESS or receipt keys unreachable; nothing changed           |
+| `CANCELLED`                | `unavailable`         | The local wait was cancelled; nothing was cancelled in SESS            |
+| `AUTHORITY_REVOKED`        | `unavailable`         | The host revoked this invocation; retry in a new admitted call         |
+| `PROTOCOL_ERROR`           | `configuration`       | SESS returned an invalid response; not retryable, nothing changed      |
+| `CONFIGURATION`            | `configuration`       | Plugin configuration is invalid or incomplete                          |
+| `CREDENTIAL_MISSING`       | `configuration`       | The API key variable is not set in the Gateway process                 |
+| `HOST_CAPABILITY_MISSING`  | `configuration`       | The OpenClaw host lacks a required capability                          |
+| `HOST_BINDING_UNAVAILABLE` | `configuration`       | No admitted agent conversation identity was supplied                   |
+| `STORE_FULL`               | `store`               | The bounded interaction store is full; nothing was dropped             |
+| `STORE_UNAVAILABLE`        | `store`               | Durable plugin state failed; nothing further was sent                  |
+
 ## Known limitations (planned for the next increment)
 
 - One outstanding request per conversation is not enforced; each new `sess_request` call may
@@ -94,6 +122,9 @@ agent to continue the same SESS interaction. The agent is not woken up automatic
 - Per-call create-claim records are retained and count toward the plugin's bounded
   interaction store (2200 entries, never evicted); there is no cleanup yet.
 - Uninstall/reinstall effects on stored interactions are not qualified.
+- A receipt signed with a key the SDK cannot find (`UNKNOWN_KEY_ID`) fails closed: during a
+  signing-key rotation inside the SDK's key-refresh cooldown, a valid answer can block and needs
+  operator review.
 
 ## Not included
 

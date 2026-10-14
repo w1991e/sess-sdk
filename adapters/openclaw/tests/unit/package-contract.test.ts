@@ -9,7 +9,9 @@ const root = new URL('../../', import.meta.url);
 const read = (path: string) => readFileSync(new URL(path, root), 'utf8');
 const manifest = JSON.parse(read('openclaw.plugin.json'));
 const pkg = JSON.parse(read('package.json'));
-const sources = readdirSync(new URL('src/', root)).map((f) => read(`src/${f}`));
+const sources = (readdirSync(new URL('src/', root), { recursive: true }) as string[])
+  .filter((f) => f.endsWith('.ts'))
+  .map((f) => read(`src/${f}`));
 
 afterEach(() => {
   vi.unstubAllGlobals();

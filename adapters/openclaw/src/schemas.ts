@@ -6,7 +6,8 @@ import { fail } from './errors.js';
  * not claims about the runtime's maxima. Over-limit input is rejected, never truncated.
  */
 export const LIMITS = Object.freeze({
-  requestBytes: 32 * 1024,
+  interactionBytes: 32 * 1024,
+  argumentBytes: 40 * 1024,
   depth: 8,
   components: 64,
   fields: 24,
@@ -23,6 +24,11 @@ const EVENT_ID = new RegExp(EVENT_ID_PATTERN);
 const FIELD_NAME = /^[a-z][a-z0-9_]{0,63}$/;
 const ACTION_ID = /^[a-z][a-z0-9_]{0,31}$/;
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+/** Contract "Validation": reserved field names. */
+const RESERVED_FIELD_NAMES = new Set(['constructor', 'prototype']);
+/** Contract "Validation": C0 except tab/LF/CR, DEL, C1, and bidi overrides/isolates. */
+const FORBIDDEN_CHARACTERS =
+  /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
 const INTENTS = new Set(['submit', 'continue', 'approve', 'reject', 'request_change']);
 
 const plainText = (max: number) =>
@@ -234,7 +240,12 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 /** Rejects non-JSON values, accessors, cycles, dangerous keys and excessive depth. */
 function assertJson(value: unknown, path: string, depth: number, seen: Set<object>): void {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+  if (typeof value === 'string') {
+    if (FORBIDDEN_CHARACTERS.test(value))
+      invalid(path, 'control or bidirectional-override characters are not accepted.');
+    return;
+  }
+  if (value === null || typeof value === 'boolean') return;
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) invalid(path, 'numbers must be finite.');
     return;
@@ -253,6 +264,8 @@ function assertJson(value: unknown, path: string, depth: number, seen: Set<objec
     for (const key of Reflect.ownKeys(value)) {
       if (typeof key !== 'string') invalid(path, 'symbol keys are not accepted.');
       if (DANGEROUS_KEYS.has(key)) invalid(path, 'unsafe object key.');
+      if (FORBIDDEN_CHARACTERS.test(key))
+        invalid(path, 'control or bidirectional-override characters are not accepted.');
       const descriptor = Object.getOwnPropertyDescriptor(value, key);
       if (!descriptor || !('value' in descriptor) || !descriptor.enumerable)
         invalid(path, 'accessor or hidden properties are not accepted.');
@@ -273,8 +286,8 @@ function closed(value: unknown, path: string, allowed: readonly string[], requir
 function str(value: unknown, path: string, min: number, max: number, nonBlank = false): string {
   if (typeof value !== 'string' || value.length < min || value.length > max)
     invalid(path, `must be a string of ${min}-${max} characters.`);
-  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value))
-    invalid(path, 'control characters are not accepted.');
+  if (FORBIDDEN_CHARACTERS.test(value))
+    invalid(path, 'control or bidirectional-override characters are not accepted.');
   if (nonBlank && !/\S/.test(value)) invalid(path, 'must not be blank.');
   return value;
 }
@@ -479,6 +492,7 @@ export function validateInteraction(value: unknown, path = 'interaction'): Inter
         const name = component.name;
         if (typeof name !== 'string' || !FIELD_NAME.test(name))
           invalid(`${at}.name`, 'must match ^[a-z][a-z0-9_]{0,63}$.');
+        if (RESERVED_FIELD_NAMES.has(name)) invalid(`${at}.name`, `"${name}" is a reserved field name.`);
         if (names.has(name)) invalid(`${at}.name`, 'field names must be unique.');
         names.add(name);
         str(component.label, `${at}.label`, 1, 200, true);
@@ -521,6 +535,8 @@ export function validateInteraction(value: unknown, path = 'interaction'): Inter
     if (checked.intent !== undefined && (typeof checked.intent !== 'string' || !INTENTS.has(checked.intent)))
       invalid(`${at}.intent`, 'unsupported intent.');
   });
+  if (Buffer.byteLength(JSON.stringify(value), 'utf8') > LIMITS.interactionBytes)
+    invalid(path, `exceeds ${LIMITS.interactionBytes} bytes serialized; nothing was truncated or sent.`);
   return value as InteractiveInteraction;
 }
 
@@ -528,8 +544,8 @@ export function validateInteraction(value: unknown, path = 'interaction'): Inter
 function snapshot(value: unknown, root: string): Record<string, unknown> {
   assertJson(value, root, 0, new Set());
   const text = JSON.stringify(value);
-  if (Buffer.byteLength(text, 'utf8') > LIMITS.requestBytes)
-    invalid(root, `arguments exceed ${LIMITS.requestBytes} bytes; nothing was truncated or sent.`);
+  if (Buffer.byteLength(text, 'utf8') > LIMITS.argumentBytes)
+    invalid(root, `arguments exceed ${LIMITS.argumentBytes} bytes; nothing was truncated or sent.`);
   return JSON.parse(text) as Record<string, unknown>;
 }
 
