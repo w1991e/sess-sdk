@@ -5,9 +5,13 @@
   "description": "Runnable installed-package quickstart for @sess.si/sdk. Not published.",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=24"
+    "node": ">=22.14.0"
+  },
+  "dependencies": {
+    "@sess.si/sdk": "0.1.0-rc.3"
   },
   "scripts": {
-    "start": "node index.mjs"
+    "start": "node index.mjs",
+    "check:clean-install": "node scripts/clean-install-check.mjs"
   }
 }
