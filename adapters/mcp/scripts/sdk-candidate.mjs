@@ -11,11 +11,12 @@
 //
 // Commands:
 //   setup [--require-registry]
-//                            registry mode: npm ci. candidate mode: prepare --build-root, then
+//                            registry mode: npm ci. candidate mode: prepare, then
 //                            npm ci. --require-registry refuses candidate mode (used by releases).
-//   prepare [--build-root]   obtain the candidate (SESS_SDK_CANDIDATE_TGZ, or `npm pack` of the SDK
-//                            repository root; --build-root first runs `npm ci --ignore-scripts` and
-//                            `npm run build` there when dist/ is missing) and accept it by digest.
+//   prepare [--build-root]   obtain the candidate (SESS_SDK_CANDIDATE_TGZ, or the root helper
+//                            scripts/rc3-candidate.mjs, which rebuilds it from its pinned reviewed
+//                            source commit) and accept it by digest. --build-root is accepted for
+//                            compatibility; the helper always builds from the pinned source.
 //   verify                   check the lock entry (either mode), the candidate bytes (candidate
 //                            mode) and the installed identity.
 //   switch-to-registry [--apply]
@@ -110,25 +111,19 @@ if (command === 'setup') {
     accept(supplied);
     copyFileSync(supplied, target);
   } else {
+    // The repository root may carry a later successor candidate, so the approved bytes are rebuilt
+    // from their pinned reviewed source commit by the root helper, never by packing the current root.
     const root = resolve(adapter, '..', '..');
-    const manifest = readJson(join(root, 'package.json'));
-    if (manifest.name !== pinned.name || manifest.version !== pinned.version)
-      fail(`repository root is ${manifest.name}@${manifest.version}, not the pinned ${spec}.`);
-    if (!existsSync(join(root, 'dist', 'index.js'))) {
-      if (!flags.includes('--build-root'))
-        fail(
-          'the SDK root is not built. Run `npm run setup` (builds it), or at the repository root run `npm ci --ignore-scripts && npm run build`.',
-        );
-      console.log('sdk-candidate: building the SDK root (npm ci --ignore-scripts && npm run build)');
-      npm(['ci', '--ignore-scripts', '--no-audit', '--no-fund'], root, 'inherit');
-      npm(['run', 'build'], root, 'inherit');
-    }
     const out = mkdtempSync(join(tmpdir(), 'sess-sdk-candidate-'));
     try {
-      const packed = JSON.parse(
-        npm(['pack', '--json', '--ignore-scripts', '--pack-destination', out], root),
-      )[0];
-      const produced = join(out, packed.filename);
+      const produced = execFileSync(
+        process.execPath,
+        [join(root, 'scripts', 'rc3-candidate.mjs'), '--out', out],
+        { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
+      )
+        .trim()
+        .split('\n')
+        .pop();
       accept(produced);
       copyFileSync(produced, target);
     } finally {
