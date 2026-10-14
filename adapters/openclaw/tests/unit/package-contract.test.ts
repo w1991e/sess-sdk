@@ -9,6 +9,10 @@ const root = new URL('../../', import.meta.url);
 const read = (path: string) => readFileSync(new URL(path, root), 'utf8');
 const manifest = JSON.parse(read('openclaw.plugin.json'));
 const pkg = JSON.parse(read('package.json'));
+// The single SDK pin at the repository root (release/sdk-candidate.json).
+const sdkPin = JSON.parse(
+  readFileSync(new URL('../../../../release/sdk-candidate.json', import.meta.url), 'utf8'),
+);
 const sources = (readdirSync(new URL('src/', root), { recursive: true }) as string[])
   .filter((f) => f.endsWith('.ts'))
   .map((f) => read(`src/${f}`));
@@ -33,7 +37,7 @@ describe('manifest and runtime declarations agree', () => {
   });
 
   it('package boundary: exact SDK dependency, host as peer only, no lifecycle scripts', () => {
-    expect(pkg.dependencies).toEqual({ '@sess.si/sdk': '0.1.0-rc.3' });
+    expect(pkg.dependencies).toEqual({ [sdkPin.name]: sdkPin.version });
     expect(pkg.peerDependencies).toEqual({ openclaw: pkg.devDependencies.openclaw });
     for (const hook of [
       'preinstall',

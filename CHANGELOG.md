@@ -2,12 +2,9 @@
 
 ## 0.1.0-rc.4 — 2026-10-14
 
-Unpublished successor candidate; documentation only. The README's first screen links the runnable
-plain-Node quickstart (only `SESS_API_KEY` needed; the human link is printed before waiting) and
-points to this changelog and the registry's dist-tags for release status. Library source is unchanged from `0.1.0-rc.3`. Because the README is
-packed, these are new bytes with their own digest; they need focused review and their own release
-authorization. `0.1.0-rc.3` remains the approved candidate and is never republished with edited
-bytes.
+Documentation and packaging only; the library source is unchanged from `0.1.0-rc.3`. The README's
+first screen links the runnable plain-Node quickstart (only `SESS_API_KEY` needed; the human link is
+printed before waiting) and points to this changelog and the registry's dist-tags for release status.
 
 ## 0.1.0-rc.3 — 2026-10-13
 

@@ -4,7 +4,9 @@ A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent a
 a hosted SESS form and receive a receipt-verified answer. The agent gets the private link
 immediately, the person answers on any device, and the agent continues on the same Session.
 
-**Candidate status:** `0.1.0-rc.1` is unpublished, and so is its dependency `@sess.si/sdk@0.1.0-rc.3`.
+**Candidate status:** `0.1.0-rc.1` is unpublished, and so is its pinned SDK dependency (the exact
+version in [package.json](package.json), recorded with its digest in the repository's
+`release/sdk-candidate.json`).
 `npm install @sess.si/mcp` and `npx @sess.si/mcp` do **not** work yet. Everything below marked
 _tested_ was run from a packed, installed tarball; everything marked _untested_ is the intended
 form after publication. See [compatibility.json](compatibility.json) for the exact tuple.
@@ -217,27 +219,27 @@ The tool error names the state (`RECOVERY_BLOCKED` with a reason, `CREATE_OUTCOM
 ## Development
 
 The adapter is an independent package with its own lockfile. `package.json` always declares the
-exact dependency `@sess.si/sdk@0.1.0-rc.3`. `package-lock.json` is a maintainer file only; npm never
-ships it to consumers. The real hold is that the SDK is not published yet: until then the lock
-resolves the SDK to a local, gitignored **candidate** tarball `.candidate/sess.si-sdk-0.1.0-rc.3.tgz`.
-npm does not enforce lock integrity for `file:` tarballs, so `scripts/sdk-candidate.mjs` accepts the
-tarball only if its SHA-256 equals the reviewed candidate (`b4d29d8f…a0502`). The repository root
-may hold a later successor candidate, so the tarball is rebuilt from its pinned reviewed source commit
-by the root helper `scripts/rc3-candidate.mjs` (git archive of `cea3f1e`, `npm ci`, build, pack), never
-by packing the current root.
+exact SDK version from the repository's single pin, `release/sdk-candidate.json` (name, version,
+filename, SHA-256, SHA-512). `package-lock.json` is a maintainer file only; npm never ships it to
+consumers. The real hold is that the SDK is not published yet: until then the lock resolves the SDK
+to a local, gitignored **candidate** tarball in `.candidate/`. npm does not enforce lock integrity for
+`file:` tarballs, so `scripts/sdk-candidate.mjs` packs the current repository root with
+`scripts/sdk-pin.mjs pack` and accepts the tarball only if its digests equal the pin.
+`compatibility.json` mirrors the pin; `npm run pin:update` at the root keeps both, the lockfile
+and the dependency in step after a deliberate change, and the root `npm run check` fails on drift.
 
 From a clean clone, one command prepares everything. A plain `npm ci` without it fails because
 `.candidate/` does not exist yet.
 
 ```sh
 cd adapters/mcp
-npm run setup    # rebuilds rc.3 from its pinned source, accepts it by digest, then npm ci
+npm run setup    # packs the SDK root, accepts it only by the pinned digest, then npm ci
 npm run check    # digest, build, typecheck, unit tests, packed-consumer check
 ```
 
 ### Switching to the published SDK
 
-After `@sess.si/sdk@0.1.0-rc.3` is genuinely published:
+After the pinned SDK version is genuinely published:
 
 ```sh
 npm run sdk:switch-to-registry            # dry run: confirms the registry integrity equals the pinned one
@@ -245,9 +247,9 @@ npm run sdk:switch-to-registry -- --apply # npm install --save-exact, lock check
 npm run check
 ```
 
-`--apply` runs `npm install --save-exact --ignore-scripts @sess.si/sdk@0.1.0-rc.3`, requires the
-regenerated lock entry to be the registry tarball with the pinned integrity, downloads the published
-tarball again and compares its SHA-256 with `b4d29d8f…a0502`, and records the published status in
+`--apply` runs `npm install --save-exact --ignore-scripts @sess.si/sdk@<pinned version>`, requires
+the regenerated lock entry to be the registry tarball with the pinned integrity, downloads the
+published tarball again and compares its SHA-256 with the pin, and records the published status in
 `compatibility.json`. It refuses any other bytes. Review and commit the lockfile change; no other
 step is needed (`verify`, the packed check and CI accept either mode). Until then the dry run exits
 with "not available from the registry yet" and changes nothing. Packed and loopback installs are

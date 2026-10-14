@@ -20,7 +20,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { serveCandidate } from './candidate-sdk.mjs';
+import { CANDIDATE, serveCandidate } from './candidate-sdk.mjs';
 
 const args = process.argv.slice(2);
 const sdkIndex = args.indexOf('--sdk');
@@ -172,8 +172,8 @@ for (const hook of [
 ])
   assert(!manifest.scripts?.[hook], `lifecycle script ${hook}`);
 assert(
-  JSON.stringify(manifest.dependencies) === JSON.stringify({ '@sess.si/sdk': '0.1.0-rc.3' }),
-  'dependencies must be exactly @sess.si/sdk 0.1.0-rc.3',
+  JSON.stringify(manifest.dependencies) === JSON.stringify({ [CANDIDATE.name]: CANDIDATE.version }),
+  `dependencies must be exactly ${CANDIDATE.name} ${CANDIDATE.version} (release/sdk-candidate.json)`,
 );
 for (const spec of Object.values({ ...manifest.dependencies, ...manifest.peerDependencies }))
   assert(!/^(file|link|workspace|git|https?):/.test(spec), 'non-registry dependency spec');
@@ -249,7 +249,7 @@ try {
   );
   pass('consumer-install', {
     productionPackages: installed,
-    sdk: registryMode ? 'REGISTRY @sess.si/sdk@0.1.0-rc.3' : 'CANDIDATE @sess.si/sdk@0.1.0-rc.3',
+    sdk: `${registryMode ? 'REGISTRY' : 'CANDIDATE'} ${CANDIDATE.name}@${CANDIDATE.version}`,
   });
 
   // 6. Network-denied import + registration (host peer linked exactly as the installer does).
