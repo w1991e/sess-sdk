@@ -23,3 +23,20 @@
   block. Previously a one-off key-endpoint 5xx or timeout permanently blocked a valid answer.
 - A save failure after an unknown create outcome is reported as non-retryable
   `CREATE_OUTCOME_UNKNOWN` instead of a retryable store error.
+- Converged with the shared adapter contract: vendored `src/internal/shared.ts` (byte-identical
+  to `adapters/shared/core.ts`) supplies canonical JSON, body digests and verification
+  classification. `VERIFICATION_CONTEXT_MISSING` is now a non-retryable `NOT_CONFIGURED` naming
+  `SESS_EXPECTED_WORKSPACE_ID` instead of a permanent block; it records nothing.
+- `sess_response` while a publish or complete is pending returns `MUTATION_PENDING`, telling the
+  caller to repeat the pending call, instead of the cached answer.
+- `SESSION_COMPLETED` on complete is confirmed only when the Session completed at the expected
+  revision; a confirmed complete must also report that revision. Otherwise the record blocks.
+- Removed an unreachable branch: SDK `rejected` outcomes are always definitive and block.
+- README documents the error-code → class mapping and the receipt-key rotation window.
+- Re-vendored the hardened shared core (rejects sparse arrays, non-plain objects and cycles; all
+  digested bodies are validated plain JSON or `JSON.parse` output).
+- SDK `protocol`/`configuration` errors during read, wait or verification are non-retryable
+  (`SESS_PROTOCOL_ERROR`/`NOT_CONFIGURED`) with no state change; `not_sent` with kind
+  `configuration` on a saved publish/complete blocks; a failed `SESSION_COMPLETED` read-back keeps
+  the completion pending and retryable.
+- Packed check scans multi-line, side-effect and dynamic imports and rejects `require()`.
