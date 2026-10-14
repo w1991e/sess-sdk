@@ -26,10 +26,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      # The Node under test also builds and packs the SDK root (scripts/sdk-pin.mjs), so each matrix
-      # entry proves the pinned digest is reproduced with that Node's bundled npm.
+      # Each matrix entry installs the published @sess.si/sdk version declared by the example from the
+      # public npm registry with that Node's bundled npm (no locally packed tarball), checks npm's
+      # recorded integrity against release/sdk-candidate.json, and runs the program.
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ matrix.node }}
-      - name: Clean copied-directory install and run against a loopback fake SESS API
+      - name: Clean copied-directory registry install and run against a loopback fake SESS API
         run: node examples/quickstart-node/scripts/clean-install-check.mjs

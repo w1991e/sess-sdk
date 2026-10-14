@@ -1,51 +1,52 @@
-// Clean copied-directory install/run check for the Node quickstart.
+// Clean copied-directory registry install/run check for the Node quickstart.
 //
-//   node examples/quickstart-node/scripts/clean-install-check.mjs [--tarball <path>] [--keep]
+//   node examples/quickstart-node/scripts/clean-install-check.mjs [--keep]
 //
 // 1. Copies this example to a fresh temporary directory outside the SDK repository, with no
 //    node_modules in any ancestor directory, so nothing resolves from the repository by accident.
-// 2. Obtains the SDK candidate tarball (--tarball, SESS_SDK_CANDIDATE_TGZ, or `scripts/sdk-pin.mjs pack
-//    --build`, which packs the current repository root) and accepts it only if its SHA-256 equals the
-//    pin in release/sdk-candidate.json.
-// 3. Installs it with lifecycle scripts disabled, exactly as the example README documents.
+// 2. Runs a plain `npm install --ignore-scripts` there, as the example README documents: the exact
+//    @sess.si/sdk version declared in package.json comes from the public npm registry. No packed
+//    tarball, file: dependency, registry override or committed lockfile is involved. The check refuses
+//    to run if npm is configured for any registry other than https://registry.npmjs.org/.
+// 3. Accepts the install only if the installed package is the pinned name/version, npm resolved it
+//    from the public registry, and npm's recorded integrity (which npm verifies against the
+//    downloaded bytes) equals the SHA-512 pin in release/sdk-candidate.json.
 // 4. Runs `node index.mjs` against a deterministic fake SESS API on loopback that serves create,
 //    retrieve, wait, Surface, complete and a genuinely Ed25519-signed receipt plus key set. The child
 //    environment holds only PATH, SESS_API_KEY, the loopback SESS_API_URL and the loopback opt-in:
 //    no workspace override. The workspace comes from the authenticated Sess-Workspace-Id header.
 //
-// It proves: the human URL is printed before waiting (the fake person answers only after seeing it
-// and after at least one unanswered poll), the response is verified, and the Session completes.
-// The SESS API traffic is loopback only; `npm install` resolves the SDK's own pinned public
-// dependencies from the configured npm registry or cache. Output never contains the API key or
-// the human URL.
+// It proves: the published package installs and runs, the human URL is printed before waiting (the
+// fake person answers only after seeing it and after at least one unanswered poll), the response is
+// verified, and the Session completes. The registry install (the SDK and its pinned public
+// dependencies, from the public registry or npm's integrity-checked cache) is the only network
+// access; all SESS API traffic is loopback. Output never contains the API key or the human URL.
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
 import { createServer } from 'node:http';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// The single SDK candidate pin at the repository root (release/sdk-candidate.json).
+// The single SDK pin at the repository root (release/sdk-candidate.json).
 const PIN = JSON.parse(readFileSync(new URL('../../../release/sdk-candidate.json', import.meta.url), 'utf8'));
-const PINNED = Object.freeze({ name: PIN.name, version: PIN.version, sha256: PIN.sha256 });
+const PINNED = Object.freeze({ name: PIN.name, version: PIN.version, integrity: PIN.integrity });
+const PUBLIC_REGISTRY = 'https://registry.npmjs.org/';
 const RUN_TIMEOUT_MS = 90_000;
 
 const example = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sdkRoot = resolve(example, '..', '..');
 const args = process.argv.slice(2);
 const keep = args.includes('--keep');
-const tarballArg = args.includes('--tarball') ? args[args.indexOf('--tarball') + 1] : undefined;
-if (args.includes('--tarball') && !tarballArg) {
-  console.error('clean-install-check: --tarball requires a path.');
+const unknown = args.filter((arg) => arg !== '--keep');
+if (unknown.length) {
+  console.error(`clean-install-check: unknown argument(s) ${unknown.join(' ')}; only --keep is accepted.`);
   process.exit(2);
 }
 
 function fail(message) {
   throw new Error(`FAIL: ${message}`);
-}
-function sha256(path) {
-  return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 function npm(argv, cwd) {
   const options = { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] };
@@ -61,7 +62,6 @@ function isInside(child, parent) {
 // --- Fresh directory outside the repository, with no ancestor node_modules. ---
 const work = realpathSync(mkdtempSync(join(realpathSync(tmpdir()), 'sess-quickstart-clean-')));
 const app = join(work, 'quickstart-node');
-const candidateDir = join(work, 'candidate');
 
 let server;
 let exitCode = 1;
@@ -71,28 +71,6 @@ try {
     if (existsSync(join(dir, 'node_modules'))) fail(`an ancestor directory has node_modules: ${dir}`);
     if (dirname(dir) === dir) break;
   }
-  mkdirSync(candidateDir);
-  // --- Candidate tarball, accepted only by digest. ---
-  const supplied = tarballArg ?? process.env.SESS_SDK_CANDIDATE_TGZ;
-  let tarball;
-  if (supplied) {
-    tarball = join(candidateDir, basename(supplied));
-    cpSync(resolve(supplied), tarball);
-  } else {
-    // Pack the current repository root; scripts/sdk-pin.mjs accepts only the pinned bytes.
-    tarball = execFileSync(
-      process.execPath,
-      [join(sdkRoot, 'scripts', 'sdk-pin.mjs'), 'pack', '--build', '--out', candidateDir],
-      { cwd: sdkRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
-    )
-      .trim()
-      .split('\n')
-      .pop();
-  }
-  const digest = sha256(tarball);
-  if (digest !== PINNED.sha256)
-    fail(`candidate sha256 ${digest} is not the pinned ${PINNED.sha256}. Refusing it.`);
-  console.log(`accepted CANDIDATE ${PINNED.name}@${PINNED.version} sha256=${digest}`);
 
   // --- Copy the example as a user would: no node_modules, no lockfile. ---
   cpSync(example, app, {
@@ -102,13 +80,30 @@ try {
   const appManifest = JSON.parse(readFileSync(join(app, 'package.json'), 'utf8'));
   if (appManifest.dependencies?.[PINNED.name] !== PINNED.version)
     fail(`example package.json must declare "${PINNED.name}": "${PINNED.version}" exactly.`);
-  npm(['install', '--ignore-scripts', '--no-audit', '--no-fund', tarball], app);
+  const registry = npm(['config', 'get', 'registry'], app).trim();
+  if (registry !== PUBLIC_REGISTRY)
+    fail(`npm is configured for registry ${registry}; this check installs only from ${PUBLIC_REGISTRY}.`);
+
+  // --- Plain registry install of the declared exact version (no tarball, no override). ---
+  npm(['install', '--ignore-scripts', '--no-audit', '--no-fund'], app);
   const installed = JSON.parse(
     readFileSync(join(app, 'node_modules', '@sess.si', 'sdk', 'package.json'), 'utf8'),
   );
   if (installed.name !== PINNED.name || installed.version !== PINNED.version)
-    fail('installed @sess.si/sdk identity differs from the pinned candidate.');
-  console.log(`installed into a clean copy with --ignore-scripts (node ${process.version})`);
+    fail(
+      `installed ${installed.name}@${installed.version} is not the pinned ${PINNED.name}@${PINNED.version}.`,
+    );
+  const lock = JSON.parse(readFileSync(join(app, 'package-lock.json'), 'utf8'));
+  const entry = lock.packages?.[`node_modules/${PINNED.name}`] ?? {};
+  const expectedResolved = `${PUBLIC_REGISTRY}${PINNED.name}/-/sdk-${PINNED.version}.tgz`;
+  if (entry.resolved !== expectedResolved)
+    fail(`npm resolved ${PINNED.name} from ${entry.resolved}, not ${expectedResolved}.`);
+  if (entry.integrity !== PINNED.integrity)
+    fail(`npm recorded integrity ${entry.integrity}, not the pinned ${PINNED.integrity}. Refusing it.`);
+  console.log(
+    `installed REGISTRY ${PINNED.name}@${PINNED.version} from ${PUBLIC_REGISTRY} into a clean copy with ` +
+      `--ignore-scripts (node ${process.version}); npm integrity equals the pin ${PINNED.integrity}`,
+  );
 
   // --- Deterministic fake SESS API on loopback. ---
   const fake = createFakeSess();
@@ -157,7 +152,7 @@ try {
     console.log('CLEAN INSTALL CHECK FAILED');
   } else {
     console.log(
-      'CLEAN INSTALL CHECK PASSED: digest-verified candidate, clean copy, only SESS_API_KEY ' +
+      'CLEAN INSTALL CHECK PASSED: registry install with pinned integrity, clean copy, only SESS_API_KEY ' +
         '(workspace from authenticated header), URL before waiting, verified response, completed.',
     );
     exitCode = 0;

@@ -1,58 +1,55 @@
 # Installed-package quickstart (Node)
 
-A runnable program that uses the installed `@sess.si/sdk` package. It creates one interactive
-Session, prints its private human link, waits a bounded time for the person's answer, verifies the
-decision receipt, validates the business data, and completes the Session. It is plain Node ESM
-JavaScript ([index.mjs](index.mjs)); there is no build step. This directory is not part of the
-published package.
+This program asks a person one question through a hosted SESS page and continues with their
+verified answer.
 
-## Prerequisites
+**Install** (in a copy of this directory; installs the published `@sess.si/sdk@0.1.0-rc.4` from npm):
+
+```sh
+npm install --ignore-scripts
+```
+
+**Run** (paste your SESS API key when prompted; it is not echoed):
+
+```sh
+read -rs SESS_API_KEY && export SESS_API_KEY && npm start
+```
+
+**What you'll see:** a private human link, then — after you open it and submit the amount — the
+verified amount and `status: completed`.
+
+## Details
+
+The program creates one interactive Session, prints its private human link, waits a bounded time
+for the person's answer, verifies the decision receipt, validates the business data, and completes
+the Session. It is plain Node ESM JavaScript ([index.mjs](index.mjs)); there is no build step. This
+directory itself is not published.
+
+### Prerequisites
 
 - Node.js 22.14.0 or later (checked on 22.14.0 and 24.21.0).
 - A SESS API key for the workspace you want to use. That is the only setting the ordinary path
   needs: the workspace is taken from the API's authenticated responses. Use synthetic data; this
   example pays and sends nothing.
 
-## Install
+### Install
 
-Copy this directory somewhere outside the SDK repository. [package.json](package.json) declares the
-exact SDK version, the one pinned with its digests in the SDK repository's
-[release/sdk-candidate.json](../../release/sdk-candidate.json). No lockfile is shipped.
+Copy this directory somewhere outside the SDK repository and run `npm install --ignore-scripts`
+there. [package.json](package.json) declares the exact SDK version, `0.1.0-rc.4`, which is published
+on npm under the `next` dist-tag with npm provenance. Its registry integrity equals the pin in the
+SDK repository's [release/sdk-candidate.json](../../release/sdk-candidate.json). No lockfile is
+shipped; npm creates one in your copy.
 
-### Release candidate (before publication)
-
-If that exact version is not on the registry yet (`npm view @sess.si/sdk versions`), `npm install`
-alone cannot resolve it. Install the candidate tarball explicitly, and only after checking that its
-SHA-256 equals the pinned digest:
+To add the SDK to your own project instead, name the exact version (or `@next`):
 
 ```sh
-# In the SDK repository: pack the current root; the script accepts only the pinned bytes
-# (or use the tarball you were given).
-node scripts/sdk-pin.mjs pack --build --out /tmp/sess-candidate
-
-# Verify the digest. It must print exactly the "sha256" value in release/sdk-candidate.json:
-sha256sum /tmp/sess-candidate/sess.si-sdk-*.tgz      # Linux
-shasum -a 256 /tmp/sess-candidate/sess.si-sdk-*.tgz   # macOS
-
-# In your copy of this directory: install the verified tarball without lifecycle scripts.
-npm install --ignore-scripts /tmp/sess-candidate/sess.si-sdk-*.tgz
+npm install --ignore-scripts @sess.si/sdk@0.1.0-rc.4
 ```
 
-The digest identifies the candidate tarball as distributed. Packing reproduced it with npm 10.9.2
-(Node 22.14.0) and npm 11.19.0 (Node 24.21.0); another toolchain may produce different bytes — in that
-case use the tarball you were given. Do not install a tarball whose digest differs. Installing a
-tarball records a local `file:` dependency in your copy's package.json; that is expected for the
-candidate.
+Do not install the bare `@sess.si/sdk` name: its `latest` dist-tag currently points at a deprecated
+`0.0.0-stage` placeholder, not at this release candidate.
 
-### Published release (after publication)
-
-Once the declared version is published to npm, the dependency resolves normally:
-
-```sh
-npm install --ignore-scripts
-```
-
-## Run
+### Run
 
 Enter the key without echoing it and without putting it in your shell history or on a command line,
 then start the program:
@@ -100,15 +97,17 @@ reported as uncertain, never as success, and creation is never retried automatic
 ## Clean install check (maintainers and CI)
 
 [scripts/clean-install-check.mjs](scripts/clean-install-check.mjs) copies this directory to a fresh
-temporary directory outside the repository (no `node_modules` in any ancestor), packs the
-candidate with `scripts/sdk-pin.mjs pack --build` (or takes `--tarball <path>` /
-`SESS_SDK_CANDIDATE_TGZ`) and accepts the tarball only if its SHA-256 is the pinned digest, installs it with `--ignore-scripts`, then runs `index.mjs`
-against a deterministic fake SESS API on loopback. The fake serves create, retrieve, the immutable
-Surface, complete, and a genuinely Ed25519-signed receipt with its key set. The program's
-environment holds only `SESS_API_KEY` plus the loopback API URL and opt-in, so the check proves the
-key alone suffices, the human URL is printed before waiting, the response verifies and the Session
-completes. No SESS traffic leaves loopback; `npm install` fetches the SDK's pinned public
-dependencies from the configured npm registry or cache. Run it from the SDK repository:
+temporary directory outside the repository (no `node_modules` in any ancestor) and runs the same
+plain `npm install --ignore-scripts` documented above, against the public npm registry: no packed
+tarball and no registry override (it refuses to run if npm is configured for another registry). It
+accepts the install only if `@sess.si/sdk` is the pinned name and version, was resolved from
+`https://registry.npmjs.org/`, and npm's recorded integrity equals the pin in
+`release/sdk-candidate.json`. It then runs `index.mjs` against a deterministic fake SESS API on
+loopback. The fake serves create, retrieve, the immutable Surface, complete, and a genuinely
+Ed25519-signed receipt with its key set. The program's environment holds only `SESS_API_KEY` plus
+the loopback API URL and opt-in, so the check proves the key alone suffices, the human URL is
+printed before waiting, the response verifies and the Session completes. The registry install is
+the only network access; no SESS traffic leaves loopback. Run it from the SDK repository:
 
 ```sh
 node examples/quickstart-node/scripts/clean-install-check.mjs

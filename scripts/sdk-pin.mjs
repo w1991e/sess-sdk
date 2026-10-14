@@ -3,8 +3,9 @@
 //   node scripts/sdk-pin.mjs pack [--out <dir>] [--build]
 //       Pack the CURRENT repository root and accept the tarball only if its SHA-256 and SHA-512
 //       equal the pin. --build first runs `npm ci --ignore-scripts` (when node_modules is missing)
-//       and `npm run build`. Prints the tarball path as the last line of stdout. Used by the MCP and
-//       OpenClaw adapters, the Node quickstart and CI.
+//       and `npm run build`. Prints the tarball path as the last line of stdout. Used by CI and by
+//       consumers that still install the unpublished candidate (the Node quickstart installs the
+//       published version from the registry).
 //   node scripts/sdk-pin.mjs verify
 //       Part of `npm run check` (after check:package): the packed root bytes recorded in
 //       .artifacts/package-result.json equal the pin, and every consumer (adapter manifests,
