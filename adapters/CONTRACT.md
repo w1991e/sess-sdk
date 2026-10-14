@@ -51,7 +51,7 @@ type AdapterResult = {
 ```
 
 `waiting`: no accepted answer yet for the revision. `answered`: an exact-revision answer passed
-full SDK receipt verification. `completed`: the intended terminal state was confirmed remotely.
+full SDK receipt verification and was current at release. `completed`: the intended terminal state was confirmed remotely.
 `needs_resume`: the local wait or process ended without server cancellation; a later authorized
 call resumes the same handle. Blocked recovery, validation and authority failures use the host's
 error contract, not a fifth success state.
