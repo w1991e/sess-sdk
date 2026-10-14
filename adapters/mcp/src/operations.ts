@@ -71,6 +71,12 @@ function defaultClient(config: AdapterConfig): SessClient {
   });
 }
 
+/**
+ * Receipt-verification codes that mean the trusted key set was unavailable, not that the answer
+ * failed verification. They are transient: the answer is neither accepted nor blocked.
+ */
+const TRANSIENT_KEY_CODES = new Set(['KEY_RESOLUTION_FAILED', 'KEY_FETCH_COOLDOWN']);
+
 /** A SESS error code only if it has the stable public shape; anything else is dropped. */
 function safeCode(error: unknown): string | undefined {
   return error instanceof SessError && typeof error.code === 'string' && /^[A-Z_]{1,64}$/.test(error.code)
@@ -207,7 +213,14 @@ export class SessMcpAdapter {
       }
       record.state = 'create_unknown';
       record.updatedAt = this.#now();
-      await store.save(record);
+      // The intent saved before dispatch still reports the unconfirmed create if this save fails;
+      // either way the result is non-retryable so the create is never repeated.
+      await store.save(record).catch(() => {
+        throw new AdapterError(
+          'CREATE_OUTCOME_UNKNOWN',
+          'The create outcome is unknown and could not be saved locally; a Session may exist. Do not call sess_request again for this question; ask the owner to check SESS and the local state directory.',
+        );
+      });
       this.#options.diagnostics('create_unknown', { code: sessCode(error) });
       throw new AdapterError(
         'CREATE_OUTCOME_UNKNOWN',
@@ -282,6 +295,21 @@ export class SessMcpAdapter {
         signal ? { signal } : {},
       );
     } catch (error) {
+      if (
+        error instanceof SessError &&
+        error.kind === 'receipt_verification' &&
+        TRANSIENT_KEY_CODES.has(error.code ?? '')
+      ) {
+        // The trusted key set could not be loaded (for example a 5xx, timeout or refresh
+        // cooldown). The answer was not judged: nothing is recorded and the state is unchanged,
+        // so a later sess_response re-reads and fully verifies it.
+        this.#options.diagnostics('verification_deferred', { code: sessCode(error) });
+        throw new AdapterError(
+          'SESS_UNAVAILABLE',
+          'An answer arrived, but SESS receipt keys could not be loaded right now. Nothing was accepted or changed; call sess_response again shortly.',
+          true,
+        );
+      }
       if (error instanceof SessError && error.kind === 'receipt_verification') {
         this.#options.diagnostics('verification_failed', { code: sessCode(error) });
         await this.#block(record, 'VERIFICATION_FAILED', false);

@@ -1,6 +1,6 @@
 import { chmodSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdapterError } from '../src/errors.js';
 import type { SessMcpAdapter } from '../src/operations.js';
 import { parseRequestArgs } from '../src/validate.js';
@@ -271,4 +271,105 @@ describe('create bookkeeping', () => {
       expect(fake.calls.filter((c) => c.method === 'POST')).toHaveLength(1);
     },
   );
+});
+
+describe('unknown create outcome bookkeeping', () => {
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'a save failure after an unknown create outcome is non-retryable and never re-creates',
+    async () => {
+      const fake = new FakeSess();
+      fake.createFailure = 'network';
+      const adapter = adapterWith(dir.path, fake);
+      const original = fake.fetch;
+      fake.fetch = async (input, init) => {
+        if (init?.method === 'POST') chmodSync(handles(), 0o500);
+        return original(input, init);
+      };
+      let error: AdapterError;
+      try {
+        error = await failure(adapter.request(parseRequestArgs({ interaction: ROUND_1 })));
+      } finally {
+        chmodSync(handles(), 0o700);
+      }
+      expect(error.code).toBe('CREATE_OUTCOME_UNKNOWN');
+      expect(error.retryable).toBe(false);
+      expect(error.message).toContain('Do not call sess_request again');
+      const [name] = readdirSync(handles()).filter((n) => n.endsWith('.json'));
+      const saved = JSON.parse(readFileSync(join(handles(), name!), 'utf8'));
+      expect(saved.state).toBe('create_intent');
+      expect((await failure(adapter.response({ handle: saved.handle, revision: 1 }))).code).toBe(
+        'CREATE_OUTCOME_UNKNOWN',
+      );
+      expect(fake.calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+    },
+  );
+});
+
+describe('transient receipt-key failures', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('a genuinely signed answer verifies with the real SDK verifier (baseline)', async () => {
+    const fake = new FakeSess();
+    const adapter = adapterWith(dir.path, fake); // real client.receipts.verifyResponse
+    const created = await adapter.request(parseRequestArgs({ interaction: ROUND_1 }));
+    const eventId = fake.answerSigned(ANSWER_1.data, ANSWER_1.action_id);
+    const result = await adapter.response({ handle: created.interaction.handle, revision: 1, waitMs: 0 });
+    expect(result.interaction.state).toBe('answered');
+    expect(result.interaction.response).toMatchObject({
+      eventId,
+      verified: true,
+      actorAssurance: 'link_holder',
+    });
+  });
+
+  it('a key endpoint 503 is retryable, records nothing, and a later call verifies the answer', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-14T12:00:00.000Z'));
+    const fake = new FakeSess();
+    const lines: string[] = [];
+    const adapter = adapterWith(dir.path, fake, { lines }); // real verifier and key cache
+    const created = await adapter.request(parseRequestArgs({ interaction: ROUND_1 }));
+    const handle = created.interaction.handle;
+    const eventId = fake.answerSigned(ANSWER_1.data, ANSWER_1.action_id);
+    const before = JSON.stringify(record(handle));
+    fake.rejectNext = {
+      method: 'GET',
+      pathSuffix: '/.well-known/sess-receipt-keys.json',
+      status: 503,
+      code: 'UNAVAILABLE',
+    };
+    const first = await failure(adapter.response({ handle, revision: 1, waitMs: 0 }));
+    expect(first.code).toBe('SESS_UNAVAILABLE');
+    expect(first.retryable).toBe(true);
+    expect(JSON.stringify(record(handle))).toBe(before);
+    expect(record(handle).state).toBe('waiting');
+    // Within the SDK's key-refresh cooldown the retry is still transient, never a block.
+    const second = await failure(adapter.response({ handle, revision: 1, waitMs: 0 }));
+    expect(second.code).toBe('SESS_UNAVAILABLE');
+    expect(record(handle).state).toBe('waiting');
+    expect(lines.join('\n')).toContain('verification_deferred');
+    expect(lines.join('\n')).not.toContain('blocked');
+    // After the cooldown the same handle re-reads and fully verifies the answer.
+    vi.setSystemTime(new Date('2026-10-14T12:00:11.000Z'));
+    const third = await adapter.response({ handle, revision: 1, waitMs: 0 });
+    expect(third.interaction.state).toBe('answered');
+    expect(third.interaction.response).toMatchObject({ eventId, verified: true });
+    expect(record(handle).state).toBe('answered');
+  });
+
+  it('a genuine verification failure still blocks', async () => {
+    const fake = new FakeSess();
+    const adapter = adapterWith(dir.path, fake);
+    const created = await adapter.request(parseRequestArgs({ interaction: ROUND_1 }));
+    fake.answerSigned(ANSWER_1.data, ANSWER_1.action_id);
+    // Tamper with the accepted data after signing: the input hash no longer matches.
+    fake.session!.responses[0].data = { activity: 'walk', hours: 3 };
+    const error = await failure(
+      adapter.response({ handle: created.interaction.handle, revision: 1, waitMs: 0 }),
+    );
+    expect(error.code).toBe('VERIFICATION_FAILED');
+    expect(record(created.interaction.handle).state).toBe('blocked');
+  });
 });

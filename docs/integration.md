@@ -10,6 +10,7 @@ Use ordinary typed objects, as in [quickstart.ts](../examples/quickstart.ts). Di
 context in heading, text and read-only record components. Ask for changes using labeled fields;
 an existing value in a field is a proposal that the person can correct, not an accepted response.
 Keep action labels explicit about what submitting means.
+The runnable [installed-package quickstart](../examples/quickstart-node/README.md) shows the whole flow.
 
 The [form-controls example](../examples/form-controls.ts) covers the supported controls with an
 ordinary public interaction type and `satisfies CreateSessionRequest`. `name: 'category'` is the stable
