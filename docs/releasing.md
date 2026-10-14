@@ -15,6 +15,36 @@ token creation is automatic.
 The candidate uses Apache-2.0 terms and preserves dependency notices; final copyright-holder and
 publication approval remain explicit prerequisites. The existing MIT testbed is not relicensed.
 
+## Approved rc.3 and successor rc.4
+
+`0.1.0-rc.3` remains the approved candidate. Its archive `sess.si-sdk-0.1.0-rc.3.tgz` has SHA-256
+`b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502`. It may be published only from a
+`v0.1.0-rc.3` tag on a master commit whose `package.json` version is `0.1.0-rc.3` and whose packed
+bytes equal that digest. Each of these master commits was verified by packing a clean `git archive`
+(`npm ci`, build, `npm pack`; npm 11.19.0) to exactly that digest with version `0.1.0-rc.3`:
+
+- `cea3f1eda448e632d5e3a4e5e717bf4986c0e506`, the reviewed source commit (tree identical to the
+  reviewed `f0d99f5f`);
+- `3103506ff0e0a3ad092b6546dfc1264fcb4f05b6`;
+- `c5d4e6628700d49dc8b49b510329eb206544b38a`;
+- `3dbd7fd239a9a91c9e7b97b55d99dd1e413e8d2b`, the newest of them and the master head when the rc.4
+  change was prepared (2026-10-14).
+
+Recommended tag commit: the newest master commit that still has version `0.1.0-rc.3` and passes the
+same packing check, which is `3dbd7fd` unless master advanced before rc.4 merged. Prefer it for its
+newest reviewed CI and scanning; its packed files are unchanged.
+
+The release workflow then re-packs and tests at that tag and publishes only those bytes.
+
+`0.1.0-rc.4` is a separately identified successor (README first-screen quickstart link; library
+source unchanged). Its bytes differ from rc.3, so it needs its own focused review and its own release
+authorization. Never publish edited bytes under the rc.3 version.
+
+Until rc.3 is published, consumers that need the approved bytes (the MCP and OpenClaw adapters and
+the Node quickstart) do not pack the current root. `node scripts/rc3-candidate.mjs [--out <dir>]`
+rebuilds rc.3 from commit `cea3f1e` in a temporary directory and accepts the tarball only with the
+approved SHA-256 and SHA-512. It needs that commit locally (`fetch-depth: 0` in CI).
+
 ## Selected publishing mode
 
 Use one GitHub protected environment, **npm-release**, and npm OIDC trusted publishing with direct

@@ -4,9 +4,9 @@
 //
 // 1. Copies this example to a fresh temporary directory outside the SDK repository, with no
 //    node_modules in any ancestor directory, so nothing resolves from the repository by accident.
-// 2. Obtains the SDK candidate tarball (--tarball, SESS_SDK_CANDIDATE_TGZ, or `npm pack` of the SDK
-//    repository root, whose dist must already be built) and accepts it only if its SHA-256 equals the
-//    pinned reviewed candidate digest below.
+// 2. Obtains the SDK candidate tarball (--tarball, SESS_SDK_CANDIDATE_TGZ, or scripts/rc3-candidate.mjs,
+//    which rebuilds it from its pinned reviewed source commit) and accepts it only if its SHA-256
+//    equals the pinned reviewed candidate digest below.
 // 3. Installs it with lifecycle scripts disabled, exactly as the example README documents.
 // 4. Runs `node index.mjs` against a deterministic fake SESS API on loopback that serves create,
 //    retrieve, wait, Surface, complete and a genuinely Ed25519-signed receipt plus key set. The child
@@ -81,15 +81,16 @@ try {
     tarball = join(candidateDir, basename(supplied));
     cpSync(resolve(supplied), tarball);
   } else {
-    const manifest = JSON.parse(readFileSync(join(sdkRoot, 'package.json'), 'utf8'));
-    if (manifest.name !== PINNED.name || manifest.version !== PINNED.version)
-      fail(`SDK root is ${manifest.name}@${manifest.version}, not ${PINNED.name}@${PINNED.version}.`);
-    if (!existsSync(join(sdkRoot, 'dist', 'index.js')))
-      fail('build the SDK root first (npm ci --ignore-scripts && npm run build at the repository root).');
-    const packed = JSON.parse(
-      npm(['pack', '--json', '--ignore-scripts', '--pack-destination', candidateDir], sdkRoot),
-    )[0];
-    tarball = join(candidateDir, packed.filename);
+    // The root may hold a later successor candidate; rebuild the approved bytes from their pinned
+    // reviewed source commit instead of packing the current root.
+    tarball = execFileSync(
+      process.execPath,
+      [join(sdkRoot, 'scripts', 'rc3-candidate.mjs'), '--out', candidateDir],
+      { cwd: sdkRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
+    )
+      .trim()
+      .split('\n')
+      .pop();
   }
   const digest = sha256(tarball);
   if (digest !== PINNED.sha256)
