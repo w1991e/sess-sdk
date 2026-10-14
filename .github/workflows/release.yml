@@ -117,7 +117,7 @@ jobs:
           artifact-ids: ${{ needs.validate.outputs.artifact-id }}
           path: .artifacts
           merge-multiple: true
-      - name: Publish exactly the tested tarball with npm provenance
+      - name: Stage exactly the tested tarball with npm provenance (founder approves with npm 2FA)
         run: |
           node --input-type=module <<'JS'
           import { execFileSync } from 'node:child_process';
@@ -142,8 +142,60 @@ jobs:
           if (sha256 !== result.sha256 || sha256 !== process.env.EXPECTED_TARBALL_SHA256 ||
               integrity !== result.integrity) throw new Error('Tested bytes changed.');
           if (execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim() !== '11.19.0') throw new Error('Unexpected publisher version.');
-          execFileSync('npm', ['publish', result.tarball, '--ignore-scripts', '--provenance', '--access', 'public', '--tag', distTag], { stdio: 'inherit' });
+          execFileSync('npm', ['stage', 'publish', result.tarball, '--ignore-scripts', '--provenance', '--access', 'public', '--tag', distTag], { stdio: 'inherit' });
           JS
+      - name: Record the staged candidate for founder approval
+        working-directory: ${{ github.workspace }}
+        run: |
+          {
+            echo '## Staged — awaiting founder approval'
+            echo
+            echo "Staged ${RELEASE_VERSION} on dist-tag ${RELEASE_DIST_TAG}; not installable until approved."
+            echo
+            echo 'Founder: npm stage list <package> --json; npm stage download <stage-id>;'
+            echo "check SHA-256 ${EXPECTED_TARBALL_SHA256}; npm stage view <stage-id> shows tag ${RELEASE_DIST_TAG}; npm stage approve <stage-id> (2FA)."
+            echo 'The readback job waits up to 60 minutes; if it times out, approve, then re-run failed jobs.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  readback:
+    name: Verify the approved release in the registry
+    needs: [validate, publish]
+    if: github.repository == 'w1991e/sess-sdk'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    # No environment and no id-token: this job only reads the public registry after the founder
+    # approves the staged version with npm 2FA.
+    permissions:
+      contents: read
+    env:
+      RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+      RELEASE_DIST_TAG: ${{ needs.validate.outputs.dist-tag }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.validate.outputs.artifact-id }}
+          path: .artifacts
+          merge-multiple: true
+      - name: Wait for the founder's staged-version approval
+        working-directory: .
+        run: |
+          name="$(node -p "require('./package.json').name")"
+          for attempt in $(seq 120); do
+            if npm view "$name@$RELEASE_VERSION" version --prefer-online >/dev/null 2>&1; then exit 0; fi
+            sleep 30
+          done
+          echo "$name@$RELEASE_VERSION is not yet approved; approve the staged version, then re-run failed jobs." >&2
+          exit 1
       - name: Verify registry integrity, dist-tag and provenance metadata
         run: |
           node --input-type=module <<'JS'
@@ -162,6 +214,7 @@ jobs:
                   published.repository?.url !== manifest.repository.url ||
                   published.dist?.integrity !== result.integrity ||
                   tags[process.env.RELEASE_DIST_TAG] !== manifest.version ||
+                  (manifest.version.includes('-rc.') && tags.latest === manifest.version) ||
                   !published.dist?.attestations?.url || !published.dist?.attestations?.provenance ||
                   !isDeepStrictEqual(published.dependencies, manifest.dependencies)) {
                 throw new Error('Published metadata does not match the tested artifact.');

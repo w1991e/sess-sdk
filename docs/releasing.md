@@ -51,8 +51,9 @@ bytes under an existing version.
 
 ## Selected publishing mode
 
-Use one GitHub protected environment, **npm-release**, and npm OIDC trusted publishing with direct
-publish explicitly permitted. Bind it to owner `w1991e`, repository `sess-sdk`, workflow `release.yml`
+Use one GitHub protected environment, **npm-release**, and an npm OIDC trusted publisher that is
+**stage-only** (`--allow-stage-publish`; direct publish not permitted). CI runs `npm stage publish`;
+nothing becomes installable until a maintainer runs `npm stage approve` with npm 2FA. Bind it to owner `w1991e`, repository `sess-sdk`, workflow `release.yml`
 and environment `npm-release`. Require an authorized maintainer's environment approval; restrict
 its deployment refs to release tags. Ordinary PR CI has only `contents: read` and no publishing token.
 
@@ -62,11 +63,14 @@ by default, while direct publish needs its own permission. A publisher must be a
 successful publish within npm's current activation window. Match every OIDC identity field exactly.
 The workflow pins Node 24.21.0 and npm 11.19.0 and grants `id-token: write` only to the protected release job.
 
-If the initial package must exist before publisher configuration can be added, an authorized maintainer
-bootstraps the approved exact tarball with their interactive MFA-enabled account. Do not install a
-permanent automation token as a workaround. A bootstrap without provenance is recorded honestly.
-Staged publishing is a valid alternative owner decision; it is not another required approval on top
-of this selected direct-publish/environment flow.
+The package must exist before a publisher can be configured. A maintainer creates it by staging a
+never-approved bootstrap version locally (npm also publishes a public `0.0.0-stage` placeholder;
+if `latest` lands on it, deprecate it with a pointer to `@next`; `latest` never points at a
+prerelease), configures the stage-only publisher, then tags the release so CI stages the tested
+tarball with provenance. The maintainer checks the staged digest, approves with 2FA and rejects
+the bootstrap stage. If the publisher cannot be configured on the placeholder, the fallback is
+staging the exact tarball locally (recorded honestly as without provenance). Do not install a
+permanent automation token as a workaround.
 
 ## Exact artifact release procedure
 
