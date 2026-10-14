@@ -39,7 +39,12 @@
       "api.pluginConfig",
       "api.runtime.state.openKeyedStore({ namespace, maxEntries, overflowPolicy: 'reject-new' }).withCurrent({ assertCurrent }) -> observe / compareAndApply / registerIfAbsent / lookup",
       "tool context v2: assertInvocationCurrent, agentId, sessionKey, sessionId; assertMemoryAudienceCurrent when supplied",
-      "tool execute signal (cancellation)"
+      "tool execute signal (cancellation)",
+      "api.runtime.config.mutateConfigFile (openclaw sess setup; afterWrite none)",
+      "api.runtime.state.openKeyedStore({ namespace, retention: 'retained' }) (archive-v2)",
+      "PluginStateKeyedStore.moveEntriesFrom (atomic active-v2 -> archive-v2 archival)",
+      "PluginStateKeyedStore.entriesInKeyRange (paged doctor/prune/retire reads)",
+      "api.runtime.version (doctor host-version check)"
     ],
     "notUsed": [
       "delivery.send",
@@ -83,8 +88,8 @@
       "evidence": "Verified answer returned through the same live sess_response call ~1.3 s after human submission; caller disconnect aborted the tool signal and stopped polling; a 120 s tool call was not cut by the host on /tools/invoke (adapter budget ended it as needs_resume). Agent-turn host tool timeout NOT measured."
     },
     "6_setupDoctor": {
-      "verdict": "PASS (doctor); setup DEFERRED",
-      "evidence": "openclaw --help lists sess from manifest metadata; openclaw sess doctor reads config presence only, prints no secrets, contacts no network. setup is deferred: config-writing consent semantics were not qualified; owners use openclaw config set plugins.entries.sess.config.* and the Gateway environment."
+      "verdict": "PASS (setup and doctor shipped)",
+      "evidence": "openclaw --help lists sess from manifest metadata. openclaw sess doctor reads config presence and redacted state counts only, prints no secrets and contacts no network. openclaw sess setup previews by default and with --yes applies through the documented public api.runtime.config.mutateConfigFile (afterWrite mode none, never restarts); exercised in the real 2026.10.3 host CLI by check-package --host (preview writes nothing, additive apply keeps existing tools.alsoAllow and unrelated config, idempotent re-run)."
     },
     "7_installer": {
       "verdict": "PASS (candidate SDK)",
@@ -126,7 +131,7 @@
       "lateRedeliveryAfterUpgrade": "PASS (same handle; no second create POST)",
       "olderPluginAfterUpgrade": "PASS (new call STORE_FULL, redelivered call RECOVERY_BLOCKED, no create POST)",
       "capacityPressure": "unit-tested with reduced capacity only",
-      "moveCollisionSemantics": "PROBED (public plugin-state-store-runtime, temp state): moveEntriesFrom onto an existing destination keeps the destination AND removes the source (returns the source count). The adapter pre-checks destinations, re-reads them after every move and restores any lost source value into active.",
+      "moveCollisionSemantics": "PROBED (public plugin-state-store-runtime, temp state): moveEntriesFrom onto an existing destination keeps the destination AND removes the source (returns the source count). The adapter pre-checks destinations, re-reads them after every move and restores any lost source value into active. A destination that is the same record after a concurrent prune (only generation, updatedAt and humanUrl differ) counts as moved, so no stale pre-prune duplicate is restored.",
       "entriesInKeyRange": "PROBED: available on bounded and retained stores; doctor/prune/retire page through it (500 per page)"
     },
     "survivesGatewayRestart": true,

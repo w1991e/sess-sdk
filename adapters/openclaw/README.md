@@ -173,7 +173,8 @@ and a redelivered terminal call still reports its terminal result.
   `openclaw sess retire --older-than-days <n>` lists idle `waiting`/`needs_resume`/`answered`
   interactions (dry run); `--apply` marks them blocked (`operator_retired`), drops their link and
   archives them with their claim, so a redelivered call still reports blocked and never creates
-  again. `create_unknown` and pending publish/complete records are never retired automatically;
+  again. Retiring an `answered` interaction discards a verified answer that the agent has not
+  used yet: it can no longer be published on or completed through the plugin. `create_unknown` and pending publish/complete records are never retired automatically;
   they need individual operator resolution.
 - The retained archive grows with every completed or blocked interaction (claims are replay
   tombstones and are never deleted). `prune --apply` compacts their payload only.

@@ -188,3 +188,36 @@ describe('archival retry', () => {
     expect(recordRow(host, handle).state).toBe('completed');
   });
 });
+
+describe('prune racing archival (#22 review note)', () => {
+  it('a prune applied between the archival pre-check and the move leaves no stale active duplicate', async () => {
+    const host = await registerPlugin();
+    const conv = conversation();
+    const { handle } = (await call(host, 'sess_request', conv, { interaction: round1() })).details
+      .interaction;
+    // A tampered receipt blocks the interaction; the blocked record still holds its human link
+    // when the Gateway archives it.
+    sess.answer(1, 'submit', { activity: 'cafe', hours: 2 }, { tamper: true });
+    const original = host.archive.withCurrent.bind(host.archive);
+    let pruned: Awaited<ReturnType<typeof pruneTerminal>> | undefined;
+    host.archive.withCurrent = (authority) => {
+      const bound = original(authority);
+      const move = bound.moveEntriesFrom;
+      bound.moveEntriesFrom = async (source) => {
+        // Operator `openclaw sess prune --apply` (another process) lands right before the move.
+        pruned ??= await pruneTerminal(stores(host), true);
+        return move(source);
+      };
+      return bound;
+    };
+    await expect(call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 })).rejects.toThrow(
+      /^VERIFICATION_FAILED: /,
+    );
+    expect(pruned).toMatchObject({ compacted: 1 });
+    expect(host.store.rows.has(`i:${handle}`)).toBe(false); // no restored pre-prune duplicate
+    const archived = JSON.parse(host.archive.rows.get(`i:${handle}`)!);
+    expect(archived).toMatchObject({ handle, state: 'blocked' });
+    expect(archived.humanUrl).toBeUndefined();
+    expect(JSON.stringify([...host.store.rows.values()])).not.toContain(HUMAN_URL);
+  });
+});
