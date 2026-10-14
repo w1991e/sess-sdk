@@ -217,6 +217,11 @@ export class Sessions {
   }
   /** Read-only, restartable wait for exactly one immutable revision. */
   waitForResponse(id: string, options: WaitOptions): Promise<WaitResult> {
-    return waitForResponse((requestOptions) => this.retrieve(id, requestOptions), id, options);
+    return waitForResponse(
+      (requestOptions) => this.retrieve(id, requestOptions),
+      id,
+      options,
+      this.#transport.operationTimeoutMs,
+    );
   }
 }

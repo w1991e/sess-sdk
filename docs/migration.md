@@ -2,7 +2,7 @@
 
 The [reference testbed](https://github.com/w1991e/sess-agent-testbed) retains synthetic domain logic,
 Surface mapping, checkpoints, startup locking, terminal output, scenario selection and the one-command
-demo. Its small adapter delegates owner API operations and receipt verification to `@sess/sdk`.
+demo. Its small adapter delegates owner API operations and receipt verification to `@sess.si/sdk`.
 The displaced production HTTP/verifier implementation is removed; raw HTTP remains in a test-only lane.
 
 During candidate development, install the exact tested npm tarball into a disposable consumer.

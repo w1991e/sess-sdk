@@ -19,8 +19,15 @@ function npm(args, cwd = root) {
 }
 const manifest = JSON.parse(await readFile('package.json', 'utf8'));
 const lock = JSON.parse(await readFile('package-lock.json', 'utf8'));
-if (manifest.name !== '@sess/sdk' || manifest.type !== 'module' || manifest.license !== 'Apache-2.0')
+if (manifest.name !== '@sess.si/sdk' || manifest.type !== 'module' || manifest.license !== 'Apache-2.0')
   throw new Error('Package identity drift.');
+if (
+  lock.name !== manifest.name ||
+  lock.version !== manifest.version ||
+  lock.packages['']?.name !== manifest.name ||
+  lock.packages['']?.version !== manifest.version
+)
+  throw new Error('Root lockfile identity drift.');
 if (
   JSON.stringify(Object.keys(manifest.exports).sort()) !== JSON.stringify(['.', './receipts', './webhooks'])
 )
@@ -48,6 +55,13 @@ if (
 await mkdir('.artifacts', { recursive: true });
 await rm('.artifacts/package-result.json', { force: true });
 const packed = JSON.parse(npm(['pack', '--json', '--ignore-scripts', '--pack-destination', '.artifacts']))[0];
+if (
+  packed.name !== manifest.name ||
+  packed.version !== manifest.version ||
+  packed.id !== `${manifest.name}@${manifest.version}` ||
+  !/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/.test(packed.filename)
+)
+  throw new Error('npm pack identity or filename drift.');
 const tarball = resolve('.artifacts', packed.filename);
 for (const required of ['README.md', 'LICENSE', 'NOTICE', 'CHANGELOG.md', 'package.json']) {
   if (!packed.files.some((file) => file.path === required))
@@ -74,7 +88,7 @@ try {
     version: '1.0.0',
     private: true,
     type: 'module',
-    dependencies: { '@sess/sdk': packageSpec },
+    dependencies: { '@sess.si/sdk': packageSpec },
   };
   // Preserve the reviewed transitive resolutions. A clean npm ci cache contains
   // integrity-addressed archives, but need not contain registry packuments for
@@ -91,7 +105,7 @@ try {
         dependencies: consumerManifest.dependencies,
       },
       ...Object.fromEntries(Object.entries(lock.packages).filter(([path, entry]) => path && !entry.dev)),
-      'node_modules/@sess/sdk': {
+      'node_modules/@sess.si/sdk': {
         version: manifest.version,
         resolved: packageSpec,
         integrity: packed.integrity,
@@ -109,7 +123,10 @@ try {
   await installFixture();
   if (existsSync(join(consumer, 'node_modules/typescript')))
     throw new Error('Plain JS consumer unexpectedly needs a compiler.');
-  const installed = join(consumer, 'node_modules/@sess/sdk');
+  const installed = join(consumer, 'node_modules/@sess.si/sdk');
+  const installedManifest = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'));
+  if (installedManifest.name !== manifest.name || installedManifest.version !== manifest.version)
+    throw new Error('Installed tarball identity drift.');
   const files = new Set(packed.files.map((f) => resolve(installed, f.path)));
   for (const file of packed.files.filter((f) => f.path.endsWith('.map'))) {
     const map = JSON.parse(await readFile(join(installed, file.path), 'utf8'));
@@ -126,9 +143,9 @@ globalThis.fetch = () => { throw new Error('Unexpected import/constructor networ
 for (const name of ['setTimeout', 'setInterval', 'setImmediate']) globalThis[name] = () => { throw new Error('Unexpected import/constructor timer'); };
 for (const name of ['log', 'info', 'warn', 'error', 'debug']) console[name] = () => { throw new Error('Unexpected import/constructor console output'); };
 process.stderr.write = () => { throw new Error('Unexpected import/constructor stderr output'); };
-const { Sess, SessError, isInteractiveSession } = await import('@sess/sdk');
-const { verifyDecisionReceipt } = await import('@sess/sdk/receipts');
-const { verifyWebhook } = await import('@sess/sdk/webhooks');
+const { Sess, SessError, isInteractiveSession } = await import('@sess.si/sdk');
+const { verifyDecisionReceipt } = await import('@sess.si/sdk/receipts');
+const { verifyWebhook } = await import('@sess.si/sdk/webhooks');
 assert.equal(typeof verifyDecisionReceipt, 'function');
 assert.equal(typeof verifyWebhook, 'function');
 assert.equal(typeof isInteractiveSession, 'function');
@@ -136,7 +153,9 @@ assert.throws(() => new Sess({ apiKey: undefined }), SessError);
 const client = new Sess({ apiKey: 'synthetic-owner-key' });
 assert.equal(typeof client.sessions.waitForResponse, 'function');
 assert.equal(typeof client.webhooks.rotateSecret, 'function');
-await assert.rejects(import('@sess/sdk/transport'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+await assert.rejects(import('@sess.si/sdk/transport'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+// The superseded historical distribution is not provided as an alias.
+await assert.rejects(import('@sess/sdk'), { code: 'ERR_MODULE_NOT_FOUND' });
 `,
   );
   if (run(process.execPath, ['smoke.mjs'], consumer).trim())
@@ -146,8 +165,8 @@ await assert.rejects(import('@sess/sdk/transport'), { code: 'ERR_PACKAGE_PATH_NO
     `
 'use strict';
 (async () => {
-  const { Sess } = await import('@sess/sdk');
-  const { verifyWebhook } = await import('@sess/sdk/webhooks');
+  const { Sess } = await import('@sess.si/sdk');
+  const { verifyWebhook } = await import('@sess.si/sdk/webhooks');
   const sess = new Sess({ apiKey: 'synthetic-owner-key', fetch: () => { throw new Error('No network'); } });
   if (typeof sess.sessions.retrieve !== 'function' || typeof verifyWebhook !== 'function') throw new Error('CommonJS dynamic import failed');
 })().catch(() => { process.exitCode = 1; });
@@ -170,9 +189,9 @@ await assert.rejects(import('@sess/sdk/transport'), { code: 'ERR_PACKAGE_PATH_NO
   await writeFile(
     join(consumer, 'consumer.mts'),
     `
-import { Sess, type InteractiveInteraction, type Session, isInteractiveSession, isInteractiveSurface, type SurfaceRevision, type FieldSchema } from '@sess/sdk';
-import { verifyDecisionReceipt, type ReceiptKeySet } from '@sess/sdk/receipts';
-import { verifyWebhook } from '@sess/sdk/webhooks';
+import { Sess, type InteractiveInteraction, type Session, isInteractiveSession, isInteractiveSurface, type SurfaceRevision, type FieldSchema } from '@sess.si/sdk';
+import { verifyDecisionReceipt, type ReceiptKeySet } from '@sess.si/sdk/receipts';
+import { verifyWebhook } from '@sess.si/sdk/webhooks';
 const interaction = { mode: 'interactive', title: 'Review', source: { kind: 'sess_surface', components: [{ type: 'field', name: 'amount', label: 'Amount', schema: { type: 'number' }, value: 12 }] }, actions: [{ id: 'submit', label: 'Submit' }] } satisfies InteractiveInteraction;
 const sess = new Sess({ apiKey: 'synthetic-owner-key' });
 void sess.sessions.create({ interaction });
@@ -217,9 +236,9 @@ void verifyDecisionReceipt; void verifyWebhook; void (null as ReceiptKeySet | nu
   await writeFile(
     join(consumer, 'bundle.mjs'),
     `
-import { Sess } from '@sess/sdk';
-import { verifyDecisionReceipt } from '@sess/sdk/receipts';
-import { verifyWebhook } from '@sess/sdk/webhooks';
+import { Sess } from '@sess.si/sdk';
+import { verifyDecisionReceipt } from '@sess.si/sdk/receipts';
+import { verifyWebhook } from '@sess.si/sdk/webhooks';
 export const client = new Sess({ apiKey: 'synthetic-owner-key' });
 if (typeof verifyDecisionReceipt !== 'function' || typeof verifyWebhook !== 'function') throw new Error('Bundled subpath import failed');
 `,
@@ -236,16 +255,20 @@ if (typeof verifyDecisionReceipt !== 'function' || typeof verifyWebhook !== 'fun
   run(process.execPath, ['bundle-output.mjs'], consumer);
   const bytes = await readFile(tarball);
   let sourceCommit = null;
+  let sourceTree = null;
   let sourceTreeDirty = null;
   try {
     sourceCommit = run('git', ['rev-parse', 'HEAD']).trim();
+    sourceTree = run('git', ['rev-parse', 'HEAD^{tree}']).trim();
     sourceTreeDirty = run('git', ['status', '--porcelain', '--untracked-files=all']).trim().length !== 0;
   } catch {
     // A downloaded source archive may have no Git metadata. Release CI requires it.
   }
   const result = {
+    name: manifest.name,
     version: manifest.version,
     sourceCommit,
+    sourceTree,
     sourceTreeDirty,
     filename: packed.filename,
     tarball: `.artifacts/${packed.filename}`,
@@ -260,6 +283,7 @@ if (typeof verifyDecisionReceipt !== 'function' || typeof verifyWebhook !== 'fun
       'no compiler or hooks',
       'CommonJS dynamic import',
       'all subpaths',
+      'no former-name alias',
       'TypeScript 5.9.3 and 7.0.2',
       'Node server bundle',
       'included source maps',

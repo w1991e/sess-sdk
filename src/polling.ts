@@ -7,6 +7,7 @@ export async function waitForResponse(
   retrieve: (options: RequestOptions) => Promise<VersionedResult<Session>>,
   id: string,
   input: WaitOptions,
+  clientOperationTimeoutMs: number,
 ): Promise<WaitResult> {
   if (!input || typeof input !== 'object')
     throw new SessError('configuration', 'waitForResponse requires an exact revision.');
@@ -14,6 +15,16 @@ export async function waitForResponse(
   const revision = boundedNumber(options.revision, 0, 'revision');
   const timeoutMs = boundedNumber(options.timeoutMs, 10 * 60_000, 'timeoutMs');
   const intervalMs = boundedNumber(options.intervalMs, 1500, 'intervalMs', 1000);
+  if (options.operationTimeoutMs !== undefined && typeof options.operationTimeoutMs !== 'number')
+    throw new SessError('configuration', 'operationTimeoutMs must be a positive integer duration.', {
+      outcome: 'not_sent',
+    });
+  // Validate before clamping so malformed overrides cannot become usable durations.
+  const operationTimeoutMs = boundedNumber(
+    options.operationTimeoutMs,
+    clientOperationTimeoutMs,
+    'operationTimeoutMs',
+  );
   const budget = deadline(timeoutMs, options.signal);
   const expires = performance.now() + timeoutMs;
   const ended = (code: string, message: string) =>
@@ -21,12 +32,12 @@ export async function waitForResponse(
   try {
     for (;;) {
       if (budget.signal.aborted) throw abortError(budget.signal);
+      const remainingMs = Math.ceil(expires - performance.now());
+      if (remainingMs <= 0)
+        throw ended('WAIT_TIMEOUT', 'Human wait timed out. Resume using the same Session and revision.');
       const current = await retrieve({
         signal: budget.signal,
-        operationTimeoutMs: Math.max(
-          1,
-          Math.min(options.operationTimeoutMs ?? 30000, Math.ceil(expires - performance.now())),
-        ),
+        operationTimeoutMs: Math.min(operationTimeoutMs, remainingMs),
         maxRetries: options.maxRetries,
         maxResponseBytes: options.maxResponseBytes,
       });

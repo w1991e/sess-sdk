@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { open, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import canonicalize from 'canonicalize';
-import { Sess, SessError, type InteractiveInteraction, type WaitResult } from '@sess/sdk';
+import { Sess, SessError, type InteractiveInteraction, type WaitResult } from '@sess.si/sdk';
 import { invoiceInteraction } from './quickstart.js';
 
 type Intent = {
@@ -41,7 +41,7 @@ function record(value: unknown): Record<string, unknown> {
 }
 const sessionIdPattern = /^ses_[0-9A-HJKMNP-TV-Z]{26}$/;
 const eventIdPattern = /^evt_[0-9A-HJKMNP-TV-Z]{26}$/;
-const keyPattern = /^[\x21-\x7e]{1,128}$/;
+const keyPattern = /^[A-Za-z0-9_.:-]{1,128}$/;
 const etagPattern = /^"[\x21\x23-\x7e\x80-\xff]{0,1024}"$/;
 const scopePattern = /^[A-Za-z0-9_.:-]{1,128}$/;
 function text(value: unknown, pattern: RegExp): value is string {
@@ -138,12 +138,9 @@ export function decodeCheckpoint(value: unknown): Checkpoint {
     incompatible();
   if (state.intent !== undefined) {
     const intent = record(state.intent);
-    if (
-      intent.sessionId !== state.sessionId ||
-      !text(intent.ifMatch, etagPattern) ||
-      !text(intent.idempotencyKey, keyPattern)
-    )
-      incompatible();
+    const replayKey = Object.getOwnPropertyDescriptor(intent, 'idempotencyKey');
+    if (!replayKey || !('value' in replayKey) || !text(replayKey.value, keyPattern)) incompatible();
+    if (intent.sessionId !== state.sessionId || !text(intent.ifMatch, etagPattern)) incompatible();
     if (intent.operation !== 'publish' && intent.operation !== 'complete') incompatible();
     const expectedNext = intent.operation === 'publish' ? (state.revision as number) + 1 : 3;
     if (intent.nextRevision !== undefined && intent.nextRevision !== expectedNext) incompatible();

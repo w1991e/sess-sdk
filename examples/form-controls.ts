@@ -1,4 +1,4 @@
-import { type CreateSessionRequest, type InteractiveInteraction, type Sess } from '@sess/sdk';
+import { type CreateSessionRequest, type InteractiveInteraction, type Sess } from '@sess.si/sdk';
 
 /** Synthetic authoring example. Order and business text are application choices. */
 export const formControls: InteractiveInteraction = {

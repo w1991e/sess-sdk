@@ -72,7 +72,7 @@ a receipt's `iss`, `jku`, or `x5u` as a network-discovery instruction.
 
 ### Offline verification
 
-Use `verifyDecisionReceipt` from `@sess/sdk/receipts` with the explicit trusted issuer,
+Use `verifyDecisionReceipt` from `@sess.si/sdk/receipts` with the explicit trusted issuer,
 audience, expected Session/event/revision/action/time, accepted data, full normalized
 interaction, and a public JWK set. Exactly one of `keys` or an explicitly trusted
 `keyResolver` is required. Explicit keys require no network and no API key.

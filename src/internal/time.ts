@@ -73,6 +73,7 @@ export function delay(ms: number, signal: AbortSignal): Promise<void> {
     }
     const abort = () => {
       clearTimeout(timer);
+      signal.removeEventListener('abort', abort);
       reject(abortError(signal));
     };
     const timer = setTimeout(() => {
