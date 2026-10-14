@@ -26,9 +26,10 @@
     ]
   },
   "sdk": {
-    "dependency": "@sess.si/sdk@0.1.0-rc.3 (exact, production)",
-    "evidence": "CANDIDATE: integrity-pinned unpublished tarball sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502, served for the @sess.si scope only by scripts/candidate-sdk.mjs",
-    "releaseHold": "Registry resolution of @sess.si/sdk@0.1.0-rc.3 is required before any publication; the lockfile carries name/version/integrity only and needs no edit if identical bytes are published."
+    "dependency": "@sess.si/sdk at the exact version pinned in release/sdk-candidate.json (exact, production)",
+    "evidence": "CANDIDATE: the repository root packed by scripts/sdk-pin.mjs and accepted only with the pinned sha256/sha512, served for the @sess.si scope only by scripts/candidate-sdk.mjs",
+    "releaseHold": "Registry resolution of the pinned @sess.si/sdk version is required before any publication; the lockfile carries name/version/integrity only and needs no edit if identical bytes are published.",
+    "history": "Earlier qualification used @sess.si/sdk@0.1.0-rc.3 (sha256 b4d29d8f...a0502), now held by owner decision (2026-10-14) and not published; 0.1.0-rc.4 is the first SDK candidate to be published."
   },
   "entry": {
     "shape": "native mixed plugin: definePluginEntry default export; four api.registerTool version-2 factories ({ contextVersion: 2, create }) registered optional; one api.registerCli root command",

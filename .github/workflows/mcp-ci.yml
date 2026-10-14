@@ -29,8 +29,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          # Full history: npm run setup rebuilds rc.3 from its pinned source commit.
-          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -39,9 +37,9 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             adapters/mcp/package-lock.json
-      # The documented maintainer path from a clean clone: rebuild the approved rc.3 candidate from
-      # its pinned reviewed source commit, accept it only by digest, then npm ci.
-      - name: Maintainer setup (rc.3 from pinned source, digest-gated candidate, npm ci)
+      # The documented maintainer path from a clean clone: build and pack the SDK root, accept it only
+      # if its bytes equal release/sdk-candidate.json, then npm ci.
+      - name: Maintainer setup (pinned SDK candidate from the root, npm ci)
         working-directory: adapters/mcp
         run: npm run setup
       - name: Candidate digest, build, typecheck, tests and packed consumer

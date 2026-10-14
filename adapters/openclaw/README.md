@@ -7,7 +7,8 @@ link, the person answers on any device, and the agent receives the answer only a
 verified its signed receipt for that exact revision.
 
 > **Status: release candidate in qualification.** `0.1.0-rc.1` is not published. It depends on
-> `@sess.si/sdk@0.1.0-rc.3`, which is also not published yet. Qualified host: OpenClaw `2026.10.3`
+> the pinned `@sess.si/sdk` candidate (exact version in [package.json](package.json)), which is also not
+> published yet. Qualified host: OpenClaw `2026.10.3`
 > on Node 24. See [compatibility.json](compatibility.json) for exactly what was tested.
 
 ## Prerequisites

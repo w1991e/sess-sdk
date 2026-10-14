@@ -11,8 +11,9 @@ changes an external system is a separate owner action.
 > protection rules, so the publish job would run without maintainer approval. (The guard still
 > refuses while the SDK is unpublished, but do not rely on that.)
 
-1. **SDK publication.** `@sess.si/sdk` at the exact version in `package.json` (currently
-   `0.1.0-rc.3`) must be published on the public npm registry with the same bytes the lockfile pins
+1. **SDK publication.** `@sess.si/sdk` at the exact version in `package.json` (the repository pin
+   `release/sdk-candidate.json`; `0.1.0-rc.4` is the first SDK candidate to be published, by owner
+   decision of 2026-10-14) must be published on the public npm registry with the same bytes the lockfile pins
    (`package-lock.json` integrity). Until then the release guard refuses to run: candidate SDK
    installs are development evidence only.
 2. **GitHub environment `npm-openclaw-release`.** Create it with required reviewers and a deployment

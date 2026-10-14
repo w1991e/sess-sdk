@@ -1,4 +1,5 @@
 SESS SDK
+Copyright 2026 Andriy Granovsky
 
 This package is prepared for distribution under the Apache License, Version 2.0.
 It contains generated types from the SESS public HTTP contract and independent client code.
