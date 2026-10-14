@@ -21,6 +21,8 @@
   versions. `openclaw sess doctor` shows redacted counts; `openclaw sess prune` (dry run by default)
   compacts only terminal human links.
 - `AUTHORITY_REVOKED` after a created and saved request now says to redeliver the original call.
+- Archival treats a destination compacted by a concurrent `prune --apply` as moved, so it never
+  restores a stale pre-prune copy (with its human link) into active.
 - `openclaw sess doctor` (no network, no secrets). Bundled `sess` skill.
 - Qualified against OpenClaw 2026.10.3 on Node 24 with the candidate `@sess.si/sdk@0.1.0-rc.3`.
   Release hold: the SDK must be published before this package can be.
