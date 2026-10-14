@@ -161,7 +161,7 @@ export const resultSchema = {
         state: { enum: ['waiting', 'answered', 'completed', 'needs_resume'] },
         humanUrl: {
           type: 'string',
-          description: 'Private bearer link for the person. Only from sess_request.',
+          description: 'Private bearer link for the person. Only from sess_request or sess_ask.',
         },
         response: {
           type: 'object',
