@@ -1,0 +1,109 @@
+import { buildJsonPluginConfigSchema, definePluginEntry } from 'openclaw/plugin-sdk/plugin-entry';
+import type { OpenClawPluginApi } from 'openclaw/plugin-sdk/plugin-entry';
+import { createGuardedClient } from './client.js';
+import { CONFIG_JSON_SCHEMA, parseConfig, resolveCredential } from './config.js';
+import { doctorReport } from './doctor.js';
+import { captureInvocation, type HostToolContext } from './host.js';
+import {
+  TOOL_PARAMETERS,
+  parseCompleteArgs,
+  parsePublishArgs,
+  parseRequestArgs,
+  parseResponseArgs,
+  type ToolName,
+} from './schemas.js';
+import { RecoveryStore, openHostStore, type HostKeyedStore, type HostStateRuntime } from './store.js';
+import {
+  sessComplete,
+  sessPublish,
+  sessRequest,
+  sessResponse,
+  type InvocationDeps,
+  type ToolOutcome,
+} from './tools.js';
+
+export const PLUGIN_ID = 'sess';
+
+const DESCRIPTIONS: Record<ToolName, string> = {
+  sess_request:
+    'Ask a person for a structured decision through a private SESS link. Returns a handle, revision and humanUrl immediately; show the link privately to the intended person before waiting.',
+  sess_response:
+    'Read, or wait a bounded time for, the verified answer to one exact revision. A needs_resume result is normal: the form stays available; ask the person to submit, then call again. Never loop.',
+  sess_publish:
+    'Publish the next revision on the same link after a verified answer (same handle). Requires the answer eventId and its revision.',
+  sess_complete: 'Complete the interaction after its final verified answer and confirm the terminal state.',
+};
+
+type Runner = (deps: InvocationDeps, raw: unknown) => Promise<ToolOutcome>;
+const RUNNERS: Record<ToolName, { parse: (raw: unknown) => unknown; run: Runner }> = {
+  sess_request: { parse: parseRequestArgs, run: (d, a) => sessRequest(d, a as never) },
+  sess_response: { parse: parseResponseArgs, run: (d, a) => sessResponse(d, a as never) },
+  sess_publish: { parse: parsePublishArgs, run: (d, a) => sessPublish(d, a as never) },
+  sess_complete: { parse: parseCompleteArgs, run: (d, a) => sessComplete(d, a as never) },
+};
+
+function createTool(
+  api: OpenClawPluginApi,
+  name: ToolName,
+  context: HostToolContext,
+  hostStore: () => HostKeyedStore,
+) {
+  return {
+    name,
+    label: name,
+    description: DESCRIPTIONS[name],
+    parameters: TOOL_PARAMETERS[name],
+    executionMode: 'sequential' as const,
+    ...(name === 'sess_response' ? { resultContentSource: 'network' as const } : {}),
+    async execute(toolCallId: string, params: unknown, signal?: AbortSignal) {
+      // Nothing below runs at import or registration: config, secrets, state and network are
+      // touched only inside an admitted invocation.
+      const lease = captureInvocation(context, signal);
+      const args = RUNNERS[name].parse(params);
+      const config = parseConfig(api.pluginConfig);
+      const credential = resolveCredential(config);
+      const store = new RecoveryStore(hostStore(), lease);
+      const client = createGuardedClient(config, credential, lease);
+      const outcome = await RUNNERS[name].run({ config, credential, lease, store, client, toolCallId }, args);
+      return {
+        content: [{ type: 'text' as const, text: `${outcome.note}\n${JSON.stringify(outcome.result)}` }],
+        details: outcome.result,
+      };
+    },
+  };
+}
+
+export default definePluginEntry({
+  id: PLUGIN_ID,
+  name: 'SESS',
+  description:
+    'Agents request structured human decisions through hosted SESS interfaces and receive verified answers.',
+  configSchema: buildJsonPluginConfigSchema(CONFIG_JSON_SCHEMA as never),
+  register(api) {
+    let opened: HostKeyedStore | undefined;
+    const hostStore = () => (opened ??= openHostStore(api.runtime?.state as HostStateRuntime | undefined));
+    for (const name of Object.keys(TOOL_PARAMETERS) as ToolName[]) {
+      api.registerTool(
+        {
+          contextVersion: 2,
+          create: (context) => createTool(api, name, context as HostToolContext, hostStore) as never,
+        },
+        { name, optional: true },
+      );
+    }
+    api.registerCli(
+      ({ program }) => {
+        const root = program
+          .command('sess')
+          .description('SESS plugin diagnostics (no network, no secrets printed)');
+        root
+          .command('doctor')
+          .description('Check SESS plugin configuration and host capabilities without contacting SESS')
+          .action(() => {
+            console.log(doctorReport(api.pluginConfig, api.runtime?.state, process.env));
+          });
+      },
+      { descriptors: [{ name: 'sess', description: 'SESS plugin diagnostics', hasSubcommands: true }] },
+    );
+  },
+});

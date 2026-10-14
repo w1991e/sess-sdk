@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "package": "@sess.si/openclaw",
+  "version": "0.1.0-rc.1",
+  "status": "G0/G1 qualification candidate; not released, not published, not independently verified",
+  "pluginId": "sess",
+  "host": {
+    "name": "openclaw",
+    "version": "2026.10.3",
+    "build": "59cb447",
+    "source": "released npm artifact (dist-tag latest on 2026-10-13), not unreleased main",
+    "integrity": "sha512-ncl6LntMlf76K39LFhVrDXQTbaGNAG5j52f7PL5P8vIn0knWmCrvfAe9DHMslFq+47HeOWBH2CBYQH8zEb+UAA==",
+    "shasum": "789ced199b21c620c47cc502cd4c8ccd880f0ed4",
+    "hostEngines": ">=24.16.0 <25 || >=26.1.0",
+    "peerDeclaration": "peerDependencies.openclaw = 2026.10.3 (exact); openclaw.compat.pluginApi and install.minHostVersion = >=2026.10.3"
+  },
+  "toolchain": {
+    "node": "24.21.0",
+    "npm": "11.19.0",
+    "qualifiedPlatforms": [
+      "darwin-arm64 (local G0/G1)",
+      "linux-x64 (openclaw-ci package and host-install job; pending first CI run)"
+    ],
+    "notQualified": ["Node 26", "Windows/WSL", "Node 24 versions below 24.21.0"]
+  },
+  "sdk": {
+    "dependency": "@sess.si/sdk@0.1.0-rc.3 (exact, production)",
+    "evidence": "CANDIDATE: integrity-pinned unpublished tarball sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502, served for the @sess.si scope only by scripts/candidate-sdk.mjs",
+    "releaseHold": "Registry resolution of @sess.si/sdk@0.1.0-rc.3 is required before any publication; the lockfile carries name/version/integrity only and needs no edit if identical bytes are published."
+  },
+  "entry": {
+    "shape": "native mixed plugin: definePluginEntry default export; four api.registerTool version-2 factories ({ contextVersion: 2, create }) registered optional; one api.registerCli root command",
+    "packageEntry": "package.json openclaw.extensions [\"./dist/index.js\"] (compiled ESM)",
+    "manifest": "openclaw.plugin.json: id sess, contracts.tools, toolMetadata optional, cliCommands sess, skills ./skills, strict configSchema",
+    "importSubpaths": ["openclaw/plugin-sdk/plugin-entry (definePluginEntry, buildJsonPluginConfigSchema)"],
+    "hostRuntimeUsed": [
+      "api.pluginConfig",
+      "api.runtime.state.openKeyedStore({ namespace, maxEntries, overflowPolicy: 'reject-new' }).withCurrent({ assertCurrent }) -> observe / compareAndApply / registerIfAbsent / lookup",
+      "tool context v2: assertInvocationCurrent, agentId, sessionKey, sessionId; assertMemoryAudienceCurrent when supplied",
+      "tool execute signal (cancellation)"
+    ],
+    "notUsed": [
+      "delivery.send",
+      "memoryAudience-derived identity",
+      "HTTP routes",
+      "services",
+      "gateway methods",
+      "MCP servers",
+      "hooks",
+      "subagents",
+      "system events/heartbeat"
+    ]
+  },
+  "g0": {
+    "1_entryAndGuard": {
+      "verdict": "PASS",
+      "evidence": "Installed packed plugin loads (plugins inspect --runtime: status loaded, 4 tools, cli sess, diagnostics []); version-2 factory receives assertInvocationCurrent (function) on /tools/invoke calls."
+    },
+    "2_identityBinding": {
+      "verdict": "PARTIAL",
+      "binding": "exact (agentId, sessionKey, sessionId) from the v2 tool context; sessionKey is compared, never parsed",
+      "demonstrated": [
+        "a different conversation (session key) is refused the same handle (real host)",
+        "a different agent or sessionId is refused (unit, fake host)",
+        "a call without a host sessionId (unstarted main session) is refused HOST_BINDING_UNAVAILABLE",
+        "plugin reload (plugins reload sess) keeps records and re-admits the same binding",
+        "host aborts the tool signal when the caller disconnects; polling stops"
+      ],
+      "gap": "Reset rejection NOT demonstrated: on 2026.10.3 both sessions.reset and a /reset chat command kept sessionId for a transcript-less dashboard session (only lifecycleRevision, which tool contexts do not expose, changed). /tools/invoke supplies no memoryAudience/assertMemoryAudienceCurrent. Host docs state sessionId is regenerated on /new and /reset for chat sessions; that path needs an agent-turn qualification (requires a model turn, not authorized here). Revocation-mid-wait rejection is unit-tested only."
+    },
+    "3_durableState": {
+      "verdict": "PASS (pressure test NOT RUN)",
+      "evidence": "Pending record written before a gateway stop was read after restart; the same handle resumed and returned a verified answer. Store is bounded with overflowPolicy reject-new (host-documented non-evicting for new keys); a capacity-pressure run is deferred to G2."
+    },
+    "4_privateLinkBeforeWait": {
+      "verdict": "RETURN-LINK-FIRST profile",
+      "evidence": "sess_request returns humanUrl in its private tool result before any wait; sess_response performs the wait. Early delivery through a chat surface (delivery.send / Control UI) was NOT qualified (needs an LLM-driven channel turn), so no automatic in-turn link display is claimed."
+    },
+    "5_asyncResultTimeoutCancel": {
+      "verdict": "PASS on /tools/invoke surface",
+      "evidence": "Verified answer returned through the same live sess_response call ~1.3 s after human submission; caller disconnect aborted the tool signal and stopped polling; a 120 s tool call was not cut by the host on /tools/invoke (adapter budget ended it as needs_resume). Agent-turn host tool timeout NOT measured."
+    },
+    "6_setupDoctor": {
+      "verdict": "PASS (doctor); setup DEFERRED",
+      "evidence": "openclaw --help lists sess from manifest metadata; openclaw sess doctor reads config presence only, prints no secrets, contacts no network. setup is deferred: config-writing consent semantics were not qualified; owners use openclaw config set plugins.entries.sess.config.* and the Gateway environment."
+    },
+    "7_installer": {
+      "verdict": "PASS (candidate SDK)",
+      "evidence": "openclaw plugins install npm-pack:<tgz> installs into a per-plugin npm project with --omit=dev --omit=peer --ignore-scripts, installs @sess.si/sdk automatically, and links the peer openclaw to the running host (no second gateway). Requires --force (non-ClawHub source) and --accept-capabilities (capability consent)."
+    }
+  },
+  "profiles": {
+    "owner-private-tools-invoke": "qualified for G1 (deterministic host invocation, no LLM)",
+    "agent-turn-control-ui": "NOT qualified (requires model turn; reset/incarnation and early-link checks pending)",
+    "shared-or-group-channels": "not supported"
+  },
+  "waitBudget": {
+    "defaultMs": 45000,
+    "maxConfigurableMs": 120000,
+    "hostLimitObservedOnToolsInvoke": "none up to 120000 ms"
+  },
+  "storage": {
+    "api": "api.runtime.state.openKeyedStore (SQLite-backed, plugin-scoped)",
+    "namespace": "interactions-v1",
+    "maxEntries": 2200,
+    "overflowPolicy": "reject-new",
+    "ttl": "none",
+    "survivesGatewayRestart": true,
+    "survivesPluginReinstall": "NOT qualified",
+    "uninstallBehavior": "NOT qualified"
+  },
+  "capabilities": {
+    "agentCreatesInteractiveSession": "supported",
+    "verifiedAnswerDuringLiveWait": "supported on the qualified profile",
+    "authorizedResumeOfRetainedInteraction": "supported for the same binding",
+    "multipleRevisionsAndCompletion": "supported",
+    "unattendedWakeUp": "not supported",
+    "frontDoor": "not implemented",
+    "mcp": "not implemented in this package",
+    "webhookTransport": "not enabled",
+    "sharedGroupOperation": "not supported"
+  },
+  "evidence": {
+    "unit": "tests/unit (vitest; fake host boundary, real SDK transport and receipt verification)",
+    "packed": "scripts/check-package.mjs (pack allowlist, consumer install, network-denied import, --host real installer)",
+    "runtimeRound": "scripts/g1-runtime-round.mjs (opt-in; isolated local SESS runtime; deterministic host invocation, no LLM)"
+  }
+}

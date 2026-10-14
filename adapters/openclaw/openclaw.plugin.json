@@ -1,0 +1,89 @@
+{
+  "id": "sess",
+  "name": "SESS",
+  "description": "Agents request structured human decisions through hosted SESS interfaces and receive verified answers. Maintained by SESS; not an official OpenClaw plugin.",
+  "version": "0.1.0-rc.1",
+  "categories": ["productivity"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "baseUrl": {
+        "type": "string",
+        "maxLength": 2048,
+        "description": "SESS API origin. Defaults to https://api.sess.si. HTTPS only."
+      },
+      "apiKeyEnv": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+        "description": "Name of the Gateway environment variable that holds the SESS API key (default SESS_API_KEY). Never put the key itself in config or chat."
+      },
+      "receiptIssuer": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2048
+      },
+      "expectedWorkspaceId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "waitBudgetMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 120000
+      },
+      "allowInsecureLocalhost": {
+        "type": "boolean",
+        "description": "Test-only. Allows an http://localhost origin for an isolated local SESS runtime."
+      }
+    }
+  },
+  "uiHints": {
+    "baseUrl": {
+      "label": "SESS API origin",
+      "placeholder": "https://api.sess.si"
+    },
+    "apiKeyEnv": {
+      "label": "API key environment variable",
+      "placeholder": "SESS_API_KEY"
+    },
+    "allowInsecureLocalhost": {
+      "label": "Allow local HTTP runtime (testing only)"
+    }
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "cliCommands": [
+    {
+      "name": "sess",
+      "description": "SESS plugin diagnostics",
+      "hasSubcommands": true
+    }
+  ],
+  "commandAliases": [
+    {
+      "name": "sess",
+      "kind": "cli"
+    }
+  ],
+  "contracts": {
+    "tools": ["sess_request", "sess_response", "sess_publish", "sess_complete"]
+  },
+  "toolMetadata": {
+    "sess_request": {
+      "optional": true
+    },
+    "sess_response": {
+      "optional": true
+    },
+    "sess_publish": {
+      "optional": true
+    },
+    "sess_complete": {
+      "optional": true
+    }
+  },
+  "skills": ["./skills"]
+}
