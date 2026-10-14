@@ -131,5 +131,10 @@
     "G2: store capacity pressure, uninstall/reinstall and fault-injection beyond unit tests are not qualified",
     "Agent-turn use (Control UI/chat channels) is unqualified: early link visibility, host tool timeout and reset incarnation (OC-18) need a model-driven run",
     "Tool enablement guidance uses tools.alsoAllow (additive) rather than tools.allow (restrictive)"
-  ]
+  ],
+  "contract": {
+    "source": "adapters/CONTRACT.md (convergence, sess-sdk PR #10)",
+    "sharedCore": "src/internal/shared.ts, byte-identical to adapters/shared/core.ts (tested)",
+    "errorClasses": "README.md Errors table (tested)"
+  }
 }

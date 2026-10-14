@@ -44,7 +44,17 @@ export interface RecoveryRecord {
   readonly revision?: number;
   readonly answered?: { readonly eventId: string; readonly actionId: string; readonly revision: number };
   readonly pending?: PendingMutation;
+  /** Identity of the last confirmed publish/complete, kept for exact-repeat answers (contract "Replay"). */
+  readonly lastMutation?: ConfirmedMutation;
   readonly blockedReason?: string;
+}
+
+export interface ConfirmedMutation {
+  readonly operation: 'publish' | 'complete';
+  readonly expectedRevision: number;
+  readonly responseEventId: string;
+  /** sha256 of the canonical JSON body (null for complete). */
+  readonly bodyDigest: string;
 }
 
 interface CreateClaim {
@@ -108,7 +118,10 @@ function storeError(error: unknown): never {
       'STORE_FULL',
       'The SESS plugin has reached its retained-interaction limit; no interaction was dropped.',
     );
-  fail('AUTHORITY_REVOKED', 'Durable plugin state refused this invocation.');
+  fail(
+    'STORE_UNAVAILABLE',
+    'Durable plugin state refused or failed this operation; nothing further was sent.',
+  );
 }
 
 export const recordKey = (handle: string) => `i:${handle}`;

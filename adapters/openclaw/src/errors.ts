@@ -12,24 +12,67 @@ export type AdapterErrorCode =
   | 'NOT_FOUND'
   | 'STATE_CONFLICT'
   | 'STORE_FULL'
+  | 'STORE_UNAVAILABLE'
   | 'RECOVERY_BLOCKED'
+  | 'CREATE_REJECTED'
   | 'CREATE_OUTCOME_UNKNOWN'
+  | 'CREATED_NOT_SAVED'
   | 'MUTATION_OUTCOME_UNKNOWN'
-  | 'REJECTED'
+  | 'MUTATION_REJECTED'
   | 'VERIFICATION_FAILED'
-  | 'WAIT_ENDED'
   | 'CANCELLED'
   | 'UNAVAILABLE';
 
+/** Contract error classes (adapters/CONTRACT.md, "Error classes"). */
+export type ErrorClass =
+  | 'invalid_arguments'
+  | 'not_found'
+  | 'conflict'
+  | 'create_rejected'
+  | 'create_unknown'
+  | 'created_not_saved'
+  | 'outcome_unknown'
+  | 'mutation_rejected'
+  | 'verification_failed'
+  | 'blocked'
+  | 'unavailable'
+  | 'configuration'
+  | 'store';
+
+/** Every adapter code maps to exactly one contract class; README documents this table (tested). */
+export const ERROR_CLASSES: Readonly<Record<AdapterErrorCode, ErrorClass>> = Object.freeze({
+  INVALID_ARGUMENTS: 'invalid_arguments',
+  NOT_FOUND: 'not_found',
+  STATE_CONFLICT: 'conflict',
+  CREATE_REJECTED: 'create_rejected',
+  CREATE_OUTCOME_UNKNOWN: 'create_unknown',
+  CREATED_NOT_SAVED: 'created_not_saved',
+  MUTATION_OUTCOME_UNKNOWN: 'outcome_unknown',
+  MUTATION_REJECTED: 'mutation_rejected',
+  VERIFICATION_FAILED: 'verification_failed',
+  RECOVERY_BLOCKED: 'blocked',
+  UNAVAILABLE: 'unavailable',
+  CANCELLED: 'unavailable',
+  AUTHORITY_REVOKED: 'unavailable',
+  CONFIGURATION: 'configuration',
+  CREDENTIAL_MISSING: 'configuration',
+  HOST_CAPABILITY_MISSING: 'configuration',
+  HOST_BINDING_UNAVAILABLE: 'configuration',
+  STORE_FULL: 'store',
+  STORE_UNAVAILABLE: 'store',
+});
+
 export class SessAdapterError extends Error {
   readonly code: AdapterErrorCode;
+  readonly errorClass: ErrorClass;
   constructor(code: AdapterErrorCode, message: string) {
     super(`${code}: ${message}`);
     this.name = 'SessAdapterError';
     this.code = code;
+    this.errorClass = ERROR_CLASSES[code];
   }
   toJSON(): object {
-    return { name: this.name, code: this.code, message: this.message };
+    return { name: this.name, code: this.code, errorClass: this.errorClass, message: this.message };
   }
 }
 
