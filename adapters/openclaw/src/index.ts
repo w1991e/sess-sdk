@@ -65,6 +65,9 @@ function createTool(
       const store = new RecoveryStore(hostStore(), lease);
       const client = createGuardedClient(config, credential, lease);
       const outcome = await RUNNERS[name].run({ config, credential, lease, store, client, toolCallId }, args);
+      // R-02: the final release boundary re-asserts live authority after every awaited runner, so
+      // no result (terminal shortcuts included) escapes a revoked or cancelled invocation.
+      lease.assertCurrent();
       return {
         content: [{ type: 'text' as const, text: `${outcome.note}\n${JSON.stringify(outcome.result)}` }],
         details: outcome.result,
