@@ -179,10 +179,11 @@ if (command === 'setup') {
   if (requireRegistry) {
     // npm ci checks the downloaded tarball against the lock integrity before extracting it and
     // records what it installed in node_modules/.package-lock.json.
-    const record = readJson(join(adapter, 'node_modules', '.package-lock.json')).packages?.[
-      'node_modules/@sess.si/sdk'
-    ];
-    if (lockMode(record) !== 'registry')
+    // A missing hidden lock or SDK record is not registry evidence: never fall back to the
+    // committed lock (lockMode's default argument) for the installed tree.
+    const hidden = join(adapter, 'node_modules', '.package-lock.json');
+    const record = existsSync(hidden) ? readJson(hidden).packages?.['node_modules/@sess.si/sdk'] : undefined;
+    if (!record || lockMode(record) !== 'registry')
       fail(
         'the installed @sess.si/sdk was not installed from the registry tarball with the pinned integrity.',
       );
