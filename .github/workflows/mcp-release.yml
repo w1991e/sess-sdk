@@ -1,0 +1,136 @@
+name: Publish approved MCP adapter release
+
+# Releases @sess.si/mcp only, from tags mcp-v<version>. The guards live in
+# adapters/mcp/scripts/release-guard.mjs and are self-tested by `npm run release:self-test`.
+on:
+  push:
+    tags: ['mcp-v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-npm-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare and test the MCP release artifact
+    if: github.repository == 'w1991e/sess-sdk'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    outputs:
+      version: ${{ steps.guard.outputs.version }}
+      dist-tag: ${{ steps.guard.outputs.dist-tag }}
+      artifact-id: ${{ steps.artifact.outputs.artifact-id }}
+      tarball-sha256: ${{ steps.record.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      # Tag equals the package version, identity/path, registry SDK (never the candidate),
+      # tag commit on master history, clean tree.
+      - name: Release guards
+        id: guard
+        working-directory: adapters/mcp
+        run: node scripts/release-guard.mjs prepare
+      - run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      # All project code and dependency checks run without an OIDC publishing identity.
+      - name: Install with the genuine registry SDK only
+        working-directory: adapters/mcp
+        run: node scripts/sdk-candidate.mjs setup --require-registry
+      - name: Full checks, including the packed consumer
+        working-directory: adapters/mcp
+        run: npm run check
+      - name: Audit production dependencies
+        working-directory: adapters/mcp
+        run: npm audit --omit=dev --audit-level=moderate
+      - name: Record the tested artifact digest
+        id: record
+        working-directory: adapters/mcp
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          // npm pack's JSON output (recorded by check:package) is authoritative for the filename.
+          const result = JSON.parse(readFileSync('.artifacts/package-result.json', 'utf8'));
+          if (!/^[a-f0-9]{64}$/.test(result.sha256) || !result.integrity?.startsWith('sha512-'))
+            throw new Error('Invalid artifact digest.');
+          if (result.sourceCommit !== process.env.GITHUB_SHA || result.sourceTreeDirty !== false ||
+              result.sdkMode !== 'registry') throw new Error('Tested artifact provenance drift.');
+          appendFileSync(process.env.GITHUB_OUTPUT, `sha256=${result.sha256}\n`);
+          JS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        id: artifact
+        with:
+          name: approved-mcp-${{ steps.guard.outputs.version }}
+          path: |
+            adapters/mcp/.artifacts/package-result.json
+            adapters/mcp/.artifacts/*.tgz
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Make the candidate available for environment review
+        env:
+          ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+        working-directory: adapters/mcp
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          const result = JSON.parse(readFileSync('.artifacts/package-result.json', 'utf8'));
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            `## Tested MCP release candidate\n\n${result.name}@${result.version}\n\n[Download the tested tarball and verification record](${process.env.ARTIFACT_URL})\n\nSHA-256: \`${result.sha256}\`\n\nThe protected publication job awaits maintainer approval. It publishes these exact bytes without rebuilding.\n`);
+          JS
+
+  publish:
+    name: Publish the reviewed MCP artifact
+    needs: prepare
+    if: github.repository == 'w1991e/sess-sdk'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # Configure required maintainer approval and the mcp-v* tag restriction in GitHub.
+    environment: npm-mcp-release
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_DIST_TAG: ${{ needs.prepare.outputs.dist-tag }}
+      EXPECTED_TARBALL_SHA256: ${{ needs.prepare.outputs.tarball-sha256 }}
+    steps:
+      # Checkout supplies only package.json and the dependency-free guard script; nothing is
+      # installed or built in this job.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.prepare.outputs.artifact-id }}
+          path: adapters/mcp/.artifacts
+          merge-multiple: true
+      - name: Verify the downloaded artifact is the tested one
+        id: verify
+        working-directory: adapters/mcp
+        run: node scripts/release-guard.mjs artifact
+      - name: Publish exactly the tested tarball with npm provenance
+        working-directory: adapters/mcp
+        env:
+          TARBALL: ${{ steps.verify.outputs.tarball }}
+        run: |
+          test "$(npm --version)" = "11.19.0"
+          npm publish "$TARBALL" --ignore-scripts --provenance --access public --tag "$RELEASE_DIST_TAG"
+      - name: Verify registry integrity, dist-tag, dependencies and provenance
+        working-directory: adapters/mcp
+        run: node scripts/release-guard.mjs readback

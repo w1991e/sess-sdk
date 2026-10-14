@@ -10,6 +10,9 @@
 //   registry   the genuine npm registry tarball, after publication, with the same pinned integrity.
 //
 // Commands:
+//   setup [--require-registry]
+//                            registry mode: npm ci. candidate mode: prepare --build-root, then
+//                            npm ci. --require-registry refuses candidate mode (used by releases).
 //   prepare [--build-root]   obtain the candidate (SESS_SDK_CANDIDATE_TGZ, or `npm pack` of the SDK
 //                            repository root; --build-root first runs `npm ci --ignore-scripts` and
 //                            `npm run build` there when dist/ is missing) and accept it by digest.
@@ -83,7 +86,24 @@ function lockMode(entry = lockEntry()) {
 }
 
 const [command, ...flags] = process.argv.slice(2);
-if (command === 'prepare') {
+if (command === 'setup') {
+  // Maintainer and release entry point. Registry mode needs no candidate: npm ci installs the
+  // locked registry tarball. Candidate mode prepares the digest-gated tarball first.
+  const mode = lockMode();
+  if (!mode)
+    fail('package-lock.json resolves @sess.si/sdk to neither the pinned candidate nor the registry.');
+  if (flags.includes('--require-registry') && mode !== 'registry')
+    fail(
+      'this step requires the genuine registry @sess.si/sdk dependency; the lock is in candidate mode.',
+      4,
+    );
+  if (mode === 'candidate')
+    execFileSync(process.execPath, [fileURLToPath(import.meta.url), 'prepare', '--build-root'], {
+      stdio: 'inherit',
+    });
+  npm(['ci', '--ignore-scripts', '--no-audit', '--no-fund'], adapter, 'inherit');
+  console.log(`sdk-candidate: setup complete in ${mode.toUpperCase()} mode`);
+} else if (command === 'prepare') {
   mkdirSync(dirname(target), { recursive: true });
   const supplied = process.env.SESS_SDK_CANDIDATE_TGZ;
   if (supplied) {
@@ -175,6 +195,6 @@ if (command === 'prepare') {
   );
 } else {
   fail(
-    'usage: node scripts/sdk-candidate.mjs prepare [--build-root] | verify | switch-to-registry [--apply]',
+    'usage: node scripts/sdk-candidate.mjs setup [--require-registry] | prepare [--build-root] | verify | switch-to-registry [--apply]',
   );
 }

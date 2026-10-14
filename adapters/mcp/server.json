@@ -1,0 +1,53 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.w1991e/sess",
+  "title": "SESS",
+  "description": "Ask a person through a hosted SESS form and receive a receipt-verified answer.",
+  "repository": {
+    "url": "https://github.com/w1991e/sess-sdk",
+    "source": "github",
+    "subfolder": "adapters/mcp"
+  },
+  "version": "0.1.0-rc.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@sess.si/mcp",
+      "version": "0.1.0-rc.1",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SESS_API_KEY",
+          "description": "SESS developer API key (owner credential; never a tool argument).",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "SESS_API_ORIGIN",
+          "description": "SESS API origin. HTTPS only; default https://api.sess.si.",
+          "isRequired": false,
+          "isSecret": false,
+          "default": "https://api.sess.si"
+        },
+        {
+          "name": "SESS_MCP_PROFILE",
+          "description": "Local profile name that interaction handles are bound to.",
+          "isRequired": false,
+          "isSecret": false,
+          "default": "default"
+        },
+        {
+          "name": "SESS_MCP_STATE_DIR",
+          "description": "Absolute directory for durable interaction records.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "filepath"
+        }
+      ]
+    }
+  ]
+}

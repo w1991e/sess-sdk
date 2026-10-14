@@ -58,3 +58,13 @@
   no-cached-answer path; cached data is released only after a fresh read); a cached answer with a
   revision mismatch is a conflict with zero SDK calls (tested); README notes that SDK-rejected
   decodes are `SESS_PROTOCOL_ERROR` (fail closed, no state change).
+- Release preparation (nothing published): `.github/workflows/mcp-release.yml` for tags `mcp-v*`
+  with guards in `scripts/release-guard.mjs` (tag = version, package identity and path, registry
+  SDK only, master ancestry, clean tree, exact tested bytes, rc on `next`, registry readback with
+  provenance) and a local self-test (`npm run release:self-test`, also part of `npm run check`).
+  `npm run setup` skips the candidate in registry mode. `RELEASING.md` lists the owner actions.
+- MCP registry metadata `server.json` (schema 2025-12-11) and `package.json` `mcpName`
+  (`io.github.w1991e/sess`); not submitted.
+- Packed check normalizes paths before the module-source allowance; README mentions `sess_ask` as
+  the other source of the human link. Evidence refreshed against Claude Code 2.1.299 (five tools)
+  and the runtime at sess 405418a.
