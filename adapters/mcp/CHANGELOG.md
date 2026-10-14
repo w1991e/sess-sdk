@@ -68,3 +68,9 @@
 - Packed check normalizes paths before the module-source allowance; README mentions `sess_ask` as
   the other source of the human link. Evidence refreshed against Claude Code 2.1.299 (five tools)
   and the runtime at sess 405418a.
+- Release follow-ups: the release guard validates the artifact filename and path (exactly
+  `.artifacts/sess.si-mcp-<version>.tgz`) before reading it; self-test negatives for bad
+  filenames/paths and a wrong repository directory on readback. `server.json` declares every owner
+  setting (adds `SESS_EXPECTED_WORKSPACE_ID`, `SESS_RECEIPT_ISSUER`, `SESS_MCP_MAX_WAIT_MS`).
+  The release-hold wording matches the lock-switch procedure. `RELEASING.md` warns not to push an
+  `mcp-v*` tag before the protected environment and trusted publisher exist.
