@@ -1,0 +1,30 @@
+{
+  "mode": "interactive",
+  "title": "Plan an afternoon",
+  "description": "Choose an activity and how much time you have. Conditions are illustrative, not a live forecast.",
+  "source": {
+    "kind": "sess_surface",
+    "components": [
+      { "type": "heading", "text": "Afternoon options" },
+      { "type": "text", "text": "Illustrative conditions: 18 °C, light wind. This example books nothing." },
+      {
+        "type": "field",
+        "name": "activity",
+        "label": "Preferred activity",
+        "required": true,
+        "schema": { "type": "string", "enum": ["walk", "museum", "cafe"] },
+        "option_labels": { "walk": "Coastal walk", "museum": "Museum visit", "cafe": "Cafe and reading" },
+        "value": "walk"
+      },
+      {
+        "type": "field",
+        "name": "hours",
+        "label": "Hours available",
+        "required": true,
+        "schema": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "value": 2
+      }
+    ]
+  },
+  "actions": [{ "id": "submit", "label": "Send preferences", "intent": "submit" }]
+}

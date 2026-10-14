@@ -1,0 +1,25 @@
+{
+  "mode": "interactive",
+  "title": "Confirm your afternoon plan",
+  "description": "Proposed from your answer. Conditions remain illustrative.",
+  "source": {
+    "kind": "sess_surface",
+    "components": [
+      { "type": "heading", "text": "Proposed plan" },
+      {
+        "type": "record",
+        "label": "Plan",
+        "fields": { "Activity": "Museum visit", "Duration": "3 hours", "Start": "14:00" }
+      },
+      {
+        "type": "field",
+        "name": "confirmed",
+        "label": "This plan works for me",
+        "required": true,
+        "schema": { "type": "boolean" },
+        "value": false
+      }
+    ]
+  },
+  "actions": [{ "id": "confirm", "label": "Confirm plan", "intent": "submit" }]
+}
