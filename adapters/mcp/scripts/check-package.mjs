@@ -130,10 +130,22 @@ process.stderr.write = fail('stderr output');
 process.stdout.write = fail('stdout output');
 const env = process.env;
 process.env = new Proxy(env, { get: (t, k) => { if (typeof k === 'string' && k.startsWith('SESS')) throw new Error('Unexpected import-time credential/config read: ' + k); return t[k]; } });
-// The module loader reads source synchronously; the adapter's own state I/O is fs/promises.
+// The adapter's own state I/O is fs/promises. Some Node versions (22.x) load ESM source through
+// fs/promises.readFile, so module-source reads under node_modules pass; any other read, and every
+// write or directory operation, fails.
 const { createRequire, syncBuiltinESMExports } = await import('node:module');
+const { fileURLToPath } = await import('node:url');
 const promises = createRequire(import.meta.url)('node:fs/promises');
-for (const name of ['readFile', 'writeFile', 'open', 'mkdir', 'readdir', 'rename', 'rm']) promises[name] = fail('state file access');
+const { resolve: resolvePath, sep } = await import('node:path');
+// Normalize before the prefix check so a path such as node_modules/../secret cannot pass.
+const moduleRoot = resolvePath(fileURLToPath(new URL('./node_modules/', import.meta.url))) + sep;
+const originalReadFile = promises.readFile;
+promises.readFile = (path, ...rest) => {
+  const text = resolvePath(path instanceof URL ? fileURLToPath(path) : String(path));
+  if (text.startsWith(moduleRoot) && /\.(?:[cm]?js|json)$/.test(text)) return originalReadFile(path, ...rest);
+  throw new Error('Unexpected import-time state file access: read');
+};
+for (const name of ['writeFile', 'open', 'mkdir', 'readdir', 'rename', 'rm']) promises[name] = fail('state file access');
 syncBuiltinESMExports();
 for (const url of ${JSON.stringify(modules)}) await import(url);
 process.env = env;
@@ -150,7 +162,7 @@ process.env = env;
     tools = (await session.client.listTools()).tools;
     assert(
       JSON.stringify(tools.map((t) => t.name)) ===
-        JSON.stringify(['sess_request', 'sess_response', 'sess_publish', 'sess_complete']),
+        JSON.stringify(['sess_request', 'sess_response', 'sess_publish', 'sess_complete', 'sess_ask']),
       'tool list drift',
     );
     for (const tool of tools) {
@@ -205,11 +217,24 @@ process.env = env;
     'unknown key accepted',
   );
 
+  // Source identity of the tested bytes; the release workflow requires the tag commit and a clean tree.
+  const git = (args) => {
+    try {
+      return run('git', args, adapter).trim();
+    } catch {
+      return null; // a downloaded source archive may have no Git metadata; release CI requires it
+    }
+  };
+  const porcelain = git(['status', '--porcelain', '--untracked-files=all']);
   const result = {
     name: manifest.name,
     version: manifest.version,
-    status: 'candidate',
+    status: install.sdkMode === 'registry' ? 'registry SDK dependency' : 'candidate',
+    sdkMode: install.sdkMode,
+    sourceCommit: git(['rev-parse', 'HEAD']),
+    sourceTreeDirty: porcelain === null ? null : porcelain.length !== 0,
     filename: packed.filename,
+    tarball: `.artifacts/${packed.filename}`,
     sha256: createHash('sha256')
       .update(await readFile(tarball))
       .digest('hex'),
@@ -217,7 +242,7 @@ process.env = env;
     compressedBytes: packed.size,
     unpackedBytes: packed.unpackedSize,
     fileCount: packed.files.length,
-    sessSdk: `${compatibility.sessSdk.name}@${compatibility.sessSdk.version} (candidate sha256 ${compatibility.sessSdk.sha256})`,
+    sessSdk: `${compatibility.sessSdk.name}@${compatibility.sessSdk.version} (${install.sdkMode} sha256 ${compatibility.sessSdk.sha256})`,
     installedProductionPackages: install.productionCount,
     node: process.version,
     negotiatedProtocol: raw[1].result.protocolVersion,

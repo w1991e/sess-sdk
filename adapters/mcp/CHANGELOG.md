@@ -40,3 +40,31 @@
   `configuration` on a saved publish/complete blocks; a failed `SESSION_COMPLETED` read-back keeps
   the completion pending and retryable.
 - Packed check scans multi-line, side-effect and dynamic imports and rejects `require()`.
+- R-01: an answer is released only after an authenticated current-revision read made after full
+  receipt verification, including cached `answered` results. A failed read is retryable
+  `SESS_UNAVAILABLE` with no change; progress blocks (or conflicts with a concurrent local change);
+  no answer data is released in either case. Previously a revision check before verification, or
+  a cached answer with no fresh read, could release an obsolete answer as current.
+- `sess_ask` (tool schema `sess-mcp-tools/2`): a question plus up to 12 simple fields, expanded
+  into an ordinary interaction and run through the same request operation; returns the link and
+  handle at once, never waits. The four operations are unchanged.
+- Node floor: qualified on Node 22.14.0 and 24.21.0; `engines` is now `>=22.14.0 <25`. CI adds a
+  Node 22.14.0 job and uses the documented `npm run setup` path from a clean clone.
+- Maintainer setup: `npm run setup` (SDK root build, digest-gated candidate, `npm ci`), and
+  `npm run sdk:switch-to-registry [-- --apply]` for the genuine registry transition.
+- README documents the tested Claude Code configurations (environment-inherited key, or `-e` after
+  the server name, which Claude Code stores in plain text) and marks untested forms.
+- R-01 follow-ups: `#settled` can no longer release a cached answer (every caller goes through the
+  no-cached-answer path; cached data is released only after a fresh read); a cached answer with a
+  revision mismatch is a conflict with zero SDK calls (tested); README notes that SDK-rejected
+  decodes are `SESS_PROTOCOL_ERROR` (fail closed, no state change).
+- Release preparation (nothing published): `.github/workflows/mcp-release.yml` for tags `mcp-v*`
+  with guards in `scripts/release-guard.mjs` (tag = version, package identity and path, registry
+  SDK only, master ancestry, clean tree, exact tested bytes, rc on `next`, registry readback with
+  provenance) and a local self-test (`npm run release:self-test`, also part of `npm run check`).
+  `npm run setup` skips the candidate in registry mode. `RELEASING.md` lists the owner actions.
+- MCP registry metadata `server.json` (schema 2025-12-11) and `package.json` `mcpName`
+  (`io.github.w1991e/sess`); not submitted.
+- Packed check normalizes paths before the module-source allowance; README mentions `sess_ask` as
+  the other source of the human link. Evidence refreshed against Claude Code 2.1.299 (five tools)
+  and the runtime at sess 405418a.

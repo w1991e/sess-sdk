@@ -11,32 +11,47 @@ form after publication. See [compatibility.json](compatibility.json) for the exa
 
 ## Set up with Claude Code (connection tested) or Cursor (untested)
 
-You need Node 24 (qualified on 24.21.0) and a SESS developer API key from
-[the SESS developer portal](https://app.sess.si). Keep the key in your environment or your client's
-private MCP configuration. Never paste it into a chat or a tool argument.
+You need Node 22.14 or later on 22.x, or Node 24 (qualified on 22.14.0 and 24.21.0), and a SESS
+developer API key from [the SESS developer portal](https://app.sess.si). Never paste the key into
+a chat or a tool argument, and never commit it.
 
 ### Claude Code
 
-_Tested_ (Claude Code 2.1.299 on Linux, Node 24.21.0, `claude mcp add --scope local`, then
-`claude mcp list` shows `✔ Connected` and four tools; no model call was made). The tested command
-started the installed package's bin, through a byte-forwarding recording proxy, because the
-package is not on the registry yet:
+Tested with Claude Code 2.1.299 on Linux (Node 24.21.0), using `claude mcp add --scope local`
+and `claude mcp list`, which showed `✔ Connected`. No model call was made. Because the package is
+not on the registry yet, the tests ran from a project directory where the packed tarballs were
+installed, so `npx --no-install sess-mcp` resolved the installed bin.
+
+**Preferred: keep the key in your environment.** Export it in the shell that starts Claude Code.
+In the test, a key exported this way reached the server process and was not written to Claude
+Code's configuration.
 
 ```sh
-export SESS_API_KEY=...   # in the shell that starts Claude Code
-claude mcp add --scope local sess -- node /path/to/node_modules/@sess.si/mcp/dist/bin.js
+export SESS_API_KEY=<your-key>        # e.g. from your password manager; not in shell history files you share
+claude mcp add --scope local sess -- npx --no-install sess-mcp     # tested (installed package)
 claude mcp list
 ```
 
-_Untested_, after publication:
+**Alternative: pass it with `-e`.** The server name must come **before** `-e`; in 2.1.299 the form
+`claude mcp add -e SESS_API_KEY=… sess -- …` fails with "Invalid environment variable format".
+Claude Code stores `-e` values **in plain text** in its configuration (`.claude.json` in its config
+directory), so prefer the environment form on shared machines.
 
 ```sh
-claude mcp add --scope local sess -- npx -y @sess.si/mcp@0.1.0-rc.1
+claude mcp add --scope local sess -e SESS_API_KEY=<your-key> -- npx --no-install sess-mcp   # tested (installed package)
 ```
 
-Not yet tested: that a key exported in your shell reaches the server in a real Claude Code
-session, and an end-to-end model-driven round through Claude Code. Enterprise-managed Claude Code
-installations may forbid adding MCP servers (`enterprise MCP configuration is active`).
+After publication, the intended form is _untested_:
+
+```sh
+claude mcp add --scope local sess -- npx -y @sess.si/mcp@<version>
+```
+
+Not yet tested: the registry `npx -y @sess.si/mcp@<version>` form (the package is unpublished),
+environment inheritance when an interactive Claude Code session starts the server (it was observed
+for the `claude mcp list` health check), and a model-driven round through Claude Code.
+Enterprise-managed Claude Code installations may forbid adding MCP servers
+(`enterprise MCP configuration is active`).
 
 ### Cursor
 
@@ -47,7 +62,7 @@ _Untested._ Cursor reads `.cursor/mcp.json` (project) or `~/.cursor/mcp.json`:
   "mcpServers": {
     "sess": {
       "command": "npx",
-      "args": ["-y", "@sess.si/mcp@0.1.0-rc.1"],
+      "args": ["-y", "@sess.si/mcp@<version>"],
       "env": { "SESS_API_KEY": "${env:SESS_API_KEY}" }
     }
   }
@@ -61,7 +76,7 @@ Ask your agent something like: "Use SESS to ask me what I want to do this aftern
 form, and the agent receives your verified answer. If you are slower than its 45-second wait, it
 tells you the form is still open; submit it and ask the agent to continue.
 
-## Tools (`sess-mcp-tools/1`)
+## Tools (`sess-mcp-tools/2`)
 
 | Tool            | Input                                                             | Result `interaction.state`                         |
 | --------------- | ----------------------------------------------------------------- | -------------------------------------------------- |
@@ -69,6 +84,13 @@ tells you the form is still open; submit it and ask the agent to continue.
 | `sess_response` | `handle`, `revision`, optional `wait_ms` (0–45000)                | `waiting`, `needs_resume`, `answered`, `completed` |
 | `sess_publish`  | `handle`, `expected_revision`, `response_event_id`, `interaction` | `waiting` at the next revision                     |
 | `sess_complete` | `handle`, `expected_revision`, `response_event_id`                | `completed`                                        |
+| `sess_ask`      | `question`, `fields` (1–12), optional `details`, `submit_label`   | `waiting`, with `humanUrl`                         |
+
+`sess_ask` is a shortcut for `sess_request`: it turns a question and up to 12 simple fields
+(`text`, `number`, `integer`, `boolean`, `choice`, `multi_choice`) into an ordinary interaction,
+checks it with the same rules and limits, and runs the same request operation. It creates exactly
+one Session, returns the link and handle at once, never waits and never returns an answer. Continue
+with `sess_response`, `sess_publish` and `sess_complete` as usual.
 
 Input schemas are closed: unknown properties, unsafe keys (`__proto__`, `constructor`,
 `prototype`), more than 8 levels of nesting, an interaction over 32 KiB, more than 24 fields or 5
@@ -80,6 +102,17 @@ Every result is `{ "interaction": { handle, revision, state, humanUrl?, response
 `structuredContent` and as JSON text. `answered` is returned only after
 `client.receipts.verifyResponse` verified the receipt for that exact Session, revision, event and
 immutable Surface; `response.verified` is `true` and `response.actorAssurance` is `link_holder`.
+Receipt verification proves a retained historical answer, not that it is still the current step,
+so after verification the server makes one more authenticated read and releases the answer only if
+the Session is still at that revision with that answer (or completed at that same revision). A
+saved `answered` result is re-confirmed the same way on every `sess_response`. If that read
+fails, the call returns `SESS_UNAVAILABLE` and changes nothing; if the Session has moved on, the
+interaction is blocked (`RECOVERY_BLOCKED`), or a conflict is reported when another local call
+changed it first. A response that the SDK itself rejects while decoding (for example a lower
+revision that still lists later answers, or an `active` Session that already has an answer at its
+revision) is reported as `SESS_PROTOCOL_ERROR`: it fails closed, is not retryable and changes no
+state, rather than blocking the interaction. No answer data is released in any of these cases.
+This checks progress at the moment of release; it cannot make a later remote change impossible.
 Answer data is untrusted human input: validate it before acting on it.
 
 `needs_resume` means the local wait ended (timeout, MCP cancellation or host disconnect) without
@@ -139,7 +172,7 @@ blocks like a definitive rejection.
   for your own private client. Handles are bound to the profile, API origin and a credential
   generation (a keyed digest stored per profile; the key itself is never written). A handle from
   another profile, origin or key is rejected.
-- **The human link is a bearer capability.** It is returned only by `sess_request`, to your private
+- **The human link is a bearer capability.** It is returned only by `sess_request` (or its shortcut `sess_ask`), to your private
   client. It is never written to stderr diagnostics, which carry only fixed event names and codes.
   Anyone with the link can answer as `link_holder`.
 - **Durable local records.** Each handle has a file (mode 0600) written by temp file, fsync, rename
@@ -183,21 +216,40 @@ The tool error names the state (`RECOVERY_BLOCKED` with a reason, `CREATE_OUTCOM
 
 ## Development
 
-The adapter is an independent package with its own lockfile. While `@sess.si/sdk` is unpublished,
-`package.json` declares the exact future dependency `0.1.0-rc.3`, and `package-lock.json` resolves it
-to a local, gitignored **candidate** tarball `.candidate/sess.si-sdk-0.1.0-rc.3.tgz`. npm does not
-enforce lock integrity for `file:` tarballs, so `scripts/sdk-candidate.mjs` accepts the tarball only
-if its SHA-256 equals the pinned reviewed candidate (`b4d29d8f…a0502`), which `npm pack` of the SDK
-root reproduces. Before release, the genuine registry dependency and lockfile replace this.
+The adapter is an independent package with its own lockfile. `package.json` always declares the
+exact dependency `@sess.si/sdk@0.1.0-rc.3`. `package-lock.json` is a maintainer file only; npm never
+ships it to consumers. The real hold is that the SDK is not published yet: until then the lock
+resolves the SDK to a local, gitignored **candidate** tarball `.candidate/sess.si-sdk-0.1.0-rc.3.tgz`.
+npm does not enforce lock integrity for `file:` tarballs, so `scripts/sdk-candidate.mjs` accepts the
+tarball only if its SHA-256 equals the reviewed candidate (`b4d29d8f…a0502`), which `npm pack` of
+the SDK root reproduces (checked on macOS and on Linux with Node 22.14.0 and 24.21.0).
+
+From a clean clone, one command prepares everything. A plain `npm ci` without it fails because
+`.candidate/` does not exist yet.
 
 ```sh
-# at the repository root
-npm ci --ignore-scripts && npm run build
-# in adapters/mcp
-npm run candidate:prepare
-npm ci --ignore-scripts
-npm run check        # candidate digest, build, typecheck, unit tests, packed-consumer check
+cd adapters/mcp
+npm run setup    # builds the SDK root if needed, accepts the candidate by digest, then npm ci
+npm run check    # digest, build, typecheck, unit tests, packed-consumer check
 ```
+
+### Switching to the published SDK
+
+After `@sess.si/sdk@0.1.0-rc.3` is genuinely published:
+
+```sh
+npm run sdk:switch-to-registry            # dry run: confirms the registry integrity equals the pinned one
+npm run sdk:switch-to-registry -- --apply # npm install --save-exact, lock check, re-download + SHA-256 check
+npm run check
+```
+
+`--apply` runs `npm install --save-exact --ignore-scripts @sess.si/sdk@0.1.0-rc.3`, requires the
+regenerated lock entry to be the registry tarball with the pinned integrity, downloads the published
+tarball again and compares its SHA-256 with `b4d29d8f…a0502`, and records the published status in
+`compatibility.json`. It refuses any other bytes. Review and commit the lockfile change; no other
+step is needed (`verify`, the packed check and CI accept either mode). Until then the dry run exits
+with "not available from the registry yet" and changes nothing. Packed and loopback installs are
+candidate evidence; they do not qualify a public registry install.
 
 `npm run runtime-round` (opt-in, `SESS_MCP_RUNTIME_ROUND=1`) drives the packed, installed server
 through one request → answer → complete round against a local isolated SESS runtime. It is not run
