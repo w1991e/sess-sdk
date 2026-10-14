@@ -63,9 +63,10 @@ Publish job (environment `npm-mcp-release`; only this job has `id-token: write`)
   guard script; nothing is installed or rebuilt;
 - re-verifies name, version, filename, Node, registry SDK mode, source commit and both digests
   against the prepare job's outputs;
-- `npm publish <tarball> --ignore-scripts --provenance --access public --tag <tag>`, where a
-  `-rc.N` version always uses `next` (never `latest`);
-- reads the registry back: version, repository and directory, integrity equal to the tested
+- `npm stage publish <tarball> --ignore-scripts --provenance --access public --tag <tag>`, where a
+  `-rc.N` version always uses `next` (never `latest`). The trusted publisher is stage-only; a
+  maintainer verifies the staged digest and runs `npm stage approve` with npm 2FA;
+- a read-only `readback` job then waits for that approval and reads the registry back: version, repository and directory, integrity equal to the tested
   bytes, the dist-tag (and that an rc is not `latest`), dependencies, and provenance attestations.
 
 Run the guard tests locally with `npm run release:self-test`; they refuse a wrong tag, version,

@@ -37,8 +37,10 @@ changes an external system is a separate owner action.
    real registry and a real OpenClaw host, and uploads the exact tarball with its SHA-256.
 4. A required reviewer approves the `publish` job. It downloads that artifact by ID, verifies the
    digest, does not rebuild, and runs
-   `npm publish <tarball> --ignore-scripts --provenance --access public --tag next`.
-5. The job reads the registry back: version, integrity, `next` dist-tag (never `latest`),
+   `npm stage publish <tarball> --ignore-scripts --provenance --access public --tag next`.
+   The trusted publisher is stage-only; a maintainer verifies the staged digest and runs
+   `npm stage approve` with npm 2FA.
+5. A read-only `readback` job waits for that approval, then reads the registry back: version, integrity, `next` dist-tag (never `latest`),
    repository and directory, dependencies and peer dependencies, and provenance attestations.
 6. After publication, run a clean native install from the registry
    (`openclaw plugins install npm:@sess.si/openclaw@<version>`) on the qualified host and record it.
