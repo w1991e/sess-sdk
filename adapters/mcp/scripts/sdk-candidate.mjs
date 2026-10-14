@@ -1,10 +1,11 @@
 // @sess.si/sdk dependency gate for this adapter.
 //
-// package.json always declares the exact registry dependency ("@sess.si/sdk": "0.1.0-rc.3").
+// package.json always declares the exact registry dependency on the pinned SDK version
+// (release/sdk-candidate.json at the repository root, mirrored in compatibility.json).
 // package-lock.json is a maintainer artifact (npm never ships it to consumers) and resolves that
 // node in one of two modes:
 //
-//   candidate  `file:.candidate/sess.si-sdk-0.1.0-rc.3.tgz`, a gitignored local tarball, while the
+//   candidate  `file:.candidate/<pinned filename>`, a gitignored local tarball, while the
 //              SDK is unpublished. npm does not enforce lock integrity for file: tarballs, so this
 //              script is the gate: only bytes with the pinned reviewed digest are accepted.
 //   registry   the genuine npm registry tarball, after publication, with the same pinned integrity.
@@ -13,10 +14,10 @@
 //   setup [--require-registry]
 //                            registry mode: npm ci. candidate mode: prepare, then
 //                            npm ci. --require-registry refuses candidate mode (used by releases).
-//   prepare [--build-root]   obtain the candidate (SESS_SDK_CANDIDATE_TGZ, or the root helper
-//                            scripts/rc3-candidate.mjs, which rebuilds it from its pinned reviewed
-//                            source commit) and accept it by digest. --build-root is accepted for
-//                            compatibility; the helper always builds from the pinned source.
+//   prepare [--build-root]   obtain the candidate (SESS_SDK_CANDIDATE_TGZ, or `scripts/sdk-pin.mjs
+//                            pack --build` at the root, which packs the current root and accepts
+//                            only the pinned bytes) and accept it by digest. --build-root is kept
+//                            for compatibility; the root is always built before packing.
 //   verify                   check the lock entry (either mode), the candidate bytes (candidate
 //                            mode) and the installed identity.
 //   switch-to-registry [--apply]
@@ -118,8 +119,8 @@ if (command === 'setup') {
     accept(supplied);
     copyFileSync(supplied, target);
   } else {
-    // The repository root may carry a later successor candidate, so the approved bytes are rebuilt
-    // from their pinned reviewed source commit by the root helper, never by packing the current root.
+    // The current repository root is packed and accepted only if its bytes equal the single pin
+    // (release/sdk-candidate.json, mirrored in compatibility.json by `npm run pin:update`).
     const root = resolve(adapter, '..', '..');
     const out = mkdtempSync(join(tmpdir(), 'sess-sdk-candidate-'));
     // Refusals are decided inside, reported only after the temporary directory is removed.
@@ -127,7 +128,7 @@ if (command === 'setup') {
     try {
       const produced = execFileSync(
         process.execPath,
-        [join(root, 'scripts', 'rc3-candidate.mjs'), '--out', out],
+        [join(root, 'scripts', 'sdk-pin.mjs'), 'pack', '--build', '--out', out],
         { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
       )
         .trim()
@@ -136,7 +137,8 @@ if (command === 'setup') {
       refusal = refusalFor(produced);
       if (!refusal) copyFileSync(produced, target);
     } catch {
-      refusal = 'the approved candidate could not be rebuilt from its pinned source (see the output above).';
+      refusal =
+        'the pinned SDK candidate could not be packed from the repository root (see the output above).';
     } finally {
       rmSync(out, { recursive: true, force: true });
     }

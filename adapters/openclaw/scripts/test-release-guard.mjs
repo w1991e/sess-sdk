@@ -55,7 +55,10 @@ test('refuses candidate mode and non-registry dependency specs', () => {
   refuses((f) => (f.registrySdkIntegrity = undefined), 'registry SDK integrity'); // unpublished SDK
   refuses((f) => (f.registrySdkIntegrity = 'sha512-other'), 'registry SDK integrity');
   refuses((f) => (f.manifest.dependencies['@sess.si/sdk'] = 'file:../../sdk.tgz'), 'exact SDK dependency');
-  refuses((f) => (f.manifest.dependencies['@sess.si/sdk'] = '^0.1.0-rc.3'), 'exact SDK dependency');
+  refuses(
+    (f) => (f.manifest.dependencies['@sess.si/sdk'] = `^${f.manifest.dependencies['@sess.si/sdk']}`),
+    'exact SDK dependency',
+  );
   refuses(
     (f) => (f.manifest.peerDependencies.openclaw = 'git+https://example.invalid/x.git'),
     'registry dependency specs',

@@ -13,8 +13,9 @@ approval does.
 > the publish job would then run without maintainer approval. (The guards still refuse while the SDK
 > dependency is in candidate mode, but do not rely on that.)
 
-1. **Publish the SDK first.** `@sess.si/sdk@0.1.0-rc.3` must be genuinely published with the
-   reviewed bytes (SHA-256 `b4d29d8f…a0502`). Then, in `adapters/mcp`, run
+1. **Publish the SDK first.** The pinned `@sess.si/sdk` version (`release/sdk-candidate.json`;
+   `0.1.0-rc.4` is the first SDK candidate to be published, by owner decision of 2026-10-14) must be
+   genuinely published with exactly the pinned bytes. Then, in `adapters/mcp`, run
    `npm run sdk:switch-to-registry -- --apply` and `npm run check`, and merge the lockfile change
    through review. Until then the workflow refuses: a candidate-mode lock cannot be released.
 2. **GitHub environment `npm-mcp-release`** in `w1991e/sess-sdk`:
@@ -25,12 +26,12 @@ approval does.
    `mcp-release.yml` and environment `npm-mcp-release`. The `@sess.si` scope must allow the package
    name. The package does not exist on npm yet; npm's flow for a first publish under trusted
    publishing needs to be confirmed by the owner when configuring it.
-4. **MCP registry namespace** (only when submitting to the official registry, which is a separate
-   later decision). `server.json` and `package.json` `mcpName` use `io.github.w1991e/sess`, which
-   needs GitHub authentication as `w1991e` with `mcp-publisher`. A `si.sess/*` name would instead
-   need DNS verification of `sess.si`. Decide before the first npm publish: the registry checks
-   that the published package's `mcpName` equals the server name, so changing it later needs a
-   new package version.
+4. **MCP registry namespace — approved.** The owner approved `io.github.w1991e/sess` on
+   2026-10-14. `server.json` `name` and `package.json` `mcpName` both use it (a test keeps them
+   equal). Submitting `server.json` to the official registry is still a separate owner action; it
+   needs GitHub authentication as `w1991e` with `mcp-publisher`. The registry checks that the
+   published package's `mcpName` equals the server name, so changing it later needs a new package
+   version.
 
 ## Cutting a release
 

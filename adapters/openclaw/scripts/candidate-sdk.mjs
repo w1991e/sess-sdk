@@ -1,7 +1,9 @@
-// CANDIDATE-ONLY dependency resolution for the unpublished @sess.si/sdk 0.1.0-rc.3.
+// CANDIDATE-ONLY dependency resolution for the unpublished, pinned @sess.si/sdk version.
 //
-// Release hold: the adapter declares the real registry dependency "@sess.si/sdk": "0.1.0-rc.3".
-// Until that exact version is published, this script serves ONLY that one integrity-pinned
+// Release hold: the adapter declares the real registry dependency on the exact version pinned in the
+// repository's release/sdk-candidate.json (name, version, sha256, sha512; kept consistent by
+// `npm run pin:update` and verified by the root `npm run check`). Until that exact version is
+// published, this script serves ONLY that one integrity-pinned
 // candidate tarball from a loopback HTTP server for the @sess.si scope, then runs the given npm
 // command with `--@sess.si:registry=<loopback>`. Every other package still resolves from the
 // public registry. The lockfile omits registry URLs (see .npmrc), so it contains only the
@@ -11,14 +13,17 @@
 //        node scripts/candidate-sdk.mjs <candidate.tgz> --print-env   (serve until killed)
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { gunzipSync } from 'node:zlib';
 
+const PIN = JSON.parse(readFileSync(new URL('../../../release/sdk-candidate.json', import.meta.url), 'utf8'));
 export const CANDIDATE = Object.freeze({
-  name: '@sess.si/sdk',
-  version: '0.1.0-rc.3',
-  sha256: 'b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502',
+  name: PIN.name,
+  version: PIN.version,
+  sha256: PIN.sha256,
+  integrity: PIN.integrity,
 });
 
 export async function loadCandidate(path) {
@@ -27,6 +32,8 @@ export async function loadCandidate(path) {
   if (sha256 !== CANDIDATE.sha256)
     throw new Error(`Candidate SDK tarball sha256 ${sha256} does not match the pinned ${CANDIDATE.sha256}.`);
   const integrity = `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
+  if (integrity !== CANDIDATE.integrity)
+    throw new Error('Candidate SDK tarball sha512 integrity does not match the pin.');
   const shasum = createHash('sha1').update(bytes).digest('hex');
   const manifest = JSON.parse(readTarEntry(gunzipSync(bytes), 'package/package.json'));
   if (manifest.name !== CANDIDATE.name || manifest.version !== CANDIDATE.version)
@@ -56,7 +63,7 @@ function readTarEntry(tar, wanted) {
 
 export async function serveCandidate(path) {
   const candidate = await loadCandidate(path);
-  const tarballPath = '/@sess.si/sdk/-/sdk-0.1.0-rc.3.tgz';
+  const tarballPath = `/@sess.si/sdk/-/sdk-${CANDIDATE.version}.tgz`;
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     let pathname;
@@ -97,7 +104,9 @@ export async function serveCandidate(path) {
       return;
     }
     res.writeHead(404, { 'content-type': 'application/json' });
-    res.end('{"error":"candidate registry serves only @sess.si/sdk@0.1.0-rc.3"}');
+    res.end(
+      JSON.stringify({ error: `candidate registry serves only ${CANDIDATE.name}@${CANDIDATE.version}` }),
+    );
   });
   await new Promise((resolve, reject) => {
     server.once('error', reject);

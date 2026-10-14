@@ -4,9 +4,9 @@
 //
 // 1. Copies this example to a fresh temporary directory outside the SDK repository, with no
 //    node_modules in any ancestor directory, so nothing resolves from the repository by accident.
-// 2. Obtains the SDK candidate tarball (--tarball, SESS_SDK_CANDIDATE_TGZ, or scripts/rc3-candidate.mjs,
-//    which rebuilds it from its pinned reviewed source commit) and accepts it only if its SHA-256
-//    equals the pinned reviewed candidate digest below.
+// 2. Obtains the SDK candidate tarball (--tarball, SESS_SDK_CANDIDATE_TGZ, or `scripts/sdk-pin.mjs pack
+//    --build`, which packs the current repository root) and accepts it only if its SHA-256 equals the
+//    pin in release/sdk-candidate.json.
 // 3. Installs it with lifecycle scripts disabled, exactly as the example README documents.
 // 4. Runs `node index.mjs` against a deterministic fake SESS API on loopback that serves create,
 //    retrieve, wait, Surface, complete and a genuinely Ed25519-signed receipt plus key set. The child
@@ -26,11 +26,9 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const PINNED = Object.freeze({
-  name: '@sess.si/sdk',
-  version: '0.1.0-rc.3',
-  sha256: 'b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502',
-});
+// The single SDK candidate pin at the repository root (release/sdk-candidate.json).
+const PIN = JSON.parse(readFileSync(new URL('../../../release/sdk-candidate.json', import.meta.url), 'utf8'));
+const PINNED = Object.freeze({ name: PIN.name, version: PIN.version, sha256: PIN.sha256 });
 const RUN_TIMEOUT_MS = 90_000;
 
 const example = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -81,11 +79,10 @@ try {
     tarball = join(candidateDir, basename(supplied));
     cpSync(resolve(supplied), tarball);
   } else {
-    // The root may hold a later successor candidate; rebuild the approved bytes from their pinned
-    // reviewed source commit instead of packing the current root.
+    // Pack the current repository root; scripts/sdk-pin.mjs accepts only the pinned bytes.
     tarball = execFileSync(
       process.execPath,
-      [join(sdkRoot, 'scripts', 'rc3-candidate.mjs'), '--out', candidateDir],
+      [join(sdkRoot, 'scripts', 'sdk-pin.mjs'), 'pack', '--build', '--out', candidateDir],
       { cwd: sdkRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
     )
       .trim()

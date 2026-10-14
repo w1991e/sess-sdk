@@ -16,39 +16,37 @@ published package.
 ## Install
 
 Copy this directory somewhere outside the SDK repository. [package.json](package.json) declares the
-exact SDK version, `"@sess.si/sdk": "0.1.0-rc.3"`. No lockfile is shipped.
+exact SDK version, the one pinned with its digests in the SDK repository's
+[release/sdk-candidate.json](../../release/sdk-candidate.json). No lockfile is shipped.
 
-### Release candidate (current: not yet published)
+### Release candidate (before publication)
 
-`@sess.si/sdk@0.1.0-rc.3` is a **candidate**, not a published release, so `npm install` alone cannot
-resolve it yet. Install the candidate tarball explicitly, and only after checking that its SHA-256
-equals the reviewed candidate digest:
+If that exact version is not on the registry yet (`npm view @sess.si/sdk versions`), `npm install`
+alone cannot resolve it. Install the candidate tarball explicitly, and only after checking that its
+SHA-256 equals the pinned digest:
 
 ```sh
-# In the SDK repository (with full git history): rebuild the approved candidate from its pinned
-# reviewed source commit, or use the tarball you were given. Do not pack the current root: it may be
-# a later successor candidate.
-node scripts/rc3-candidate.mjs --out /tmp/sess-candidate
+# In the SDK repository: pack the current root; the script accepts only the pinned bytes
+# (or use the tarball you were given).
+node scripts/sdk-pin.mjs pack --build --out /tmp/sess-candidate
 
-# Verify the digest. It must print exactly:
-# b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502
-sha256sum /tmp/sess-candidate/sess.si-sdk-0.1.0-rc.3.tgz      # Linux
-shasum -a 256 /tmp/sess-candidate/sess.si-sdk-0.1.0-rc.3.tgz   # macOS
+# Verify the digest. It must print exactly the "sha256" value in release/sdk-candidate.json:
+sha256sum /tmp/sess-candidate/sess.si-sdk-*.tgz      # Linux
+shasum -a 256 /tmp/sess-candidate/sess.si-sdk-*.tgz   # macOS
 
 # In your copy of this directory: install the verified tarball without lifecycle scripts.
-npm install --ignore-scripts /tmp/sess-candidate/sess.si-sdk-0.1.0-rc.3.tgz
+npm install --ignore-scripts /tmp/sess-candidate/sess.si-sdk-*.tgz
 ```
 
-The digest identifies the reviewed candidate tarball as distributed. The helper reproduced it with
-npm 10.9.2 (Node 22.14.0) and npm 11.19.0 (Node 24.21.0); another toolchain may produce different
-bytes — in that case use the reviewed tarball you were given. Do not install a tarball whose digest
-differs. Installing a tarball records a local `file:`
-dependency in your copy's package.json; that is expected for the candidate.
+The digest identifies the candidate tarball as distributed. Packing reproduced it with npm 10.9.2
+(Node 22.14.0) and npm 11.19.0 (Node 24.21.0); another toolchain may produce different bytes — in that
+case use the tarball you were given. Do not install a tarball whose digest differs. Installing a
+tarball records a local `file:` dependency in your copy's package.json; that is expected for the
+candidate.
 
 ### Published release (after publication)
 
-Once `0.1.0-rc.3` (or a later version you set in package.json) is published to npm, the declared
-dependency resolves normally:
+Once the declared version is published to npm, the dependency resolves normally:
 
 ```sh
 npm install --ignore-scripts
@@ -102,15 +100,15 @@ reported as uncertain, never as success, and creation is never retried automatic
 ## Clean install check (maintainers and CI)
 
 [scripts/clean-install-check.mjs](scripts/clean-install-check.mjs) copies this directory to a fresh
-temporary directory outside the repository (no `node_modules` in any ancestor), rebuilds the approved
-candidate with `scripts/rc3-candidate.mjs` (or takes `--tarball <path>` / `SESS_SDK_CANDIDATE_TGZ`) and accepts the tarball only if its SHA-256
-is the pinned candidate digest above, installs it with `--ignore-scripts`, then runs `index.mjs`
+temporary directory outside the repository (no `node_modules` in any ancestor), packs the
+candidate with `scripts/sdk-pin.mjs pack --build` (or takes `--tarball <path>` /
+`SESS_SDK_CANDIDATE_TGZ`) and accepts the tarball only if its SHA-256 is the pinned digest, installs it with `--ignore-scripts`, then runs `index.mjs`
 against a deterministic fake SESS API on loopback. The fake serves create, retrieve, the immutable
 Surface, complete, and a genuinely Ed25519-signed receipt with its key set. The program's
 environment holds only `SESS_API_KEY` plus the loopback API URL and opt-in, so the check proves the
 key alone suffices, the human URL is printed before waiting, the response verifies and the Session
 completes. No SESS traffic leaves loopback; `npm install` fetches the SDK's pinned public
-dependencies from the configured npm registry or cache. Run it from a checkout with full history:
+dependencies from the configured npm registry or cache. Run it from the SDK repository:
 
 ```sh
 node examples/quickstart-node/scripts/clean-install-check.mjs
