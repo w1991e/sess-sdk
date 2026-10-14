@@ -133,7 +133,7 @@ pass('pack-allowlist', { files: files.length });
 // node: built-ins, the SDK dependency and the one public host entry subpath (no sibling adapter,
 // no adapters/shared path at runtime).
 const allowedImports =
-  /^(\.\.?\/[a-z/.-]+\.js|node:[a-z]+|@sess\.si\/sdk|openclaw\/plugin-sdk\/plugin-entry)$/;
+  /^(\.\.?\/[a-z/.-]+\.js|node:[a-z]+|@sess\.si\/sdk|openclaw\/plugin-sdk\/(plugin-entry|config-mutation))$/;
 const specifiers = [];
 for (const file of files.filter((f) => f.endsWith('.js'))) {
   const source = readFileSync(join(root, file), 'utf8');
@@ -364,12 +364,26 @@ console.log(JSON.stringify({ id: entry.id, tools, cli, opened, attempts, reads }
     await openclaw(['config', 'set', 'tools.alsoAllow', '["lobster"]', '--strict-json']);
     await openclaw(['config', 'set', 'gateway.port', '18998', '--strict-json']);
     const configPath = join(home, '.openclaw/openclaw.json');
+    // Authored `enabled` unset while the plugin is installed: the runtime view may still report it
+    // enabled, but the preview must list the enable change the apply will write.
+    await openclaw(['config', 'unset', 'plugins.entries.sess.enabled']);
     const beforeSetup = readFileSync(configPath, 'utf8');
+    assert(JSON.parse(beforeSetup).plugins?.entries?.sess?.enabled === undefined, 'enabled not unset');
     const preview = await openclaw(['sess', 'setup']);
     assert(/preview \(nothing written/.test(preview), 'setup preview');
+    assert(
+      /plugins\.entries\.sess\.enabled: \(unset\) -> true/.test(preview),
+      'preview omits the enable change',
+    );
     assert(readFileSync(configPath, 'utf8') === beforeSetup, 'setup preview wrote config');
     const applied = await openclaw(['sess', 'setup', '--yes']);
     assert(/openclaw gateway restart/.test(applied), 'setup restart instruction');
+    const changeLines = (text) => text.split('\n').filter((l) => /^ {2}(plugins|tools)\./.test(l));
+    assert(
+      JSON.stringify(changeLines(applied)) === JSON.stringify(changeLines(preview)) &&
+        changeLines(preview).length === 3,
+      `--yes did not apply exactly the previewed changes ${JSON.stringify({ preview: changeLines(preview), applied: changeLines(applied) })}`,
+    );
     const written = JSON.parse(readFileSync(configPath, 'utf8'));
     assert(
       JSON.stringify(written.tools?.alsoAllow) ===
