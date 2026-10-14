@@ -1,0 +1,59 @@
+name: MCP adapter CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: MCP adapter / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            adapters/mcp/package-lock.json
+      # The SDK candidate is reproduced from the reviewed root source and accepted only by digest.
+      - name: Build the SDK root
+        run: npm ci --ignore-scripts --no-audit --no-fund && npm run build
+      - name: Prepare the integrity-pinned SDK candidate
+        working-directory: adapters/mcp
+        run: node scripts/sdk-candidate.mjs prepare
+      - name: Install adapter dependencies
+        working-directory: adapters/mcp
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Candidate digest, build, typecheck, tests and packed consumer
+        working-directory: adapters/mcp
+        run: npm run check
+      - name: Audit production dependencies
+        working-directory: adapters/mcp
+        run: npm audit --omit=dev --audit-level=moderate
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mcp-package-${{ matrix.os }}
+          path: |
+            adapters/mcp/.artifacts/package-result.json
+            adapters/mcp/.artifacts/*.tgz
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
