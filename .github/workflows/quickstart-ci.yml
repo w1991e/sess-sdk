@@ -25,11 +25,9 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          # Full history: the approved rc.3 candidate is rebuilt from its pinned source commit.
-          fetch-depth: 0
           persist-credentials: false
-      # The Node under test also rebuilds rc.3 (scripts/rc3-candidate.mjs), so each matrix entry
-      # proves the approved digest is reproduced with that Node's bundled npm.
+      # The Node under test also builds and packs the SDK root (scripts/sdk-pin.mjs), so each matrix
+      # entry proves the pinned digest is reproduced with that Node's bundled npm.
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ matrix.node }}

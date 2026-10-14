@@ -24,5 +24,6 @@
 - Archival treats a destination compacted by a concurrent `prune --apply` as moved, so it never
   restores a stale pre-prune copy (with its human link) into active.
 - `openclaw sess doctor` (no network, no secrets). Bundled `sess` skill.
-- Qualified against OpenClaw 2026.10.3 on Node 24 with the candidate `@sess.si/sdk@0.1.0-rc.3`.
-  Release hold: the SDK must be published before this package can be.
+- Qualified against OpenClaw 2026.10.3 on Node 24 with the pinned `@sess.si/sdk` candidate
+  (`release/sdk-candidate.json`, now `0.1.0-rc.4`). Release hold: the SDK must be published before
+  this package can be.

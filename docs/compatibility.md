@@ -1,7 +1,8 @@
 # Compatibility and evidence
 
-SDK version: **0.1.0-rc.4**, an unpublished successor candidate under review (documentation-only
-change from the approved, unpublished **0.1.0-rc.3**). This version is independent of HTTP API
+SDK version: **0.1.0-rc.4**, the first candidate to be published (pinned in
+[release/sdk-candidate.json](../release/sdk-candidate.json)); documentation-only change from
+**0.1.0-rc.3**, which is held and will not be published. This version is independent of HTTP API
 `info.version` 0.1.0 and the runtime's Git commit.
 
 The reviewed snapshot includes authenticated workspace context on owner create/retrieve from runtime

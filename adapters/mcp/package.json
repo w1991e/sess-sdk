@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "@sess.si/sdk": "0.1.0-rc.3"
+    "@sess.si/sdk": "0.1.0-rc.4"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

@@ -11,7 +11,7 @@
 - Owner-private single-profile boundary: handles are bound to profile, API origin and a local
   credential-generation digest; the API key is never stored.
 - Durable per-handle records (write-temp, fsync, rename, directory fsync).
-- Depends on `@sess.si/sdk@0.1.0-rc.3` (unpublished candidate) and `@modelcontextprotocol/sdk@1.32.1`.
+- Depends on the pinned `@sess.si/sdk` candidate (unpublished) and `@modelcontextprotocol/sdk@1.32.1`.
 - Local records use format version 2. A confirmed publish/complete is remembered per answer
   event with its expected revision and publish body digest; only an identical replay is answered
   from it. Records of another format version stop before any request.
@@ -74,3 +74,6 @@
   setting (adds `SESS_EXPECTED_WORKSPACE_ID`, `SESS_RECEIPT_ISSUER`, `SESS_MCP_MAX_WAIT_MS`).
   The release-hold wording matches the lock-switch procedure. `RELEASING.md` warns not to push an
   `mcp-v*` tag before the protected environment and trusted publisher exist.
+- SDK dependency follows the repository's single pin (`release/sdk-candidate.json`), now
+  `@sess.si/sdk@0.1.0-rc.4`; the candidate is packed from the repository root and accepted only with
+  the pinned digests. MCP registry namespace `io.github.w1991e/sess` is owner-approved.

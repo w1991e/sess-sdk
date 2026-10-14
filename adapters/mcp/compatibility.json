@@ -80,20 +80,21 @@
   "untestedClients": ["Cursor", "Claude Desktop", "any other MCP host"],
   "sessSdk": {
     "name": "@sess.si/sdk",
-    "version": "0.1.0-rc.3",
-    "status": "candidate (unpublished)",
-    "sha256": "b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502",
-    "integrity": "sha512-vvFPa7AKr9ivoXu38ZgDxfozvPXhdWMsV/P6R8UkaijmHS0EG2zn6izIixH/DuZN9UHfmC5IHGn43ZoSHebOjw==",
-    "candidatePath": ".candidate/sess.si-sdk-0.1.0-rc.3.tgz",
-    "source": "scripts/rc3-candidate.mjs rebuilds these bytes from the pinned reviewed source commit cea3f1eda448e632d5e3a4e5e717bf4986c0e506 (git archive, npm ci, build, pack)",
-    "releaseHold": "Before publishing @sess.si/mcp, @sess.si/sdk@0.1.0-rc.3 must be genuinely published. Then `npm run sdk:switch-to-registry -- --apply` switches package-lock.json to the registry tarball, accepted only with the pinned integrity and SHA-256, and the lockfile change is reviewed. The digest-gated .candidate mechanism is retained for development; the release workflow refuses candidate mode."
+    "version": "0.1.0-rc.4",
+    "status": "candidate (unpublished); pinned in release/sdk-candidate.json",
+    "sha256": "ba5acbd2ebef5c04123f3d939bcf2165e403beebee08c25e82fd0fd2084d93f1",
+    "integrity": "sha512-aKBkYReXhOUDp0pQf6oSNJ8BRWyoktaOlr8PUqZKv+k0KcuY5uST/gxOfVg6ksx3J0kBijT4nvxq/JdaosfGIA==",
+    "candidatePath": ".candidate/sess.si-sdk-0.1.0-rc.4.tgz",
+    "source": "scripts/sdk-pin.mjs pack: npm pack of the repository root, accepted only if the bytes equal release/sdk-candidate.json",
+    "releaseHold": "Before publishing @sess.si/mcp, the pinned @sess.si/sdk version must be genuinely published with the pinned bytes. Then `npm run sdk:switch-to-registry -- --apply` switches package-lock.json to the registry tarball, accepted only with the pinned integrity and SHA-256, and the lockfile change is reviewed. The digest-gated .candidate mechanism is retained for development; the release workflow refuses candidate mode.",
+    "history": "0.1.0-rc.3 (sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502) was the earlier approved candidate; it is held by owner decision (2026-10-14) and not published. 0.1.0-rc.4 is the first SDK candidate to be published."
   },
   "registry": {
     "serverJson": "server.json",
     "schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
     "name": "io.github.w1991e/sess",
     "validated": "2026-10-14 with ajv against the downloaded 2025-12-11 schema (sha256 3fba09590c99f61735d234822279f4223fab9e300c0a81e81c91ab62a4114de0)",
-    "status": "not submitted; namespace is an owner decision (see RELEASING.md)"
+    "status": "namespace io.github.w1991e/sess approved by the owner (2026-10-14); not submitted"
   },
   "release": {
     "workflow": ".github/workflows/mcp-release.yml",
