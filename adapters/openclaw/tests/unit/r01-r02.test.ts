@@ -2,7 +2,16 @@
 // R-02 (terminal results escaping the final authority guard). Real SDK receipt verifier, synthetic
 // Ed25519-signed receipts, deterministic fake HTTP; only the host boundary is a test double.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { API_KEY, API_KEY_ENV, FakeSess, call, conversation, fixtures, registerPlugin } from './harness.js';
+import {
+  API_KEY,
+  API_KEY_ENV,
+  FakeSess,
+  call,
+  conversation,
+  fixtures,
+  recordRow,
+  registerPlugin,
+} from './harness.js';
 
 let sess: FakeSess;
 beforeEach(() => {
@@ -43,7 +52,7 @@ function advanceToRevision2() {
   sess.surfaces.set(2, fixtures('round-2.json'));
 }
 
-const row = (host: Host, handle: string) => JSON.parse(host.store.rows.get(`i:${handle}`)!);
+const row = (host: Host, handle: string) => recordRow(host, handle);
 
 async function expectNoRelease(promise: Promise<unknown>, code: RegExp) {
   const outcome = await promise.then(
@@ -124,12 +133,14 @@ describe('R-01: after verification, an authenticated current-revision read prece
         throw new TypeError('network down');
       return undefined;
     };
-    const before = row(host, handle);
+    // Byte-level: the stored row must be exactly as before verification (no `answered` persisted).
+    const before = host.store.rows.get(`i:${handle}`);
+    expect(before).toBeDefined();
     await expectNoRelease(
       call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 }),
       /^UNAVAILABLE: /,
     );
-    expect(row(host, handle)).toEqual(before);
+    expect(host.store.rows.get(`i:${handle}`)).toBe(before);
     sess.intercept = undefined;
     const ok = await call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 });
     expect(ok.details.interaction.state).toBe('answered');

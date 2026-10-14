@@ -2,7 +2,8 @@ import { buildJsonPluginConfigSchema, definePluginEntry } from 'openclaw/plugin-
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk/plugin-entry';
 import { createGuardedClient } from './client.js';
 import { CONFIG_JSON_SCHEMA, parseConfig, resolveCredential } from './config.js';
-import { doctorReport } from './doctor.js';
+import { doctorReport, formatCounts, formatPrune } from './doctor.js';
+import { SessAdapterError } from './errors.js';
 import { captureInvocation, type HostToolContext } from './host.js';
 import {
   TOOL_PARAMETERS,
@@ -12,8 +13,17 @@ import {
   parseResponseArgs,
   type ToolName,
 } from './schemas.js';
-import { RecoveryStore, openHostStore, type HostKeyedStore, type HostStateRuntime } from './store.js';
 import {
+  LayoutGate,
+  RecoveryStore,
+  countStates,
+  openHostStores,
+  pruneTerminal,
+  type HostStateRuntime,
+  type HostStores,
+} from './store.js';
+import {
+  REVOKED_AFTER_SAVE,
   sessComplete,
   sessPublish,
   sessRequest,
@@ -46,7 +56,8 @@ function createTool(
   api: OpenClawPluginApi,
   name: ToolName,
   context: HostToolContext,
-  hostStore: () => HostKeyedStore,
+  hostStores: () => HostStores,
+  gate: LayoutGate,
 ) {
   return {
     name,
@@ -62,12 +73,25 @@ function createTool(
       const args = RUNNERS[name].parse(params);
       const config = parseConfig(api.pluginConfig);
       const credential = resolveCredential(config);
-      const store = new RecoveryStore(hostStore(), lease);
+      const store = new RecoveryStore(hostStores(), lease);
+      // Schema upgrade fence: no admission in this Gateway until the layout is current.
+      await gate.ensure(store);
       const client = createGuardedClient(config, credential, lease);
       const outcome = await RUNNERS[name].run({ config, credential, lease, store, client, toolCallId }, args);
       // R-02: the final release boundary re-asserts live authority after every awaited runner, so
       // no result (terminal shortcuts included) escapes a revoked or cancelled invocation.
-      lease.assertCurrent();
+      try {
+        lease.assertCurrent();
+      } catch (error) {
+        // A request result always refers to a created and saved Session: say how to recover it.
+        if (
+          name === 'sess_request' &&
+          error instanceof SessAdapterError &&
+          error.code === 'AUTHORITY_REVOKED'
+        )
+          throw new SessAdapterError('AUTHORITY_REVOKED', REVOKED_AFTER_SAVE);
+        throw error;
+      }
       return {
         content: [{ type: 'text' as const, text: `${outcome.note}\n${JSON.stringify(outcome.result)}` }],
         details: outcome.result,
@@ -83,13 +107,15 @@ export default definePluginEntry({
     'Agents request structured human decisions through hosted SESS interfaces and receive verified answers.',
   configSchema: buildJsonPluginConfigSchema(CONFIG_JSON_SCHEMA as never),
   register(api) {
-    let opened: HostKeyedStore | undefined;
-    const hostStore = () => (opened ??= openHostStore(api.runtime?.state as HostStateRuntime | undefined));
+    let opened: HostStores | undefined;
+    const state = () => api.runtime?.state as HostStateRuntime | undefined;
+    const hostStores = () => (opened ??= openHostStores(state()));
+    const gate = new LayoutGate();
     for (const name of Object.keys(TOOL_PARAMETERS) as ToolName[]) {
       api.registerTool(
         {
           contextVersion: 2,
-          create: (context) => createTool(api, name, context as HostToolContext, hostStore) as never,
+          create: (context) => createTool(api, name, context as HostToolContext, hostStores, gate) as never,
         },
         { name, optional: true },
       );
@@ -102,8 +128,26 @@ export default definePluginEntry({
         root
           .command('doctor')
           .description('Check SESS plugin configuration and host capabilities without contacting SESS')
-          .action(() => {
+          .action(async () => {
             console.log(doctorReport(api.pluginConfig, api.runtime?.state, process.env));
+            try {
+              console.log(formatCounts(await countStates(hostStores())));
+            } catch (error) {
+              console.log(
+                `state counts: unavailable (${error instanceof SessAdapterError ? error.code : 'error'})`,
+              );
+            }
+          });
+        root
+          .command('prune')
+          .description(
+            'Dry-run by default: count terminal records holding a retained human link. With --apply, remove only that link; replay tombstones and non-terminal records are never touched',
+          )
+          .option('--apply', 'compact terminal secret payload (requires this explicit flag)')
+          .action(async (options: { apply?: boolean }) => {
+            console.log(
+              formatPrune(await pruneTerminal(hostStores(), options.apply === true), options.apply === true),
+            );
           });
       },
       { descriptors: [{ name: 'sess', description: 'SESS plugin diagnostics', hasSubcommands: true }] },

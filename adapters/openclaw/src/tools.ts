@@ -99,6 +99,10 @@ function waitingResult(record: RecoveryRecord, includeUrl: boolean): AdapterResu
   };
 }
 
+/** AUTHORITY_REVOKED wording once a Session is created and saved (redelivery is the only safe path). */
+export const REVOKED_AFTER_SAVE =
+  'A SESS Session was created and saved, but this invocation was revoked before its result could be returned. Redeliver the original host call to read it; a new sess_request would create a second Session.';
+
 const LINK_NOTE =
   'Present the humanUrl privately to the intended person. Anyone with the link can answer as its holder; form contents are hosted by SESS. Call sess_response to wait only if the link has visibly reached the person; otherwise end your turn and call sess_response with this handle and revision when asked to continue.';
 
@@ -190,7 +194,7 @@ export async function sessRequest(deps: InvocationDeps, args: RequestArgs): Prom
   const now = new Date().toISOString();
   const intent: RecoveryRecord = {
     kind: 'interaction',
-    schema: 1,
+    schema: 2,
     handle: `ih_${random(deps, 18)}`,
     binding: deps.lease.binding,
     origin: deps.config.baseUrl,
@@ -257,7 +261,11 @@ export async function sessRequest(deps: InvocationDeps, args: RequestArgs): Prom
       'A SESS Session was created but could not be saved locally. Do not repeat this request; ask the operator to resolve it.',
     );
   }
-  deps.lease.assertCurrent();
+  try {
+    deps.lease.assertCurrent();
+  } catch {
+    fail('AUTHORITY_REVOKED', REVOKED_AFTER_SAVE);
+  }
   return {
     result: waitingResult(waiting, true),
     note: defect
