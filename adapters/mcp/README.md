@@ -88,6 +88,32 @@ creates another Session. Errors are MCP tool errors (`isError: true`) with a sta
 example `INVALID_ARGUMENTS`, `HANDLE_NOT_FOUND`, `BINDING_MISMATCH`, `CREATE_OUTCOME_UNKNOWN`,
 `VERIFICATION_FAILED`, `OUTCOME_UNKNOWN` or `RECOVERY_BLOCKED`.
 
+### Error classes
+
+Codes map to the shared adapter error classes (`adapters/CONTRACT.md`, "Error classes"):
+
+| Code                                                                                                      | Class                           | Retry?                                  |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------- | --------------------------------------- |
+| `INVALID_ARGUMENTS`                                                                                       | `invalid_arguments`             | Fix the arguments                       |
+| `HANDLE_NOT_FOUND`, `BINDING_MISMATCH`                                                                    | `not_found`                     | No (other profile, origin or key)       |
+| `REVISION_MISMATCH`, `RESPONSE_MISMATCH`, `PENDING_MUTATION_DIFFERS`, `MUTATION_PENDING`, `INVALID_STATE` | `conflict`                      | Follow the message; nothing was sent    |
+| `CREATE_REJECTED`                                                                                         | `create_rejected`               | No; no Session exists                   |
+| `CREATE_OUTCOME_UNKNOWN`                                                                                  | `create_unknown`                | No; owner resolution                    |
+| `CREATED_NOT_SAVED`                                                                                       | `created_not_saved`             | No; a Session exists                    |
+| `OUTCOME_UNKNOWN`                                                                                         | `outcome_unknown`               | Yes, repeat the identical call          |
+| `MUTATION_REJECTED`                                                                                       | `mutation_rejected` (blocked)   | No; owner resolution                    |
+| `VERIFICATION_FAILED`                                                                                     | `verification_failed` (blocked) | No; owner resolution                    |
+| `RECOVERY_BLOCKED`                                                                                        | `blocked`                       | No; owner resolution                    |
+| `SESS_UNAVAILABLE`                                                                                        | `unavailable`                   | Yes, later; nothing changed             |
+| `NOT_CONFIGURED`                                                                                          | `configuration`                 | After the owner fixes the configuration |
+| `STATE_STORE_ERROR`, `STATE_STORE_FULL`                                                                   | `store`                         | Owner checks the state directory        |
+
+Receipt verification is classified by the shared core (`src/internal/shared.ts`, a byte-identical
+copy of `adapters/shared/core.ts`): a key-set fetch failure or refresh cooldown is
+`SESS_UNAVAILABLE`; a missing trusted workspace (`VERIFICATION_CONTEXT_MISSING`) is
+`NOT_CONFIGURED` naming `SESS_EXPECTED_WORKSPACE_ID`. Neither records anything or changes state.
+Every other verification failure blocks.
+
 ## Configuration (environment of the server process only)
 
 | Variable                                 | Meaning                                                                                                                                           |
@@ -130,6 +156,11 @@ example `INVALID_ARGUMENTS`, `HANDLE_NOT_FOUND`, `BINDING_MISMATCH`, `CREATE_OUT
   resources or prompts. One server process per profile is supported; concurrent processes on the
   same profile are not coordinated. Rotating the key makes earlier handles unusable
   (`BINDING_MISMATCH`). The browser may still need a manual refresh between rounds.
+- **Receipt-key rotation window.** The SDK refreshes its cached receipt key set at most once per
+  10 seconds. If SESS starts signing with a new key and an answer signed with it is verified
+  within 10 seconds of this server's previous key-set fetch, the SDK reports `UNKNOWN_KEY_ID`, and
+  the interaction is blocked (`VERIFICATION_FAILED`) even though the answer may be valid. Use the
+  owner procedure below; fixing this needs an SDK change.
 
 ## Resolving a blocked or unconfirmed interaction (owner procedure)
 

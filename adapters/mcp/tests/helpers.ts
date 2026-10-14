@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { Sess } from '@sess.si/sdk';
 import type { AdapterConfig } from '../src/config.js';
 import { SessMcpAdapter, type SessClient } from '../src/operations.js';
-import { canonicalJson, type JsonValue } from '../src/validate.js';
+import { canonicalJson } from '../src/internal/shared.js';
 
 export const ORIGIN = 'https://api.sess.test';
 // Synthetic, never a real credential format.
@@ -58,6 +58,8 @@ export class FakeSess {
   /** Set to make the next matching request fail at the network level after (or before) applying. */
   failNext: { method: string; pathSuffix: string; apply: boolean } | undefined;
   createFailure: 'network' | 'reject' | undefined;
+  /** An older runtime does not return the authenticated Sess-Workspace-Id header. */
+  workspaceHeader = true;
   /** Answer the next matching request with this HTTP error, without applying it. */
   rejectNext: { method: string; pathSuffix: string; status: number; code: string } | undefined;
   /** Runs once, before the next GET of the Session is served (to stage interleavings). */
@@ -71,16 +73,18 @@ export class FakeSess {
   #receiptKey = generateKeyPairSync('ed25519');
 
   /** Records an accepted answer with a genuinely signed receipt (the SDK verifies it fully). */
-  answerSigned(data: Json, actionId = 'submit'): string {
+  answerSigned(
+    data: Json,
+    actionId = 'submit',
+    options: { kid?: string; privateKey?: import('node:crypto').KeyObject } = {},
+  ): string {
     const s = this.session!;
     const eventId = `evt_0000000000000000000000000${s.responses.length + 1}`;
     const acceptedMillis = Math.floor(Date.now() / 1000) * 1000 - 1000;
     const acceptedAt = new Date(acceptedMillis).toISOString();
     const action = (s.interaction.actions as Json[]).find((a) => a.id === actionId)!;
     const digest = (value: unknown) =>
-      `sha256:${createHash('sha256')
-        .update(canonicalJson(value as JsonValue))
-        .digest('hex')}`;
+      `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
     const workspace = 'wks_synthetic';
     const claims = {
       sess_receipt: 1,
@@ -100,11 +104,11 @@ export class FakeSess {
       actor: { assurance: 'link_holder', subject: `${workspace}:human_link:${s.id}` },
       return_binding: { recipient: workspace, return_channel_id: null },
     };
-    const header = { alg: 'EdDSA', kid: 'test-receipt-1', typ: 'sess-receipt+jwt' };
+    const header = { alg: 'EdDSA', kid: options.kid ?? 'test-receipt-1', typ: 'sess-receipt+jwt' };
     const input = `${Buffer.from(JSON.stringify(header)).toString('base64url')}.${Buffer.from(
-      canonicalJson(claims as JsonValue),
+      canonicalJson(claims),
     ).toString('base64url')}`;
-    const receipt = `${input}.${sign(null, Buffer.from(input), this.#receiptKey.privateKey).toString('base64url')}`;
+    const receipt = `${input}.${sign(null, Buffer.from(input), options.privateKey ?? this.#receiptKey.privateKey).toString('base64url')}`;
     return this.answer(data, actionId, receipt, acceptedAt);
   }
 
@@ -134,7 +138,11 @@ export class FakeSess {
   #json(status: number, body: unknown, headers: Record<string, string> = {}): Response {
     return new Response(JSON.stringify(body), {
       status,
-      headers: { 'content-type': 'application/json', 'sess-workspace-id': 'wks_synthetic', ...headers },
+      headers: {
+        'content-type': 'application/json',
+        ...(this.workspaceHeader ? { 'sess-workspace-id': 'wks_synthetic' } : {}),
+        ...headers,
+      },
     });
   }
 
@@ -254,6 +262,8 @@ export function clientFor(
       baseUrl: config.origin,
       fetch: fake.fetch as typeof fetch,
       maxRetries: 0,
+      ...(config.expectedWorkspaceId ? { expectedWorkspaceId: config.expectedWorkspaceId } : {}),
+      ...(config.receiptIssuer ? { receiptIssuer: config.receiptIssuer } : {}),
     });
     return { sessions: sess.sessions, receipts: verify ? { verifyResponse: verify } : sess.receipts };
   };

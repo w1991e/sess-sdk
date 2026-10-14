@@ -57,13 +57,39 @@ const install = await installPacked();
 const { packed, tarball, consumer, binPath, installed } = install;
 assert(packed.id === `${manifest.name}@${manifest.version}`, 'npm pack identity drift');
 const allowed =
-  /^(?:dist\/[a-z-]+\.js|README\.md|CHANGELOG\.md|LICENSE|NOTICE|compatibility\.json|package\.json)$/;
+  /^(?:dist\/(?:internal\/)?[a-z-]+\.js|README\.md|CHANGELOG\.md|LICENSE|NOTICE|compatibility\.json|package\.json)$/;
 for (const file of packed.files) assert(allowed.test(file.path), `unexpected tarball file: ${file.path}`);
-for (const required of ['dist/bin.js', 'dist/server.js', 'README.md', 'LICENSE', 'NOTICE', 'CHANGELOG.md'])
+for (const required of [
+  'dist/bin.js',
+  'dist/server.js',
+  'dist/internal/shared.js',
+  'README.md',
+  'LICENSE',
+  'NOTICE',
+  'CHANGELOG.md',
+])
   assert(
     packed.files.some((f) => f.path === required),
     `missing ${required}`,
   );
+// Import boundary: shipped modules import only Node built-ins, their own relative files, the MCP
+// library and the SESS SDK. The vendored shared core is a package file; no sibling adapter path
+// (../shared, adapters/, openclaw) is ever imported at runtime.
+for (const file of packed.files.filter((f) => f.path.endsWith('.js'))) {
+  const text = await readFile(join(installed, file.path), 'utf8');
+  for (const [, specifier] of text.matchAll(
+    /(?:^|\n)\s*(?:import|export)[^'"\n]*?from\s*['"]([^'"]+)['"]/g,
+  )) {
+    const ok =
+      specifier.startsWith('node:') ||
+      (/^\.\.?\//.test(specifier) &&
+        resolve(dirname(join(installed, file.path)), specifier).startsWith(join(installed, 'dist'))) ||
+      specifier.startsWith('@modelcontextprotocol/sdk/') ||
+      specifier === '@sess.si/sdk';
+    assert(ok, `${file.path} imports outside the package boundary: ${specifier}`);
+  }
+  assert(!/openclaw|adapters\/shared/i.test(text), `${file.path} references a sibling adapter`);
+}
 const state = await mkdtemp(join(tmpdir(), 'sess-mcp-state-'));
 try {
   const installedManifest = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'));
@@ -190,6 +216,7 @@ process.env = env;
       'installed bin initialize + tools/list via official MCP client',
       'unconfigured call fails closed without writing state',
       'server-side rejection of __proto__ and unknown argument keys',
+      'import boundary: node:, own relative files, MCP library and SESS SDK only',
     ],
   };
   await writeFile(join(adapter, '.artifacts', 'package-result.json'), `${JSON.stringify(result, null, 2)}\n`);
