@@ -158,3 +158,19 @@ describe('OC-09/OC-39 owner-controlled origin and credentials', () => {
     expect(guarded.refused()).toBe(true);
   });
 });
+
+describe('peer, engines and types metadata match qualification', () => {
+  it('declares only the qualified host, the qualified Node floor and no TypeScript declarations', () => {
+    expect(pkg.peerDependencies).toEqual({ openclaw: '2026.10.3' });
+    expect(pkg.engines).toEqual({ node: '>=24.16.0 <25' });
+    expect(pkg.types).toBeUndefined();
+    expect(JSON.stringify(pkg.exports)).not.toMatch(/types|\.d\.ts/);
+    expect(pkg.openclaw.compat.pluginApi).toBe('>=2026.10.3');
+    expect(pkg.openclaw.install.minHostVersion).toBe('>=2026.10.3');
+  });
+
+  it('doctor flags any host version other than the qualified one', () => {
+    expect(doctorReport({}, undefined, {}, '2026.10.3')).toMatch(/host: OpenClaw 2026\.10\.3 \(qualified\)/);
+    expect(doctorReport({}, undefined, {}, '2026.11.0')).toMatch(/not a qualified version; only 2026\.10\.3/);
+  });
+});

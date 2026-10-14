@@ -12,16 +12,18 @@
     "integrity": "sha512-ncl6LntMlf76K39LFhVrDXQTbaGNAG5j52f7PL5P8vIn0knWmCrvfAe9DHMslFq+47HeOWBH2CBYQH8zEb+UAA==",
     "shasum": "789ced199b21c620c47cc502cd4c8ccd880f0ed4",
     "hostEngines": ">=24.16.0 <25 || >=26.1.0",
-    "peerDeclaration": "peerDependencies.openclaw = 2026.10.3 (exact); openclaw.compat.pluginApi and install.minHostVersion = >=2026.10.3"
+    "peerDeclaration": "peerDependencies.openclaw = 2026.10.3 (exact; only qualified release). openclaw.compat.pluginApi and openclaw.install.minHostVersion are floors because the host only accepts floor syntax there; newer hosts are NOT qualified and openclaw sess doctor warns on any host version other than 2026.10.3."
   },
   "toolchain": {
-    "node": "24.21.0",
-    "npm": "11.19.0",
-    "qualifiedPlatforms": [
-      "darwin-arm64 (local G0/G1)",
-      "linux-x64 (openclaw-ci package and host-install job; pending first CI run)"
-    ],
-    "notQualified": ["Node 26", "Windows/WSL", "Node 24 versions below 24.21.0"]
+    "node": "24.21.0 (full qualification incl. isolated-runtime round); 24.16.0 (declared floor: unit, packed artifact, real host install and setup)",
+    "npm": "11.19.0 (with Node 24.21.0); 11.13.0 bundled with Node 24.16.0",
+    "engines": ">=24.16.0 <25",
+    "qualifiedPlatforms": ["darwin-arm64 (local)", "linux-x64 (openclaw-ci, Node 24.21.0)"],
+    "notQualified": [
+      "Node 22.x: the qualified host requires Node >=24.16.0, so the plugin cannot run there",
+      "Node 26",
+      "Windows/WSL"
+    ]
   },
   "sdk": {
     "dependency": "@sess.si/sdk@0.1.0-rc.3 (exact, production)",
@@ -90,8 +92,8 @@
     }
   },
   "profiles": {
-    "owner-private-tools-invoke": "qualified for G1 (deterministic host invocation, no LLM)",
-    "agent-turn-control-ui": "NOT qualified (requires model turn; reset/incarnation and early-link checks pending)",
+    "direct-invoke (Gateway POST /tools/invoke, deterministic)": "QUALIFIED: the only qualified profile (G1 rounds, upgrade, late replay, downgrade fence)",
+    "agent-turn (Control UI / chat channel, model-driven)": "NOT QUALIFIED until the funded model-turn run: early in-chat link delivery, normal-chat continuation, reset/incarnation rejection (OC-18), tools.alsoAllow exposure to the model, two simultaneous conversations",
     "shared-or-group-channels": "not supported"
   },
   "waitBudget": {
@@ -158,5 +160,6 @@
     "errorClasses": "README.md Errors table (tested)",
     "answerRelease": "After receipt verification, an authenticated current-revision read precedes any answer release; failed read -> unavailable; progress -> blocked; concurrent local change -> conflict; no answer data released (review R-01, tests/unit/r01-r02.test.ts).",
     "resultRelease": "The tool execute boundary re-asserts the live invocation lease after every awaited runner (review R-02)."
-  }
+  },
+  "types": "No TypeScript declarations are exported: the package's only export is the plugin entry, loaded by the OpenClaw host; there is no programmatic API, so no consumer types are published and none depend on private host types."
 }

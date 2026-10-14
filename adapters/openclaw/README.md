@@ -55,6 +55,21 @@ Configuration (`plugins.entries.sess.config`), all owner-controlled and never ta
 `openclaw sess doctor` checks configuration, the host version and host capability without
 contacting SESS and without printing secrets.
 
+## Support status
+
+| Profile                                                     | Status                                                      |
+| ----------------------------------------------------------- | ----------------------------------------------------------- |
+| Direct invoke (Gateway `POST /tools/invoke`, deterministic) | Qualified on OpenClaw 2026.10.3, Node 24.21.0 (and 24.16.0) |
+| Agent turn (Control UI or chat channel, model-driven)       | Not yet qualified; pending the model-turn qualification run |
+| Shared or group conversations                               | Not supported                                               |
+
+Only OpenClaw 2026.10.3 is qualified. The package metadata can only express a minimum host version,
+so `openclaw sess doctor` warns on any other host version. Node 22 is not supported because the
+qualified host itself requires Node 24.16 or later.
+
+The package exports no TypeScript declarations: its only export is the plugin entry that OpenClaw
+loads, and it has no programmatic API.
+
 ## First interaction
 
 **Qualification status.** The tested profile is deterministic tool invocation through the
