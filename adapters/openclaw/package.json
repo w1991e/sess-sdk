@@ -1,0 +1,72 @@
+{
+  "name": "@sess.si/openclaw",
+  "version": "0.1.0-rc.1",
+  "description": "SESS for OpenClaw, maintained by SESS: an agent requests a decision, a person answers in a hosted SESS interface, and the verified answer returns to the agent.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/w1991e/sess-sdk.git",
+    "directory": "adapters/openclaw"
+  },
+  "bugs": {
+    "url": "https://github.com/w1991e/sess-sdk/issues"
+  },
+  "homepage": "https://github.com/w1991e/sess-sdk/tree/master/adapters/openclaw#readme",
+  "engines": {
+    "node": ">=24.16.0 <25"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "openclaw.plugin.json",
+    "skills/",
+    "compatibility.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.check.json --noEmit",
+    "test": "vitest run",
+    "check:package": "node scripts/check-package.mjs",
+    "check": "npm run build && npm run typecheck && npm test && npm run check:package"
+  },
+  "dependencies": {
+    "@sess.si/sdk": "0.1.0-rc.3"
+  },
+  "peerDependencies": {
+    "openclaw": "2026.10.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "openclaw": "2026.10.3",
+    "typescript": "5.9.3",
+    "vitest": "5.0.4"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.10.3"
+    },
+    "build": {
+      "openclawVersion": "2026.10.3",
+      "pluginSdkVersion": "2026.10.3"
+    },
+    "install": {
+      "minHostVersion": ">=2026.10.3"
+    }
+  }
+}
