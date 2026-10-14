@@ -74,7 +74,7 @@
         "plugin reload (plugins reload sess) keeps records and re-admits the same binding",
         "host aborts the tool signal when the caller disconnects; polling stops"
       ],
-      "gap": "Reset rejection NOT demonstrated: on 2026.10.3 both sessions.reset and a /reset chat command kept sessionId for a transcript-less dashboard session (only lifecycleRevision, which tool contexts do not expose, changed). /tools/invoke supplies no memoryAudience/assertMemoryAudienceCurrent. Host docs state sessionId is regenerated on /new and /reset for chat sessions; that path needs an agent-turn qualification (requires a model turn, not authorized here). Revocation-mid-wait rejection is unit-tested only."
+      "gap": "Reset rejection NOT demonstrated: on 2026.10.3 both sessions.reset and a /reset chat command kept sessionId for a transcript-less dashboard session (only lifecycleRevision, which tool contexts do not expose, changed). /tools/invoke supplies no memoryAudience/assertMemoryAudienceCurrent. Host docs state sessionId is regenerated on /new and /reset for chat sessions; the funded agent-turn qualification (agentTurnQualification.items.resetIncarnationRejection_OC18) found that /new keeps sessionId even with a transcript, so OC-18 FAILS on this host. Revocation-mid-wait rejection is unit-tested only."
     },
     "3_durableState": {
       "verdict": "PASS (pressure test NOT RUN)",
@@ -99,7 +99,7 @@
   },
   "profiles": {
     "direct-invoke (Gateway POST /tools/invoke, deterministic)": "QUALIFIED (G1 rounds, upgrade, late replay, downgrade fence)",
-    "agent-turn, dashboard conversation (Control UI / webchat), Code Mode, anthropic/claude-sonnet-5-5": "QUALIFIED WITH A LIMITATION: early link, live and next-turn continuation, alsoAllow exposure and two simultaneous conversations PASS; reset/incarnation rejection (OC-18) FAILS on this host because /new keeps the sessionId",
+    "agent-turn, dashboard conversation (Control UI / webchat), Code Mode, anthropic/claude-sonnet-5-5": "PARTIALLY QUALIFIED (OC-18 FAILS): early link, live and next-turn continuation, alsoAllow exposure and two simultaneous conversations PASS with sess_request/sess_response; sess_publish/sess_complete qualified on direct invoke only (not called in the funded turns); reset/incarnation rejection (OC-18) FAILS on this host because /new and sessions.reset keep the sessionId",
     "agent-turn on messaging channels (Telegram, Slack, ...)": "NOT QUALIFIED",
     "shared-or-group-channels": "not supported"
   },
@@ -164,7 +164,8 @@
     "Retained archive grows with terminal interactions; claims are never deleted (prune compacts terminal links only)",
     "G2: one outstanding request per conversation is not enforced; only repeated delivery of the same host tool call is deduplicated",
     "G2: store capacity pressure, uninstall/reinstall and fault-injection beyond unit tests are not qualified",
-    "Agent-turn use (Control UI/chat channels) is unqualified: early link visibility, host tool timeout and reset incarnation (OC-18) need a model-driven run",
+    "Dashboard (Control UI) agent turns: early link, live and next-turn continuation, alsoAllow exposure and two simultaneous conversations PASS; reset incarnation (OC-18) FAILS (a reset does not isolate pending SESS work); sess_publish/sess_complete not exercised in a model-driven turn",
+    "Agent turns on messaging channels (Telegram, Slack, ...) are not qualified",
     "Tool enablement guidance uses tools.alsoAllow (additive) rather than tools.allow (restrictive)"
   ],
   "contract": {
@@ -179,7 +180,7 @@
     "date": "2026-10-14",
     "artifact": {
       "adapter": "@sess.si/openclaw 0.1.0-rc.1 packed from sess-sdk 3dbd7fd239a9a91c9e7b97b55d99dd1e413e8d2b, sha256 ddfd1374acc93bc37da00dbcb5bca3517f02306b142d5bc0f0b8db8ccb9f7f73",
-      "sdk": "@sess.si/sdk 0.1.0-rc.3 CANDIDATE bytes, sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502 (rc.4, the first planned publication, differs only in README/version/notice; library code identical)",
+      "sdk": "@sess.si/sdk 0.1.0-rc.3 CANDIDATE bytes, sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502 (rc.4, the first planned publication, sha256 ccdc01216bdff99f5ac07ef1a7d0bd47134984869071fc2b2792401f3641fb2c, was packed from the pin and compared file by file: dist/ (72 files) and src/ are byte-identical; only CHANGELOG.md, NOTICE, README.md and package.json differ, and package.json differs only in version and the check/check:pin/pin:update scripts; dependencies identical)",
       "host": "openclaw@2026.10.3 (59cb447), integrity sha512-ncl6LntMlf76K39LFhVrDXQTbaGNAG5j52f7PL5P8vIn0knWmCrvfAe9DHMslFq+47HeOWBH2CBYQH8zEb+UAA==",
       "runtime": "isolated local SESS runtime from sess e63d007485d225e9038b51452b4167de7921e6a0 (port 18082, synthetic keys, disposable Postgres 16.15)",
       "knownIssue": "setup preview omits plugins.entries.sess.enabled when the authored value is unset (apply still writes it); for this run the plugin was re-enabled with `openclaw plugins enable sess` after setup had already been applied"

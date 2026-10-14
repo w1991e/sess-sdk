@@ -61,14 +61,16 @@ contacting SESS and without printing secrets.
 | Profile                                                     | Status                                                      |
 | ----------------------------------------------------------- | ----------------------------------------------------------- |
 | Direct invoke (Gateway `POST /tools/invoke`, deterministic) | Qualified on OpenClaw 2026.10.3, Node 24.21.0 (and 24.16.0) |
-| Agent turn in a dashboard conversation (Control UI)         | Qualified with a limitation (see below)                     |
+| Agent turn in a dashboard conversation (Control UI)         | Partially qualified (OC-18 fails, see below)                |
 | Agent turn on messaging channels (Telegram, Slack, ...)     | Not qualified                                               |
 | Shared or group conversations                               | Not supported                                               |
 
 Agent-turn qualification (OpenClaw 2026.10.3, `anthropic/claude-sonnet-5-5`, Code Mode, 2026-10-14):
-the private link appeared in the conversation before the blocking wait, a verified answer came back
-both during a live wait and in a later normal chat turn, `openclaw sess setup` exposed the tools to
-the model through `tools.alsoAllow`, and two simultaneous conversations stayed isolated.
+the private link was observed in the conversation (via `chat.history`) while the wait was still
+blocking, a verified answer came back both during a live wait and in a later normal chat turn, `openclaw sess setup` exposed the tools to
+the model through `tools.alsoAllow`, and two simultaneous conversations stayed isolated. These turns
+used `sess_request` and `sess_response` only; `sess_publish` and `sess_complete` are qualified on
+direct invoke, not in a model-driven turn.
 **Limitation:** on this host `/new` keeps the conversation's session ID, so a reset does **not**
 make an earlier SESS handle unusable in that conversation (OC-18 fails). Treat a reset as the same
 conversation for SESS purposes. In Code Mode the model awaits a long `sess_response` with the host
@@ -84,10 +86,12 @@ loads, and it has no programmatic API.
 
 ## First interaction
 
-**Qualification status.** See [Support status](#support-status): this flow is qualified for direct
-invoke and for model-driven turns in a dashboard (Control UI) conversation, where the link was
-observed in the conversation while the same turn was still waiting. It is not qualified on
-messaging channels.
+**Qualification status.** See [Support status](#support-status): the whole flow is qualified for
+direct invoke. In model-driven turns in a dashboard (Control UI) conversation, only steps 1 and 2
+are qualified (request, a live wait, and continuation in a later turn); the link was observed via
+`chat.history` while the same turn was still waiting. Steps 3 (`sess_publish`, `sess_complete`)
+were not exercised in a model-driven turn, and reset isolation fails (OC-18). It is not qualified
+on messaging channels.
 
 Ask: _"Use SESS to ask me which afternoon activity I prefer and how much time I have. Then
 propose a plan from my answer. Use illustrative conditions, not a live forecast."_
@@ -110,9 +114,10 @@ agent to continue the same SESS interaction. The agent is not woken up automatic
   Session, revision, event and immutable Surface. A failed verification is never used.
 - A handle works only in the conversation that created it: the host-provided agent, session key
   and session ID must all match. Tools never accept origins, keys, workspace IDs or raw Session
-  IDs. Rejection after a session reset (OC-18) is **not yet qualified** on OpenClaw 2026.10.3:
-  a reset of a session without a transcript kept its session ID in testing, so the old handle
-  stayed usable in that conversation.
+  IDs. Rejection after a session reset (OC-18) **fails** on OpenClaw 2026.10.3: `/new` and
+  `sessions.reset` keep the session ID even for a conversation with a transcript (only a
+  lifecycle revision that tools cannot see changes), and the old handle was still accepted after
+  `/new`. A reset does not isolate pending SESS work; treat it as the same conversation.
 - Every request re-checks the host's live invocation authority before it is sent, including
   retries. Interaction state is kept in OpenClaw's durable plugin state before any write.
 - A lost create is never retried automatically; a lost publish/complete is replayed only with
