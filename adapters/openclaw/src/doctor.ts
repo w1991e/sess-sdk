@@ -1,5 +1,6 @@
 import { parseConfig } from './config.js';
 import { SessAdapterError } from './errors.js';
+import type { PruneReport, StateCounts } from './store.js';
 
 export const PLUGIN_VERSION = '0.1.0-rc.1';
 export const QUALIFIED_HOST = '2026.10.3';
@@ -32,4 +33,27 @@ export function doctorReport(
   );
   lines.push('network: not contacted by doctor');
   return lines.join('\n');
+}
+
+const line = (label: string, counts: Record<string, number>) =>
+  `${label}: ${
+    Object.entries(counts)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}=${v}`)
+      .join(', ') || 'empty'
+  }`;
+
+/** Redacted state counts: kinds and states only. */
+export function formatCounts(counts: StateCounts): string {
+  return [
+    line('active interactions (admission-limited)', counts.active),
+    line('archive (terminal records and replay tombstones)', counts.archive),
+    line('legacy layout', counts.legacy),
+  ].join('\n');
+}
+
+export function formatPrune(report: PruneReport, applied: boolean): string {
+  return applied
+    ? `prune: compacted ${report.compacted} of ${report.eligible} terminal records (removed retained human links); conflicts ${report.conflicts}; replay tombstones untouched`
+    : `prune (dry run): ${report.eligible} terminal records hold a retained human link; rerun with --apply to remove only those links`;
 }
