@@ -172,7 +172,7 @@ blocks like a definitive rejection.
   for your own private client. Handles are bound to the profile, API origin and a credential
   generation (a keyed digest stored per profile; the key itself is never written). A handle from
   another profile, origin or key is rejected.
-- **The human link is a bearer capability.** It is returned only by `sess_request`, to your private
+- **The human link is a bearer capability.** It is returned only by `sess_request` (or its shortcut `sess_ask`), to your private
   client. It is never written to stderr diagnostics, which carry only fixed event names and codes.
   Anyone with the link can answer as `link_holder`.
 - **Durable local records.** Each handle has a file (mode 0600) written by temp file, fsync, rename

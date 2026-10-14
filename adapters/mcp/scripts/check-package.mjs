@@ -136,10 +136,12 @@ process.env = new Proxy(env, { get: (t, k) => { if (typeof k === 'string' && k.s
 const { createRequire, syncBuiltinESMExports } = await import('node:module');
 const { fileURLToPath } = await import('node:url');
 const promises = createRequire(import.meta.url)('node:fs/promises');
-const moduleRoot = fileURLToPath(new URL('./node_modules/', import.meta.url));
+const { resolve: resolvePath, sep } = await import('node:path');
+// Normalize before the prefix check so a path such as node_modules/../secret cannot pass.
+const moduleRoot = resolvePath(fileURLToPath(new URL('./node_modules/', import.meta.url))) + sep;
 const originalReadFile = promises.readFile;
 promises.readFile = (path, ...rest) => {
-  const text = path instanceof URL ? fileURLToPath(path) : String(path);
+  const text = resolvePath(path instanceof URL ? fileURLToPath(path) : String(path));
   if (text.startsWith(moduleRoot) && /\.(?:[cm]?js|json)$/.test(text)) return originalReadFile(path, ...rest);
   throw new Error('Unexpected import-time state file access: read');
 };
@@ -215,11 +217,24 @@ process.env = env;
     'unknown key accepted',
   );
 
+  // Source identity of the tested bytes; the release workflow requires the tag commit and a clean tree.
+  const git = (args) => {
+    try {
+      return run('git', args, adapter).trim();
+    } catch {
+      return null; // a downloaded source archive may have no Git metadata; release CI requires it
+    }
+  };
+  const porcelain = git(['status', '--porcelain', '--untracked-files=all']);
   const result = {
     name: manifest.name,
     version: manifest.version,
-    status: 'candidate',
+    status: install.sdkMode === 'registry' ? 'registry SDK dependency' : 'candidate',
+    sdkMode: install.sdkMode,
+    sourceCommit: git(['rev-parse', 'HEAD']),
+    sourceTreeDirty: porcelain === null ? null : porcelain.length !== 0,
     filename: packed.filename,
+    tarball: `.artifacts/${packed.filename}`,
     sha256: createHash('sha256')
       .update(await readFile(tarball))
       .digest('hex'),
