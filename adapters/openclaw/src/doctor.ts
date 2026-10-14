@@ -13,8 +13,15 @@ export function doctorReport(
   rawConfig: unknown,
   state: unknown,
   env: Readonly<Record<string, string | undefined>>,
+  hostVersion?: string,
 ): string {
   const lines = [`SESS for OpenClaw ${PLUGIN_VERSION} (qualified host: OpenClaw ${QUALIFIED_HOST})`];
+  if (typeof hostVersion === 'string')
+    lines.push(
+      hostVersion === QUALIFIED_HOST
+        ? `host: OpenClaw ${hostVersion} (qualified)`
+        : `warning: host OpenClaw ${hostVersion} is not a qualified version; only ${QUALIFIED_HOST} has been tested`,
+    );
   try {
     const config = parseConfig(rawConfig);
     lines.push(`config: valid; SESS origin ${config.baseUrl}; wait budget ${config.waitBudgetMs} ms`);
@@ -29,7 +36,7 @@ export function doctorReport(
   const keyed = typeof (state as { openKeyedStore?: unknown } | undefined)?.openKeyedStore === 'function';
   lines.push(`durable plugin state: ${keyed ? 'available' : 'NOT available'}`);
   lines.push(
-    'tools: optional; add sess_request, sess_response, sess_publish and sess_complete to tools.alsoAllow (keep any existing entries; do not replace tools.allow)',
+    'tools: optional; add sess_request, sess_response, sess_publish and sess_complete to tools.alsoAllow (keep any existing entries; do not replace tools.allow), or preview with: openclaw sess setup',
   );
   lines.push('network: not contacted by doctor');
   return lines.join('\n');

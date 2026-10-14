@@ -305,7 +305,7 @@ export interface FakeHost {
   legacy: FakeKeyedStore;
   stores: Map<string, FakeKeyedStore>;
   tools: Map<string, { create: (ctx: unknown) => any }>;
-  cli: { registrar: (ctx: unknown) => void }[];
+  cli: { registrar: (ctx: any) => void }[];
   openCount: number;
 }
 
@@ -333,6 +333,7 @@ export function fakeState(capacityOverride: Record<string, number> = {}) {
 export async function registerPlugin(
   pluginConfig: Record<string, unknown> = { baseUrl: ORIGIN, apiKeyEnv: API_KEY_ENV, waitBudgetMs: 1000 },
   state = fakeState(),
+  runtimeExtras: Record<string, unknown> = {},
 ) {
   const entry = (await import('../../src/index.js')).default as { register: (api: unknown) => void };
   const tools = new Map();
@@ -342,6 +343,7 @@ export async function registerPlugin(
     id: 'sess',
     pluginConfig,
     runtime: {
+      ...runtimeExtras,
       state: {
         openKeyedStore: (options: { namespace: string; maxEntries?: number; retention?: string }) => {
           openCount++;

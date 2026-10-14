@@ -342,8 +342,30 @@ console.log(JSON.stringify({ id: entry.id, tools, cli, opened, attempts, reads }
       /active interactions .*: empty/.test(doctor) && /archive .*: empty/.test(doctor),
       'doctor state counts',
     );
+    // Consent-driven setup through the real host CLI: preview writes nothing, --yes is additive
+    // (an existing alsoAllow entry and an unrelated setting survive), a re-run is a no-op.
+    await openclaw(['config', 'set', 'tools.alsoAllow', '["lobster"]', '--strict-json']);
+    await openclaw(['config', 'set', 'gateway.port', '18998', '--strict-json']);
+    const configPath = join(home, '.openclaw/openclaw.json');
+    const beforeSetup = readFileSync(configPath, 'utf8');
+    const preview = await openclaw(['sess', 'setup']);
+    assert(/preview \(nothing written/.test(preview), 'setup preview');
+    assert(readFileSync(configPath, 'utf8') === beforeSetup, 'setup preview wrote config');
+    const applied = await openclaw(['sess', 'setup', '--yes']);
+    assert(/openclaw gateway restart/.test(applied), 'setup restart instruction');
+    const written = JSON.parse(readFileSync(configPath, 'utf8'));
+    assert(
+      JSON.stringify(written.tools?.alsoAllow) ===
+        JSON.stringify(['lobster', 'sess_request', 'sess_response', 'sess_publish', 'sess_complete']) &&
+        written.gateway?.port === 18998 &&
+        written.plugins?.entries?.sess?.enabled === true &&
+        written.plugins?.entries?.sess?.config?.apiKeyEnv === 'SESS_API_KEY',
+      `setup result ${JSON.stringify({ alsoAllow: written.tools?.alsoAllow, sess: written.plugins?.entries?.sess })}`,
+    );
+    assert(/no changes needed/.test(await openclaw(['sess', 'setup'])), 'setup re-run is not a no-op');
     pass('host-install', {
       host: version,
+      setup: 'preview-only, additive apply, idempotent re-run',
       status: inspected.plugin.status,
       tools: inspected.plugin.toolNames,
       cli: inspected.cliCommands,

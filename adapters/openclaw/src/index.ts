@@ -4,6 +4,14 @@ import { createGuardedClient } from './client.js';
 import { CONFIG_JSON_SCHEMA, parseConfig, resolveCredential } from './config.js';
 import { doctorReport, formatCounts, formatPrune } from './doctor.js';
 import { SessAdapterError } from './errors.js';
+import {
+  applySetup,
+  formatPlan,
+  parseSetupOptions,
+  planSetup,
+  RESTART_COMMAND,
+  type SetupPlan,
+} from './setup.js';
 import { captureInvocation, type HostToolContext } from './host.js';
 import {
   TOOL_PARAMETERS,
@@ -121,15 +129,53 @@ export default definePluginEntry({
       );
     }
     api.registerCli(
-      ({ program }) => {
+      ({ program, config }) => {
         const root = program
           .command('sess')
-          .description('SESS plugin diagnostics (no network, no secrets printed)');
+          .description('SESS plugin setup and diagnostics (no network, no secrets printed)');
+        root
+          .command('setup')
+          .description(
+            'Preview (default) or apply with --yes: enable the plugin, add the four tools to tools.alsoAllow and set plugin config. Never stores the API key and never restarts the Gateway',
+          )
+          .option('--base-url <origin>', 'SESS API origin (HTTPS)')
+          .option('--api-key-env <NAME>', 'name of the Gateway environment variable holding the API key')
+          .option('--wait-budget-ms <ms>', 'longest single bounded wait')
+          .option('--yes', 'apply the previewed change (explicit consent)')
+          .action(
+            async (raw: { baseUrl?: string; apiKeyEnv?: string; waitBudgetMs?: string; yes?: boolean }) => {
+              const options = parseSetupOptions(raw);
+              const preview = planSetup(config, options);
+              if (raw.yes !== true || preview.changes.length === 0) {
+                console.log(formatPlan(preview, process.env, false));
+                return;
+              }
+              const mutate = api.runtime?.config?.mutateConfigFile;
+              if (typeof mutate !== 'function')
+                throw new SessAdapterError(
+                  'HOST_CAPABILITY_MISSING',
+                  'This host cannot write plugin config.',
+                );
+              let applied: SetupPlan = preview;
+              await mutate({
+                // Never restart: the operator owns the follow-up restart.
+                afterWrite: { mode: 'none', reason: `sess setup; restart with: ${RESTART_COMMAND}` },
+                mutate(draft) {
+                  // Recompute on the host's file snapshot so references and concurrent edits are kept.
+                  applied = planSetup(draft, options);
+                  applySetup(draft as unknown as Record<string, unknown>, applied);
+                },
+              });
+              console.log(formatPlan(applied, process.env, true));
+            },
+          );
         root
           .command('doctor')
           .description('Check SESS plugin configuration and host capabilities without contacting SESS')
           .action(async () => {
-            console.log(doctorReport(api.pluginConfig, api.runtime?.state, process.env));
+            console.log(
+              doctorReport(api.pluginConfig, api.runtime?.state, process.env, api.runtime?.version),
+            );
             try {
               console.log(formatCounts(await countStates(hostStores())));
             } catch (error) {

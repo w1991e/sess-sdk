@@ -22,14 +22,21 @@ verified its signed receipt for that exact revision.
 ```bash
 # After publication; replace VERSION with the exact published version.
 openclaw plugins install npm:@sess.si/openclaw@VERSION --no-enable
-openclaw plugins enable sess
+openclaw sess setup          # preview only: prints exactly what would change
+openclaw sess setup --yes    # apply the previewed change
 openclaw sess doctor
 ```
 
-Then add `sess_request`, `sess_response`, `sess_publish` and `sess_complete` to `tools.alsoAllow`
-in your Gateway config. `alsoAllow` adds tools on top of the active tool profile; keep any entries
-you already have (check with `openclaw config get tools.alsoAllow`). Do not replace
-`tools.allow`: that switches the Gateway to a restrictive allowlist of only these tools.
+`openclaw sess setup` is additive and consent-driven. Without `--yes` it writes nothing. With
+`--yes` it enables the plugin, appends the four tools to `tools.alsoAllow` (keeping every existing
+entry) and sets `plugins.entries.sess.config`; all other config, including secret references, is
+left unchanged, and a re-run makes no change. It never asks for or stores the API key: put the key
+in the Gateway's own environment under the configured variable name (default `SESS_API_KEY`, for
+example in `$OPENCLAW_STATE_DIR/.env`). A key exported in a terminal is not inherited by an
+already-running Gateway service. Setup never restarts the Gateway; it prints the command
+(`openclaw gateway restart`) for you to run when ready. It does not change a restrictive
+`tools.allow` or `plugins.allow`; it warns instead. Options: `--base-url`, `--api-key-env`,
+`--wait-budget-ms`.
 
 The four tools are optional: they are offered to the model only after you allow them. The
 installer asks for capability consent (non-interactively: review the declared tools and CLI, then
@@ -45,8 +52,8 @@ Configuration (`plugins.entries.sess.config`), all owner-controlled and never ta
 | `receiptIssuer`       | API origin            | Expected receipt issuer                                  |
 | `expectedWorkspaceId` | from the API          | Trusted workspace for receipt verification               |
 
-`openclaw sess doctor` checks configuration and host capability without contacting SESS and
-without printing secrets. A `setup` command is not provided yet.
+`openclaw sess doctor` checks configuration, the host version and host capability without
+contacting SESS and without printing secrets.
 
 ## First interaction
 

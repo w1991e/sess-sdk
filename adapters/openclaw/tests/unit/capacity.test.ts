@@ -425,9 +425,9 @@ describe('prune and redacted diagnostics', () => {
       };
       return self;
     };
-    host.cli[0]!.registrar({ program: { command } });
-    expect(names).toEqual(['sess', 'doctor', 'prune']);
-    expect(options).toEqual(['--apply']);
+    host.cli[0]!.registrar({ program: { command }, config: {} });
+    expect(names).toEqual(['sess', 'setup', 'doctor', 'prune']);
+    expect(options).toContain('--apply');
   });
 });
 
