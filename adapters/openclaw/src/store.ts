@@ -376,12 +376,24 @@ async function archiveOne(active: BoundStore, archive: BoundStore, record: Recov
   let intact = true;
   for (const [key, value] of sources) {
     const landed = await archive.lookup(key);
-    if (landed === undefined || canonicalJson(landed) !== canonicalJson(value)) {
-      intact = false;
-      await active.registerIfAbsent(key, value);
-    }
+    if (landed !== undefined && sameRecordLineage(landed, value)) continue;
+    intact = false;
+    await active.registerIfAbsent(key, value);
   }
   return intact;
+}
+
+/**
+ * True when the archived value is the moved value or the same record after a concurrent terminal
+ * compaction (operator prune: link removed, generation/updatedAt advanced). Such a destination must
+ * never trigger a restore, which would resurrect the pre-prune value as a stale active duplicate.
+ */
+function sameRecordLineage(landed: Stored, moved: Stored): boolean {
+  if (canonicalJson(landed) === canonicalJson(moved)) return true;
+  if (!isRecordShape(landed, 2) || !isRecordShape(moved, 2)) return false;
+  if (landed.handle !== moved.handle || landed.generation < moved.generation) return false;
+  const strip = ({ generation: _g, updatedAt: _u, humanUrl: _h, ...rest }: RecoveryRecord) => rest;
+  return canonicalJson(strip(landed)) === canonicalJson(strip(moved));
 }
 
 async function archiveTerminalSweep(active: BoundStore, archive: BoundStore): Promise<number> {
