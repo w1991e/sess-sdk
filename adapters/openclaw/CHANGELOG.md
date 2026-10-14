@@ -8,6 +8,12 @@
   dispatch and durable state write.
 - Durable interaction records in OpenClaw plugin state (bounded, non-evicting).
 - Full SDK receipt verification before an answer is returned as verified.
+- After verification, a fresh authenticated read must show the Session still at the requested
+  revision (or completed at it) with the same accepted event before an answer is accepted or
+  released; progress blocks, a failed read is retryable `UNAVAILABLE`, and a concurrent local
+  change is a conflict. No answer data is released in any of these cases (review R-01).
+- Every tool result is released only after re-asserting the live invocation authority, including
+  terminal `completed` shortcuts (review R-02).
 - `openclaw sess doctor` (no network, no secrets). Bundled `sess` skill.
 - Qualified against OpenClaw 2026.10.3 on Node 24 with the candidate `@sess.si/sdk@0.1.0-rc.3`.
   Release hold: the SDK must be published before this package can be.

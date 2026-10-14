@@ -51,7 +51,7 @@ type AdapterResult = {
 ```
 
 `waiting`: no accepted answer yet for the revision. `answered`: an exact-revision answer passed
-full SDK receipt verification. `completed`: the intended terminal state was confirmed remotely.
+full SDK receipt verification and was current at release. `completed`: the intended terminal state was confirmed remotely.
 `needs_resume`: the local wait or process ended without server cancellation; a later authorized
 call resumes the same handle. Blocked recovery, validation and authority failures use the host's
 error contract, not a fifth success state.
@@ -121,6 +121,16 @@ observation reports a conflict.
 - `receipt_verification` with `KEY_RESOLUTION_FAILED` or `KEY_FETCH_COOLDOWN` → retryable
   unavailable. `VERIFICATION_CONTEXT_MISSING` → configuration error naming the expected-workspace
   setting. Neither records anything nor changes state.
+- **Currentness at release (R-01).** Receipt verification proves a retained historical answer, not
+  that its revision is still current. After verification succeeds, and again before re-releasing a
+  cached `answered` result, the adapter performs a fresh authenticated read of the Session and
+  releases answer data only if the Session is still at the requested revision with that accepted
+  event, or completed at that same revision with the event retained. Order: verify, then the fresh
+  read, then persist `answered`; a failed read → retryable unavailable with no state change; observed
+  progress or any other observation (event missing or different, unexpected status or revision) →
+  `blocked`; in every such case no answer data is released. Local
+  generation, revision and state are re-checked with compare-and-apply after every await; a stale
+  observation never overwrites a concurrently changed local record and reports a conflict.
 - Every other `receipt_verification` code → `blocked` with a verification-failed error. This
   includes `UNKNOWN_KEY_ID`, which fails closed: during a signing-key rotation inside the SDK's key
   refresh cooldown a valid answer can block and needs operator review (documented limitation).
@@ -177,6 +187,13 @@ never creates again and reports, by stored state:
 
 A host without a durable call identity treats every call as new, and its tool description tells the
 model not to repeat `request`.
+
+## Release authority (R-02)
+
+A host with live invocation authority asserts it again at the final tool-result release boundary,
+after every awaited step; a revoked or cancelled invocation releases no result, status or data.
+Captured conversation labels never substitute for current authority. Dispatch and storage guards
+remain in place.
 
 ## Human URL release
 

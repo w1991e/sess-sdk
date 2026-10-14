@@ -360,12 +360,49 @@ export async function sessResponse(deps: InvocationDeps, args: ResponseArgs): Pr
     await block(deps, record, 'answer_identity_changed');
     fail('RECOVERY_BLOCKED', 'A different accepted answer was already recorded for this revision.');
   }
+  // R-01: the SDK verifies retained history, not currency. After verification and before accepting
+  // or releasing anything, a fresh authenticated read must show the Session still at this revision
+  // (responded, or completed at this same revision) with this exact accepted event. An earlier
+  // read or the verifier's own snapshot is not sufficient.
+  let current;
+  try {
+    current = (
+      await deps.client.sess.sessions.retrieve(
+        record.sessionId as string,
+        deps.lease.signal ? { signal: deps.lease.signal } : {},
+      )
+    ).data;
+  } catch (error) {
+    if (isAborted(deps, error)) return cancelled(deps, record);
+    return sdkReadFailure(error, 'confirming the answer is still current');
+  }
+  const retained =
+    'responses' in current ? current.responses.find((r) => r.event_id === accepted.event_id) : undefined;
+  if (
+    !('status' in current) ||
+    (current.status !== 'responded' && current.status !== 'completed') ||
+    current.revision !== args.revision ||
+    !retained ||
+    retained.revision !== args.revision ||
+    retained.action_id !== accepted.action_id
+  ) {
+    await block(deps, record, 'answer_not_current');
+    fail(
+      'RECOVERY_BLOCKED',
+      'The Session moved on after this answer, so it was not released; operator resolution is required.',
+    );
+  }
   if (record.state !== 'answered')
     record = await deps.store.replace(record, {
       ...strip(record),
       state: 'answered',
       answered: { eventId: accepted.event_id, actionId: accepted.action_id, revision: accepted.revision },
     });
+  // Local fence: a concurrent publish, pending mutation or completion during the awaits above wins;
+  // this stale observation is reported as a conflict and releases nothing.
+  const latest = await deps.store.read(record.handle);
+  if (!latest || latest.generation !== record.generation || latest.state !== 'answered')
+    fail('STATE_CONFLICT', 'This interaction changed concurrently; read it again before continuing.');
   // Release human data only while this invocation is still admitted.
   deps.lease.assertCurrent();
   return {
