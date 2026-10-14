@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import {
   GuardError,
   checkArtifact,
+  checkArtifactPath,
   checkGit,
   checkIdentity,
   checkPublished,
@@ -147,6 +148,19 @@ test('artifact: only the tested bytes from this commit, tested with the registry
   refuses(() => checkArtifact({ ...args, result: { ...result, sdkMode: 'candidate' } }), /candidate SDK/);
   refuses(() => checkArtifact({ ...args, result: { ...result, node: 'v22.14.0' } }), /not tested on/);
   refuses(() => checkArtifact({ ...args, version: '9.9.9' }), /identity/);
+  for (const [filename, tarball] of [
+    ['../../etc/passwd.tgz', '.artifacts/../../etc/passwd.tgz'],
+    [`sess.si-mcp-${version}.tgz`, `.artifacts/../sess.si-mcp-${version}.tgz`],
+    [`sess.si-mcp-${version}.tgz`, `/tmp/sess.si-mcp-${version}.tgz`],
+    ['sess.si-sdk-0.1.0-rc.3.tgz', '.artifacts/sess.si-sdk-0.1.0-rc.3.tgz'],
+    [`sess.si-mcp-${version}.tar`, `.artifacts/sess.si-mcp-${version}.tar`],
+    [undefined, undefined],
+  ]) {
+    const bad = { ...result, filename, tarball };
+    refuses(() => checkArtifactPath({ result: bad, version }), /filename\/path/);
+    refuses(() => checkArtifact({ ...args, result: bad }), /filename\/path/);
+  }
+  assert.equal(checkArtifactPath({ result, version }), `.artifacts/sess.si-mcp-${version}.tgz`);
   if (version.includes('-rc.')) refuses(() => checkArtifact({ ...args, distTag: 'latest' }), /dist-tag/);
 });
 
@@ -213,4 +227,14 @@ test('readback: exact integrity, rc on next and never latest, dependencies and p
       }),
     /does not match/,
   );
+  for (const repository of [
+    { ...manifest.repository, directory: 'adapters/openclaw' },
+    { ...manifest.repository, directory: undefined },
+    { ...manifest.repository, url: 'git+https://github.com/someone/fork.git' },
+  ])
+    refuses(
+      () =>
+        checkPublished({ manifest, result, published: { ...published, repository }, tags, distTag: 'next' }),
+      /does not match/,
+    );
 });

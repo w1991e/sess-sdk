@@ -74,14 +74,26 @@ export function checkGit({ cwd, master = 'refs/remotes/origin/master' }) {
 }
 
 /** The downloaded artifact is byte-identical to the tested one, from this commit. */
+/**
+ * Validates the recorded filename and path before anything is read: exactly npm's pack name for
+ * this package and version, directly inside .artifacts/. Returns the relative tarball path.
+ */
+export function checkArtifactPath({ result, version }) {
+  const expected = `sess.si-mcp-${version}.tgz`;
+  if (
+    typeof result?.filename !== 'string' ||
+    result.filename !== expected ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/.test(result.filename) ||
+    result.tarball !== `.artifacts/${expected}`
+  )
+    refuse('artifact filename/path drift');
+  return result.tarball;
+}
+
 export function checkArtifact({ result, bytes, expectedSha256, version, distTag, sha }) {
   if (result.name !== PACKAGE || result.version !== version)
     refuse('artifact identity differs from the release');
-  if (
-    !/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/.test(result.filename) ||
-    result.tarball !== `.artifacts/${result.filename}`
-  )
-    refuse('artifact filename drift');
+  checkArtifactPath({ result, version });
   if (result.node !== RELEASE_NODE) refuse(`artifact was not tested on ${RELEASE_NODE}`);
   if (result.sdkMode !== 'registry') refuse('artifact was tested against the candidate SDK');
   if (result.sourceCommit !== sha || result.sourceTreeDirty !== false)
@@ -146,9 +158,11 @@ async function main() {
   } else if (command === 'artifact') {
     const dir = join(adapter, '.artifacts');
     const result = readJson(join(dir, 'package-result.json'));
+    // Path validation precedes any read of the recorded tarball path.
+    const tarball = checkArtifactPath({ result, version: process.env.RELEASE_VERSION });
     const digests = checkArtifact({
       result,
-      bytes: readFileSync(join(adapter, result.tarball)),
+      bytes: readFileSync(join(adapter, tarball)),
       expectedSha256: process.env.EXPECTED_TARBALL_SHA256,
       version: process.env.RELEASE_VERSION,
       distTag: process.env.RELEASE_DIST_TAG,

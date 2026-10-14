@@ -44,6 +44,12 @@ describe('MCP registry metadata (server.json, schema 2025-12-11)', () => {
     expect(vars.find((v) => v.name === ENV.apiKey)).toMatchObject({ isRequired: true, isSecret: true });
     expect(vars.filter((v) => v.isRequired).map((v) => v.name)).toEqual([ENV.apiKey]);
     expect(vars.some((v) => v.name === ENV.insecureLocalhost)).toBe(false);
+    // Every owner setting the server reads is declared, except the test-only localhost flag.
+    expect(vars.map((v) => v.name).sort()).toEqual(
+      Object.values(ENV)
+        .filter((name) => name !== ENV.insecureLocalhost)
+        .sort(),
+    );
   });
 
   it('server.json is not shipped in the npm tarball (registry metadata only)', () => {

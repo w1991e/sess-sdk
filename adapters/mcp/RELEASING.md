@@ -7,6 +7,12 @@ approval does.
 
 ## Prerequisites (owner actions)
 
+> **Do not push an `mcp-v*` tag until the `npm-mcp-release` environment (with required reviewers
+> and the `mcp-v*` tag rule) and the npm trusted publisher for `@sess.si/mcp` exist.** A job that
+> references a missing environment makes GitHub create it automatically, without protection rules;
+> the publish job would then run without maintainer approval. (The guards still refuse while the SDK
+> dependency is in candidate mode, but do not rely on that.)
+
 1. **Publish the SDK first.** `@sess.si/sdk@0.1.0-rc.3` must be genuinely published with the
    reviewed bytes (SHA-256 `b4d29d8f…a0502`). Then, in `adapters/mcp`, run
    `npm run sdk:switch-to-registry -- --apply` and `npm run check`, and merge the lockfile change
