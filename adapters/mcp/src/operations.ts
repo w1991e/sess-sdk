@@ -8,7 +8,7 @@ import {
 } from '@sess.si/sdk';
 import { loadConfig, type AdapterConfig } from './config.js';
 import { AdapterError, type Diagnostics } from './errors.js';
-import { HandleStore, type HandleRecord, type PendingMutation } from './store.js';
+import { HandleStore, RECORD_SCHEMA, type HandleRecord, type PendingMutation } from './store.js';
 import {
   canonicalJson,
   plainJson,
@@ -71,14 +71,29 @@ function defaultClient(config: AdapterConfig): SessClient {
   });
 }
 
+/** A SESS error code only if it has the stable public shape; anything else is dropped. */
+function safeCode(error: unknown): string | undefined {
+  return error instanceof SessError && typeof error.code === 'string' && /^[A-Z_]{1,64}$/.test(error.code)
+    ? error.code
+    : undefined;
+}
+
 function sessCode(error: unknown): string {
-  if (error instanceof SessError) return `${error.kind}${error.code ? `/${error.code}` : ''}`;
+  if (error instanceof SessError) return `${error.kind}${safeCode(error) ? `/${safeCode(error)}` : ''}`;
   return 'unexpected';
 }
 
+/** Saving after a confirmed create failed: the Session exists, so the call must not be repeated. */
+function createdNotSaved(): AdapterError {
+  return new AdapterError(
+    'CREATED_NOT_SAVED',
+    'SESS created the interaction, but it could not be saved locally. Do not call sess_request again for this question; ask the owner to check the local state directory and SESS.',
+  );
+}
+
 function unavailable(error: unknown): AdapterError {
-  const detail =
-    error instanceof SessError && error.code && /^[A-Z_]{1,64}$/.test(error.code) ? ` (${error.code})` : '';
+  const code = safeCode(error);
+  const detail = code ? ` (${code})` : '';
   return new AdapterError(
     'SESS_UNAVAILABLE',
     `SESS could not be reached or returned an error${detail}. Nothing was changed locally; the same call can be repeated.`,
@@ -150,7 +165,7 @@ export class SessMcpAdapter {
     const body = { interaction: args.interaction };
     const now = this.#now();
     const record: HandleRecord = {
-      schema: 1,
+      schema: RECORD_SCHEMA,
       handle: store.newHandle(),
       binding: store.binding,
       state: 'create_intent',
@@ -158,7 +173,7 @@ export class SessMcpAdapter {
       updatedAt: now,
       requestDigest: digest(body),
       revision: 1,
-      processedEvents: [],
+      processed: [],
     };
     await store.save(record);
     let created;
@@ -169,7 +184,8 @@ export class SessMcpAdapter {
       if (error instanceof SessError && (error.outcome === 'not_sent' || error.outcome === 'rejected')) {
         await store.discard(record.handle);
         this.#options.diagnostics('create_rejected', { code: sessCode(error) });
-        const detail = error.code && /^[A-Z_]{1,64}$/.test(error.code) ? ` (${error.code})` : '';
+        const code = safeCode(error);
+        const detail = code ? ` (${code})` : '';
         throw new AdapterError('CREATE_REJECTED', `SESS did not create the interaction${detail}.`);
       }
       const recovered = error instanceof SessError ? error.getRecoveryResult() : undefined;
@@ -183,7 +199,9 @@ export class SessMcpAdapter {
           revision: recovered.revision,
           updatedAt: this.#now(),
         });
-        await store.save(record);
+        await store.save(record).catch(() => {
+          throw createdNotSaved();
+        });
         this.#options.diagnostics('create_recovered', { code: sessCode(error) });
         return this.#result(record, 'waiting', { humanUrl: recovered.human_url });
       }
@@ -205,7 +223,10 @@ export class SessMcpAdapter {
       etag: created.meta.etag,
       updatedAt: this.#now(),
     });
-    await store.save(record);
+    // The Session exists now. A save failure must never invite a repeated create.
+    await store.save(record).catch(() => {
+      throw createdNotSaved();
+    });
     this.#options.diagnostics('created', { revision: record.revision });
     return this.#result(record, 'waiting', { humanUrl: created.data.human_url });
   }
@@ -369,17 +390,33 @@ export class SessMcpAdapter {
     });
   }
 
-  async #block(record: HandleRecord, reason: string, raise = true): Promise<never> {
+  /**
+   * Compare-and-apply: blocks only if the record still has the state group and revision that the
+   * caller observed. A stale observation (for example a wait that returned after another call
+   * already advanced the record) never blocks newer work; it reports INVALID_STATE instead.
+   */
+  async #block(observed: HandleRecord, reason: string, raise = true): Promise<never> {
     const { store } = await this.#ctx();
     const safe = /^[A-Z_]{1,64}$/.test(reason) ? reason : 'UNEXPECTED';
-    await store.withLock(record.handle, async () => {
-      const current = await store.load(record.handle);
-      if (current.state === 'completed' || current.state === 'blocked') return;
+    const group = (state: string) => (state === 'needs_resume' ? 'waiting' : state);
+    const applied = await store.withLock(observed.handle, async () => {
+      const current = await store.load(observed.handle);
+      if (current.state === 'blocked') return true;
+      if (group(current.state) !== group(observed.state) || current.revision !== observed.revision)
+        return false;
       current.state = 'blocked';
       current.blockedReason = safe;
       current.updatedAt = this.#now();
       await store.save(current);
+      return true;
     });
+    if (!applied) {
+      this.#options.diagnostics('block_skipped_stale', { reason: safe });
+      throw new AdapterError(
+        'INVALID_STATE',
+        'The interaction changed while this call was running. Call sess_response for the current revision.',
+      );
+    }
     this.#options.diagnostics('blocked', { reason: safe });
     if (!raise) return undefined as never;
     throw new AdapterError(
@@ -411,22 +448,36 @@ export class SessMcpAdapter {
           );
         return { record, pending: p };
       }
-      if (operation === 'complete' && record.state === 'completed') {
-        if (
-          record.revision === args.expectedRevision &&
-          record.processedEvents.includes(args.responseEventId)
-        )
+      const used = record.processed.find((t) => t.eventId === args.responseEventId);
+      if (used) {
+        // Only an exact replay of the confirmed call is answered from the saved transition.
+        const exact =
+          used.operation === operation &&
+          used.expectedRevision === args.expectedRevision &&
+          (operation === 'complete' || used.bodyDigest === digest(body!));
+        if (!exact)
+          throw new AdapterError(
+            'PENDING_MUTATION_DIFFERS',
+            'This answer was already used by a different publish or complete call. Nothing was sent.',
+          );
+        if (operation === 'complete' && record.state === 'completed')
           return { done: this.#result(record, 'completed') };
+        if (
+          operation === 'publish' &&
+          (record.state === 'waiting' || record.state === 'needs_resume') &&
+          record.revision === args.expectedRevision + 1
+        )
+          return { done: this.#result(record, 'waiting') };
+        throw new AdapterError(
+          'RESPONSE_MISMATCH',
+          'This answer was already used and the interaction has advanced since. Nothing was sent.',
+        );
+      }
+      if (operation === 'complete' && record.state === 'completed')
         throw new AdapterError(
           'RESPONSE_MISMATCH',
           'This interaction was completed from a different answer.',
         );
-      }
-      if (operation === 'publish' && record.processedEvents.includes(args.responseEventId)) {
-        if (record.state === 'waiting' || record.state === 'needs_resume')
-          return { done: this.#result(record, 'waiting') };
-        throw new AdapterError('RESPONSE_MISMATCH', 'This answer was already used for a later step.');
-      }
       if (record.state !== 'answered') {
         if (
           record.state === 'blocked' ||
@@ -471,21 +522,23 @@ export class SessMcpAdapter {
 
   async #mutationFailed(record: HandleRecord, operation: string, error: unknown): Promise<never> {
     this.#options.diagnostics(`${operation}_failed`, { code: sessCode(error) });
-    if (
-      error instanceof SessError &&
-      error.outcome === 'rejected' &&
-      (error.status === 409 || error.status === 412)
-    ) {
-      await this.#block(record, error.code ?? 'MUTATION_CONFLICT', false);
-      throw new AdapterError(
-        'MUTATION_REJECTED',
-        `SESS rejected the ${operation} because the interaction changed. It is blocked for owner review.`,
-      );
-    }
+    const code = safeCode(error);
     if (error instanceof SessError && error.outcome === 'rejected') {
+      const status = error.status ?? 0;
+      const transient = status === 408 || status === 429 || status >= 500;
+      if (!transient) {
+        // Deterministic rejection (409/412 conflict, 400/422 validation, 401/403/404, ...): the
+        // saved request cannot succeed by replay, so the interaction stops for owner review.
+        const reason = code ?? `HTTP_${status || 'REJECTED'}`;
+        await this.#block(record, reason, false);
+        throw new AdapterError(
+          'MUTATION_REJECTED',
+          `SESS rejected the ${operation} (${reason}). The interaction is blocked for owner review.`,
+        );
+      }
       throw new AdapterError(
-        'MUTATION_REJECTED',
-        `SESS rejected the ${operation}${error.code ? ` (${error.code})` : ''}. The saved request is kept; repeat the same call after fixing configuration.`,
+        'OUTCOME_UNKNOWN',
+        `SESS was temporarily unable to accept the ${operation}${code ? ` (${code})` : ''}. Repeat the same call later; the saved request is replayed unchanged.`,
         true,
       );
     }
@@ -527,7 +580,14 @@ export class SessMcpAdapter {
       if (current.state !== 'complete_pending')
         throw new AdapterError('INVALID_STATE', 'The interaction changed.');
       current.state = 'completed';
-      current.processedEvents = [...current.processedEvents, pending.responseEventId];
+      current.processed = [
+        ...current.processed,
+        {
+          eventId: pending.responseEventId,
+          operation: 'complete',
+          expectedRevision: pending.expectedRevision,
+        },
+      ];
       current.answer = { ...current.answer!, data: {} };
       delete current.pending;
       delete current.humanUrl;
@@ -570,7 +630,15 @@ export class SessMcpAdapter {
       current.state = 'waiting';
       current.revision = nextRevision;
       current.etag = result.meta.etag;
-      current.processedEvents = [...current.processedEvents, pending.responseEventId];
+      current.processed = [
+        ...current.processed,
+        {
+          eventId: pending.responseEventId,
+          operation: 'publish',
+          expectedRevision: pending.expectedRevision,
+          bodyDigest: digest(pending.body!),
+        },
+      ];
       delete current.answer;
       delete current.pending;
       current.updatedAt = this.#now();

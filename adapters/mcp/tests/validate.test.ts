@@ -84,6 +84,17 @@ describe('tool argument validation (closed, versioned schemas)', () => {
     rejects(() => parseResponseArgs({ handle: HANDLE, revision: 1, prototype: 1 }), 'unsafe key');
   });
 
+  it('rejects reserved object keys as field names at request time', () => {
+    for (const name of ['constructor', 'prototype']) {
+      const reserved = clone(ROUND_1) as any;
+      reserved.source.components[2].name = name;
+      rejects(() => parseRequestArgs({ interaction: reserved }), 'reserved name');
+    }
+    const proto = clone(ROUND_1) as any;
+    proto.source.components[2].name = '__proto__';
+    rejects(() => parseRequestArgs({ interaction: proto }), 'invalid format');
+  });
+
   it('rejects oversized and deeply nested input without truncating', () => {
     const big = clone(ROUND_1) as any;
     big.description = 'x'.repeat(4000);

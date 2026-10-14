@@ -323,9 +323,9 @@ describe('sess_publish', () => {
     const patches = fake.calls.filter((c) => c.method === 'PATCH');
     expect(patches).toHaveLength(2);
     expect(patches[1]!.idempotencyKey).toBe(patches[0]!.idempotencyKey);
-    // The used answer cannot complete or publish again.
+    // The used answer cannot complete: it was consumed by a different (publish) transition.
     expect(await code(adapter.complete({ handle, expectedRevision: 1, responseEventId: eventId }))).toBe(
-      'INVALID_STATE',
+      'PENDING_MUTATION_DIFFERS',
     );
     expect(await adapter.response({ handle, revision: 2, waitMs: 0 })).toEqual({
       interaction: { handle, revision: 2, state: 'waiting' },

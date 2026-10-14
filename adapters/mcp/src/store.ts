@@ -48,8 +48,24 @@ export interface PendingMutation {
   body?: JsonObject;
 }
 
+/**
+ * A confirmed publish or complete, keyed by the accepted event it consumed. Exact replays of the
+ * same call are recognized only when operation, expected revision and (for publish) the canonical
+ * body digest all match.
+ */
+export interface ProcessedTransition {
+  eventId: string;
+  operation: 'publish' | 'complete';
+  expectedRevision: number;
+  /** SHA-256 of the canonical publish body; absent for complete. */
+  bodyDigest?: string;
+}
+
+/** Current record schema. Records of any other schema stop with STATE_STORE_ERROR before dispatch. */
+export const RECORD_SCHEMA = 2;
+
 export interface HandleRecord {
-  schema: 1;
+  schema: typeof RECORD_SCHEMA;
   handle: string;
   binding: Binding;
   state: RecoveryState;
@@ -67,7 +83,7 @@ export interface HandleRecord {
   answer?: VerifiedAnswer;
   pending?: PendingMutation;
   /** Accepted events already consumed by a confirmed publish or complete. */
-  processedEvents: string[];
+  processed: ProcessedTransition[];
   blockedReason?: string;
 }
 
@@ -94,14 +110,32 @@ function obj(value: unknown): Record<string, unknown> {
 /** Version-checked decode of a persisted record before any network dispatch. */
 export function decodeRecord(raw: unknown, expectedHandle: string): HandleRecord {
   const r = obj(raw);
-  if (r.schema !== 1 || r.handle !== expectedHandle || !str(r.handle, HANDLE_PATTERN)) corrupt();
+  if (r.schema !== RECORD_SCHEMA)
+    throw new AdapterError(
+      'STATE_STORE_ERROR',
+      'A saved interaction record uses an unsupported format version. It was left unchanged and nothing was sent.',
+    );
+  if (r.handle !== expectedHandle || !str(r.handle, HANDLE_PATTERN)) corrupt();
   const b = obj(r.binding);
   if (!str(b.profile) || !str(b.origin) || !str(b.credentialGeneration, GENERATION)) corrupt();
   if (!STATES.includes(r.state as RecoveryState)) corrupt();
   if (!str(r.createdAt) || !str(r.updatedAt) || !str(r.requestDigest, /^[0-9a-f]{64}$/)) corrupt();
   if (!Number.isSafeInteger(r.revision) || (r.revision as number) < 1) corrupt();
-  if (!Array.isArray(r.processedEvents) || r.processedEvents.some((e) => !str(e, EVENT_ID_PATTERN)))
-    corrupt();
+  if (!Array.isArray(r.processed)) corrupt();
+  const seen = new Set<string>();
+  for (const item of r.processed) {
+    const t = obj(item);
+    if (
+      !str(t.eventId, EVENT_ID_PATTERN) ||
+      seen.has(t.eventId) ||
+      (t.operation !== 'publish' && t.operation !== 'complete') ||
+      !Number.isSafeInteger(t.expectedRevision) ||
+      (t.expectedRevision as number) < 1 ||
+      (t.operation === 'publish' ? !str(t.bodyDigest, /^[0-9a-f]{64}$/) : t.bodyDigest !== undefined)
+    )
+      corrupt();
+    seen.add(t.eventId);
+  }
   const state = r.state as RecoveryState;
   if (r.sessionId !== undefined && !str(r.sessionId, SESSION_ID)) corrupt();
   if (r.humanUrl !== undefined && !str(r.humanUrl, /^https?:\/\/[\x21-\x7e]{1,4096}$/)) corrupt();
@@ -141,7 +175,10 @@ export function decodeRecord(raw: unknown, expectedHandle: string): HandleRecord
     if (p.operation === 'publish') obj(p.body);
     else if (p.body !== undefined) corrupt();
   }
-  if ((state === 'publish_pending' || state === 'complete_pending') !== (r.pending !== undefined)) corrupt();
+  // A pending mutation is required while pending, kept as evidence when blocked, otherwise absent.
+  if ((state === 'publish_pending' || state === 'complete_pending') && r.pending === undefined) corrupt();
+  if (r.pending !== undefined && !['publish_pending', 'complete_pending', 'blocked'].includes(state))
+    corrupt();
   if (state === 'publish_pending' && (r.pending as PendingMutation).operation !== 'publish') corrupt();
   if (state === 'complete_pending' && (r.pending as PendingMutation).operation !== 'complete') corrupt();
   // Detached plain-data copy; prototype-bearing or accessor values cannot survive.

@@ -191,6 +191,8 @@ function component(value: JsonValue, path: string, names: Set<string>): boolean 
         ['type', 'name', 'label', 'schema'],
       );
       const name = pattern(c.name, `${path}.name`, FIELD_NAME);
+      // The name becomes a key of the submitted data object; reserved object keys are refused.
+      if (UNSAFE_KEYS.has(name)) invalid(`${path}.name`, `"${name}" is a reserved name`);
       if (names.has(name)) invalid(`${path}.name`, 'duplicates another field name');
       names.add(name);
       text(c.label, `${path}.label`, 200);

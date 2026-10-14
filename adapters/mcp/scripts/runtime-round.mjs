@@ -1,4 +1,4 @@
-// G1 isolated-runtime round (OPT-IN; not part of public CI because the SESS runtime is private).
+// G1 isolated-runtime rounds (OPT-IN; not part of public CI because the SESS runtime is private).
 //
 // Drives the PACKED, INSTALLED adapter over stdio with the official MCP client against an already
 // running, isolated SESS runtime that uses synthetic credentials only:
@@ -7,7 +7,10 @@
 //   person submits answer-1 through the human HTTP form (client_event_id and surface_revision
 //   are taken from the rendered form; the fixture supplies only action_id and data)
 //   response (bounded wait, full receipt verification) -> answered
-//   complete -> completed, confirmed by an owner read
+//   publish (round-2 fixture) -> waiting at revision 2; identical replay -> same result, no write;
+//   replay with a different body -> PENDING_MUTATION_DIFFERS
+//   person answers round 2 ({confirmed: true}, supplied by this harness) -> answered (verified)
+//   complete -> completed, confirmed by an owner read (revision 2, two responses)
 //
 // Required environment:
 //   SESS_MCP_RUNTIME_ROUND=1
@@ -49,6 +52,9 @@ function check(condition, message) {
 const fixtures = join(adapterDir, '..', 'fixtures', 'plan-afternoon');
 const round1 = JSON.parse(await readFile(join(fixtures, 'round-1.json'), 'utf8'));
 const answer1 = JSON.parse(await readFile(join(fixtures, 'answer-1.json'), 'utf8'));
+const round2 = JSON.parse(await readFile(join(fixtures, 'round-2.json'), 'utf8'));
+// The shared fixtures have no round-2 answer; this harness supplies one.
+const answer2 = { action_id: 'confirm', data: { confirmed: true } };
 
 const install = await installPacked();
 const state = await mkdtemp(join(tmpdir(), 'sess-mcp-round-state-'));
@@ -100,57 +106,105 @@ try {
   check(resumed.interaction.state === 'needs_resume', 'bounded wait without an answer must be needs_resume');
   log('sess_response wait_ms=1500', { state: resumed.interaction.state, ms: resumed.ms });
 
-  // Start the bounded wait, then let the person answer through the human form.
-  const waiting = call('sess_response', { handle, revision: 1, wait_ms: 45000 });
-  const page = await fetch(humanUrl, { redirect: 'manual' });
-  const html = await page.text();
-  const clientEventId = /name="client_event_id" value="([A-Za-z0-9_-]+)"/.exec(html)?.[1];
-  const surfaceRevision = /name="surface_revision" value="([0-9]+)"/.exec(html)?.[1];
-  check(page.status === 200 && clientEventId && surfaceRevision === '1', 'human form not rendered');
-  const form = new URLSearchParams([
-    ['client_event_id', clientEventId],
-    ['surface_revision', surfaceRevision],
-    ['action_id', answer1.action_id],
-    ...Object.entries(answer1.data).map(([k, v]) => [`data.${k}`, String(v)]),
-  ]);
-  const submitted = await fetch(humanUrl, {
-    method: 'POST',
-    redirect: 'manual',
-    headers: {
-      'content-type': 'application/x-www-form-urlencoded',
-      'sec-fetch-site': 'same-origin',
-      origin: 'null',
-    },
-    body: form.toString(),
-  });
-  await submitted.text();
-  log('human submit', { status: submitted.status });
-  check(submitted.status < 400, 'human submission rejected');
+  // The person answers through the human HTTP form. client_event_id and surface_revision come
+  // from the rendered form; the fixture/harness supplies only action_id and data.
+  async function humanSubmit(expectedRevision, answer) {
+    const page = await fetch(humanUrl, { redirect: 'manual' });
+    const html = await page.text();
+    const clientEventId = /name="client_event_id" value="([A-Za-z0-9_-]+)"/.exec(html)?.[1];
+    const surfaceRevision = /name="surface_revision" value="([0-9]+)"/.exec(html)?.[1];
+    check(
+      page.status === 200 && clientEventId && surfaceRevision === String(expectedRevision),
+      `human form for revision ${expectedRevision} not rendered`,
+    );
+    const form = new URLSearchParams([
+      ['client_event_id', clientEventId],
+      ['surface_revision', surfaceRevision],
+      ['action_id', answer.action_id],
+      ...Object.entries(answer.data).map(([k, v]) => [`data.${k}`, String(v)]),
+    ]);
+    const submitted = await fetch(humanUrl, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'sec-fetch-site': 'same-origin',
+        origin: 'null',
+      },
+      body: form.toString(),
+    });
+    await submitted.text();
+    log(`human submit revision ${expectedRevision}`, { status: submitted.status });
+    check(submitted.status < 400, 'human submission rejected');
+  }
+  function checkAnswered(result, revision, answer) {
+    const response = result.interaction.response;
+    check(
+      result.interaction.state === 'answered' && result.interaction.revision === revision,
+      'expected answered',
+    );
+    check(
+      response.verified === true && response.actorAssurance === 'link_holder',
+      'verified link_holder answer',
+    );
+    check(JSON.stringify(response.data) === JSON.stringify(answer.data), 'answer data differs');
+    check(response.actionId === answer.action_id, 'action differs');
+    log(`sess_response revision ${revision} wait_ms=45000`, {
+      state: result.interaction.state,
+      revision: result.interaction.revision,
+      eventId: response.eventId,
+      actionId: response.actionId,
+      data: response.data,
+      verified: response.verified,
+      actorAssurance: response.actorAssurance,
+      ms: result.ms,
+    });
+    return response;
+  }
 
-  const answered = await waiting;
-  const response = answered.interaction.response;
-  check(answered.interaction.state === 'answered', 'expected answered');
+  // Round 1: start the bounded wait, then the person answers.
+  const waiting1 = call('sess_response', { handle, revision: 1, wait_ms: 45000 });
+  await humanSubmit(1, answer1);
+  const response1 = checkAnswered(await waiting1, 1, answer1);
+
+  // Publish round 2 from the verified answer; an identical replay is recognized without a write.
+  const publishArgs = {
+    handle,
+    expected_revision: 1,
+    response_event_id: response1.eventId,
+    interaction: round2,
+  };
+  const published = await call('sess_publish', publishArgs);
   check(
-    response.verified === true && response.actorAssurance === 'link_holder',
-    'verified link_holder answer',
+    published.interaction.state === 'waiting' && published.interaction.revision === 2,
+    'expected revision 2',
   );
-  check(JSON.stringify(response.data) === JSON.stringify(answer1.data), 'answer data differs');
-  check(response.actionId === answer1.action_id, 'action differs');
-  log('sess_response wait_ms=45000', {
-    state: answered.interaction.state,
-    revision: answered.interaction.revision,
-    eventId: response.eventId,
-    actionId: response.actionId,
-    data: response.data,
-    verified: response.verified,
-    actorAssurance: response.actorAssurance,
-    ms: answered.ms,
+  log('sess_publish', {
+    state: published.interaction.state,
+    revision: published.interaction.revision,
+    ms: published.ms,
   });
+  const replay = await call('sess_publish', publishArgs);
+  check(replay.interaction.revision === 2, 'identical publish replay');
+  const different = await client.callTool({
+    name: 'sess_publish',
+    arguments: { ...publishArgs, interaction: { ...round2, title: 'A different step' } },
+  });
+  check(
+    different.isError && different.content[0].text.includes('PENDING_MUTATION_DIFFERS'),
+    'differing replay',
+  );
+  log('sess_publish replay', { identical: 'waiting r2', differentBody: 'PENDING_MUTATION_DIFFERS' });
+
+  // Round 2: answer is supplied by this harness (no answer-2 fixture exists).
+  const waiting2 = call('sess_response', { handle, revision: 2, wait_ms: 45000 });
+  await humanSubmit(2, answer2);
+  const response2 = checkAnswered(await waiting2, 2, answer2);
 
   const completed = await call('sess_complete', {
     handle,
-    expected_revision: 1,
-    response_event_id: response.eventId,
+    expected_revision: 2,
+    response_event_id: response2.eventId,
   });
   check(completed.interaction.state === 'completed', 'expected completed');
   log('sess_complete', {
@@ -166,7 +220,10 @@ try {
     headers: { authorization: `Bearer ${ownerKey}` },
   });
   const remote = await owner.json();
-  check(remote.status === 'completed' && remote.responses.length === 1, 'remote state is not completed');
+  check(
+    remote.status === 'completed' && remote.revision === 2 && remote.responses.length === 2,
+    'remote state is not completed at revision 2 with two responses',
+  );
   log('owner read', { status: remote.status, revision: remote.revision, responses: remote.responses.length });
   check(!records.includes(ownerKey), 'local record contains the owner key');
   check(!records.includes(humanUrl), 'completed record still holds the human link');

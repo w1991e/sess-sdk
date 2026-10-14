@@ -32,7 +32,7 @@
       "negotiatedProtocol": "2025-11-25",
       "tested": [
         "initialize and tools/list from the packed, installed bin",
-        "all four tools against an isolated local SESS runtime (opt-in runtime-round script)",
+        "sess_request, sess_response (waiting, needs_resume, verified answered), sess_publish (round-2, identical replay, differing replay refused) and sess_complete against an isolated local SESS runtime at sess 821f97d (opt-in runtime-round script)",
         "request cancellation of sess_response"
       ]
     },

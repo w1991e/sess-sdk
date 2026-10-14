@@ -57,6 +57,10 @@ export class FakeSess {
   /** Set to make the next matching request fail at the network level after (or before) applying. */
   failNext: { method: string; pathSuffix: string; apply: boolean } | undefined;
   createFailure: 'network' | 'reject' | undefined;
+  /** Answer the next matching request with this HTTP error, without applying it. */
+  rejectNext: { method: string; pathSuffix: string; status: number; code: string } | undefined;
+  /** Runs once, before the next GET of the Session is served (to stage interleavings). */
+  beforeNextGet: (() => Promise<void>) | undefined;
 
   etag(): string {
     return `"v${this.#version}"`;
@@ -100,6 +104,16 @@ export class FakeSess {
     };
     this.calls.push(call);
     if (init.signal?.aborted) throw init.signal.reason ?? new DOMException('aborted', 'AbortError');
+    const reject = this.rejectNext;
+    if (reject && reject.method === method && url.pathname.endsWith(reject.pathSuffix)) {
+      this.rejectNext = undefined;
+      return this.#json(reject.status, { error: { code: reject.code, request_id: 'req_9', message: 'x' } });
+    }
+    if (method === 'GET' && this.beforeNextGet && url.pathname === `/v1/sessions/${SESSION_ID}`) {
+      const hook = this.beforeNextGet;
+      this.beforeNextGet = undefined;
+      await hook();
+    }
     const fail = this.failNext;
     if (fail && fail.method === method && url.pathname.endsWith(fail.pathSuffix)) {
       this.failNext = undefined;

@@ -9,7 +9,7 @@ immediately, the person answers on any device, and the agent continues on the sa
 _tested_ was run from a packed, installed tarball; everything marked _untested_ is the intended
 form after publication. See [compatibility.json](compatibility.json) for the exact tuple.
 
-## From Claude Code or Cursor in 60 seconds
+## Set up with Claude Code (connection tested) or Cursor (untested)
 
 You need Node 24 (qualified on 24.21.0) and a SESS developer API key from
 [the SESS developer portal](https://app.sess.si). Keep the key in your environment or your client's
@@ -90,16 +90,16 @@ example `INVALID_ARGUMENTS`, `HANDLE_NOT_FOUND`, `BINDING_MISMATCH`, `CREATE_OUT
 
 ## Configuration (environment of the server process only)
 
-| Variable                                 | Meaning                                                                                                                |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `SESS_API_KEY`                           | Required. Read on the first tool call, never at startup or from arguments.                                             |
-| `SESS_API_ORIGIN`                        | Default `https://api.sess.si`. Another origin must be HTTPS without path, query or credentials.                        |
-| `SESS_MCP_PROFILE`                       | Profile name, default `default`.                                                                                       |
-| `SESS_MCP_STATE_DIR`                     | Absolute state directory. Default `$XDG_STATE_HOME/sess-mcp`, `~/.local/state/sess-mcp`, or `%LOCALAPPDATA%\sess-mcp`. |
-| `SESS_MCP_MAX_WAIT_MS`                   | Lower the 45 000 ms wait ceiling.                                                                                      |
-| `SESS_RECEIPT_ISSUER`                    | Receipt issuer if it differs from the API origin.                                                                      |
-| `SESS_EXPECTED_WORKSPACE_ID`             | Trusted workspace for a runtime that does not return `Sess-Workspace-Id`.                                              |
-| `SESS_MCP_TEST_ALLOW_INSECURE_LOCALHOST` | Testing only: `1` allows `http://localhost`/`127.0.0.1` origins.                                                       |
+| Variable                                 | Meaning                                                                                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SESS_API_KEY`                           | Required. Read on the first tool call, never at startup or from arguments.                                                                        |
+| `SESS_API_ORIGIN`                        | Default `https://api.sess.si`. Another origin must be HTTPS without path, query or credentials.                                                   |
+| `SESS_MCP_PROFILE`                       | Profile name, default `default`.                                                                                                                  |
+| `SESS_MCP_STATE_DIR`                     | Absolute state directory. Default `$XDG_STATE_HOME/sess-mcp`, `~/.local/state/sess-mcp`, or `%LOCALAPPDATA%\sess-mcp` (Windows is not qualified). |
+| `SESS_MCP_MAX_WAIT_MS`                   | Lower the 45 000 ms wait ceiling.                                                                                                                 |
+| `SESS_RECEIPT_ISSUER`                    | Receipt issuer if it differs from the API origin.                                                                                                 |
+| `SESS_EXPECTED_WORKSPACE_ID`             | Trusted workspace for a runtime that does not return `Sess-Workspace-Id`.                                                                         |
+| `SESS_MCP_TEST_ALLOW_INSECURE_LOCALHOST` | Testing only: `1` allows `http://localhost`, `127.0.0.1` or `[::1]` origins.                                                                      |
 
 ## Security and support boundary
 
@@ -115,8 +115,13 @@ example `INVALID_ARGUMENTS`, `HANDLE_NOT_FOUND`, `BINDING_MISMATCH`, `CREATE_OUT
   and directory fsync. The create intent is saved before the create request, and the exact
   publish/complete request (body, `If-Match`, idempotency key) before dispatch. A lost create
   outcome is never retried (`CREATE_OUTCOME_UNKNOWN`); a lost publish/complete outcome is
-  reconciled by repeating the identical call, which replays the saved request. `blocked` records
-  need owner review; the server never leaves that state on its own. After completion the link
+  reconciled by repeating the identical call, which replays the saved request. A replay of an
+  already confirmed publish or complete succeeds only with the identical expected revision and
+  body; anything else is refused without a request. A deterministic rejection (for example a
+  conflict or validation error) moves the record to `blocked`. `blocked` and `create_unknown`
+  records need owner review; the server never leaves those states on its own (see below). If a
+  confirmed create cannot be saved locally, `CREATED_NOT_SAVED` says not to repeat the request.
+  After completion the link
   and answer data are removed from the record. At most 100 unfinished interactions are kept per
   profile.
 - **No wake-up.** A wait is one bounded read of at most 45 seconds. The server cannot wake an agent
@@ -125,6 +130,20 @@ example `INVALID_ARGUMENTS`, `HANDLE_NOT_FOUND`, `BINDING_MISMATCH`, `CREATE_OUT
   resources or prompts. One server process per profile is supported; concurrent processes on the
   same profile are not coordinated. Rotating the key makes earlier handles unusable
   (`BINDING_MISMATCH`). The browser may still need a manual refresh between rounds.
+
+## Resolving a blocked or unconfirmed interaction (owner procedure)
+
+The tool error names the state (`RECOVERY_BLOCKED` with a reason, `CREATE_OUTCOME_UNKNOWN` or
+`CREATED_NOT_SAVED`). The server never repairs these records itself.
+
+1. Find the record: `<state dir>/profiles/<profile>/handles/<handle>.json`. It can contain the
+   private human link and answer data; do not paste it into chats or issues.
+2. Check the Session in SESS (developer portal or an owner API read using `sessionId` from the
+   record, when present). For `create_intent`/`create_unknown`/`CREATED_NOT_SAVED`, look for a
+   Session created at that time before asking the agent to create another one.
+3. Decide in SESS what should happen to the Session, then remove the local record file to retire
+   the handle. Keep a private copy if you need the evidence. There is no command that resumes a
+   blocked handle in this version; start a new interaction with `sess_request` if needed.
 
 ## Development
 

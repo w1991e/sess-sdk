@@ -12,3 +12,8 @@
   credential-generation digest; the API key is never stored.
 - Durable per-handle records (write-temp, fsync, rename, directory fsync).
 - Depends on `@sess.si/sdk@0.1.0-rc.3` (unpublished candidate) and `@modelcontextprotocol/sdk@1.32.1`.
+- Local records use format version 2. A confirmed publish/complete is remembered per answer
+  event with its expected revision and publish body digest; only an identical replay is answered
+  from it. Records of another format version stop before any request.
+- Blocking is compare-and-apply; deterministic mutation rejections block with a stable code;
+  a save failure after a confirmed create is `CREATED_NOT_SAVED` (do not repeat).
