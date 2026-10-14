@@ -135,6 +135,8 @@
   "contract": {
     "source": "adapters/CONTRACT.md (convergence, sess-sdk PR #10)",
     "sharedCore": "src/internal/shared.ts, byte-identical to adapters/shared/core.ts (tested)",
-    "errorClasses": "README.md Errors table (tested)"
+    "errorClasses": "README.md Errors table (tested)",
+    "answerRelease": "After receipt verification, an authenticated current-revision read precedes any answer release; failed read -> unavailable; progress -> blocked; concurrent local change -> conflict; no answer data released (review R-01, tests/unit/r01-r02.test.ts).",
+    "resultRelease": "The tool execute boundary re-asserts the live invocation lease after every awaited runner (review R-02)."
   }
 }
