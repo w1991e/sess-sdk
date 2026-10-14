@@ -163,6 +163,21 @@ describe('R-01: cached answered results', () => {
     return ids;
   }
 
+  it('a cached answered record with a revision mismatch is a conflict with zero SDK or HTTP calls', async () => {
+    const h = harness();
+    const { handle } = await answered(h);
+    const before = raw(handle);
+    const calls = h.fake.calls.length;
+    for (const revision of [2, 3]) {
+      const error = await failure(h.adapter.response({ handle, revision, waitMs: 0 }));
+      expect(error.code).toBe('REVISION_MISMATCH');
+      expect(error.message).not.toMatch(/museum|activity/);
+    }
+    expect(h.fake.calls.length).toBe(calls);
+    expect(h.gets()).toBe(0);
+    expect(raw(handle)).toBe(before);
+  });
+
   it('a remotely advanced Session is detected by a fresh read; the cached answer is not released', async () => {
     const h = harness();
     const { handle } = await answered(h);

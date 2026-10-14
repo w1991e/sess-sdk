@@ -33,7 +33,7 @@ async function connect(fake: FakeSess, options: { verify?: boolean; lines?: stri
 }
 
 describe('MCP server', () => {
-  it('lists exactly four tools with closed, versioned schemas and no owner-only inputs', async () => {
+  it('lists exactly five tools (four operations plus sess_ask) with closed, versioned schemas and no owner-only inputs', async () => {
     const { client } = await connect(new FakeSess());
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual([
@@ -41,10 +41,11 @@ describe('MCP server', () => {
       'sess_response',
       'sess_publish',
       'sess_complete',
+      'sess_ask',
     ]);
     for (const tool of tools) {
       expect(tool.inputSchema.additionalProperties).toBe(false);
-      expect(tool._meta?.['si.sess/toolSchema']).toBe('sess-mcp-tools/1');
+      expect(tool._meta?.['si.sess/toolSchema']).toBe('sess-mcp-tools/2');
       expect(tool.outputSchema).toBeDefined();
       expect(Object.keys(tool.inputSchema.properties ?? {})).not.toEqual(
         expect.arrayContaining(['api_key', 'origin', 'session_id', 'workspace_id']),

@@ -39,20 +39,29 @@ export async function installPacked() {
     ),
   )[0];
   const tarball = join(adapterDir, '.artifacts', packed.filename);
-  const sdkTarball = join(adapterDir, compatibility.sessSdk.candidatePath);
-  const sdkDigest = createHash('sha256')
-    .update(await readFile(sdkTarball))
-    .digest('hex');
-  if (sdkDigest !== compatibility.sessSdk.sha256) throw new Error('SDK candidate tarball digest mismatch');
+  // Candidate mode installs the digest-checked local SDK tarball next to the adapter; registry
+  // mode lets the adapter's exact dependency resolve to the locked registry tarball.
+  const sdkEntry = lock.packages['node_modules/@sess.si/sdk'];
+  const sdkMode = String(sdkEntry?.resolved).startsWith('file:') ? 'candidate' : 'registry';
+  let sdkSpec;
+  if (sdkMode === 'candidate') {
+    const sdkTarball = join(adapterDir, compatibility.sessSdk.candidatePath);
+    const sdkDigest = createHash('sha256')
+      .update(await readFile(sdkTarball))
+      .digest('hex');
+    if (sdkDigest !== compatibility.sessSdk.sha256) throw new Error('SDK candidate tarball digest mismatch');
+    sdkSpec = pathToFileURL(sdkTarball).href;
+  } else if (sdkEntry?.integrity !== compatibility.sessSdk.integrity) {
+    throw new Error('SDK registry lock integrity differs from the pinned version');
+  }
   const consumer = await mkdtemp(join(tmpdir(), 'sess-mcp-packed-'));
   const mcpSpec = pathToFileURL(tarball).href;
-  const sdkSpec = pathToFileURL(sdkTarball).href;
   const consumerManifest = {
     name: 'sess-mcp-packed-consumer',
     version: '1.0.0',
     private: true,
     type: 'module',
-    dependencies: { '@sess.si/mcp': mcpSpec, '@sess.si/sdk': sdkSpec },
+    dependencies: { '@sess.si/mcp': mcpSpec, ...(sdkSpec ? { '@sess.si/sdk': sdkSpec } : {}) },
   };
   const production = Object.fromEntries(
     Object.entries(lock.packages).filter(
@@ -71,7 +80,7 @@ export async function installPacked() {
         dependencies: consumerManifest.dependencies,
       },
       ...production,
-      'node_modules/@sess.si/sdk': { ...lock.packages['node_modules/@sess.si/sdk'], resolved: sdkSpec },
+      'node_modules/@sess.si/sdk': { ...sdkEntry, ...(sdkSpec ? { resolved: sdkSpec } : {}) },
       'node_modules/@sess.si/mcp': {
         version: manifest.version,
         resolved: mcpSpec,
@@ -94,6 +103,7 @@ export async function installPacked() {
     packed,
     tarball,
     productionCount: Object.keys(production).length + 2,
+    sdkMode,
     cleanup: () => rm(consumer, { recursive: true, force: true }),
   };
 }
