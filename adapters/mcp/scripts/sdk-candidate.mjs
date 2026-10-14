@@ -60,6 +60,13 @@ function fail(message, code = 1) {
   console.error(`sdk-candidate: ${message}`);
   process.exit(code);
 }
+/** Returns a refusal message for bytes that are not the pinned candidate, otherwise undefined. */
+function refusalFor(path) {
+  const d = digests(path);
+  return d.sha256 !== pinned.sha256 || d.integrity !== pinned.integrity
+    ? `tarball digest ${d.sha256} is not the pinned candidate ${pinned.sha256}. Refusing it.`
+    : undefined;
+}
 function accept(path) {
   const d = digests(path);
   if (d.sha256 !== pinned.sha256 || d.integrity !== pinned.integrity)
@@ -115,6 +122,8 @@ if (command === 'setup') {
     // from their pinned reviewed source commit by the root helper, never by packing the current root.
     const root = resolve(adapter, '..', '..');
     const out = mkdtempSync(join(tmpdir(), 'sess-sdk-candidate-'));
+    // Refusals are decided inside, reported only after the temporary directory is removed.
+    let refusal;
     try {
       const produced = execFileSync(
         process.execPath,
@@ -124,11 +133,14 @@ if (command === 'setup') {
         .trim()
         .split('\n')
         .pop();
-      accept(produced);
-      copyFileSync(produced, target);
+      refusal = refusalFor(produced);
+      if (!refusal) copyFileSync(produced, target);
+    } catch {
+      refusal = 'the approved candidate could not be rebuilt from its pinned source (see the output above).';
     } finally {
       rmSync(out, { recursive: true, force: true });
     }
+    if (refusal) fail(refusal);
   }
   console.log(`sdk-candidate: accepted CANDIDATE ${spec} sha256=${pinned.sha256}`);
 } else if (command === 'verify') {
@@ -172,12 +184,14 @@ if (command === 'setup') {
   if (lockMode() !== 'registry')
     fail('the regenerated lock does not resolve the genuine registry tarball with the pinned integrity.');
   const out = mkdtempSync(join(tmpdir(), 'sess-sdk-registry-'));
+  let refusal;
   try {
     const packed = JSON.parse(npm(['pack', spec, '--json', '--pack-destination', out], adapter))[0];
-    accept(join(out, packed.filename));
+    refusal = refusalFor(join(out, packed.filename));
   } finally {
     rmSync(out, { recursive: true, force: true });
   }
+  if (refusal) fail(refusal);
   compatibility.sessSdk = {
     ...pinned,
     status: 'published (registry)',

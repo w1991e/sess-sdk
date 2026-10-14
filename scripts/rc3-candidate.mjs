@@ -18,7 +18,7 @@ import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const RC3 = Object.freeze({
   name: '@sess.si/sdk',
@@ -33,10 +33,12 @@ export const RC3 = Object.freeze({
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const log = (message) => process.stderr.write(`rc3-candidate: ${message}\n`);
-function fail(message) {
-  log(message);
-  process.exit(1);
-}
+
+/** A refusal: thrown (never process.exit inside a try) so temporary directories are always removed. */
+export class Refusal extends Error {}
+const refuse = (message) => {
+  throw new Refusal(message);
+};
 function digests(path) {
   const bytes = readFileSync(path);
   return {
@@ -44,10 +46,6 @@ function digests(path) {
     integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`,
   };
 }
-const approved = (path) => {
-  const d = digests(path);
-  return d.sha256 === RC3.sha256 && d.integrity === RC3.integrity;
-};
 const run = (command, args, cwd, stdio = 'pipe') =>
   execFileSync(command, args, {
     cwd,
@@ -56,39 +54,48 @@ const run = (command, args, cwd, stdio = 'pipe') =>
     shell: process.platform === 'win32' && command === 'npm',
   });
 
-const args = process.argv.slice(2);
-const outArg = args.includes('--out') ? args[args.indexOf('--out') + 1] : undefined;
-if (args.includes('--out') && !outArg) fail('--out requires a directory.');
-const out = resolve(outArg ?? join(root, '.artifacts', 'rc3'));
-const target = join(out, RC3.filename);
-mkdirSync(out, { recursive: true });
-
-if (existsSync(target) && approved(target)) {
-  log(`reusing the approved ${RC3.name}@${RC3.version} tarball (sha256 ${RC3.sha256})`);
-} else {
+/**
+ * Rebuilds the candidate from `expected.commit` and returns the accepted tarball path in `out`.
+ * The CLI always passes the pinned RC3 record; tests may pass stricter expectations to exercise
+ * the refusal paths. `tmpRoot` (default os.tmpdir()) holds the temporary work directory, which is
+ * removed on success, refusal and error alike.
+ */
+export function reproduce({ out, expected = RC3, tmpRoot = tmpdir() }) {
+  const approved = (path) => {
+    const d = digests(path);
+    return d.sha256 === expected.sha256 && d.integrity === expected.integrity;
+  };
+  const target = join(out, expected.filename);
+  mkdirSync(out, { recursive: true });
+  if (existsSync(target) && approved(target)) {
+    log(`reusing the approved ${expected.name}@${expected.version} tarball (sha256 ${expected.sha256})`);
+    return target;
+  }
   try {
-    run('git', ['cat-file', '-e', `${RC3.commit}^{commit}`], root);
+    run('git', ['cat-file', '-e', `${expected.commit}^{commit}`], root);
   } catch {
-    fail(
-      `commit ${RC3.commit} is not available. Fetch full history (git fetch origin, or fetch-depth: 0 in CI).`,
+    refuse(
+      `commit ${expected.commit} is not available. Fetch full history (git fetch origin, or fetch-depth: 0 in CI).`,
     );
   }
-  if (run('git', ['rev-parse', `${RC3.commit}^{tree}`], root).trim() !== RC3.tree)
-    fail('the pinned commit does not have the reviewed tree. Refusing.');
-  const work = mkdtempSync(join(tmpdir(), 'sess-sdk-rc3-'));
+  if (run('git', ['rev-parse', `${expected.commit}^{tree}`], root).trim() !== expected.tree)
+    refuse('the pinned commit does not have the reviewed tree. Refusing.');
+  const work = mkdtempSync(join(tmpRoot, 'sess-sdk-rc3-'));
   try {
     const source = join(work, 'source');
     const pack = join(work, 'pack');
     mkdirSync(source);
     mkdirSync(pack);
     const archive = join(work, 'source.tar');
-    run('git', ['archive', '--format=tar', '-o', archive, RC3.commit], root);
+    run('git', ['archive', '--format=tar', '-o', archive, expected.commit], root);
     run('tar', ['-xf', archive, '-C', source], work);
     const manifest = JSON.parse(readFileSync(join(source, 'package.json'), 'utf8'));
-    if (manifest.name !== RC3.name || manifest.version !== RC3.version)
-      fail(`the pinned source is ${manifest.name}@${manifest.version}, not ${RC3.name}@${RC3.version}.`);
+    if (manifest.name !== expected.name || manifest.version !== expected.version)
+      refuse(
+        `the pinned source is ${manifest.name}@${manifest.version}, not ${expected.name}@${expected.version}.`,
+      );
     log(
-      `building ${RC3.name}@${RC3.version} from ${RC3.commit} with npm ${run('npm', ['--version'], source).trim()}`,
+      `building ${expected.name}@${expected.version} from ${expected.commit} with npm ${run('npm', ['--version'], source).trim()}`,
     );
     run('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], source, 'inherit');
     run('npm', ['run', 'build'], source, 'inherit');
@@ -96,14 +103,27 @@ if (existsSync(target) && approved(target)) {
       run('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', pack], source),
     )[0];
     const produced = join(pack, packed.filename);
-    if (packed.filename !== RC3.filename || !approved(produced)) {
-      const d = digests(produced);
-      fail(`reproduced bytes differ from the approved candidate (sha256 ${d.sha256}). Refusing them.`);
-    }
+    if (packed.filename !== expected.filename || !approved(produced))
+      refuse(
+        `reproduced bytes differ from the approved candidate (sha256 ${digests(produced).sha256}). Refusing them.`,
+      );
     copyFileSync(produced, target);
-    log(`reproduced the approved ${RC3.name}@${RC3.version} (sha256 ${RC3.sha256})`);
+    log(`reproduced the approved ${expected.name}@${expected.version} (sha256 ${expected.sha256})`);
+    return target;
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
 }
-console.log(target);
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  const args = process.argv.slice(2);
+  const outArg = args.includes('--out') ? args[args.indexOf('--out') + 1] : undefined;
+  try {
+    if (args.includes('--out') && !outArg) refuse('--out requires a directory.');
+    console.log(reproduce({ out: resolve(outArg ?? join(root, '.artifacts', 'rc3')) }));
+  } catch (error) {
+    // Cleanup already ran in reproduce()'s finally; only now set the failing exit status.
+    log(error instanceof Refusal ? error.message : `failed: ${error.message}`);
+    process.exitCode = 1;
+  }
+}

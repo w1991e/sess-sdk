@@ -20,12 +20,19 @@ publication approval remain explicit prerequisites. The existing MIT testbed is 
 `0.1.0-rc.3` remains the approved candidate. Its archive `sess.si-sdk-0.1.0-rc.3.tgz` has SHA-256
 `b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502`. It may be published only from a
 `v0.1.0-rc.3` tag on a master commit whose `package.json` version is `0.1.0-rc.3` and whose packed
-bytes equal that digest. Two such commits were verified by packing a clean `git archive`:
+bytes equal that digest. Each of these master commits was verified by packing a clean `git archive`
+(`npm ci`, build, `npm pack`; npm 11.19.0) to exactly that digest with version `0.1.0-rc.3`:
 
-- `3103506ff0e0a3ad092b6546dfc1264fcb4f05b6`, the last master commit before rc.4 (recommended: it
-  carries the latest reviewed CI and scanning while its packed files are unchanged);
 - `cea3f1eda448e632d5e3a4e5e717bf4986c0e506`, the reviewed source commit (tree identical to the
-  reviewed `f0d99f5f`).
+  reviewed `f0d99f5f`);
+- `3103506ff0e0a3ad092b6546dfc1264fcb4f05b6`;
+- `c5d4e6628700d49dc8b49b510329eb206544b38a`;
+- `3dbd7fd239a9a91c9e7b97b55d99dd1e413e8d2b`, the newest of them and the master head when the rc.4
+  change was prepared (2026-10-14).
+
+Recommended tag commit: the newest master commit that still has version `0.1.0-rc.3` and passes the
+same packing check, which is `3dbd7fd` unless master advanced before rc.4 merged. Prefer it for its
+newest reviewed CI and scanning; its packed files are unchanged.
 
 The release workflow then re-packs and tests at that tag and publishes only those bytes.
 

@@ -10,15 +10,16 @@ interaction and business logic; SESS owns the hosted UI, state, routing and auth
 program. It needs only `SESS_API_KEY`; it prints the private human link before it starts waiting,
 then verifies the person's answer and completes the Session.
 
-**Candidate status:** nothing is published yet. `0.1.0-rc.3` is the approved candidate that the
-quickstart and adapters use; this source tree is the successor candidate `0.1.0-rc.4`, which is
-under review. Until a version is published, install the digest-checked candidate tarball as the
-quickstart explains (or see [Contributing](CONTRIBUTING.md)). After an authorized release, the
-registry install command is:
+**Release status:** the [changelog](CHANGELOG.md) describes each version. To see which versions the
+registry actually serves and under which tag, run `npm view @sess.si/sdk dist-tags`. Install a published version with:
 
 ```sh
-npm install @sess.si/sdk@<published-version>
+npm install @sess.si/sdk@<version>
 ```
+
+If the version you need is not on the registry, the [quickstart](examples/quickstart-node/README.md)
+explains how to install a digest-checked candidate tarball instead (see also
+[Contributing](CONTRIBUTING.md)).
 
 ## Create and verify an interaction
 
