@@ -101,6 +101,7 @@ describe('CLI wiring', () => {
         command,
         description: () => self,
         option: (flag: string) => (options.set(name, [...(options.get(name) ?? []), flag]), self),
+        requiredOption: (flag: string) => (options.set(name, [...(options.get(name) ?? []), flag]), self),
         action: (fn: (opts: Record<string, unknown>) => Promise<void>) => (actions.set(name, fn), self),
       };
       return self;

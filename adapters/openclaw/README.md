@@ -157,7 +157,8 @@ Interaction state lives in OpenClaw's plugin state, in three namespaces:
   remaining legacy capacity with fence rows, so an older plugin version installed afterwards stops
   (`STORE_FULL` / `RECOVERY_BLOCKED`) instead of acting on the new layout.
 
-`openclaw sess doctor` prints redacted counts per namespace and state. `openclaw sess prune` is a
+`openclaw sess doctor` prints redacted counts per namespace and state. `openclaw sess prune` refuses
+to run until the upgrade has finished. `openclaw sess prune` is a
 dry run by default; `openclaw sess prune --apply` removes only the retained human link from
 completed or blocked records. Claims, identities and every non-terminal record are never changed,
 and a redelivered terminal call still reports its terminal result.
@@ -166,6 +167,14 @@ and a redelivered terminal call still reports its terminal result.
 
 - One outstanding request per conversation is not enforced; each new `sess_request` call may
   create a new Session. Repeated delivery of the same host tool call is deduplicated.
+- Abandoned interactions that never finish (`waiting`, `needs_resume`, `answered`,
+  `create_unknown`, pending publish/complete) stay in the active namespace and are never evicted.
+  About 1,100 of them fill it, after which new requests fail with `STORE_FULL`. Remedy:
+  `openclaw sess retire --older-than-days <n>` lists idle `waiting`/`needs_resume`/`answered`
+  interactions (dry run); `--apply` marks them blocked (`operator_retired`), drops their link and
+  archives them with their claim, so a redelivered call still reports blocked and never creates
+  again. `create_unknown` and pending publish/complete records are never retired automatically;
+  they need individual operator resolution.
 - The retained archive grows with every completed or blocked interaction (claims are replay
   tombstones and are never deleted). `prune --apply` compacts their payload only.
 - Uninstall/reinstall effects on stored interactions are not qualified.

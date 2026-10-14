@@ -2,7 +2,7 @@ import { buildJsonPluginConfigSchema, definePluginEntry } from 'openclaw/plugin-
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk/plugin-entry';
 import { createGuardedClient } from './client.js';
 import { CONFIG_JSON_SCHEMA, parseConfig, resolveCredential } from './config.js';
-import { doctorReport, formatCounts, formatPrune } from './doctor.js';
+import { doctorReport, formatCounts, formatPrune, formatRetire } from './doctor.js';
 import { SessAdapterError } from './errors.js';
 import {
   applySetup,
@@ -27,6 +27,7 @@ import {
   countStates,
   openHostStores,
   pruneTerminal,
+  retireIdle,
   type HostStateRuntime,
   type HostStores,
 } from './store.js';
@@ -183,6 +184,23 @@ export default definePluginEntry({
                 `state counts: unavailable (${error instanceof SessAdapterError ? error.code : 'error'})`,
               );
             }
+          });
+        root
+          .command('retire')
+          .description(
+            'Dry-run by default: list how many waiting/needs_resume/answered interactions have been idle for at least --older-than-days. With --apply, mark them blocked (operator_retired) and archive them; claims are kept, pending or ambiguous records are never touched',
+          )
+          .requiredOption('--older-than-days <days>', 'minimum idle age in days (at least 1)')
+          .option('--apply', 'retire the listed interactions (requires this explicit flag)')
+          .action(async (options: { olderThanDays: string; apply?: boolean }) => {
+            const days = Number(options.olderThanDays);
+            if (!Number.isSafeInteger(days) || days < 1)
+              throw new SessAdapterError(
+                'INVALID_ARGUMENTS',
+                '--older-than-days must be an integer of at least 1.',
+              );
+            const apply = options.apply === true;
+            console.log(formatRetire(await retireIdle(hostStores(), days * 86_400_000, apply), days, apply));
           });
         root
           .command('prune')

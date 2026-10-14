@@ -117,7 +117,6 @@
       "registerIfAbsent",
       "lookup",
       "entries",
-      "count",
       "moveEntriesFrom"
     ],
     "qualifiedOnHost": {
@@ -126,10 +125,17 @@
       "upgradeOfLegacyProfile": "PASS (9 claims + 9 records migrated, 2182 fence rows, about 2.7 s on first call)",
       "lateRedeliveryAfterUpgrade": "PASS (same handle; no second create POST)",
       "olderPluginAfterUpgrade": "PASS (new call STORE_FULL, redelivered call RECOVERY_BLOCKED, no create POST)",
-      "capacityPressure": "unit-tested with reduced capacity only"
+      "capacityPressure": "unit-tested with reduced capacity only",
+      "moveCollisionSemantics": "PROBED (public plugin-state-store-runtime, temp state): moveEntriesFrom onto an existing destination keeps the destination AND removes the source (returns the source count). The adapter pre-checks destinations, re-reads them after every move and restores any lost source value into active.",
+      "entriesInKeyRange": "PROBED: available on bounded and retained stores; doctor/prune/retire page through it (500 per page)"
     },
     "survivesGatewayRestart": true,
-    "uninstallBehavior": "NOT qualified"
+    "uninstallBehavior": "NOT qualified",
+    "operatorCommands": {
+      "doctor": "redacted counts",
+      "prune": "dry run default; --apply removes terminal human links only; refused until the upgrade completes",
+      "retire": "dry run default; --older-than-days required; --apply blocks and archives idle waiting/needs_resume/answered interactions only"
+    }
   },
   "capabilities": {
     "agentCreatesInteractiveSession": "supported",

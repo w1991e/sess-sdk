@@ -1,6 +1,6 @@
 import { parseConfig } from './config.js';
 import { SessAdapterError } from './errors.js';
-import type { PruneReport, StateCounts } from './store.js';
+import type { PruneReport, RetireReport, StateCounts } from './store.js';
 
 export const PLUGIN_VERSION = '0.1.0-rc.1';
 export const QUALIFIED_HOST = '2026.10.3';
@@ -63,4 +63,14 @@ export function formatPrune(report: PruneReport, applied: boolean): string {
   return applied
     ? `prune: compacted ${report.compacted} of ${report.eligible} terminal records (removed retained human links); conflicts ${report.conflicts}; replay tombstones untouched`
     : `prune (dry run): ${report.eligible} terminal records hold a retained human link; rerun with --apply to remove only those links`;
+}
+
+export function formatRetire(report: RetireReport, days: number, applied: boolean): string {
+  const skipped = Object.entries(report.skippedByState)
+    .map(([state, n]) => `${state}=${n}`)
+    .join(', ');
+  const head = applied
+    ? `retire: retired ${report.retired} of ${report.eligible} interactions idle >= ${days} days (archived ${report.archived}); conflicts ${report.conflicts}`
+    : `retire (dry run): ${report.eligible} waiting/needs_resume/answered interactions idle >= ${days} days; rerun with --apply to retire them`;
+  return `${head}\nnever retired (pending or ambiguous): ${skipped || 'none'}`;
 }

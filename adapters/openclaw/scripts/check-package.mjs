@@ -380,6 +380,12 @@ console.log(JSON.stringify({ id: entry.id, tools, cli, opened, attempts, reads }
       `setup result ${JSON.stringify({ alsoAllow: written.tools?.alsoAllow, sess: written.plugins?.entries?.sess })}`,
     );
     assert(/no changes needed/.test(await openclaw(['sess', 'setup'])), 'setup re-run is not a no-op');
+    // Operator commands page through the real host's plugin state (dry runs).
+    assert(
+      /retire \(dry run\): 0 /.test(await openclaw(['sess', 'retire', '--older-than-days', '7'])),
+      'retire dry run',
+    );
+    assert(/prune \(dry run\): 0 /.test(await openclaw(['sess', 'prune'])), 'prune dry run');
     pass('host-install', {
       host: version,
       setup: 'preview-only, additive apply, idempotent re-run',

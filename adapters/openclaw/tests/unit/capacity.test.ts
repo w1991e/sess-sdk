@@ -421,12 +421,13 @@ describe('prune and redacted diagnostics', () => {
         command,
         description: () => self,
         option: (flag: string) => (options.push(flag), self),
+        requiredOption: (flag: string) => (options.push(flag), self),
         action: () => self,
       };
       return self;
     };
     host.cli[0]!.registrar({ program: { command }, config: {} });
-    expect(names).toEqual(['sess', 'setup', 'doctor', 'prune']);
+    expect(names).toEqual(['sess', 'setup', 'doctor', 'retire', 'prune']);
     expect(options).toContain('--apply');
   });
 });

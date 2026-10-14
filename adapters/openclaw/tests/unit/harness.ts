@@ -236,7 +236,29 @@ export class FakeKeyedStore {
     return this.#compareAndApply(key, comparison, intent);
   }
   async entries() {
+    this.entriesCalls++;
     return this.#entries();
+  }
+  entriesCalls = 0;
+  rangeCalls = 0;
+  /** Base-store (no lease) operations used by the operator CLI; same semantics as the views. */
+  async entriesInKeyRange(range: { keyStartInclusive: string; keyEndExclusive: string; limit: number }) {
+    this.rangeCalls++;
+    return [...this.rows.keys()]
+      .filter((k) => k >= range.keyStartInclusive && k < range.keyEndExclusive)
+      .sort()
+      .slice(0, range.limit)
+      .map((key) => ({ key, value: JSON.parse(this.rows.get(key)!), createdAt: 0 }));
+  }
+  async lookup(key: string) {
+    const raw = this.rows.get(key);
+    return raw === undefined ? undefined : JSON.parse(raw);
+  }
+  async registerIfAbsent(key: string, value: unknown) {
+    return this.withCurrent({ assertCurrent() {} }).registerIfAbsent(key, value);
+  }
+  async moveEntriesFrom(source: { namespace: string; entries: { sourceKey: string; targetKey: string }[] }) {
+    return this.withCurrent({ assertCurrent() {} }).moveEntriesFrom(source);
   }
   withCurrent({ assertCurrent }: { assertCurrent: () => void }) {
     const self = this;
@@ -288,6 +310,7 @@ export class FakeKeyedStore {
         for (const { sourceKey, targetKey } of source.entries) {
           const raw = from.rows.get(sourceKey);
           if (raw === undefined) continue;
+          // Probed on openclaw@2026.10.3: an existing destination wins and the source is still removed.
           if (!self.rows.has(targetKey)) self.rows.set(targetKey, raw);
           from.rows.delete(sourceKey);
           settled++;
