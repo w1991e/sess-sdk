@@ -3,7 +3,16 @@ import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ERROR_CLASSES } from '../../src/errors.js';
 import { parseRequestArgs } from '../../src/schemas.js';
-import { API_KEY, API_KEY_ENV, FakeSess, call, conversation, fixtures, registerPlugin } from './harness.js';
+import {
+  API_KEY,
+  API_KEY_ENV,
+  FakeSess,
+  call,
+  conversation,
+  fixtures,
+  recordRow,
+  registerPlugin,
+} from './harness.js';
 
 let sess: FakeSess;
 beforeEach(() => {
@@ -372,13 +381,13 @@ describe('Contract clarifications (sess-sdk #10 revision)', () => {
     const before = sess.requests.length;
     await expect(call(host, 'sess_complete', conv, args)).rejects.toThrow(/^RECOVERY_BLOCKED: /);
     expect(sess.requests.length).toBe(before);
-    expect(JSON.parse(host.store.rows.get(key)!).state).toBe('blocked');
+    expect(recordRow(host, handle).state).toBe('blocked');
   });
 
   it('Replay: complete keeps no body digest', async () => {
     const { host, conv, handle, eventId } = await answered();
     await call(host, 'sess_complete', conv, { handle, expected_revision: 1, response_event_id: eventId });
-    const row = JSON.parse(host.store.rows.get(`i:${handle}`)!);
+    const row = recordRow(host, handle);
     expect(row.lastMutation).toEqual({
       operation: 'complete',
       expectedRevision: 1,

@@ -106,7 +106,7 @@ one class of the shared adapter contract:
 | `RECOVERY_BLOCKED`         | `blocked`             | Needs explicit operator resolution                                     |
 | `UNAVAILABLE`              | `unavailable`         | Retryable: SESS or receipt keys unreachable; nothing changed           |
 | `CANCELLED`                | `unavailable`         | The local wait was cancelled; nothing was cancelled in SESS            |
-| `AUTHORITY_REVOKED`        | `unavailable`         | The host revoked this invocation; retry in a new admitted call         |
+| `AUTHORITY_REVOKED`        | `unavailable`         | The host revoked this invocation; see the note below                   |
 | `PROTOCOL_ERROR`           | `configuration`       | SESS returned an invalid response; not retryable, nothing changed      |
 | `CONFIGURATION`            | `configuration`       | Plugin configuration is invalid or incomplete                          |
 | `CREDENTIAL_MISSING`       | `configuration`       | The API key variable is not set in the Gateway process                 |
@@ -115,12 +115,37 @@ one class of the shared adapter contract:
 | `STORE_FULL`               | `store`               | The bounded interaction store is full; nothing was dropped             |
 | `STORE_UNAVAILABLE`        | `store`               | Durable plugin state failed; nothing further was sent                  |
 
+`AUTHORITY_REVOKED` from `sess_request` after its Session was created and saved means: redeliver
+the **original** host call to read the link. Starting a new `sess_request` would create a second
+Session. For the other tools, retry in a new admitted call.
+
+## Stored state, capacity and upgrade
+
+Interaction state lives in OpenClaw's plugin state, in three namespaces:
+
+- `active-v2` (bounded, 2,200 entries, never evicting): interactions that can still change and
+  their create claims. When it is full, new requests are refused; nothing is dropped.
+- `archive-v2` (retained): completed and blocked interactions and their create claims. A claim is
+  the replay tombstone of one host tool call and is never deleted, so a late redelivery of that call
+  returns its stored result instead of creating another Session. Archived entries do not count
+  against active admission.
+- `interactions-v1`: the layout of earlier builds. The first tool call after upgrading migrates it
+  in place (claims and records keep their generations and exact replay identities; unrecognized
+  values are left untouched) and replaces each migrated key with a marker. It then fills the
+  remaining legacy capacity with fence rows, so an older plugin version installed afterwards stops
+  (`STORE_FULL` / `RECOVERY_BLOCKED`) instead of acting on the new layout.
+
+`openclaw sess doctor` prints redacted counts per namespace and state. `openclaw sess prune` is a
+dry run by default; `openclaw sess prune --apply` removes only the retained human link from
+completed or blocked records. Claims, identities and every non-terminal record are never changed,
+and a redelivered terminal call still reports its terminal result.
+
 ## Known limitations (planned for the next increment)
 
 - One outstanding request per conversation is not enforced; each new `sess_request` call may
   create a new Session. Repeated delivery of the same host tool call is deduplicated.
-- Per-call create-claim records are retained and count toward the plugin's bounded
-  interaction store (2200 entries, never evicted); there is no cleanup yet.
+- The retained archive grows with every completed or blocked interaction (claims are replay
+  tombstones and are never deleted). `prune --apply` compacts their payload only.
 - Uninstall/reinstall effects on stored interactions are not qualified.
 - A receipt signed with a key the SDK cannot find (`UNKNOWN_KEY_ID`) fails closed: during a
   signing-key rotation inside the SDK's key-refresh cooldown, a valid answer can block and needs

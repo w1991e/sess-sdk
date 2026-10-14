@@ -337,6 +337,11 @@ console.log(JSON.stringify({ id: entry.id, tools, cli, opened, attempts, reads }
     assert(/doctor/.test(help), 'sess doctor command missing');
     const doctor = await openclaw(['sess', 'doctor']);
     assert(/network: not contacted/.test(doctor), 'doctor output');
+    // Retained + bounded plugin state open in the real host's CLI process (redacted counts).
+    assert(
+      /active interactions .*: empty/.test(doctor) && /archive .*: empty/.test(doctor),
+      'doctor state counts',
+    );
     pass('host-install', {
       host: version,
       status: inspected.plugin.status,

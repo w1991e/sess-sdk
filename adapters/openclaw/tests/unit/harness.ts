@@ -191,74 +191,194 @@ export class FakeSess {
   };
 }
 
-/** In-memory double of the public PluginStateKeyedStore with withCurrent/observe/compareAndApply. */
+/**
+ * In-memory double of the public OpenClaw 2026.10.3 PluginStateKeyedStore: bounded reject-new or
+ * retained namespaces, withCurrent views, compare-and-apply (set/delete), entries/count and the
+ * atomic moveEntriesFrom (bounded source -> retained destination; existing destinations win).
+ */
 export class FakeKeyedStore {
   rows = new Map<string, string>();
   writes = 0;
+  /** Fault injection: throw on the nth write from now (1-based), then clear. */
+  failAtWrite?: number;
+  constructor(
+    readonly namespace = 'active-v2',
+    /** null = retained (no count limit). */
+    readonly maxEntries: number | null = 2200,
+    readonly registry?: Map<string, FakeKeyedStore>,
+  ) {}
+  #write() {
+    if (this.failAtWrite !== undefined && --this.failAtWrite <= 0) {
+      this.failAtWrite = undefined;
+      throw Object.assign(new Error('injected store fault'), { code: 'PLUGIN_STATE_IO' });
+    }
+    this.writes++;
+  }
+  #observe(key: string) {
+    const raw = this.rows.get(key);
+    return { value: raw === undefined ? undefined : JSON.parse(raw), comparison: raw ?? '<absent>' };
+  }
+  #compareAndApply(key: string, comparison: string, intent: { operation: string; value?: unknown }) {
+    if ((this.rows.get(key) ?? '<absent>') !== comparison)
+      return { status: 'conflict', current: { value: undefined, comparison: '' } };
+    this.#write();
+    if (intent.operation === 'delete') this.rows.delete(key);
+    else this.rows.set(key, JSON.stringify(intent.value));
+    return { status: 'applied' };
+  }
+  #entries() {
+    return [...this.rows].map(([key, raw]) => ({ key, value: JSON.parse(raw), createdAt: 0 }));
+  }
+  async observe(key: string) {
+    return this.#observe(key);
+  }
+  async compareAndApply(key: string, comparison: string, intent: { operation: string; value?: unknown }) {
+    return this.#compareAndApply(key, comparison, intent);
+  }
+  async entries() {
+    return this.#entries();
+  }
   withCurrent({ assertCurrent }: { assertCurrent: () => void }) {
-    const rows = this.rows;
     const self = this;
     return {
       async observe(key: string) {
         assertCurrent();
-        const raw = rows.get(key);
-        return { value: raw === undefined ? undefined : JSON.parse(raw), comparison: raw ?? '<absent>' };
+        return self.#observe(key);
       },
-      async compareAndApply(key: string, comparison: string, intent: { value: unknown }) {
+      async compareAndApply(key: string, comparison: string, intent: { operation: string; value?: unknown }) {
         assertCurrent();
-        if ((rows.get(key) ?? '<absent>') !== comparison)
-          return { status: 'conflict', current: { value: undefined, comparison: '' } };
-        rows.set(key, JSON.stringify(intent.value));
-        self.writes++;
-        return { status: 'applied' };
+        return self.#compareAndApply(key, comparison, intent);
       },
       async registerIfAbsent(key: string, value: unknown) {
         assertCurrent();
-        if (rows.has(key)) return false;
-        rows.set(key, JSON.stringify(value));
-        self.writes++;
+        if (self.rows.has(key)) return false;
+        if (self.maxEntries !== null && self.rows.size >= self.maxEntries)
+          throw Object.assign(new Error('limit'), { code: 'PLUGIN_STATE_LIMIT_EXCEEDED' });
+        self.#write();
+        self.rows.set(key, JSON.stringify(value));
         return true;
       },
       async lookup(key: string) {
         assertCurrent();
-        const raw = rows.get(key);
+        const raw = self.rows.get(key);
         return raw === undefined ? undefined : JSON.parse(raw);
+      },
+      async delete(key: string) {
+        assertCurrent();
+        return self.rows.delete(key);
+      },
+      async entries() {
+        assertCurrent();
+        return self.#entries();
+      },
+      async count() {
+        assertCurrent();
+        return self.rows.size;
+      },
+      async moveEntriesFrom(source: {
+        namespace: string;
+        entries: { sourceKey: string; targetKey: string }[];
+      }) {
+        assertCurrent();
+        if (self.maxEntries !== null) throw new Error('moveEntriesFrom requires a retained destination');
+        const from = self.registry?.get(source.namespace);
+        if (!from) throw new Error('unknown source namespace');
+        self.#write();
+        let settled = 0;
+        for (const { sourceKey, targetKey } of source.entries) {
+          const raw = from.rows.get(sourceKey);
+          if (raw === undefined) continue;
+          if (!self.rows.has(targetKey)) self.rows.set(targetKey, raw);
+          from.rows.delete(sourceKey);
+          settled++;
+        }
+        return settled;
       },
     };
   }
 }
 
 export interface FakeHost {
+  /** The active (admission-limited) namespace. */
   store: FakeKeyedStore;
+  archive: FakeKeyedStore;
+  legacy: FakeKeyedStore;
+  stores: Map<string, FakeKeyedStore>;
   tools: Map<string, { create: (ctx: unknown) => any }>;
-  cli: unknown[];
+  cli: { registrar: (ctx: unknown) => void }[];
   openCount: number;
+}
+
+/** A fake state runtime shared across plugin registrations (one Gateway profile). */
+export function fakeState(capacityOverride: Record<string, number> = {}) {
+  const stores = new Map<string, FakeKeyedStore>();
+  const open = (options: { namespace: string; maxEntries?: number; retention?: string }) => {
+    let store = stores.get(options.namespace);
+    if (!store) {
+      store = new FakeKeyedStore(
+        options.namespace,
+        options.retention === 'retained'
+          ? null
+          : (capacityOverride[options.namespace] ?? options.maxEntries ?? 2200),
+        stores,
+      );
+      stores.set(options.namespace, store);
+    }
+    return store;
+  };
+  return { stores, open };
 }
 
 /** Calls the real plugin entry's register() with a minimal fake registration API. */
 export async function registerPlugin(
   pluginConfig: Record<string, unknown> = { baseUrl: ORIGIN, apiKeyEnv: API_KEY_ENV, waitBudgetMs: 1000 },
+  state = fakeState(),
 ) {
   const entry = (await import('../../src/index.js')).default as { register: (api: unknown) => void };
-  const host: FakeHost = { store: new FakeKeyedStore(), tools: new Map(), cli: [], openCount: 0 };
+  const tools = new Map();
+  const cli: { registrar: (ctx: unknown) => void }[] = [];
+  let openCount = 0;
   entry.register({
     id: 'sess',
     pluginConfig,
     runtime: {
       state: {
-        openKeyedStore: () => {
-          host.openCount++;
-          return host.store;
+        openKeyedStore: (options: { namespace: string; maxEntries?: number; retention?: string }) => {
+          openCount++;
+          return state.open(options);
         },
       },
     },
     registerTool: (
       factory: { contextVersion: number; create: (ctx: unknown) => unknown },
       opts: { name: string },
-    ) => host.tools.set(opts.name, factory as never),
-    registerCli: (registrar: unknown) => host.cli.push(registrar),
+    ) => tools.set(opts.name, factory as never),
+    registerCli: (registrar: (ctx: unknown) => void) => cli.push({ registrar }),
   });
+  const host: FakeHost = {
+    get store() {
+      return state.open({ namespace: 'active-v2', maxEntries: 2200 });
+    },
+    get archive() {
+      return state.open({ namespace: 'archive-v2', retention: 'retained' });
+    },
+    get legacy() {
+      return state.open({ namespace: 'interactions-v1', maxEntries: 2200 });
+    },
+    stores: state.stores,
+    tools,
+    cli,
+    get openCount() {
+      return openCount;
+    },
+  } as FakeHost;
   return host;
+}
+
+/** Reads an interaction row wherever the layout keeps it (active first, then archive). */
+export function recordRow(host: FakeHost, handle: string) {
+  const raw = host.store.rows.get(`i:${handle}`) ?? host.archive.rows.get(`i:${handle}`);
+  return raw === undefined ? undefined : JSON.parse(raw);
 }
 
 export interface Conversation {

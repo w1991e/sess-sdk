@@ -100,13 +100,33 @@
     "hostLimitObservedOnToolsInvoke": "none up to 120000 ms"
   },
   "storage": {
-    "api": "api.runtime.state.openKeyedStore (SQLite-backed, plugin-scoped)",
-    "namespace": "interactions-v1",
-    "maxEntries": 2200,
-    "overflowPolicy": "reject-new",
+    "api": "api.runtime.state.openKeyedStore (SQLite-backed, plugin-scoped), public plugin SDK runtime",
+    "namespaces": {
+      "active-v2": "bounded, maxEntries 2200, overflowPolicy reject-new (non-terminal interactions and their claims)",
+      "archive-v2": "retention retained (terminal interactions and create-claim replay tombstones; no deletion)",
+      "interactions-v1": "legacy layout; migrated in place to markers plus capacity fence rows"
+    },
     "ttl": "none",
+    "eviction": "none",
+    "requiredBoundCapabilities": [
+      "withCurrent",
+      "observe",
+      "compareAndApply",
+      "registerIfAbsent",
+      "lookup",
+      "entries",
+      "count",
+      "moveEntriesFrom"
+    ],
+    "qualifiedOnHost": {
+      "retainedStoreOpenInGatewayAndCli": "PASS (openclaw sess doctor counts on 2026.10.3)",
+      "atomicMoveBoundedToRetained": "PASS (completion moved record and claim active-v2 -> archive-v2 in the G1 round)",
+      "upgradeOfLegacyProfile": "PASS (9 claims + 9 records migrated, 2182 fence rows, about 2.7 s on first call)",
+      "lateRedeliveryAfterUpgrade": "PASS (same handle; no second create POST)",
+      "olderPluginAfterUpgrade": "PASS (new call STORE_FULL, redelivered call RECOVERY_BLOCKED, no create POST)",
+      "capacityPressure": "unit-tested with reduced capacity only"
+    },
     "survivesGatewayRestart": true,
-    "survivesPluginReinstall": "NOT qualified",
     "uninstallBehavior": "NOT qualified"
   },
   "capabilities": {
@@ -126,7 +146,7 @@
     "runtimeRound": "scripts/g1-runtime-round.mjs (opt-in; isolated local SESS runtime; deterministic host invocation, no LLM)"
   },
   "knownLimitations": [
-    "G2: create-claim records (one per host tool call) are retained without cleanup and count toward the bounded 2200-entry store",
+    "Retained archive grows with terminal interactions; claims are never deleted (prune compacts terminal links only)",
     "G2: one outstanding request per conversation is not enforced; only repeated delivery of the same host tool call is deduplicated",
     "G2: store capacity pressure, uninstall/reinstall and fault-injection beyond unit tests are not qualified",
     "Agent-turn use (Control UI/chat channels) is unqualified: early link visibility, host tool timeout and reset incarnation (OC-18) need a model-driven run",

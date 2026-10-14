@@ -14,6 +14,13 @@
   change is a conflict. No answer data is released in any of these cases (review R-01).
 - Every tool result is released only after re-asserting the live invocation authority, including
   terminal `completed` shortcuts (review R-02).
+- Capacity: completed and blocked interactions and their create claims move atomically into a
+  retained archive outside active admission; claims are never deleted, so late redelivery of an old
+  host call never creates another Session. The first call after upgrade migrates the earlier
+  single-namespace layout (resumable, idempotent, collision-checked) and fences older plugin
+  versions. `openclaw sess doctor` shows redacted counts; `openclaw sess prune` (dry run by default)
+  compacts only terminal human links.
+- `AUTHORITY_REVOKED` after a created and saved request now says to redeliver the original call.
 - `openclaw sess doctor` (no network, no secrets). Bundled `sess` skill.
 - Qualified against OpenClaw 2026.10.3 on Node 24 with the candidate `@sess.si/sdk@0.1.0-rc.3`.
   Release hold: the SDK must be published before this package can be.
