@@ -8,14 +8,14 @@ changes an external system is a separate owner action.
 > **Do not push an `openclaw-v*` tag until the `npm-openclaw-release` environment (with required
 > reviewers and the `openclaw-v*` tag rule) and the npm trusted publisher for `@sess.si/openclaw`
 > exist.** A job that references a missing environment makes GitHub create it automatically without
-> protection rules, so the publish job would run without maintainer approval. (The guard still
-> refuses while the SDK is unpublished, but do not rely on that.)
+> protection rules, so the publish job would run without maintainer approval.
 
 1. **SDK publication.** `@sess.si/sdk` at the exact version in `package.json` (the repository pin
-   `release/sdk-candidate.json`; `0.1.0-rc.4` is the first SDK candidate to be published, by owner
-   decision of 2026-10-14) must be published on the public npm registry with the same bytes the lockfile pins
-   (`package-lock.json` integrity). Until then the release guard refuses to run: candidate SDK
-   installs are development evidence only.
+   `release/sdk-candidate.json`) must be published on the public npm registry with the same bytes
+   the lockfile pins (`package-lock.json` integrity); the release guard refuses otherwise.
+   `@sess.si/sdk@0.1.0-rc.4` is published under the `next` dist-tag with those bytes. CI and
+   `npm run check` install it from the registry and verify it against the pin
+   (`scripts/registry-sdk.mjs`). A future SDK pin must be published before the adapter adopts it.
 2. **GitHub environment `npm-openclaw-release`.** Create it with required reviewers and a deployment
    tag rule restricted to `openclaw-v*`. It is the only job with `id-token: write`.
 3. **npm trusted publisher.** On npmjs.com, for package `@sess.si/openclaw`, add a GitHub Actions
