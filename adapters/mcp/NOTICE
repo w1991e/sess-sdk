@@ -1,0 +1,8 @@
+SESS MCP server (@sess.si/mcp)
+
+This package is prepared for distribution under the Apache License, Version 2.0.
+It contains an independent local stdio MCP server built on the SESS SDK.
+The hosted SESS runtime and renderer are not included.
+
+Runtime dependencies retain their own notices and licenses: @sess.si/sdk (Apache-2.0),
+@modelcontextprotocol/sdk (MIT) and its dependencies. They are not bundled.
