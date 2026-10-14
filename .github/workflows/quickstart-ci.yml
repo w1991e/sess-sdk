@@ -1,0 +1,41 @@
+name: Quickstart clean install
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quickstart-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clean-install:
+    name: Quickstart clean install / Node ${{ matrix.node }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.14.0', '24.21.0']
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      # The SDK candidate is built from the reviewed root source with the CI build toolchain.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          cache: npm
+      - name: Build the SDK root
+        run: npm ci --ignore-scripts --no-audit --no-fund && npm run build
+      # The consumer side (pack, digest gate, clean install and run) uses the Node under test.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Clean copied-directory install and run against a loopback fake SESS API
+        run: node examples/quickstart-node/scripts/clean-install-check.mjs
