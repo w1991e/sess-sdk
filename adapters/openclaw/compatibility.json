@@ -35,7 +35,10 @@
     "shape": "native mixed plugin: definePluginEntry default export; four api.registerTool version-2 factories ({ contextVersion: 2, create }) registered optional; one api.registerCli root command",
     "packageEntry": "package.json openclaw.extensions [\"./dist/index.js\"] (compiled ESM)",
     "manifest": "openclaw.plugin.json: id sess, contracts.tools, toolMetadata optional, cliCommands sess, skills ./skills, strict configSchema",
-    "importSubpaths": ["openclaw/plugin-sdk/plugin-entry (definePluginEntry, buildJsonPluginConfigSchema)"],
+    "importSubpaths": [
+      "openclaw/plugin-sdk/plugin-entry (definePluginEntry, buildJsonPluginConfigSchema)",
+      "openclaw/plugin-sdk/config-mutation (readConfigFileSnapshotForWrite; loaded lazily inside `openclaw sess setup` only)"
+    ],
     "hostRuntimeUsed": [
       "api.pluginConfig",
       "api.runtime.state.openKeyedStore({ namespace, maxEntries, overflowPolicy: 'reject-new' }).withCurrent({ assertCurrent }) -> observe / compareAndApply / registerIfAbsent / lookup",
