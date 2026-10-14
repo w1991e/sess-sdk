@@ -18,7 +18,15 @@
 // Nothing here publishes, tags or contacts the registry.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -88,7 +96,7 @@ export function pack({ out, doBuild = false }) {
       );
     mkdirSync(out, { recursive: true });
     const target = join(out, pin.filename);
-    renameSync(packed.path, target);
+    copyFileSync(packed.path, target); // copy, not rename: --out may be on another filesystem (EXDEV)
     log(`accepted pinned ${pin.name}@${pin.version} (sha256 ${pin.sha256})`);
     return target;
   } finally {
