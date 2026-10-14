@@ -99,10 +99,50 @@ function waitingResult(record: RecoveryRecord, includeUrl: boolean): AdapterResu
 }
 
 const LINK_NOTE =
-  'Show the humanUrl privately to the intended person now, before waiting. Anyone with the link can answer as its holder; form contents are hosted by SESS. Then call sess_response with this handle and revision.';
+  'Present the humanUrl privately to the intended person. Anyone with the link can answer as its holder; form contents are hosted by SESS. Call sess_response to wait only if the link has visibly reached the person; otherwise end your turn and call sess_response with this handle and revision when asked to continue.';
 
 function asSessError(error: unknown): SessError | undefined {
   return error instanceof SessError ? error : undefined;
+}
+
+/**
+ * Receipt-key availability problems are retryable infrastructure conditions, not evidence that
+ * an answer is invalid: they leave the interaction unchanged. Every other receipt_verification
+ * code is a genuine verification failure.
+ */
+const RETRYABLE_VERIFICATION_CODES = new Set([
+  'KEY_RESOLUTION_FAILED',
+  'KEY_FETCH_COOLDOWN',
+  'VERIFICATION_CONTEXT_MISSING',
+]);
+
+function genuineVerificationFailure(error: unknown): SessError | undefined {
+  const sessError = asSessError(error);
+  return sessError?.kind === 'receipt_verification' && !RETRYABLE_VERIFICATION_CODES.has(sessError.code ?? '')
+    ? sessError
+    : undefined;
+}
+
+/** A repeated delivery of the same host call reports the stored state; the URL only while live. */
+function priorOutcome(deps: InvocationDeps, prior: RecoveryRecord): ToolOutcome {
+  if (prior.state === 'publish_pending' || prior.state === 'complete_pending')
+    fail('STATE_CONFLICT', 'A publish or complete is pending; repeat that same call to reconcile it first.');
+  deps.lease.assertCurrent();
+  if (prior.state === 'completed')
+    return {
+      result: {
+        interaction: { handle: prior.handle, revision: prior.revision as number, state: 'completed' },
+      },
+      note: 'This interaction is already completed.',
+    };
+  if (prior.state === 'waiting' && prior.humanUrl)
+    return { result: waitingResult(prior, true), note: LINK_NOTE };
+  return {
+    result: {
+      interaction: { handle: prior.handle, revision: prior.revision as number, state: 'needs_resume' },
+    },
+    note: 'This request was already handled. Call sess_response with this handle and revision to read its current state.',
+  };
 }
 
 // ---------------------------------------------------------------- sess_request
@@ -124,24 +164,27 @@ export async function sessRequest(deps: InvocationDeps, args: RequestArgs): Prom
   // Persist the create intent before any POST; a repeated delivery of the same host call reuses it.
   const claim = await deps.store.claimCreate(claimKey(deps.lease.binding, deps.toolCallId), intent);
   if (!claim.created) {
-    const prior = await owned(deps, claim.handle);
-    return { result: waitingResult(prior, true), note: LINK_NOTE };
+    return priorOutcome(deps, await owned(deps, claim.handle));
   }
   const record = (await deps.store.read(intent.handle)) ?? intent;
   let created: { id: string; revision: number; human_url: string };
+  let defect = false;
   try {
     created = (
       await deps.client.sess.sessions.create({ interaction: args.interaction }, { signal: deps.lease.signal })
     ).data;
   } catch (error) {
     const sessError = asSessError(error);
-    const notCreated =
-      (deps.client.dispatched() === 0 && deps.client.refused()) ||
-      sessError?.outcome === 'not_sent' ||
-      sessError?.outcome === 'rejected';
+    const neverSent = deps.client.dispatched() === 0 && deps.client.refused();
+    const notCreated = neverSent || sessError?.outcome === 'not_sent' || sessError?.outcome === 'rejected';
     if (notCreated) {
       await block(deps, record, 'create_not_created');
       if (error instanceof SessAdapterError) throw error;
+      if (neverSent)
+        fail(
+          'AUTHORITY_REVOKED',
+          'The host revoked this invocation before the request was sent; no Session was created.',
+        );
       fail(
         'REJECTED',
         `SESS did not create the Session (${sessError?.code ?? sessError?.kind ?? 'error'}). Correct the request; this handle is closed.`,
@@ -156,6 +199,7 @@ export async function sessRequest(deps: InvocationDeps, args: RequestArgs): Prom
       );
     }
     created = { id: recovered.id, revision: recovered.revision, human_url: recovered.human_url };
+    defect = true;
   }
   const waiting = await deps.store.replace(record, {
     ...strip(record),
@@ -165,7 +209,12 @@ export async function sessRequest(deps: InvocationDeps, args: RequestArgs): Prom
     revision: created.revision,
   });
   deps.lease.assertCurrent();
-  return { result: waitingResult(waiting, true), note: LINK_NOTE };
+  return {
+    result: waitingResult(waiting, true),
+    note: defect
+      ? `${LINK_NOTE} Note: SESS returned a defective create response (protocol error); this Session was recovered from its validated body and was not created twice.`
+      : LINK_NOTE,
+  };
 }
 
 // ---------------------------------------------------------------- sess_response
@@ -242,8 +291,8 @@ export async function sessResponse(deps: InvocationDeps, args: ResponseArgs): Pr
       deps.lease.signal ? { signal: deps.lease.signal } : {},
     );
   } catch (error) {
-    const sessError = asSessError(error);
-    if (sessError?.kind === 'receipt_verification') {
+    const sessError = genuineVerificationFailure(error);
+    if (sessError) {
       await block(deps, record, 'verification_failed');
       fail(
         'VERIFICATION_FAILED',
@@ -349,7 +398,7 @@ async function prepareMutation(
     // Re-verify the evidence before advancing (spec 8.7).
     await deps.client.sess.receipts.verifyResponse({ sessionId, response: retained }, options);
   } catch (error) {
-    if (asSessError(error)?.kind === 'receipt_verification') {
+    if (genuineVerificationFailure(error)) {
       await block(deps, record, 'verification_failed');
       fail('VERIFICATION_FAILED', 'The answer no longer verifies; nothing was changed.');
     }

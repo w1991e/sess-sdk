@@ -124,5 +124,12 @@
     "unit": "tests/unit (vitest; fake host boundary, real SDK transport and receipt verification)",
     "packed": "scripts/check-package.mjs (pack allowlist, consumer install, network-denied import, --host real installer)",
     "runtimeRound": "scripts/g1-runtime-round.mjs (opt-in; isolated local SESS runtime; deterministic host invocation, no LLM)"
-  }
+  },
+  "knownLimitations": [
+    "G2: create-claim records (one per host tool call) are retained without cleanup and count toward the bounded 2200-entry store",
+    "G2: one outstanding request per conversation is not enforced; only repeated delivery of the same host tool call is deduplicated",
+    "G2: store capacity pressure, uninstall/reinstall and fault-injection beyond unit tests are not qualified",
+    "Agent-turn use (Control UI/chat channels) is unqualified: early link visibility, host tool timeout and reset incarnation (OC-18) need a model-driven run",
+    "Tool enablement guidance uses tools.alsoAllow (additive) rather than tools.allow (restrictive)"
+  ]
 }

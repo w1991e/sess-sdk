@@ -14,10 +14,13 @@ decide yourself. They are optional tools; if they are not available, say so and 
    schemas are limited to string (optional enum), number/integer (bounds), boolean, or an array
    of string enum IDs. No HTML, scripts or styles. Do not shorten or alter what the person must
    approve; fix validation errors instead.
-2. Show the returned `humanUrl` privately to the intended person **before** waiting, and tell
-   them: anyone with the link can answer as its holder, and what they enter is hosted by SESS.
-   Never post it in a shared or group conversation.
-3. Call `sess_response` once with the `handle` and `revision`. It waits a bounded time.
+2. Present the returned `humanUrl` privately to the intended person, and tell them: anyone with
+   the link can answer as its holder, and what they enter is hosted by SESS. Never post it in a
+   shared or group conversation.
+3. Start a bounded wait with `sess_response` (`handle`, `revision`) **only** when the host has
+   visibly delivered the link to the person already. If you cannot be sure they can see it yet
+   (for example, your reply is only shown after your turn ends), end your turn after presenting
+   the link and call `sess_response` when they ask you to continue.
    - `answered`: the answer is verified for that exact revision. Its `actorAssurance` is
      `link_holder`, not a verified identity.
    - `needs_resume`: no answer yet. The form stays available. Tell the person to submit and to

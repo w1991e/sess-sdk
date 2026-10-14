@@ -59,7 +59,14 @@ export async function serveCandidate(path) {
   const tarballPath = '/@sess.si/sdk/-/sdk-0.1.0-rc.3.tgz';
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
-    const pathname = decodeURIComponent(url.pathname);
+    let pathname;
+    try {
+      pathname = decodeURIComponent(url.pathname);
+    } catch {
+      res.writeHead(400, { 'content-type': 'application/json' });
+      res.end('{"error":"malformed path"}');
+      return;
+    }
     if (req.method === 'GET' && (pathname === '/@sess.si/sdk' || pathname === '/@sess.si%2fsdk')) {
       const { port } = server.address();
       const packument = {

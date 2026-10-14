@@ -218,20 +218,19 @@ describe('OC-11/OC-12 live authority is checked before every dispatch', () => {
   it('revocation after the create intent is saved refuses the POST and reports not created', async () => {
     const host = await registerPlugin();
     const conv = conversation();
-    let writes = 0;
     const view = host.store.withCurrent.bind(host.store);
     host.store.withCurrent = (authority) => {
       const bound = view(authority);
-      const register = bound.registerIfAbsent;
-      bound.registerIfAbsent = async (k, v) => {
-        const result = await register(k, v);
-        if (++writes === 2) conv.revoked = true; // revoke right after the intent record commits
-        return result;
+      const lookup = bound.lookup;
+      bound.lookup = async (key) => {
+        const value = await lookup(key);
+        if (key.startsWith('i:')) conv.revoked = true; // revoke after the saved intent is read back
+        return value;
       };
       return bound;
     };
     await expect(call(host, 'sess_request', conv, { interaction: round1() })).rejects.toThrow(
-      /AUTHORITY_REVOKED|REJECTED/,
+      /AUTHORITY_REVOKED: The host revoked this invocation before the request was sent/,
     );
     expect(sess.requests).toHaveLength(0);
   });
@@ -320,5 +319,83 @@ describe('OC-14 the human link never reaches logs or errors', () => {
       expect(text).not.toContain(API_KEY);
     }
     expect(errors.length).toBeGreaterThan(0);
+  });
+});
+
+describe('receipt-key outages are retryable, not verification failures', () => {
+  it('key endpoint 503 -> UNAVAILABLE with state unchanged; the next call verifies and answers', async () => {
+    const host = await registerPlugin();
+    const conv = conversation();
+    const { handle } = (await call(host, 'sess_request', conv, { interaction: round1() })).details
+      .interaction;
+    const eventId = sess.answer(1, 'submit', { activity: 'museum', hours: 3 });
+    let outage = true;
+    sess.intercept = (method, path) =>
+      outage && path === '/.well-known/sess-receipt-keys.json'
+        ? new Response('{"error":{"code":"UNAVAILABLE","message":"down"}}', {
+            status: 503,
+            headers: { 'content-type': 'application/json' },
+          })
+        : undefined;
+    await expect(call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 })).rejects.toThrow(
+      /^UNAVAILABLE: /,
+    );
+    const keyFetches = sess.requests.filter((r) => r.path === '/.well-known/sess-receipt-keys.json').length;
+    expect(keyFetches).toBeGreaterThanOrEqual(1);
+    outage = false;
+    const answered = await call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 });
+    expect(answered.details.interaction).toMatchObject({
+      state: 'answered',
+      response: { eventId, verified: true },
+    });
+  });
+});
+
+describe('repeated delivery of the same host call', () => {
+  it('re-checks authority before releasing the stored link', async () => {
+    const host = await registerPlugin();
+    const conv = conversation();
+    const first = await call(host, 'sess_request', conv, { interaction: round1() }, { toolCallId: 'dup' });
+    expect(first.details.interaction.humanUrl).toBe(HUMAN_URL);
+    const view = host.store.withCurrent.bind(host.store);
+    host.store.withCurrent = (authority) => {
+      const bound = view(authority);
+      const lookup = bound.lookup;
+      bound.lookup = async (key) => {
+        const value = await lookup(key);
+        if (key.startsWith('i:')) conv.revoked = true; // revoked after the record read
+        return value;
+      };
+      return bound;
+    };
+    const captured: string[] = [];
+    await call(host, 'sess_request', conv, { interaction: round1() }, { toolCallId: 'dup' }).then(
+      (r: { details: unknown }) => captured.push(JSON.stringify(r.details)),
+      (e: Error) => captured.push(e.message),
+    );
+    expect(captured[0]).toMatch(/AUTHORITY_REVOKED/);
+    expect(captured.join('')).not.toContain(HUMAN_URL);
+  });
+
+  it('reports the actual stored state and no link once completed', async () => {
+    const host = await registerPlugin();
+    const conv = conversation();
+    const { handle } = (
+      await call(host, 'sess_request', conv, { interaction: round1() }, { toolCallId: 'again' })
+    ).details.interaction;
+    const eventId = sess.answer(1, 'submit', { activity: 'museum', hours: 3 });
+    await call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 });
+    const answeredReplay = await call(
+      host,
+      'sess_request',
+      conv,
+      { interaction: round1() },
+      { toolCallId: 'again' },
+    );
+    expect(answeredReplay.details.interaction).toEqual({ handle, revision: 1, state: 'needs_resume' });
+    await call(host, 'sess_complete', conv, { handle, expected_revision: 1, response_event_id: eventId });
+    const replay = await call(host, 'sess_request', conv, { interaction: round1() }, { toolCallId: 'again' });
+    expect(replay.details.interaction).toEqual({ handle, revision: 1, state: 'completed' });
+    expect(sess.requests.filter((r) => r.method === 'POST' && r.path === '/v1/sessions')).toHaveLength(1);
   });
 });

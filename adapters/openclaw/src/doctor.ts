@@ -28,7 +28,7 @@ export function doctorReport(
   const keyed = typeof (state as { openKeyedStore?: unknown } | undefined)?.openKeyedStore === 'function';
   lines.push(`durable plugin state: ${keyed ? 'available' : 'NOT available'}`);
   lines.push(
-    'tools: optional; enable them explicitly with tools.allow (sess_request, sess_response, sess_publish, sess_complete)',
+    'tools: optional; add sess_request, sess_response, sess_publish and sess_complete to tools.alsoAllow (keep any existing entries; do not replace tools.allow)',
   );
   lines.push('network: not contacted by doctor');
   return lines.join('\n');

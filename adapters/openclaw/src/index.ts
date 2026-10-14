@@ -26,7 +26,7 @@ export const PLUGIN_ID = 'sess';
 
 const DESCRIPTIONS: Record<ToolName, string> = {
   sess_request:
-    'Ask a person for a structured decision through a private SESS link. Returns a handle, revision and humanUrl immediately; show the link privately to the intended person before waiting.',
+    'Ask a person for a structured decision through a private SESS link. Returns a handle, revision and humanUrl immediately. Present the link privately; wait with sess_response only once the person can see it.',
   sess_response:
     'Read, or wait a bounded time for, the verified answer to one exact revision. A needs_resume result is normal: the form stays available; ask the person to submit, then call again. Never loop.',
   sess_publish:
