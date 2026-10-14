@@ -125,8 +125,10 @@ observation reports a conflict.
   that its revision is still current. After verification succeeds, and again before re-releasing a
   cached `answered` result, the adapter performs a fresh authenticated read of the Session and
   releases answer data only if the Session is still at the requested revision with that accepted
-  event, or completed at that same revision with the event retained. A failed read → retryable
-  unavailable; observed progress → `blocked`; in both cases no answer data is released. Local
+  event, or completed at that same revision with the event retained. Order: verify, then the fresh
+  read, then persist `answered`; a failed read → retryable unavailable with no state change; observed
+  progress or any other observation (event missing or different, unexpected status or revision) →
+  `blocked`; in every such case no answer data is released. Local
   generation, revision and state are re-checked with compare-and-apply after every await; a stale
   observation never overwrites a concurrently changed local record and reports a conflict.
 - Every other `receipt_verification` code → `blocked` with a verification-failed error. This
