@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import {
   Sess,
   SessError,
@@ -9,8 +9,8 @@ import {
 import { loadConfig, type AdapterConfig } from './config.js';
 import { AdapterError, type Diagnostics } from './errors.js';
 import { HandleStore, RECORD_SCHEMA, type HandleRecord, type PendingMutation } from './store.js';
+import { bodyDigest, canonicalJson, classifyVerification } from './internal/shared.js';
 import {
-  canonicalJson,
   plainJson,
   type CompleteArgs,
   type JsonObject,
@@ -57,8 +57,12 @@ interface Context {
   client: SessClient;
 }
 
+/**
+ * Canonical body digest from the shared adapter core. Inputs are validated plain JSON (finite
+ * numbers, no undefined), so the shared canonicalizer's non-JSON TypeError cannot occur here.
+ */
 function digest(value: JsonObject): string {
-  return createHash('sha256').update(canonicalJson(value)).digest('hex');
+  return bodyDigest(value);
 }
 
 function defaultClient(config: AdapterConfig): SessClient {
@@ -70,12 +74,6 @@ function defaultClient(config: AdapterConfig): SessClient {
     ...(config.expectedWorkspaceId ? { expectedWorkspaceId: config.expectedWorkspaceId } : {}),
   });
 }
-
-/**
- * Receipt-verification codes that mean the trusted key set was unavailable, not that the answer
- * failed verification. They are transient: the answer is neither accepted nor blocked.
- */
-const TRANSIENT_KEY_CODES = new Set(['KEY_RESOLUTION_FAILED', 'KEY_FETCH_COOLDOWN']);
 
 /** A SESS error code only if it has the stable public shape; anything else is dropped. */
 function safeCode(error: unknown): string | undefined {
@@ -97,9 +95,25 @@ function createdNotSaved(): AdapterError {
   );
 }
 
+/**
+ * Maps an SDK error from a read, wait or verification (no state change in any case):
+ * `configuration` and `protocol` are deterministic and not retryable; `api`, `transport`,
+ * `timeout`, `unknown_outcome` and anything unrecognized are retryable unavailability. Callers
+ * handle `aborted`, `wait_ended` and `receipt_verification` before this.
+ */
 function unavailable(error: unknown): AdapterError {
   const code = safeCode(error);
   const detail = code ? ` (${code})` : '';
+  if (error instanceof SessError && error.kind === 'configuration')
+    return new AdapterError(
+      'NOT_CONFIGURED',
+      `The SESS client rejected the request before sending it${detail}. Check the MCP server configuration. Nothing was changed.`,
+    );
+  if (error instanceof SessError && error.kind === 'protocol')
+    return new AdapterError(
+      'SESS_PROTOCOL_ERROR',
+      `SESS returned a response this client cannot accept${detail}. Check that SESS_API_ORIGIN is a compatible SESS API. Nothing was changed.`,
+    );
   return new AdapterError(
     'SESS_UNAVAILABLE',
     `SESS could not be reached or returned an error${detail}. Nothing was changed locally; the same call can be repeated.`,
@@ -295,11 +309,8 @@ export class SessMcpAdapter {
         signal ? { signal } : {},
       );
     } catch (error) {
-      if (
-        error instanceof SessError &&
-        error.kind === 'receipt_verification' &&
-        TRANSIENT_KEY_CODES.has(error.code ?? '')
-      ) {
+      const verification = classifyVerification(error);
+      if (verification === 'transient') {
         // The trusted key set could not be loaded (for example a 5xx, timeout or refresh
         // cooldown). The answer was not judged: nothing is recorded and the state is unchanged,
         // so a later sess_response re-reads and fully verifies it.
@@ -310,7 +321,16 @@ export class SessMcpAdapter {
           true,
         );
       }
-      if (error instanceof SessError && error.kind === 'receipt_verification') {
+      if (verification === 'configuration') {
+        // No trusted workspace audience: an owner configuration problem, not a bad answer.
+        // Nothing is recorded and the state is unchanged; the same answer verifies once configured.
+        this.#options.diagnostics('verification_not_configured', { code: sessCode(error) });
+        throw new AdapterError(
+          'NOT_CONFIGURED',
+          'The answer cannot be verified because no trusted workspace is known. This SESS runtime does not return Sess-Workspace-Id; set SESS_EXPECTED_WORKSPACE_ID in the MCP server environment and call sess_response again. Nothing was accepted or changed.',
+        );
+      }
+      if (verification === 'genuine') {
         this.#options.diagnostics('verification_failed', { code: sessCode(error) });
         await this.#block(record, 'VERIFICATION_FAILED', false);
         throw new AdapterError(
@@ -381,9 +401,15 @@ export class SessMcpAdapter {
       case 'completed':
         if (revision !== record.revision) throw this.#revisionMismatch(record);
         return this.#result(record, 'completed');
-      case 'answered':
       case 'publish_pending':
-      case 'complete_pending':
+      case 'complete_pending': {
+        const operation = record.pending!.operation;
+        throw new AdapterError(
+          'MUTATION_PENDING',
+          `A ${operation} for this interaction is pending. Repeat that exact sess_${operation} call to reconcile it before reading again.`,
+        );
+      }
+      case 'answered':
         if (revision !== record.answer!.revision) throw this.#revisionMismatch(record);
         return this.#answered(record);
       case 'waiting':
@@ -551,23 +577,25 @@ export class SessMcpAdapter {
   async #mutationFailed(record: HandleRecord, operation: string, error: unknown): Promise<never> {
     this.#options.diagnostics(`${operation}_failed`, { code: sessCode(error) });
     const code = safeCode(error);
-    if (error instanceof SessError && error.outcome === 'rejected') {
-      const status = error.status ?? 0;
-      const transient = status === 408 || status === 429 || status >= 500;
-      if (!transient) {
-        // Deterministic rejection (409/412 conflict, 400/422 validation, 401/403/404, ...): the
-        // saved request cannot succeed by replay, so the interaction stops for owner review.
-        const reason = code ?? `HTTP_${status || 'REJECTED'}`;
-        await this.#block(record, reason, false);
-        throw new AdapterError(
-          'MUTATION_REJECTED',
-          `SESS rejected the ${operation} (${reason}). The interaction is blocked for owner review.`,
-        );
-      }
+    // The SDK reports `rejected` only for a definitive coded 4xx from its rejection table with no
+    // possible earlier write; such a saved request cannot succeed by replay. Everything else
+    // (not_sent, unknown, 408/429/5xx, transport, timeout, abort) stays pending and retryable.
+    // A not_sent failure from the SDK's own deterministic input/configuration checks (for example a
+    // corrupt saved If-Match) can never succeed on identical replay either.
+    if (error instanceof SessError && error.outcome === 'not_sent' && error.kind === 'configuration') {
+      const reason = code ?? 'SDK_CONFIGURATION';
+      await this.#block(record, reason, false);
       throw new AdapterError(
-        'OUTCOME_UNKNOWN',
-        `SESS was temporarily unable to accept the ${operation}${code ? ` (${code})` : ''}. Repeat the same call later; the saved request is replayed unchanged.`,
-        true,
+        'MUTATION_REJECTED',
+        `The SESS client refused to send the saved ${operation} (${reason}). The interaction is blocked for owner review.`,
+      );
+    }
+    if (error instanceof SessError && error.outcome === 'rejected') {
+      const reason = code ?? `HTTP_${error.status ?? 'REJECTED'}`;
+      await this.#block(record, reason, false);
+      throw new AdapterError(
+        'MUTATION_REJECTED',
+        `SESS rejected the ${operation} (${reason}). The interaction is blocked for owner review.`,
       );
     }
     throw new AdapterError(
@@ -588,14 +616,27 @@ export class SessMcpAdapter {
         ifMatch: pending.ifMatch,
         idempotencyKey: pending.idempotencyKey,
       });
-      confirmed = result.data.id === pending.sessionId && result.data.status === 'completed';
+      confirmed =
+        result.data.id === pending.sessionId &&
+        result.data.status === 'completed' &&
+        result.data.revision === pending.expectedRevision;
     } catch (error) {
       if (error instanceof SessError && error.code === 'SESSION_COMPLETED') {
         try {
           const current = await client.sessions.retrieve(pending.sessionId);
-          confirmed = 'status' in current.data && current.data.status === 'completed';
+          // Already completed: confirmed only if completed at the expected revision.
+          confirmed =
+            'status' in current.data &&
+            current.data.status === 'completed' &&
+            current.data.revision === pending.expectedRevision;
         } catch (readError) {
-          return this.#mutationFailed(record, 'complete', readError);
+          // The read-back failed: the completion stays pending and the same call reconciles later.
+          this.#options.diagnostics('complete_readback_failed', { code: sessCode(readError) });
+          throw new AdapterError(
+            'OUTCOME_UNKNOWN',
+            'SESS reports the interaction completed, but it could not be read back to confirm. Repeat the same sess_complete call later.',
+            true,
+          );
         }
       } else {
         return this.#mutationFailed(record, 'complete', error);
