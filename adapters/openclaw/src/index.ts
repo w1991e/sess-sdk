@@ -43,6 +43,27 @@ import {
 
 export const PLUGIN_ID = 'sess';
 
+/**
+ * The authored config file snapshot (`sourceConfig`) that `mutateConfigFile` clones for its draft by
+ * default, read through the public `openclaw/plugin-sdk/config-mutation` subpath. Loaded lazily, only
+ * when `openclaw sess setup` runs, so import and registration stay side-effect free.
+ */
+async function readAuthoredConfig(): Promise<unknown> {
+  type Reader = () => Promise<{ snapshot: { sourceConfig: unknown } }>;
+  let reader: unknown;
+  try {
+    reader = (await import('openclaw/plugin-sdk/config-mutation')).readConfigFileSnapshotForWrite;
+  } catch {
+    reader = undefined;
+  }
+  if (typeof reader !== 'function')
+    throw new SessAdapterError(
+      'HOST_CAPABILITY_MISSING',
+      'This host cannot read its authored config for a preview.',
+    );
+  return (await (reader as Reader)()).snapshot.sourceConfig;
+}
+
 const DESCRIPTIONS: Record<ToolName, string> = {
   sess_request:
     'Ask a person for a structured decision through a private SESS link. Returns a handle, revision and humanUrl immediately. Present the link privately; wait with sess_response only once the person can see it.',
@@ -146,7 +167,10 @@ export default definePluginEntry({
           .action(
             async (raw: { baseUrl?: string; apiKeyEnv?: string; waitBudgetMs?: string; yes?: boolean }) => {
               const options = parseSetupOptions(raw);
-              const preview = planSetup(config, options);
+              // Preview from the same authored file snapshot the apply mutates, not the CLI's
+              // runtime view (which can report defaults such as an enabled plugin as authored).
+              void config;
+              const preview = planSetup(await readAuthoredConfig(), options);
               if (raw.yes !== true || preview.changes.length === 0) {
                 console.log(formatPlan(preview, process.env, false));
                 return;
@@ -162,8 +186,15 @@ export default definePluginEntry({
                 // Never restart: the operator owns the follow-up restart.
                 afterWrite: { mode: 'none', reason: `sess setup; restart with: ${RESTART_COMMAND}` },
                 mutate(draft) {
-                  // Recompute on the host's file snapshot so references and concurrent edits are kept.
+                  // Recompute on the host's file snapshot so references and concurrent edits are kept,
+                  // and write only if that is exactly the previewed change set.
                   applied = planSetup(draft, options);
+                  // planSetup builds change lists deterministically; undefined `from` values are expected.
+                  if (JSON.stringify(applied.changes) !== JSON.stringify(preview.changes))
+                    throw new SessAdapterError(
+                      'STATE_CONFLICT',
+                      'The config changed since the preview; nothing was written. Run openclaw sess setup again.',
+                    );
                   applySetup(draft as unknown as Record<string, unknown>, applied);
                 },
               });

@@ -62,6 +62,8 @@ describe('OC-40 no MCP, Front Door, routes, services or detached wake-up in this
       );
       expect(source).not.toMatch(/@sess\.si\/mcp|adapters\/mcp|@modelcontextprotocol/);
       expect(source).not.toMatch(/from ['"]openclaw\/(?!plugin-sdk\/plugin-entry['"])/);
+      // The only lazily loaded host subpath is the public config reader used by `sess setup`.
+      expect(source).not.toMatch(/import\(\s*['"]openclaw\/(?!plugin-sdk\/config-mutation['"])/);
       expect(source).not.toMatch(/@sess\/(core|spec|security|session-web|db)/);
     }
   });
