@@ -14,7 +14,7 @@
   },
   "homepage": "https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp#readme",
   "engines": {
-    "node": ">=24.21.0 <25"
+    "node": ">=22.14.0 <25"
   },
   "bin": {
     "sess-mcp": "dist/bin.js"
@@ -34,7 +34,9 @@
     "access": "public"
   },
   "scripts": {
+    "setup": "node scripts/sdk-candidate.mjs prepare --build-root && npm ci --ignore-scripts --no-audit --no-fund",
     "candidate:prepare": "node scripts/sdk-candidate.mjs prepare",
+    "sdk:switch-to-registry": "node scripts/sdk-candidate.mjs switch-to-registry",
     "candidate:verify": "node scripts/sdk-candidate.mjs verify",
     "build": "node node_modules/typescript/bin/tsc -p tsconfig.json",
     "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.check.json --noEmit",

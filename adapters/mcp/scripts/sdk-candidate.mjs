@@ -1,29 +1,49 @@
-// CANDIDATE dependency mechanism for the unpublished @sess.si/sdk@0.1.0-rc.3.
+// @sess.si/sdk dependency gate for this adapter.
 //
-// The adapter declares the exact registry dependency it will use after publication
-// ("@sess.si/sdk": "0.1.0-rc.3"). Until then package-lock.json resolves that node to a local,
-// gitignored tarball at .candidate/sess.si-sdk-0.1.0-rc.3.tgz. npm 11 does not enforce the lock
-// integrity for file: tarballs, so this script is the integrity gate:
+// package.json always declares the exact registry dependency ("@sess.si/sdk": "0.1.0-rc.3").
+// package-lock.json is a maintainer artifact (npm never ships it to consumers) and resolves that
+// node in one of two modes:
 //
-//   prepare  obtain the tarball (SESS_SDK_CANDIDATE_TGZ, or `npm pack` of the SDK repository root,
-//            whose dist must already be built) and accept it only if its SHA-256 equals the pinned
-//            reviewed candidate digest.
-//   verify   re-hash .candidate/, check the lock entry's integrity equals the same bytes, and, when
-//            installed, the installed @sess.si/sdk identity.
+//   candidate  `file:.candidate/sess.si-sdk-0.1.0-rc.3.tgz`, a gitignored local tarball, while the
+//              SDK is unpublished. npm does not enforce lock integrity for file: tarballs, so this
+//              script is the gate: only bytes with the pinned reviewed digest are accepted.
+//   registry   the genuine npm registry tarball, after publication, with the same pinned integrity.
 //
-// Nothing here contacts the registry for @sess.si/sdk or fabricates a registry entry. Switching to
-// the genuine published dependency/lockfile is a recorded release hold (see compatibility.json).
+// Commands:
+//   prepare [--build-root]   obtain the candidate (SESS_SDK_CANDIDATE_TGZ, or `npm pack` of the SDK
+//                            repository root; --build-root first runs `npm ci --ignore-scripts` and
+//                            `npm run build` there when dist/ is missing) and accept it by digest.
+//   verify                   check the lock entry (either mode), the candidate bytes (candidate
+//                            mode) and the installed identity.
+//   switch-to-registry [--apply]
+//                            dry run by default: confirm the version is published with the pinned
+//                            integrity. --apply then runs `npm install --save-exact` against the
+//                            registry, checks the regenerated lock, re-downloads the tarball and
+//                            compares its SHA-256, and records the published status.
+//
+// Nothing here fabricates a registry entry: registry mode is only reachable through npm itself.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const adapter = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const compatibility = JSON.parse(readFileSync(join(adapter, 'compatibility.json'), 'utf8'));
+const compatibilityPath = join(adapter, 'compatibility.json');
+const compatibility = JSON.parse(readFileSync(compatibilityPath, 'utf8'));
 const pinned = compatibility.sessSdk;
 const target = join(adapter, pinned.candidatePath);
+const spec = `${pinned.name}@${pinned.version}`;
+const REGISTRY_TARBALL = `https://registry.npmjs.org/${pinned.name}/-/sdk-${pinned.version}.tgz`;
 
 function digests(path) {
   const bytes = readFileSync(path);
@@ -32,9 +52,9 @@ function digests(path) {
     integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`,
   };
 }
-function fail(message) {
+function fail(message, code = 1) {
   console.error(`sdk-candidate: ${message}`);
-  process.exit(1);
+  process.exit(code);
 }
 function accept(path) {
   const d = digests(path);
@@ -42,14 +62,27 @@ function accept(path) {
     fail(`tarball digest ${d.sha256} is not the pinned candidate ${pinned.sha256}. Refusing it.`);
   return d;
 }
-
-function npm(args, cwd) {
+function npm(args, cwd, stdio = 'pipe') {
+  const options = { cwd, encoding: 'utf8', stdio: stdio === 'pipe' ? ['ignore', 'pipe', 'pipe'] : 'inherit' };
   if (process.env.npm_execpath)
-    return execFileSync(process.execPath, [process.env.npm_execpath, ...args], { cwd, encoding: 'utf8' });
-  return execFileSync('npm', args, { cwd, encoding: 'utf8', shell: process.platform === 'win32' });
+    return execFileSync(process.execPath, [process.env.npm_execpath, ...args], options);
+  return execFileSync('npm', args, { ...options, shell: process.platform === 'win32' });
+}
+function readJson(path) {
+  return JSON.parse(readFileSync(path, 'utf8'));
+}
+function lockEntry() {
+  return readJson(join(adapter, 'package-lock.json')).packages?.['node_modules/@sess.si/sdk'];
+}
+/** 'candidate' | 'registry'; anything else stops. */
+function lockMode(entry = lockEntry()) {
+  if (!entry || entry.version !== pinned.version || entry.integrity !== pinned.integrity) return undefined;
+  if (entry.resolved === `file:${pinned.candidatePath}`) return 'candidate';
+  if (entry.resolved === REGISTRY_TARBALL) return 'registry';
+  return undefined;
 }
 
-const command = process.argv[2];
+const [command, ...flags] = process.argv.slice(2);
 if (command === 'prepare') {
   mkdirSync(dirname(target), { recursive: true });
   const supplied = process.env.SESS_SDK_CANDIDATE_TGZ;
@@ -58,13 +91,18 @@ if (command === 'prepare') {
     copyFileSync(supplied, target);
   } else {
     const root = resolve(adapter, '..', '..');
-    const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    const manifest = readJson(join(root, 'package.json'));
     if (manifest.name !== pinned.name || manifest.version !== pinned.version)
-      fail(
-        `repository root is ${manifest.name}@${manifest.version}, not the pinned ${pinned.name}@${pinned.version}.`,
-      );
-    if (!existsSync(join(root, 'dist', 'index.js')))
-      fail('build the SDK root first (npm ci --ignore-scripts && npm run build at the repository root).');
+      fail(`repository root is ${manifest.name}@${manifest.version}, not the pinned ${spec}.`);
+    if (!existsSync(join(root, 'dist', 'index.js'))) {
+      if (!flags.includes('--build-root'))
+        fail(
+          'the SDK root is not built. Run `npm run setup` (builds it), or at the repository root run `npm ci --ignore-scripts && npm run build`.',
+        );
+      console.log('sdk-candidate: building the SDK root (npm ci --ignore-scripts && npm run build)');
+      npm(['ci', '--ignore-scripts', '--no-audit', '--no-fund'], root, 'inherit');
+      npm(['run', 'build'], root, 'inherit');
+    }
     const out = mkdtempSync(join(tmpdir(), 'sess-sdk-candidate-'));
     try {
       const packed = JSON.parse(
@@ -77,29 +115,66 @@ if (command === 'prepare') {
       rmSync(out, { recursive: true, force: true });
     }
   }
-  console.log(`sdk-candidate: accepted CANDIDATE ${pinned.name}@${pinned.version} sha256=${pinned.sha256}`);
+  console.log(`sdk-candidate: accepted CANDIDATE ${spec} sha256=${pinned.sha256}`);
 } else if (command === 'verify') {
-  if (!existsSync(target)) fail(`missing ${pinned.candidatePath}; run npm run candidate:prepare first.`);
-  accept(target);
-  const lock = JSON.parse(readFileSync(join(adapter, 'package-lock.json'), 'utf8'));
-  const entry = lock.packages?.['node_modules/@sess.si/sdk'];
-  if (
-    !entry ||
-    entry.version !== pinned.version ||
-    entry.resolved !== `file:${pinned.candidatePath}` ||
-    entry.integrity !== pinned.integrity
-  )
-    fail('package-lock.json does not resolve @sess.si/sdk to the pinned candidate tarball.');
-  const manifest = JSON.parse(readFileSync(join(adapter, 'package.json'), 'utf8'));
-  if (manifest.dependencies?.['@sess.si/sdk'] !== pinned.version)
+  const manifest = readJson(join(adapter, 'package.json'));
+  if (manifest.dependencies?.[pinned.name] !== pinned.version)
     fail('package.json must declare the exact @sess.si/sdk version.');
+  const mode = lockMode();
+  if (!mode)
+    fail(
+      'package-lock.json must resolve @sess.si/sdk either to the pinned candidate tarball or to the genuine registry tarball, with the pinned integrity.',
+    );
+  if (mode === 'candidate') {
+    if (!existsSync(target)) fail(`missing ${pinned.candidatePath}; run npm run candidate:prepare first.`);
+    accept(target);
+  }
   const installed = join(adapter, 'node_modules', '@sess.si', 'sdk', 'package.json');
   if (existsSync(installed)) {
-    const identity = JSON.parse(readFileSync(installed, 'utf8'));
+    const identity = readJson(installed);
     if (identity.name !== pinned.name || identity.version !== pinned.version)
-      fail('installed @sess.si/sdk identity differs from the pinned candidate.');
+      fail('installed @sess.si/sdk identity differs from the pinned version.');
   }
-  console.log(`sdk-candidate: verified CANDIDATE ${pinned.name}@${pinned.version} sha256=${pinned.sha256}`);
+  console.log(`sdk-candidate: verified ${mode.toUpperCase()} ${spec} sha256=${pinned.sha256}`);
+} else if (command === 'switch-to-registry') {
+  const apply = flags.includes('--apply');
+  let published;
+  try {
+    published = JSON.parse(npm(['view', spec, 'dist', '--json'], adapter));
+  } catch {
+    fail(`${spec} is not available from the registry yet; the candidate mode remains. Nothing changed.`, 3);
+  }
+  if (published?.integrity !== pinned.integrity)
+    fail(
+      `the registry integrity for ${spec} (${published?.integrity}) is not the reviewed ${pinned.integrity}. Refusing to switch.`,
+    );
+  console.log(`sdk-candidate: ${spec} is published with the pinned integrity.`);
+  if (!apply) {
+    console.log('sdk-candidate: dry run. Re-run with --apply to switch package-lock.json to the registry.');
+    process.exit(0);
+  }
+  npm(['install', '--save-exact', '--ignore-scripts', '--no-audit', '--no-fund', spec], adapter, 'inherit');
+  if (lockMode() !== 'registry')
+    fail('the regenerated lock does not resolve the genuine registry tarball with the pinned integrity.');
+  const out = mkdtempSync(join(tmpdir(), 'sess-sdk-registry-'));
+  try {
+    const packed = JSON.parse(npm(['pack', spec, '--json', '--pack-destination', out], adapter))[0];
+    accept(join(out, packed.filename));
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+  compatibility.sessSdk = {
+    ...pinned,
+    status: 'published (registry)',
+    source: REGISTRY_TARBALL,
+    releaseHold: 'none for the SDK dependency; review the regenerated package-lock.json',
+  };
+  writeFileSync(compatibilityPath, `${JSON.stringify(compatibility, null, 2)}\n`);
+  console.log(
+    `sdk-candidate: switched to the registry. sha256=${pinned.sha256}. Review package-lock.json and compatibility.json, run npm run check, then commit.`,
+  );
 } else {
-  fail('usage: node scripts/sdk-candidate.mjs prepare|verify');
+  fail(
+    'usage: node scripts/sdk-candidate.mjs prepare [--build-root] | verify | switch-to-registry [--apply]',
+  );
 }
