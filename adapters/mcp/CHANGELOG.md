@@ -40,3 +40,8 @@
   `configuration` on a saved publish/complete blocks; a failed `SESSION_COMPLETED` read-back keeps
   the completion pending and retryable.
 - Packed check scans multi-line, side-effect and dynamic imports and rejects `require()`.
+- R-01: an answer is released only after an authenticated current-revision read made after full
+  receipt verification, including cached `answered` results. A failed read is retryable
+  `SESS_UNAVAILABLE` with no change; progress blocks (or conflicts with a concurrent local change);
+  no answer data is released in either case. Previously a revision check before verification, or
+  a cached answer with no fresh read, could release an obsolete answer as current.
