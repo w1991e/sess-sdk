@@ -1,0 +1,89 @@
+name: OpenClaw adapter CI
+
+# Companion package @sess.si/openclaw (adapters/openclaw). Independent of the root SDK lanes in
+# ci.yml, which stay unchanged. The unpublished SDK dependency is the CANDIDATE packed from this
+# checkout's root and verified against its pinned sha256 before use (release hold until published).
+on:
+  pull_request:
+  push:
+    branches: ['master', 'adapters/openclaw-**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openclaw-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: OpenClaw adapter / build, types, unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+      - name: Pack the candidate SDK from the root source
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          mkdir -p "$RUNNER_TEMP/sdk"
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/sdk"
+      - name: Install adapter dependencies (candidate SDK, integrity-locked)
+        working-directory: adapters/openclaw
+        run: node scripts/candidate-sdk.mjs "$RUNNER_TEMP/sdk/sess.si-sdk-0.1.0-rc.3.tgz" -- npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build
+        working-directory: adapters/openclaw
+        run: npm run build
+      - name: Typecheck
+        working-directory: adapters/openclaw
+        run: npm run typecheck
+      - name: Unit and contract tests
+        working-directory: adapters/openclaw
+        run: npm test
+
+  packed-host:
+    name: OpenClaw adapter / packed artifact and host install
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+      - name: Pack the candidate SDK from the root source
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          mkdir -p "$RUNNER_TEMP/sdk"
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/sdk"
+      - name: Install adapter dependencies (candidate SDK, integrity-locked)
+        working-directory: adapters/openclaw
+        run: node scripts/candidate-sdk.mjs "$RUNNER_TEMP/sdk/sess.si-sdk-0.1.0-rc.3.tgz" -- npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build
+        working-directory: adapters/openclaw
+        run: npm run build
+      - name: Packed artifact, consumer install, network-denied import and real host install
+        working-directory: adapters/openclaw
+        run: node scripts/check-package.mjs --sdk "$RUNNER_TEMP/sdk/sess.si-sdk-0.1.0-rc.3.tgz" --host
+      - name: Production dependency audit
+        working-directory: adapters/openclaw
+        run: npm audit --omit=dev --omit=peer --audit-level=moderate
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: openclaw-package
+          path: |
+            adapters/openclaw/.artifacts/package-result.json
+            adapters/openclaw/.artifacts/*.tgz
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14

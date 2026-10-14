@@ -1,0 +1,9 @@
+SESS for OpenClaw
+
+This package is prepared for distribution under the Apache License, Version 2.0.
+It is a native OpenClaw plugin maintained by SESS. It is not an official OpenClaw
+package and is not endorsed by the OpenClaw project.
+
+It depends on @sess.si/sdk (Apache-2.0) for all SESS HTTP, decoding and receipt
+verification. OpenClaw (MIT) is the host application and is not bundled or installed
+by this package. The hosted SESS runtime and renderer are not included.
