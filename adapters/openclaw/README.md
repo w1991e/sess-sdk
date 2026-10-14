@@ -60,8 +60,19 @@ contacting SESS and without printing secrets.
 | Profile                                                     | Status                                                      |
 | ----------------------------------------------------------- | ----------------------------------------------------------- |
 | Direct invoke (Gateway `POST /tools/invoke`, deterministic) | Qualified on OpenClaw 2026.10.3, Node 24.21.0 (and 24.16.0) |
-| Agent turn (Control UI or chat channel, model-driven)       | Not yet qualified; pending the model-turn qualification run |
+| Agent turn in a dashboard conversation (Control UI)         | Qualified with a limitation (see below)                     |
+| Agent turn on messaging channels (Telegram, Slack, ...)     | Not qualified                                               |
 | Shared or group conversations                               | Not supported                                               |
+
+Agent-turn qualification (OpenClaw 2026.10.3, `anthropic/claude-sonnet-5-5`, Code Mode, 2026-10-14):
+the private link appeared in the conversation before the blocking wait, a verified answer came back
+both during a live wait and in a later normal chat turn, `openclaw sess setup` exposed the tools to
+the model through `tools.alsoAllow`, and two simultaneous conversations stayed isolated.
+**Limitation:** on this host `/new` keeps the conversation's session ID, so a reset does **not**
+make an earlier SESS handle unusable in that conversation (OC-18 fails). Treat a reset as the same
+conversation for SESS purposes. In Code Mode the model awaits a long `sess_response` with the host
+`wait` tool, which adds small model calls during a wait; the plugin itself never polls. Full record
+in [compatibility.json](compatibility.json).
 
 Only OpenClaw 2026.10.3 is qualified. The package metadata can only express a minimum host version,
 so `openclaw sess doctor` warns on any other host version. Node 22 is not supported because the
@@ -72,11 +83,10 @@ loads, and it has no programmatic API.
 
 ## First interaction
 
-**Qualification status.** The tested profile is deterministic tool invocation through the
-Gateway's `POST /tools/invoke` endpoint ("return-link-first"): `sess_request` returns the link,
-and a separate `sess_response` call waits. Use from a model-driven agent turn (Control UI or a
-chat channel) is **not yet qualified**: it has not been shown that the person sees the link while
-the same turn is still waiting. The flow below describes the intended agent behavior.
+**Qualification status.** See [Support status](#support-status): this flow is qualified for direct
+invoke and for model-driven turns in a dashboard (Control UI) conversation, where the link was
+observed in the conversation while the same turn was still waiting. It is not qualified on
+messaging channels.
 
 Ask: _"Use SESS to ask me which afternoon activity I prefer and how much time I have. Then
 propose a plan from my answer. Use illustrative conditions, not a live forecast."_
