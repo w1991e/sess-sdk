@@ -159,7 +159,8 @@ describe('R-01: after verification, an authenticated current-revision read prece
       call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 }),
       /^STATE_CONFLICT: /,
     );
-    expect(host.store.rows.get(`i:${handle}`)).toBe(concurrent);
+    // Untouched (byte-equal) wherever the layout now keeps it (a terminal record may be archived).
+    expect(host.store.rows.get(`i:${handle}`) ?? host.archive.rows.get(`i:${handle}`)).toBe(concurrent);
   });
 
   it('a concurrent local publication/completion of an answered record is a conflict and the record is untouched', async () => {
@@ -176,7 +177,8 @@ describe('R-01: after verification, an authenticated current-revision read prece
       call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 }),
       /^STATE_CONFLICT: /,
     );
-    expect(host.store.rows.get(`i:${handle}`)).toBe(concurrent);
+    // Untouched (byte-equal) wherever the layout now keeps it (a terminal record may be archived).
+    expect(host.store.rows.get(`i:${handle}`) ?? host.archive.rows.get(`i:${handle}`)).toBe(concurrent);
   });
 
   it('a Session completed at the same expected revision with the retained answer is still legitimate', async () => {
