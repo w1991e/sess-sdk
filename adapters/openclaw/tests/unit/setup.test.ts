@@ -1,11 +1,29 @@
 // `openclaw sess setup`: consent-driven, additive, never stores a credential, never restarts.
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applySetup, formatPlan, planSetup, RESTART_COMMAND, TOOL_NAMES } from '../../src/setup.js';
 import { registerPlugin } from './harness.js';
 
+const temps: string[] = [];
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  for (const dir of temps.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
+
+/**
+ * Writes an authored config file for the host's real `readConfigFileSnapshotForWrite` (public
+ * openclaw/plugin-sdk/config-mutation) and points the host at it through its documented env.
+ */
+function authored(config: unknown) {
+  const dir = mkdtempSync(join(tmpdir(), 'sess-setup-authored-'));
+  temps.push(dir);
+  writeFileSync(join(dir, 'openclaw.json'), JSON.stringify(config, null, 2));
+  vi.stubEnv('OPENCLAW_STATE_DIR', dir);
+  vi.stubEnv('OPENCLAW_CONFIG_PATH', join(dir, 'openclaw.json'));
+}
 
 /** A realistic config with unrelated settings, a SecretRef and existing allow entries. */
 function existingConfig() {
@@ -116,6 +134,7 @@ describe('CLI wiring', () => {
       return {};
     });
     const draft = existingConfig();
+    authored(existingConfig());
     const host = await registerPlugin(undefined, undefined, { config: { mutateConfigFile: mutate } });
     const { actions, options } = cli(host, existingConfig());
     expect(options.get('setup')).toEqual([
@@ -139,6 +158,50 @@ describe('CLI wiring', () => {
       'sess_complete',
     ]);
     expect(String(log.mock.calls.at(-1)?.[0])).toContain(RESTART_COMMAND);
+  });
+
+  it('previews from the authored file, not the CLI runtime view (enabled unset but reported enabled)', async () => {
+    // Authored: plugin installed but `enabled` unset. Runtime view: reports enabled and all tools.
+    const file = { tools: { alsoAllow: ['lobster'] }, plugins: { entries: { sess: { config: {} } } } };
+    authored(file);
+    const runtimeView = {
+      tools: { alsoAllow: ['lobster', 'sess_request', 'sess_response', 'sess_publish', 'sess_complete'] },
+      plugins: { entries: { sess: { enabled: true, config: { apiKeyEnv: 'SESS_API_KEY' } } } },
+    };
+    const draft = structuredClone(file) as Record<string, any>;
+    const mutate = vi.fn(async (params: { mutate: (d: unknown) => void }) => (params.mutate(draft), {}));
+    const host = await registerPlugin(undefined, undefined, { config: { mutateConfigFile: mutate } });
+    const { actions } = cli(host, runtimeView);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    await actions.get('setup')!({});
+    const preview = String(log.mock.calls.at(-1)?.[0]);
+    expect(preview).toContain('plugins.entries.sess.enabled: (unset) -> true');
+    expect(preview).toContain('tools.alsoAllow');
+    await actions.get('setup')!({ yes: true });
+    const applied = String(log.mock.calls.at(-1)?.[0]);
+    // --yes applies exactly the previewed change lines.
+    const lines = (text: string) =>
+      text.split('\n').filter((l) => l.startsWith('  plugins.') || l.startsWith('  tools.'));
+    expect(lines(applied)).toEqual(lines(preview));
+    expect(draft.plugins.entries.sess.enabled).toBe(true);
+  });
+
+  it('refuses to write when the host snapshot no longer matches the preview', async () => {
+    authored({ plugins: { entries: { sess: { config: {} } } } });
+    // Between preview and apply someone else enabled the plugin and added the tools.
+    const draft = {
+      plugins: { entries: { sess: { enabled: true, config: { apiKeyEnv: 'SESS_API_KEY' } } } },
+      tools: { alsoAllow: ['sess_request', 'sess_response', 'sess_publish', 'sess_complete'] },
+    };
+    const before = JSON.stringify(draft);
+    const mutate = vi.fn(async (params: { mutate: (d: unknown) => void }) => (params.mutate(draft), {}));
+    const host = await registerPlugin(undefined, undefined, { config: { mutateConfigFile: mutate } });
+    const { actions } = cli(host, {});
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    await expect(actions.get('setup')!({ yes: true })).rejects.toThrow(
+      /^STATE_CONFLICT: .*since the preview/,
+    );
+    expect(JSON.stringify(draft)).toBe(before);
   });
 
   it('has no option that accepts a key value', async () => {
