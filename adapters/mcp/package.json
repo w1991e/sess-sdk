@@ -1,0 +1,56 @@
+{
+  "name": "@sess.si/mcp",
+  "version": "0.1.0-rc.1",
+  "description": "Local stdio MCP server that lets an agent ask a person through a hosted SESS form and receive a receipt-verified answer.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/w1991e/sess-sdk.git",
+    "directory": "adapters/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/w1991e/sess-sdk/issues"
+  },
+  "homepage": "https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp#readme",
+  "engines": {
+    "node": ">=24.21.0 <25"
+  },
+  "bin": {
+    "sess-mcp": "dist/bin.js"
+  },
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE",
+    "compatibility.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "candidate:prepare": "node scripts/sdk-candidate.mjs prepare",
+    "candidate:verify": "node scripts/sdk-candidate.mjs verify",
+    "build": "node node_modules/typescript/bin/tsc -p tsconfig.json",
+    "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.check.json --noEmit",
+    "test": "vitest run",
+    "check:package": "node scripts/check-package.mjs",
+    "check": "npm run candidate:verify && npm run build && npm run typecheck && npm test && npm run check:package",
+    "runtime-round": "node scripts/runtime-round.mjs",
+    "qualify:claude-code": "node scripts/qualify-claude-code.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@sess.si/sdk": "0.1.0-rc.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
+    "vitest": "5.0.4"
+  }
+}
