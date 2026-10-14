@@ -1,9 +1,9 @@
 name: OpenClaw adapter CI
 
 # Companion package @sess.si/openclaw (adapters/openclaw). Independent of the root SDK lanes in
-# ci.yml, which stay unchanged. The unpublished SDK dependency is the approved rc.3 CANDIDATE,
-# rebuilt from its pinned reviewed source commit by scripts/rc3-candidate.mjs and accepted only by
-# digest (release hold until published). The current root may be a later successor candidate.
+# ci.yml, which stay unchanged. The unpublished SDK dependency is the CANDIDATE packed from this
+# checkout's root by scripts/sdk-pin.mjs and accepted only if its bytes equal the single pin
+# release/sdk-candidate.json (release hold until published).
 on:
   pull_request:
   push:
@@ -25,17 +25,18 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          # Full history: the pinned rc.3 source commit must be available locally.
-          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24.21.0'
-      - name: Rebuild the approved rc.3 SDK candidate from its pinned source (digest-gated)
-        run: node scripts/rc3-candidate.mjs --out "$RUNNER_TEMP/sdk"
+      - name: Pack the pinned SDK candidate from the root (accepted only by the pinned digests)
+        run: |
+          tgz="$(node scripts/sdk-pin.mjs pack --build --out "$RUNNER_TEMP/sdk" | tail -n 1)"
+          test -f "$tgz"
+          echo "SDK_TGZ=$tgz" >> "$GITHUB_ENV"
       - name: Install adapter dependencies (candidate SDK, integrity-locked)
         working-directory: adapters/openclaw
-        run: node scripts/candidate-sdk.mjs "$RUNNER_TEMP/sdk/sess.si-sdk-0.1.0-rc.3.tgz" -- npm ci --ignore-scripts --no-audit --no-fund
+        run: node scripts/candidate-sdk.mjs "$SDK_TGZ" -- npm ci --ignore-scripts --no-audit --no-fund
       - name: Build
         working-directory: adapters/openclaw
         run: npm run build
@@ -54,23 +55,24 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          # Full history: the pinned rc.3 source commit must be available locally.
-          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24.21.0'
-      - name: Rebuild the approved rc.3 SDK candidate from its pinned source (digest-gated)
-        run: node scripts/rc3-candidate.mjs --out "$RUNNER_TEMP/sdk"
+      - name: Pack the pinned SDK candidate from the root (accepted only by the pinned digests)
+        run: |
+          tgz="$(node scripts/sdk-pin.mjs pack --build --out "$RUNNER_TEMP/sdk" | tail -n 1)"
+          test -f "$tgz"
+          echo "SDK_TGZ=$tgz" >> "$GITHUB_ENV"
       - name: Install adapter dependencies (candidate SDK, integrity-locked)
         working-directory: adapters/openclaw
-        run: node scripts/candidate-sdk.mjs "$RUNNER_TEMP/sdk/sess.si-sdk-0.1.0-rc.3.tgz" -- npm ci --ignore-scripts --no-audit --no-fund
+        run: node scripts/candidate-sdk.mjs "$SDK_TGZ" -- npm ci --ignore-scripts --no-audit --no-fund
       - name: Build
         working-directory: adapters/openclaw
         run: npm run build
       - name: Packed artifact, consumer install, network-denied import and real host install
         working-directory: adapters/openclaw
-        run: node scripts/check-package.mjs --sdk "$RUNNER_TEMP/sdk/sess.si-sdk-0.1.0-rc.3.tgz" --host
+        run: node scripts/check-package.mjs --sdk "$SDK_TGZ" --host
       - name: Production dependency audit
         working-directory: adapters/openclaw
         run: npm audit --omit=dev --omit=peer --audit-level=moderate
