@@ -1,0 +1,180 @@
+name: Publish approved OpenClaw adapter release
+
+# @sess.si/openclaw only. Package-specific tags (openclaw-v<version>) never match the root SDK's
+# v* tags. Requires the real published @sess.si/sdk (candidate mode is refused). Publication is a
+# separate, protected owner action; see adapters/openclaw/RELEASING.md.
+on:
+  push:
+    tags: ['openclaw-v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openclaw-npm-release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: adapters/openclaw
+
+jobs:
+  prepare:
+    name: Prepare and test the OpenClaw release artifact
+    if: github.repository == 'w1991e/sess-sdk'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    outputs:
+      version: ${{ steps.guard.outputs.version }}
+      dist-tag: ${{ steps.guard.outputs.dist-tag }}
+      artifact-id: ${{ steps.artifact.outputs.artifact-id }}
+      tarball-sha256: ${{ steps.record.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      - name: Guard tag, identity, path, master reachability, clean tree and registry SDK
+        id: guard
+        run: node scripts/release-guard.mjs
+      - name: Self-test the guard
+        run: node --test scripts/test-release-guard.mjs
+      # Real registry resolution only: no candidate registry is configured in this workflow.
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm test
+      - name: Packed artifact, registry consumer install, network-denied import and real host install
+        run: node scripts/check-package.mjs --registry --host
+      - run: npm audit --omit=dev --omit=peer --audit-level=moderate
+      - name: Record the tested artifact digest
+        id: record
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          const result = JSON.parse(readFileSync('.artifacts/package-result.json', 'utf8'));
+          if (!/^[a-f0-9]{64}$/.test(result.sha256) || result.sdkSource !== 'registry' ||
+              result.sourceTreeDirty !== false || result.sourceCommit !== process.env.GITHUB_SHA)
+            throw new Error('Invalid verification record.');
+          appendFileSync(process.env.GITHUB_OUTPUT, `sha256=${result.sha256}\n`);
+          JS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        id: artifact
+        with:
+          name: approved-openclaw-${{ steps.guard.outputs.version }}
+          path: |
+            adapters/openclaw/.artifacts/package-result.json
+            adapters/openclaw/.artifacts/*.tgz
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Make the candidate available for environment review
+        env:
+          ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          const result = JSON.parse(readFileSync('.artifacts/package-result.json', 'utf8'));
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            `## Tested OpenClaw adapter release candidate\n\n${result.name}@${result.version}\n\n[Download the tested tarball and verification record](${process.env.ARTIFACT_URL})\n\nSHA-256: \`${result.sha256}\`\n\nThe protected publication job awaits maintainer approval and publishes these exact bytes without rebuilding.\n`);
+          JS
+
+  publish:
+    name: Publish the reviewed OpenClaw artifact
+    needs: prepare
+    if: github.repository == 'w1991e/sess-sdk'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # Configure required reviewers and openclaw-v* tag restrictions on this environment in GitHub.
+    environment: npm-openclaw-release
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_DIST_TAG: ${{ needs.prepare.outputs.dist-tag }}
+      EXPECTED_TARBALL_SHA256: ${{ needs.prepare.outputs.tarball-sha256 }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.prepare.outputs.artifact-id }}
+          path: adapters/openclaw/.artifacts
+          merge-multiple: true
+      - name: Publish exactly the tested tarball with npm provenance
+        run: |
+          node --input-type=module <<'JS'
+          import { execFileSync } from 'node:child_process';
+          import { createHash } from 'node:crypto';
+          import { readFileSync } from 'node:fs';
+          const manifest = JSON.parse(readFileSync('package.json', 'utf8'));
+          const result = JSON.parse(readFileSync('.artifacts/package-result.json', 'utf8'));
+          // npm pack's JSON record is authoritative for the scoped archive filename.
+          const filename = result.filename;
+          if (manifest.name !== '@sess.si/openclaw' || result.name !== manifest.name ||
+              manifest.repository?.directory !== 'adapters/openclaw' ||
+              !/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/.test(filename) ||
+              manifest.version !== process.env.RELEASE_VERSION || result.version !== manifest.version ||
+              process.env.RELEASE_DIST_TAG !== 'next' ||
+              result.tarball !== `.artifacts/${filename}` || result.node !== 'v24.21.0' ||
+              result.sdkSource !== 'registry' ||
+              result.sourceCommit !== process.env.GITHUB_SHA || result.sourceTreeDirty !== false) {
+            throw new Error('Tested artifact does not match the approved release.');
+          }
+          const bytes = readFileSync(result.tarball);
+          const sha256 = createHash('sha256').update(bytes).digest('hex');
+          const integrity = `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
+          if (sha256 !== result.sha256 || sha256 !== process.env.EXPECTED_TARBALL_SHA256 ||
+              integrity !== result.integrity) throw new Error('Tested bytes changed.');
+          if (execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim() !== '11.19.0') throw new Error('Unexpected publisher version.');
+          execFileSync('npm', ['publish', result.tarball, '--ignore-scripts', '--provenance', '--access', 'public', '--tag', 'next'], { stdio: 'inherit' });
+          JS
+      - name: Verify registry integrity, dist-tag and provenance metadata
+        run: |
+          node --input-type=module <<'JS'
+          import { execFileSync } from 'node:child_process';
+          import { readFileSync } from 'node:fs';
+          import { setTimeout } from 'node:timers/promises';
+          import { isDeepStrictEqual } from 'node:util';
+          const manifest = JSON.parse(readFileSync('package.json', 'utf8'));
+          const result = JSON.parse(readFileSync('.artifacts/package-result.json', 'utf8'));
+          let verified = false;
+          for (let attempt = 0; attempt < 6; attempt++) {
+            try {
+              const published = JSON.parse(execFileSync('npm', ['view', `${manifest.name}@${manifest.version}`, '--json', '--prefer-online'], { encoding: 'utf8' }));
+              const tags = JSON.parse(execFileSync('npm', ['view', manifest.name, 'dist-tags', '--json', '--prefer-online'], { encoding: 'utf8' }));
+              if (published.name !== manifest.name || published.version !== manifest.version ||
+                  published.repository?.url !== manifest.repository.url ||
+                  published.repository?.directory !== 'adapters/openclaw' ||
+                  published.dist?.integrity !== result.integrity ||
+                  tags.next !== manifest.version || tags.latest === manifest.version ||
+                  !published.dist?.attestations?.url || !published.dist?.attestations?.provenance ||
+                  !isDeepStrictEqual(published.dependencies, manifest.dependencies) ||
+                  !isDeepStrictEqual(published.peerDependencies, manifest.peerDependencies)) {
+                throw new Error('Published metadata does not match the tested artifact.');
+              }
+              verified = true;
+              break;
+            } catch (error) {
+              if (attempt === 5) throw error;
+              await setTimeout(10000);
+            }
+          }
+          if (!verified) throw new Error('Registry verification did not complete.');
+          console.log(`Verified ${manifest.name}@${manifest.version}, next, tested integrity and provenance metadata.`);
+          JS
