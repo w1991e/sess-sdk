@@ -65,9 +65,12 @@ error contract, not a fifth success state.
 create_intent    -> waiting                 confirmed create or validated recovery body
 create_intent    -> create_unknown          dispatched; outcome not confirmed
 create_intent    -> (removed) | blocked     definitive non-create (reason create_not_created)
+create_intent    -> create_intent           definitive non-create under host-revoked authority (no write possible)
 waiting          -> waiting | needs_resume | answered | blocked
 needs_resume     -> waiting | needs_resume | answered | blocked
 answered         -> answered | publish_pending | complete_pending | blocked
+answered         -> completed               complete only: read shows completion at expected_revision with the
+                                            matching verified answer retained; nothing sent
 publish_pending  -> publish_pending | waiting (revision + 1) | blocked
 complete_pending -> complete_pending | completed | blocked
 ```
@@ -94,7 +97,10 @@ observation reports a conflict.
 - SDK outcome `not_sent` or `rejected`, or a host refusal before dispatch, means no Session exists.
   Return a non-retryable create-rejected error with no handle and no URL. The adapter deletes the
   intent, or keeps it `blocked` when it must remember a host call identity; a redelivery of that
-  call reports the same class and sends nothing.
+  call reports the same class and sends nothing. Exception: when the host itself revoked the call
+  before dispatch, the adapter cannot write under that revoked authority, so the intent stays
+  `create_intent` and a redelivery reports create-outcome-unknown. This is the conservative
+  direction; nothing is ever created twice.
 - Any other failure is `create_unknown`, unless the original create call's error yields a validated
   `SessError.getRecoveryResult()` body, which is a confirmed create (the adapter still reports the
   protocol defect). A later call cannot resolve `create_unknown`.
@@ -183,7 +189,9 @@ errors, notes, diagnostics or telemetry, and removed from local state on `comple
 Each adapter documents how its codes map to: `invalid_arguments`, `not_found`, `conflict`,
 `create_rejected`, `create_unknown`, `created_not_saved`, `outcome_unknown` (retryable),
 `mutation_rejected` (blocked), `verification_failed` (blocked), `blocked`, `unavailable`
-(retryable), `configuration`, `store`.
+(retryable), `configuration`, `store`. SDK `protocol` errors during a read, wait or verification use the `configuration` class:
+non-retryable, with no state change. Protocol errors on a dispatched create or mutation follow
+the create and mutation outcome rules (`create_unknown` or recovery; pending retryable unknown).
 
 ## Validation
 
