@@ -27,6 +27,7 @@ equals the reviewed candidate digest:
 ```sh
 # In the SDK repository: build and pack the candidate (or use the tarball you were given).
 npm ci --ignore-scripts && npm run build
+mkdir -p /tmp/sess-candidate
 npm pack --ignore-scripts --pack-destination /tmp/sess-candidate
 
 # Verify the digest. It must print exactly:
@@ -38,7 +39,10 @@ shasum -a 256 /tmp/sess-candidate/sess.si-sdk-0.1.0-rc.3.tgz   # macOS
 npm install --ignore-scripts /tmp/sess-candidate/sess.si-sdk-0.1.0-rc.3.tgz
 ```
 
-Do not install a tarball whose digest differs. Installing a tarball records a local `file:`
+The digest identifies the reviewed candidate tarball as distributed. A local `npm pack` reproduced it
+with npm 10.9.2 (Node 22.14.0) and npm 11.19.0 (Node 24.21.0); another toolchain may produce different
+bytes — in that case use the reviewed tarball you were given. Do not install a tarball whose digest
+differs. Installing a tarball records a local `file:`
 dependency in your copy's package.json; that is expected for the candidate.
 
 ### Published release (after publication)
