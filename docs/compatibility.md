@@ -1,6 +1,6 @@
 # Compatibility and evidence
 
-SDK version: **0.1.0-rc.2**, under review and unpublished. This version is independent of HTTP API
+SDK version: **0.1.0-rc.3**, under review and unpublished. This version is independent of HTTP API
 `info.version` 0.1.0 and the runtime's Git commit.
 
 The reviewed snapshot includes authenticated workspace context on owner create/retrieve from runtime

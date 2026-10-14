@@ -83,6 +83,9 @@ A pending JavaScript promise is not durable suspension. Persist the Session ID, 
 expected step, processed event IDs and any attempted mutation. Before publishing or completing,
 commit `{operation, sessionId, body, ifMatch, idempotencyKey}` to your store. Replay that exact intent
 after an uncertain outcome. Do not regenerate it from historical input with a newer ETag.
+Persisted keys must be primitive strings matching `^[A-Za-z0-9_.:-]{1,128}$`; an invalid or
+missing saved key stops recovery before credential lookup or network access. Only a new
+in-process mutation may omit its key for automatic generation. Never replace a saved identity.
 
 The multi-round example provides a small file-backed checkpoint adapter for a single worker;
 its caller must hold an exclusive worker lease. It flushes file contents, uses atomic rename and

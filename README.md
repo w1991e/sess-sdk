@@ -3,15 +3,15 @@
 Create a hosted human interaction from your application, receive the accepted input for the correct
 Surface revision, verify its receipt, and continue on the same Session.
 
-`@sess/sdk` is a server-side TypeScript and JavaScript library. Your application supplies the
+`@sess.si/sdk` is a server-side TypeScript and JavaScript library. Your application supplies the
 interaction and business logic; SESS owns the hosted UI, state, routing and authorization.
 
-**Candidate status:** `0.1.0-rc.2` is under review and has not been published. For development,
+**Candidate status:** `0.1.0-rc.3` is under review and has not been published. For development,
 build and test an npm tarball using [Contributing](CONTRIBUTING.md). After an authorized candidate
 release, the registry install command is:
 
 ```sh
-npm install @sess/sdk@0.1.0-rc.2
+npm install @sess.si/sdk@0.1.0-rc.3
 ```
 
 ## Create and verify an interaction
@@ -23,7 +23,7 @@ is not an owner API key. No LLM, agent framework, Docker or SESS source checkout
 <!-- example:quickstart -->
 
 ```ts
-import { Sess } from '@sess/sdk';
+import { Sess } from '@sess.si/sdk';
 
 const sess = new Sess({ apiKey: process.env.SESS_API_KEY });
 const created = await sess.sessions.create({
@@ -80,10 +80,10 @@ and worker lease are application-owned. See [Integration](docs/integration.md).
 
 Supported: maintained Node 22 releases at or above 22.14, and Node 24 (recommended).
 TypeScript consumer declarations target 5.9 and current stable. JavaScript consumers need no compiler.
-One ESM build is published. CommonJS applications use `await import('@sess/sdk')`, as in the
+The package contains one ESM build. CommonJS applications use `await import('@sess.si/sdk')`, as in the
 [CommonJS example](examples/commonjs.cjs); synchronous `require` is not a supported contract.
 
-Entry points are `@sess/sdk`, `@sess/sdk/receipts` and `@sess/sdk/webhooks`. Importing or constructing
+Entry points are `@sess.si/sdk`, `@sess.si/sdk/receipts` and `@sess.si/sdk/webhooks`. Importing or constructing
 the SDK does not contact a service, start a server, read credential files or log data.
 
 ## Errors and retries

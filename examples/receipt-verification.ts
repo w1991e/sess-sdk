@@ -1,5 +1,5 @@
-import { Sess, type AcceptedResponse } from '@sess/sdk';
-import { verifyDecisionReceipt, type ReceiptKeySet } from '@sess/sdk/receipts';
+import { Sess, type AcceptedResponse } from '@sess.si/sdk';
+import { verifyDecisionReceipt, type ReceiptKeySet } from '@sess.si/sdk/receipts';
 
 /** The application supplies configuration explicitly; imports do not contact any service. */
 export async function verifyAcceptedResponse(

@@ -1,4 +1,4 @@
-import { Sess, type InteractiveInteraction } from '@sess/sdk';
+import { Sess, type InteractiveInteraction } from '@sess.si/sdk';
 
 /** Ordinary typed data describes the interaction; SESS owns its hosted renderer. */
 export const invoiceInteraction = {
