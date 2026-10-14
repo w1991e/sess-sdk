@@ -11,7 +11,13 @@ import {
 import { AdapterError, stderrDiagnostics, type Diagnostics } from './errors.js';
 import { SessMcpAdapter, type AdapterOptions, type AdapterResult } from './operations.js';
 import { TOOLS, TOOL_NAMES, type ToolName } from './tools.js';
-import { parseCompleteArgs, parsePublishArgs, parseRequestArgs, parseResponseArgs } from './validate.js';
+import {
+  parseAskArgs,
+  parseCompleteArgs,
+  parsePublishArgs,
+  parseRequestArgs,
+  parseResponseArgs,
+} from './validate.js';
 import { VERSION } from './version.js';
 
 export const SERVER_NAME = 'sess-mcp';
@@ -119,6 +125,9 @@ export function createSessMcpServer(options: ServerOptions): SessMcpServer {
       switch (name as ToolName) {
         case 'sess_request':
           return success(await active.request(parseRequestArgs(raw)));
+        case 'sess_ask':
+          // Same request operation and lifecycle; only the input shape differs.
+          return success(await active.request(parseAskArgs(raw)));
         case 'sess_response':
           return success(await active.response(parseResponseArgs(raw), signal));
         case 'sess_publish':

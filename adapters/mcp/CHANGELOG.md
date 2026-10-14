@@ -40,3 +40,12 @@
   `configuration` on a saved publish/complete blocks; a failed `SESSION_COMPLETED` read-back keeps
   the completion pending and retryable.
 - Packed check scans multi-line, side-effect and dynamic imports and rejects `require()`.
+- `sess_ask` (tool schema `sess-mcp-tools/2`): a question plus up to 12 simple fields, expanded
+  into an ordinary interaction and run through the same request operation; returns the link and
+  handle at once, never waits. The four operations are unchanged.
+- Node floor: qualified on Node 22.14.0 and 24.21.0; `engines` is now `>=22.14.0 <25`. CI adds a
+  Node 22.14.0 job and uses the documented `npm run setup` path from a clean clone.
+- Maintainer setup: `npm run setup` (SDK root build, digest-gated candidate, `npm ci`), and
+  `npm run sdk:switch-to-registry [-- --apply]` for the genuine registry transition.
+- README documents the tested Claude Code configurations (environment-inherited key, or `-e` after
+  the server name, which Claude Code stores in plain text) and marks untested forms.

@@ -1,10 +1,21 @@
 {
   "schemaVersion": 1,
-  "package": { "name": "@sess.si/mcp", "version": "0.1.0-rc.1", "toolSchema": "sess-mcp-tools/1" },
+  "package": {
+    "name": "@sess.si/mcp",
+    "version": "0.1.0-rc.1",
+    "toolSchema": "sess-mcp-tools/2"
+  },
   "status": "candidate",
   "recordedAt": "2026-10-14",
-  "node": { "engines": ">=24.21.0 <25", "qualified": ["24.21.0"] },
-  "transport": { "supported": ["stdio"], "notSupported": ["streamable-http", "sse", "remote/hosted"] },
+  "node": {
+    "engines": ">=22.14.0 <25",
+    "qualified": ["22.14.0", "24.21.0"],
+    "evidence": "npm run setup + npm run check (build, typecheck, unit tests, packed consumer with the official stdio client) from a clean copy in node:22.14.0-bookworm-slim and node:24.21.0-bookworm-slim, plus macOS on 24.21.0"
+  },
+  "transport": {
+    "supported": ["stdio"],
+    "notSupported": ["streamable-http", "sse", "remote/hosted"]
+  },
   "mcpLibrary": {
     "name": "@modelcontextprotocol/sdk",
     "version": "1.32.1",
@@ -33,7 +44,8 @@
       "tested": [
         "initialize and tools/list from the packed, installed bin",
         "sess_request, sess_response (waiting, needs_resume, verified answered), sess_publish (round-2, identical replay, differing replay refused) and sess_complete against an isolated local SESS runtime at sess 821f97d (opt-in runtime-round script)",
-        "request cancellation of sess_response"
+        "request cancellation of sess_response",
+        "sess_ask creates one Session through the request operation (unit test over the in-memory MCP transport)"
       ]
     },
     {
@@ -50,11 +62,16 @@
         "tools/list"
       ],
       "tested": [
-        "claude mcp add --scope local + claude mcp list/get health check: Connected, four tools listed (scripts/qualify-claude-code.mjs, isolated CLAUDE_CONFIG_DIR, Linux container node:24.21.0-bookworm-slim)"
+        "claude mcp add --scope local + claude mcp list/get health check: Connected, four tools listed (scripts/qualify-claude-code.mjs, isolated CLAUDE_CONFIG_DIR, Linux container node:24.21.0-bookworm-slim)",
+        "claude mcp add --scope local sess -e SESS_API_KEY=<placeholder> -- npx --no-install sess-mcp from a project with the packed tarballs installed: Connected; the -e value is stored in plain text in .claude.json (node:24.21.0-bookworm-slim)",
+        "key exported in the launching shell, no -e: the server process received it during the claude mcp list health check and it was not written to the config",
+        "claude mcp add -e KEY=value <name> -- ... (name after -e) is rejected by 2.1.299: \"Invalid environment variable format\""
       ],
       "notTested": [
         "any model-invoked tool call through Claude Code (cost not authorized)",
-        "macOS host: the qualification machine has an enterprise managed-mcp.json with exclusive control, so servers cannot be added there"
+        "macOS host: the qualification machine has an enterprise managed-mcp.json with exclusive control, so servers cannot be added there",
+        "registry npx -y @sess.si/mcp@<version> (package unpublished)",
+        "environment inheritance when an interactive Claude Code session starts the server"
       ]
     }
   ],
