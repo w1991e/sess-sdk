@@ -82,31 +82,45 @@ test('registry SDK: candidate mode cannot be released; the genuine registry lock
   refuses(() => checkRegistrySdk({ manifest, lock: tampered, compatibility }), /pinned integrity/);
 });
 
-test('git: a commit off master history or a dirty tree refuses', () => {
-  const repo = mkdtempSync(join(tmpdir(), 'sess-mcp-release-git-'));
-  const git = (...args) =>
-    execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+// GitHub runners and the release workflow have git; minimal containers may not. Skip visibly there.
+const hasGit = (() => {
   try {
-    git('init', '-q', '-b', 'master');
-    git('config', 'user.email', 'test@example.invalid');
-    git('config', 'user.name', 'Release guard test');
-    writeFileSync(join(repo, 'a.txt'), 'a');
-    git('add', 'a.txt');
-    git('commit', '-q', '-m', 'a');
-    git('update-ref', 'refs/remotes/origin/master', 'HEAD');
-    assert.match(checkGit({ cwd: repo }), /^[0-9a-f]{40}$/);
-    writeFileSync(join(repo, 'untracked.txt'), 'x');
-    refuses(() => checkGit({ cwd: repo }), /not clean/);
-    rmSync(join(repo, 'untracked.txt'));
-    git('checkout', '-q', '-b', 'side');
-    writeFileSync(join(repo, 'b.txt'), 'b');
-    git('add', 'b.txt');
-    git('commit', '-q', '-m', 'b');
-    refuses(() => checkGit({ cwd: repo }), /not reachable/);
-  } finally {
-    rmSync(repo, { recursive: true, force: true });
+    execFileSync('git', ['--version'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
   }
-});
+})();
+
+test(
+  'git: a commit off master history or a dirty tree refuses',
+  { skip: !hasGit && 'git is not installed' },
+  () => {
+    const repo = mkdtempSync(join(tmpdir(), 'sess-mcp-release-git-'));
+    const git = (...args) =>
+      execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    try {
+      git('init', '-q', '-b', 'master');
+      git('config', 'user.email', 'test@example.invalid');
+      git('config', 'user.name', 'Release guard test');
+      writeFileSync(join(repo, 'a.txt'), 'a');
+      git('add', 'a.txt');
+      git('commit', '-q', '-m', 'a');
+      git('update-ref', 'refs/remotes/origin/master', 'HEAD');
+      assert.match(checkGit({ cwd: repo }), /^[0-9a-f]{40}$/);
+      writeFileSync(join(repo, 'untracked.txt'), 'x');
+      refuses(() => checkGit({ cwd: repo }), /not clean/);
+      rmSync(join(repo, 'untracked.txt'));
+      git('checkout', '-q', '-b', 'side');
+      writeFileSync(join(repo, 'b.txt'), 'b');
+      git('add', 'b.txt');
+      git('commit', '-q', '-m', 'b');
+      refuses(() => checkGit({ cwd: repo }), /not reachable/);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  },
+);
 
 test('artifact: only the tested bytes from this commit, tested with the registry SDK, pass', () => {
   const bytes = Buffer.from('synthetic tarball bytes');
