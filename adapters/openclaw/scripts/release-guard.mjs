@@ -1,0 +1,82 @@
+// Release identity guards for @sess.si/openclaw (openclaw-release.yml). Pure checks plus a CLI that
+// gathers the facts in CI. Self-test: node --test scripts/test-release-guard.mjs
+import { execFileSync } from 'node:child_process';
+import { appendFileSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+export const PACKAGE_NAME = '@sess.si/openclaw';
+export const PACKAGE_DIRECTORY = 'adapters/openclaw';
+export const REPOSITORY = 'w1991e/sess-sdk';
+export const SDK_NAME = '@sess.si/sdk';
+const PRERELEASE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-rc\.(0|[1-9]\d*)$/;
+
+/**
+ * @param {{ manifest: any, ref: string, repository: string, onMaster: boolean, cleanTree: boolean,
+ *   lockedSdkIntegrity: string | undefined, registrySdkIntegrity: string | undefined }} facts
+ * @returns {{ version: string, distTag: 'next' }}
+ */
+export function checkRelease(facts) {
+  const { manifest, ref, repository, onMaster, cleanTree, lockedSdkIntegrity, registrySdkIntegrity } = facts;
+  const failures = [];
+  if (repository !== REPOSITORY) failures.push('repository');
+  if (manifest?.name !== PACKAGE_NAME) failures.push('package name');
+  if (manifest?.repository?.directory !== PACKAGE_DIRECTORY) failures.push('package directory');
+  if (manifest?.private === true || manifest?.publishConfig?.access !== 'public') failures.push('visibility');
+  // Prereleases only: stable promotion to latest is a separate owner decision.
+  if (typeof manifest?.version !== 'string' || !PRERELEASE.test(manifest.version)) failures.push('version');
+  if (ref !== `refs/tags/openclaw-v${manifest?.version}`) failures.push('tag');
+  if (!onMaster) failures.push('master reachability');
+  if (!cleanTree) failures.push('clean tree');
+  const sdkSpec = manifest?.dependencies?.[SDK_NAME];
+  if (typeof sdkSpec !== 'string' || !/^\d+\.\d+\.\d+(-rc\.\d+)?$/.test(sdkSpec))
+    failures.push('exact SDK dependency');
+  for (const spec of Object.values({ ...manifest?.dependencies, ...manifest?.peerDependencies }))
+    // Exact registry versions only (no ranges, tags, file:, git, URLs or workspace specs).
+    if (typeof spec !== 'string' || !/^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(spec))
+      failures.push('registry dependency specs');
+  // Refuse candidate mode: the locked SDK bytes must be the ones the public registry serves.
+  if (!lockedSdkIntegrity || !registrySdkIntegrity || lockedSdkIntegrity !== registrySdkIntegrity)
+    failures.push('registry SDK integrity');
+  if (failures.length) throw new Error(`Release guard failed: ${[...new Set(failures)].join(', ')}.`);
+  return { version: manifest.version, distTag: 'next' };
+}
+
+function gatherFacts(cwd) {
+  const manifest = JSON.parse(readFileSync(`${cwd}/package.json`, 'utf8'));
+  const lock = JSON.parse(readFileSync(`${cwd}/package-lock.json`, 'utf8'));
+  const sdkSpec = manifest.dependencies?.[SDK_NAME];
+  const git = (args) => execFileSync('git', args, { cwd, encoding: 'utf8' });
+  let onMaster = true;
+  try {
+    git(['merge-base', '--is-ancestor', 'HEAD', 'refs/remotes/origin/master']);
+  } catch {
+    onMaster = false;
+  }
+  let registrySdkIntegrity;
+  try {
+    registrySdkIntegrity = JSON.parse(
+      execFileSync('npm', ['view', `${SDK_NAME}@${sdkSpec}`, 'dist.integrity', '--json', '--prefer-online'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }),
+    );
+  } catch {
+    registrySdkIntegrity = undefined;
+  }
+  return {
+    manifest,
+    ref: process.env.GITHUB_REF ?? '',
+    repository: process.env.GITHUB_REPOSITORY ?? '',
+    onMaster,
+    cleanTree: git(['status', '--porcelain']).trim() === '',
+    lockedSdkIntegrity: lock.packages?.[`node_modules/${SDK_NAME}`]?.integrity,
+    registrySdkIntegrity,
+  };
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const { version, distTag } = checkRelease(gatherFacts(process.cwd()));
+  if (process.env.GITHUB_OUTPUT)
+    appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\ndist-tag=${distTag}\n`);
+  console.log(`Release guard passed: ${PACKAGE_NAME}@${version} -> ${distTag}`);
+}

@@ -22,14 +22,21 @@ verified its signed receipt for that exact revision.
 ```bash
 # After publication; replace VERSION with the exact published version.
 openclaw plugins install npm:@sess.si/openclaw@VERSION --no-enable
-openclaw plugins enable sess
+openclaw sess setup          # preview only: prints exactly what would change
+openclaw sess setup --yes    # apply the previewed change
 openclaw sess doctor
 ```
 
-Then add `sess_request`, `sess_response`, `sess_publish` and `sess_complete` to `tools.alsoAllow`
-in your Gateway config. `alsoAllow` adds tools on top of the active tool profile; keep any entries
-you already have (check with `openclaw config get tools.alsoAllow`). Do not replace
-`tools.allow`: that switches the Gateway to a restrictive allowlist of only these tools.
+`openclaw sess setup` is additive and consent-driven. Without `--yes` it writes nothing. With
+`--yes` it enables the plugin, appends the four tools to `tools.alsoAllow` (keeping every existing
+entry) and sets `plugins.entries.sess.config`; all other config, including secret references, is
+left unchanged, and a re-run makes no change. It never asks for or stores the API key: put the key
+in the Gateway's own environment under the configured variable name (default `SESS_API_KEY`, for
+example in `$OPENCLAW_STATE_DIR/.env`). A key exported in a terminal is not inherited by an
+already-running Gateway service. Setup never restarts the Gateway; it prints the command
+(`openclaw gateway restart`) for you to run when ready. It does not change a restrictive
+`tools.allow` or `plugins.allow`; it warns instead. Options: `--base-url`, `--api-key-env`,
+`--wait-budget-ms`.
 
 The four tools are optional: they are offered to the model only after you allow them. The
 installer asks for capability consent (non-interactively: review the declared tools and CLI, then
@@ -45,8 +52,23 @@ Configuration (`plugins.entries.sess.config`), all owner-controlled and never ta
 | `receiptIssuer`       | API origin            | Expected receipt issuer                                  |
 | `expectedWorkspaceId` | from the API          | Trusted workspace for receipt verification               |
 
-`openclaw sess doctor` checks configuration and host capability without contacting SESS and
-without printing secrets. A `setup` command is not provided yet.
+`openclaw sess doctor` checks configuration, the host version and host capability without
+contacting SESS and without printing secrets.
+
+## Support status
+
+| Profile                                                     | Status                                                      |
+| ----------------------------------------------------------- | ----------------------------------------------------------- |
+| Direct invoke (Gateway `POST /tools/invoke`, deterministic) | Qualified on OpenClaw 2026.10.3, Node 24.21.0 (and 24.16.0) |
+| Agent turn (Control UI or chat channel, model-driven)       | Not yet qualified; pending the model-turn qualification run |
+| Shared or group conversations                               | Not supported                                               |
+
+Only OpenClaw 2026.10.3 is qualified. The package metadata can only express a minimum host version,
+so `openclaw sess doctor` warns on any other host version. Node 22 is not supported because the
+qualified host itself requires Node 24.16 or later.
+
+The package exports no TypeScript declarations: its only export is the plugin entry that OpenClaw
+loads, and it has no programmatic API.
 
 ## First interaction
 
@@ -135,7 +157,8 @@ Interaction state lives in OpenClaw's plugin state, in three namespaces:
   remaining legacy capacity with fence rows, so an older plugin version installed afterwards stops
   (`STORE_FULL` / `RECOVERY_BLOCKED`) instead of acting on the new layout.
 
-`openclaw sess doctor` prints redacted counts per namespace and state. `openclaw sess prune` is a
+`openclaw sess doctor` prints redacted counts per namespace and state. `openclaw sess prune` refuses
+to run until the upgrade has finished. `openclaw sess prune` is a
 dry run by default; `openclaw sess prune --apply` removes only the retained human link from
 completed or blocked records. Claims, identities and every non-terminal record are never changed,
 and a redelivered terminal call still reports its terminal result.
@@ -144,6 +167,14 @@ and a redelivered terminal call still reports its terminal result.
 
 - One outstanding request per conversation is not enforced; each new `sess_request` call may
   create a new Session. Repeated delivery of the same host tool call is deduplicated.
+- Abandoned interactions that never finish (`waiting`, `needs_resume`, `answered`,
+  `create_unknown`, pending publish/complete) stay in the active namespace and are never evicted.
+  About 1,100 of them fill it, after which new requests fail with `STORE_FULL`. Remedy:
+  `openclaw sess retire --older-than-days <n>` lists idle `waiting`/`needs_resume`/`answered`
+  interactions (dry run); `--apply` marks them blocked (`operator_retired`), drops their link and
+  archives them with their claim, so a redelivered call still reports blocked and never creates
+  again. `create_unknown` and pending publish/complete records are never retired automatically;
+  they need individual operator resolution.
 - The retained archive grows with every completed or blocked interaction (claims are replay
   tombstones and are never deleted). `prune --apply` compacts their payload only.
 - Uninstall/reinstall effects on stored interactions are not qualified.
