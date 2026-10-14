@@ -86,7 +86,7 @@
     "integrity": "sha512-vvFPa7AKr9ivoXu38ZgDxfozvPXhdWMsV/P6R8UkaijmHS0EG2zn6izIixH/DuZN9UHfmC5IHGn43ZoSHebOjw==",
     "candidatePath": ".candidate/sess.si-sdk-0.1.0-rc.3.tgz",
     "source": "npm pack of the SDK repository root at the reviewed rc.3 source reproduces these bytes",
-    "releaseHold": "Before publishing @sess.si/mcp, @sess.si/sdk@0.1.0-rc.3 must be genuinely published and package-lock.json regenerated against the registry entry; remove the .candidate mechanism."
+    "releaseHold": "Before publishing @sess.si/mcp, @sess.si/sdk@0.1.0-rc.3 must be genuinely published. Then `npm run sdk:switch-to-registry -- --apply` switches package-lock.json to the registry tarball, accepted only with the pinned integrity and SHA-256, and the lockfile change is reviewed. The digest-gated .candidate mechanism is retained for development; the release workflow refuses candidate mode."
   },
   "registry": {
     "serverJson": "server.json",
