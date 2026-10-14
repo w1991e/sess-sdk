@@ -5,21 +5,28 @@
 // package-lock.json is a maintainer artifact (npm never ships it to consumers) and resolves that
 // node in one of two modes:
 //
-//   candidate  `file:.candidate/<pinned filename>`, a gitignored local tarball, while the
-//              SDK is unpublished. npm does not enforce lock integrity for file: tarballs, so this
-//              script is the gate: only bytes with the pinned reviewed digest are accepted.
-//   registry   the genuine npm registry tarball, after publication, with the same pinned integrity.
+//   registry   the genuine npm registry tarball with the pinned integrity. This is the current
+//              mode: @sess.si/sdk@0.1.0-rc.4 is published (dist-tag `next`). `npm run setup`,
+//              `npm run check`, CI and releases require it.
+//   candidate  `file:.candidate/<pinned filename>`, a gitignored local tarball, kept only for a
+//              future pin that is not yet published. npm does not enforce lock integrity for file:
+//              tarballs, so this script is the gate: only bytes with the pinned digest are accepted.
 //
 // Commands:
 //   setup [--require-registry]
 //                            registry mode: npm ci. candidate mode: prepare, then
-//                            npm ci. --require-registry refuses candidate mode (used by releases).
+//                            npm ci. --require-registry refuses candidate mode (npm run setup,
+//                            CI and releases pass it).
 //   prepare [--build-root]   obtain the candidate (SESS_SDK_CANDIDATE_TGZ, or `scripts/sdk-pin.mjs
 //                            pack --build` at the root, which packs the current root and accepts
 //                            only the pinned bytes) and accept it by digest. --build-root is kept
 //                            for compatibility; the root is always built before packing.
-//   verify                   check the lock entry (either mode), the candidate bytes (candidate
-//                            mode) and the installed identity.
+//   verify [--require-registry]
+//                            check the lock entry (either mode), the candidate bytes (candidate
+//                            mode) and the installed identity. --require-registry (npm run check)
+//                            refuses candidate mode, requires an installed SDK whose npm install
+//                            record is the registry tarball with the pinned integrity, and
+//                            re-reads the registry tarball and compares its SHA-256 and SHA-512.
 //   switch-to-registry [--apply]
 //                            dry run by default: confirm the version is published with the pinned
 //                            integrity. --apply then runs `npm install --save-exact` against the
@@ -154,15 +161,46 @@ if (command === 'setup') {
     fail(
       'package-lock.json must resolve @sess.si/sdk either to the pinned candidate tarball or to the genuine registry tarball, with the pinned integrity.',
     );
+  const requireRegistry = flags.includes('--require-registry');
+  if (requireRegistry && mode !== 'registry')
+    fail('the genuine registry @sess.si/sdk dependency is required; the lock is in candidate mode.', 4);
   if (mode === 'candidate') {
     if (!existsSync(target)) fail(`missing ${pinned.candidatePath}; run npm run candidate:prepare first.`);
     accept(target);
   }
   const installed = join(adapter, 'node_modules', '@sess.si', 'sdk', 'package.json');
+  if (requireRegistry && !existsSync(installed))
+    fail('@sess.si/sdk is not installed; run npm run setup (npm ci) first.');
   if (existsSync(installed)) {
     const identity = readJson(installed);
     if (identity.name !== pinned.name || identity.version !== pinned.version)
       fail('installed @sess.si/sdk identity differs from the pinned version.');
+  }
+  if (requireRegistry) {
+    // npm ci checks the downloaded tarball against the lock integrity before extracting it and
+    // records what it installed in node_modules/.package-lock.json.
+    const record = readJson(join(adapter, 'node_modules', '.package-lock.json')).packages?.[
+      'node_modules/@sess.si/sdk'
+    ];
+    if (lockMode(record) !== 'registry')
+      fail(
+        'the installed @sess.si/sdk was not installed from the registry tarball with the pinned integrity.',
+      );
+    // Independently re-read the registry tarball (the npm cache, integrity-checked, else the
+    // registry) and compare both digests with the pin.
+    const out = mkdtempSync(join(tmpdir(), 'sess-sdk-registry-'));
+    let refusal;
+    try {
+      const packed = JSON.parse(
+        npm(['pack', spec, '--json', '--prefer-offline', '--pack-destination', out], adapter),
+      )[0];
+      refusal = refusalFor(join(out, packed.filename));
+    } catch {
+      refusal = `the registry tarball for ${spec} could not be read.`;
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+    if (refusal) fail(refusal);
   }
   console.log(`sdk-candidate: verified ${mode.toUpperCase()} ${spec} sha256=${pinned.sha256}`);
 } else if (command === 'switch-to-registry') {
@@ -206,6 +244,6 @@ if (command === 'setup') {
   );
 } else {
   fail(
-    'usage: node scripts/sdk-candidate.mjs setup [--require-registry] | prepare [--build-root] | verify | switch-to-registry [--apply]',
+    'usage: node scripts/sdk-candidate.mjs setup [--require-registry] | prepare [--build-root] | verify [--require-registry] | switch-to-registry [--apply]',
   );
 }

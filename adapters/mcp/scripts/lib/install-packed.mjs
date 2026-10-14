@@ -1,6 +1,7 @@
-// Packs @sess.si/mcp and installs that tarball plus the verified @sess.si/sdk CANDIDATE tarball
-// into a clean temporary consumer project: offline, --ignore-scripts, using only the reviewed
-// production resolutions from the adapter lockfile. Shared by check-package, runtime-round and
+// Packs @sess.si/mcp and installs that tarball plus the pinned @sess.si/sdk (the locked registry
+// tarball, or a digest-checked local candidate tarball for a future unpublished pin) into a clean
+// temporary consumer project: offline, --ignore-scripts, using only the reviewed production
+// resolutions from the adapter lockfile. Shared by check-package, runtime-round and
 // the client qualification scripts so they all exercise the same installed artifact.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';

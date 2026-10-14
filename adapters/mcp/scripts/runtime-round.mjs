@@ -63,7 +63,7 @@ let session;
 try {
   log(
     'installed',
-    `${install.packed.id} (${install.packed.files.length} files, ${install.packed.size} bytes) + @sess.si/sdk@${JSON.parse(await readFile(join(adapterDir, 'compatibility.json'), 'utf8')).sessSdk.version} CANDIDATE`,
+    `${install.packed.id} (${install.packed.files.length} files, ${install.packed.size} bytes) + @sess.si/sdk@${JSON.parse(await readFile(join(adapterDir, 'compatibility.json'), 'utf8')).sessSdk.version} ${install.sdkMode.toUpperCase()}`,
   );
   session = await connectStdio({
     requireFrom: install.consumer,

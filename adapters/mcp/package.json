@@ -35,16 +35,17 @@
     "access": "public"
   },
   "scripts": {
-    "setup": "node scripts/sdk-candidate.mjs setup",
+    "setup": "node scripts/sdk-candidate.mjs setup --require-registry",
     "candidate:prepare": "node scripts/sdk-candidate.mjs prepare",
     "sdk:switch-to-registry": "node scripts/sdk-candidate.mjs switch-to-registry",
+    "sdk:verify": "node scripts/sdk-candidate.mjs verify --require-registry",
     "candidate:verify": "node scripts/sdk-candidate.mjs verify",
     "build": "node node_modules/typescript/bin/tsc -p tsconfig.json",
     "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.check.json --noEmit",
     "test": "vitest run",
     "check:package": "node scripts/check-package.mjs",
     "release:self-test": "node --test scripts/test-release-guard.mjs",
-    "check": "npm run candidate:verify && npm run build && npm run typecheck && npm test && npm run release:self-test && npm run check:package",
+    "check": "npm run sdk:verify && npm run build && npm run typecheck && npm test && npm run release:self-test && npm run check:package",
     "runtime-round": "node scripts/runtime-round.mjs",
     "qualify:claude-code": "node scripts/qualify-claude-code.mjs"
   },

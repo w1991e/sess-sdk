@@ -1,5 +1,5 @@
 // Packed-consumer check for @sess.si/mcp. Packs the adapter, installs that tarball plus the
-// verified @sess.si/sdk CANDIDATE tarball into a clean temporary project with --ignore-scripts
+// pinned @sess.si/sdk (the locked registry tarball) into a clean temporary project with --ignore-scripts
 // (offline, using the reviewed lock resolutions), then:
 //   - checks the tarball allowlist, manifest boundary and absence of lifecycle hooks;
 //   - imports every shipped module with network, timers, console and credential reads trapped;
@@ -249,7 +249,7 @@ process.env = env;
     tools: tools.map((t) => t.name),
     checks: [
       'tarball allowlist and no lifecycle hooks',
-      'offline --ignore-scripts install of packed adapter + SDK candidate',
+      `offline --ignore-scripts install of packed adapter + ${install.sdkMode} SDK`,
       'no import-time network/timers/output/file reads/SESS env reads',
       'installed bin initialize + tools/list via official MCP client',
       'unconfigured call fails closed without writing state',
