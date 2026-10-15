@@ -53,6 +53,8 @@ export class FakeSess {
   calls: Call[] = [];
   /** Human link token is generated at runtime; no capability literal exists in source. */
   humanUrl = `https://app.sess.test/s/${randomBytes(32).toString('base64url')}`;
+  /** The workspace this fake runtime authenticates as (header and receipt audience). */
+  workspace = 'wks_synthetic';
   #version = 1;
   #replays = new Map<string, { status: number; body: Json; etag: string }>();
   /** Set to make the next matching request fail at the network level after (or before) applying. */
@@ -85,7 +87,7 @@ export class FakeSess {
     const action = (s.interaction.actions as Json[]).find((a) => a.id === actionId)!;
     const digest = (value: unknown) =>
       `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
-    const workspace = 'wks_synthetic';
+    const workspace = this.workspace;
     const claims = {
       sess_receipt: 1,
       iss: ORIGIN,
@@ -140,7 +142,7 @@ export class FakeSess {
       status,
       headers: {
         'content-type': 'application/json',
-        ...(this.workspaceHeader ? { 'sess-workspace-id': 'wks_synthetic' } : {}),
+        ...(this.workspaceHeader ? { 'sess-workspace-id': this.workspace } : {}),
         ...headers,
       },
     });

@@ -3,8 +3,10 @@
 // (offline, using the reviewed lock resolutions), then:
 //   - checks the tarball allowlist, manifest boundary and absence of lifecycle hooks;
 //   - imports every shipped module with network, timers, console and credential reads trapped;
-//   - starts the installed bin over stdio with the official MCP client and lists the four tools;
-//   - sends raw JSON-RPC with unsafe/unknown keys to the installed bin and expects rejection.
+//   - starts the installed bin over stdio with the official MCP client and lists the five tools;
+//   - sends raw JSON-RPC with unsafe/unknown keys to the installed bin and expects rejection;
+//   - imports the `@sess.si/mcp/http` export from the consumer and serves tools/list, a 401 and an
+//     unsafe-key rejection through its fetch face (no listener, no network).
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -45,8 +47,25 @@ for (const hook of [
   assert(!manifest.scripts?.[hook], `lifecycle hook forbidden: ${hook}`);
 assert(
   JSON.stringify(manifest.dependencies) ===
-    JSON.stringify({ '@modelcontextprotocol/sdk': '1.32.1', '@sess.si/sdk': compatibility.sessSdk.version }),
-  'runtime dependency boundary drift (exact MCP library and SESS SDK only)',
+    JSON.stringify({
+      '@modelcontextprotocol/node': '2.1.1',
+      '@modelcontextprotocol/server': '2.3.1',
+      '@sess.si/sdk': compatibility.sessSdk.version,
+    }),
+  'runtime dependency boundary drift (exact MCP server/node packages and SESS SDK only)',
+);
+assert(
+  compatibility.mcpLibrary.version === manifest.dependencies[compatibility.mcpLibrary.name] &&
+    compatibility.mcpLibrary.node.version === manifest.dependencies[compatibility.mcpLibrary.node.name],
+  'compatibility record MCP library drift',
+);
+assert(
+  JSON.stringify(manifest.exports) ===
+    JSON.stringify({
+      './http': { types: './dist/http.d.ts', default: './dist/http.js' },
+      './package.json': './package.json',
+    }),
+  'export boundary drift (./http and ./package.json only)',
 );
 assert(
   !Object.keys(lock.packages).some((p) => /openclaw/i.test(p)),
@@ -57,11 +76,13 @@ const install = await installPacked();
 const { packed, tarball, consumer, binPath, installed } = install;
 assert(packed.id === `${manifest.name}@${manifest.version}`, 'npm pack identity drift');
 const allowed =
-  /^(?:dist\/(?:internal\/)?[a-z-]+\.js|README\.md|CHANGELOG\.md|LICENSE|NOTICE|compatibility\.json|package\.json)$/;
+  /^(?:dist\/(?:internal\/)?[a-z-]+\.(?:js|d\.ts)|README\.md|CHANGELOG\.md|LICENSE|NOTICE|compatibility\.json|package\.json)$/;
 for (const file of packed.files) assert(allowed.test(file.path), `unexpected tarball file: ${file.path}`);
 for (const required of [
   'dist/bin.js',
   'dist/server.js',
+  'dist/http.js',
+  'dist/http.d.ts',
   'dist/internal/shared.js',
   'README.md',
   'LICENSE',
@@ -80,7 +101,9 @@ const allowedSpecifier = (file, specifier) =>
   specifier.startsWith('node:') ||
   (/^\.\.?\//.test(specifier) &&
     resolve(dirname(join(installed, file)), specifier).startsWith(join(installed, 'dist'))) ||
-  specifier.startsWith('@modelcontextprotocol/sdk/') ||
+  specifier === '@modelcontextprotocol/server' ||
+  specifier === '@modelcontextprotocol/server/stdio' ||
+  specifier === '@modelcontextprotocol/node' ||
   specifier === '@sess.si/sdk';
 for (const file of packed.files.filter((f) => /\.[cm]?js$/.test(f.path))) {
   const text = await readFile(join(installed, file.path), 'utf8');
@@ -117,7 +140,7 @@ try {
   // Import-time side effects: every shipped module except the bin (which starts the server).
   const modules = packed.files
     .map((f) => f.path)
-    .filter((p) => p.startsWith('dist/') && p !== 'dist/bin.js')
+    .filter((p) => p.startsWith('dist/') && p.endsWith('.js') && p !== 'dist/bin.js')
     .map((p) => pathToFileURL(join(installed, p)).href);
   await writeFile(
     join(consumer, 'import-smoke.mjs'),
@@ -155,7 +178,7 @@ process.env = env;
 
   // The installed bin over stdio, with an environment that has no SESS credential at all.
   const env = { PATH: process.env.PATH ?? '', SESS_MCP_STATE_DIR: state };
-  const session = await connectStdio({ requireFrom: consumer, binPath, env, cwd: consumer });
+  const session = await connectStdio({ binPath, env, cwd: consumer });
   let tools;
   try {
     assert(session.client.getServerVersion()?.version === manifest.version, 'server version drift');
@@ -217,6 +240,66 @@ process.env = env;
     'unknown key accepted',
   );
 
+  // The HTTP export, resolved through the installed package's `exports` from the consumer. Its
+  // fetch face is driven directly: no listener, no SESS call (fetch is trapped), no store opened.
+  await writeFile(
+    join(consumer, 'http-smoke.mjs'),
+    `
+import { createSessMcpHttpHandler } from '@sess.si/mcp/http';
+globalThis.fetch = () => { throw new Error('unexpected network'); };
+let storeOpened = false;
+const handler = createSessMcpHttpHandler({
+  authenticate: (request) => request.headers.get('authorization') === 'Bearer smoke' ? {
+    workspaceId: 'wks_smoke', principalId: 'usr_smoke', clientId: 'cli_smoke', grantId: 'grt_smoke',
+    grantGeneration: '1', scopes: ['smoke'], credential: () => 'smoke-credential',
+  } : undefined,
+  handleStore: () => { storeOpened = true; throw new Error('store must not be opened'); },
+  requiredScopes: ['smoke'],
+  allowedHosts: ['mcp.smoke.test'],
+  apiOrigin: 'https://api.smoke.test',
+  resourceMetadataUrl: 'https://mcp.smoke.test/.well-known/oauth-protected-resource/mcp',
+});
+const post = (body, auth = true) => handler.fetch(new Request('https://mcp.smoke.test/mcp', {
+  method: 'POST',
+  headers: { host: 'mcp.smoke.test', 'content-type': 'application/json', accept: 'application/json, text/event-stream', ...(auth ? { authorization: 'Bearer smoke' } : {}) },
+  body,
+}));
+const rpc = async (response) => {
+  const text = await response.text();
+  const line = text.split('\\n').find((l) => l.startsWith('data: '));
+  return JSON.parse(line ? line.slice(6) : text);
+};
+const list = await post('{"jsonrpc":"2.0","id":1,"method":"tools/list"}');
+const tools = (await rpc(list)).result.tools.map((t) => t.name);
+const unauthenticated = await post('{"jsonrpc":"2.0","id":2,"method":"tools/list"}', false);
+const unsafe = await rpc(await post('{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"sess_response","arguments":{"handle":"sh_AAAAAAAAAAAAAAAAAAAAAA","revision":1,"__proto__":{"polluted":true}}}}'));
+await handler.close();
+process.stdout.write(JSON.stringify({
+  listStatus: list.status,
+  tools,
+  unauthenticatedStatus: unauthenticated.status,
+  challenge: unauthenticated.headers.get('www-authenticate'),
+  unsafe: unsafe.result,
+  storeOpened,
+}));
+`,
+  );
+  const httpSmoke = JSON.parse(run(process.execPath, ['http-smoke.mjs'], consumer));
+  assert(
+    httpSmoke.listStatus === 200 &&
+      JSON.stringify(httpSmoke.tools) === JSON.stringify(tools.map((t) => t.name)),
+    'HTTP export tools/list drift',
+  );
+  assert(
+    httpSmoke.unauthenticatedStatus === 401 && /resource_metadata=/.test(httpSmoke.challenge ?? ''),
+    'HTTP export must challenge an unauthenticated request',
+  );
+  assert(
+    httpSmoke.unsafe?.isError === true && httpSmoke.unsafe.content[0].text.includes('INVALID_ARGUMENTS'),
+    'HTTP export accepted an unsafe key',
+  );
+  assert(httpSmoke.storeOpened === false, 'HTTP export opened a store for tools/list or a rejected call');
+
   // Source identity of the tested bytes; the release workflow requires the tag commit and a clean tree.
   const git = (args) => {
     try {
@@ -254,7 +337,9 @@ process.env = env;
       'installed bin initialize + tools/list via official MCP client',
       'unconfigured call fails closed without writing state',
       'server-side rejection of __proto__ and unknown argument keys',
-      'import boundary: node:, own relative files, MCP library and SESS SDK only',
+      'import boundary: node:, own relative files, @modelcontextprotocol/server(/stdio), @modelcontextprotocol/node and SESS SDK only',
+      'exports: ./http (with types) and ./package.json only',
+      '@sess.si/mcp/http from the consumer: tools/list, 401 challenge and unsafe-key rejection without network or store',
     ],
   };
   await writeFile(join(adapter, '.artifacts', 'package-result.json'), `${JSON.stringify(result, null, 2)}\n`);

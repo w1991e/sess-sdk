@@ -1,0 +1,93 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sess",
+  "version": "0.1.0-rc.1",
+  "description": "Your agent asks a person through a private link and gets back a typed, receipt-verified answer.",
+  "author": {
+    "name": "Sess",
+    "url": "https://sess.si"
+  },
+  "homepage": "https://sess.si",
+  "repository": "https://github.com/w1991e/sess-sdk",
+  "license": "Apache-2.0",
+  "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Sess",
+        "shortDescription": "Ask a person, get the answer",
+        "longDescription": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a private link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
+        "developerName": "Sess",
+        "category": "Productivity",
+        "capabilities": [
+          "Ask a person through SESS",
+          "Read the person’s SESS answer",
+          "Show the next SESS step",
+          "Finish the SESS interaction",
+          "Ask a short question through SESS"
+        ],
+        "websiteURL": "https://sess.si",
+        "supportURL": "https://docs.sess.si/support/",
+        "defaultPrompt": [
+          "Ask me on my phone which time works for a call tomorrow.",
+          "Before you send the report, ask me to approve it.",
+          "Ask me three quick questions to plan my weekend."
+        ]
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Ask a short question and read the answer",
+              "prompt": "Ask me on my phone which time works for a call tomorrow.",
+              "tools_triggered": "sess_ask, sess_response",
+              "expected_behavior": "Shares a private link at once. After the reviewer submits the form, reports the chosen time."
+            },
+            {
+              "description": "Ask for an approval before acting",
+              "prompt": "Before you write the summary, ask me to approve the title 'Q3 plan'.",
+              "tools_triggered": "sess_request, sess_response",
+              "expected_behavior": "Shows the title with approve and reject buttons, shares the link and reports the choice after it is submitted."
+            },
+            {
+              "description": "Show a second step on the same link",
+              "prompt": "Ask me which city I am visiting, then ask which day I arrive.",
+              "tools_triggered": "sess_ask, sess_response, sess_publish",
+              "expected_behavior": "After the first answer, the same link shows the second question; reports both answers."
+            },
+            {
+              "description": "Finish after the answer",
+              "prompt": "Ask me to confirm the meeting time, then close the form.",
+              "tools_triggered": "sess_ask, sess_response, sess_complete",
+              "expected_behavior": "Reports the confirmed time, then says the form is closed."
+            },
+            {
+              "description": "Not answered yet",
+              "prompt": "Ask me for my lunch choice. (Wait more than a minute before answering.)",
+              "tools_triggered": "sess_ask, sess_response",
+              "expected_behavior": "Says the form is still open and to ask again after submitting; does not create a second form. After the reviewer submits and asks again, reports the choice."
+            }
+          ],
+          "negative": [
+            {
+              "description": "The agent must not answer the person's form itself",
+              "prompt": "Fill in the form for me and submit it yourself."
+            },
+            {
+              "description": "No person is needed",
+              "prompt": "What is 12 times 12?"
+            },
+            {
+              "description": "Payments are not supported",
+              "prompt": "Send 50 dollars to my friend."
+            }
+          ]
+        },
+        "commerce": false
+      },
+      "publication": {
+        "release_notes": "First release: ask a person through a private link and continue with their receipt-checked answer."
+      }
+    }
+  }
+}

@@ -191,8 +191,9 @@ blocks like a definitive rejection.
   profile.
 - **No wake-up.** A wait is one bounded read of at most 45 seconds. The server cannot wake an agent
   after its turn ends; the person asks the agent to continue.
-- **Not included:** remote or HTTP transport, a hosted server, MCP Tasks, Apps, elicitation,
-  resources or prompts. One server process per profile is supported; concurrent processes on the
+- **Not included:** an HTTP server or bin flag, a hosted server, OAuth, MCP Tasks, Apps,
+  elicitation, resources or prompts (the HTTP composition below is a library for a hosting
+  runtime, not a runnable server). One server process per profile is supported; concurrent processes on the
   same profile are not coordinated. Rotating the key makes earlier handles unusable
   (`BINDING_MISMATCH`). The browser may still need a manual refresh between rounds.
 - **Receipt-key rotation window.** The SDK refreshes its cached receipt key set at most once per
@@ -200,6 +201,48 @@ blocks like a definitive rejection.
   within 10 seconds of this server's previous key-set fetch, the SDK reports `UNKNOWN_KEY_ID`, and
   the interaction is blocked (`VERIFICATION_FAILED`) even though the answer may be valid. Use the
   owner procedure below; fixing this needs an SDK change.
+
+## HTTP composition (library for a hosting runtime; not a deployed endpoint)
+
+`@sess.si/mcp/http` exports `createSessMcpHttpHandler(options)`, a stateless Streamable HTTP
+handler for the same five tools. It is built on `createMcpHandler` from
+`@modelcontextprotocol/server` with its default stateless legacy fallback, so one endpoint serves
+2026-07-28 clients and 2025-era clients (`initialize` answers `2025-11-25`; no session ID). Each
+request gets a fresh server and adapter. Nothing in this package starts a listener; the hosting
+runtime mounts `handler.fetch` (web-standard) or `handler.node` (`node:http`).
+
+The hosting runtime supplies the authority; this package never decides it:
+
+- `authenticate(request)` (required) sees the method, URL and headers, verifies the request's
+  credentials and returns a principal context: `workspaceId`, `principalId`, `clientId`,
+  `grantId`, `grantGeneration`, `scopes` and a `credential()` provider for SESS API calls. If it
+  returns nothing, the answer is `401` with `WWW-Authenticate: Bearer resource_metadata="…"`; a
+  principal without every `requiredScopes` entry gets `403 insufficient_scope`. The handler
+  never derives `authInfo` from headers and never sends the MCP bearer token to SESS or to a tool.
+- `handleStore(binding, principal)` (required) returns a handle store bound to that authority.
+  Handles are bound to origin, workspace, principal, client, grant and grant generation: another
+  principal, host or workspace gets `HANDLE_NOT_FOUND`; a revoked or re-issued grant (new
+  generation) gets `BINDING_MISMATCH`; a token refresh (same generation) keeps the handles. The
+  operations re-check every loaded record, whatever the store does. The durable hosted store is
+  not in this package.
+
+In front of the SDK entry, in this order on both faces:
+
+1. A header-only preflight before any body byte is read: the `Host` allowlist (required), an
+   exact `Origin` allowlist (requests without `Origin`, as non-browser clients send them, are
+   accepted), then exactly one `authenticate` call and the scope check. A rejection is answered
+   at once, even while the client is still sending; the Node face then closes the connection.
+2. A bounded body (default 256 KiB: a larger declared `Content-Length` or streamed body gets
+   `413`; non-JSON gets `415` from the SDK) read under the request deadline.
+3. The raw-body unsafe-key guard, answered in the request's protocol era.
+
+The deadline (`requestTimeoutMs`, default 60 s) is absolute from the moment the request enters
+the handler. A body that has not arrived by then gets `408` and reading stops (the Node face
+closes the connection); an `authenticate` hook that has not answered gets `503`. During tool
+execution the same deadline ends an in-flight `sess_response` wait as `needs_resume`; a create,
+publish or complete already sent is never abandoned mid-flight. The timer is cleared when the
+response completes or fails, or when the client disconnects. The human link is returned to the
+agent in the tool result exactly as over stdio and never appears in diagnostics.
 
 ## Resolving a blocked or unconfirmed interaction (owner procedure)
 
