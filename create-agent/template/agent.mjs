@@ -38,6 +38,7 @@ async function main() {
 
     console.log(`\nYour plan: ${plan.text} in ${trip.name} (${plan.weather}).`);
     console.log(weather.forecast ? `${ATTRIBUTION}\n${RULE}` : 'No forecast was available for this plan.');
+    if (weather.alerts === null) console.log(NWS_DOWN);
     const at = new Date(second.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     console.log(`\nYou approved "${plan.text}" at ${at} · verified ✓`);
     console.log(`Verify this yourself at https://sess.si/verify\nSession ${id} is ${done.data.status}.`);
@@ -93,13 +94,21 @@ const ATTRIBUTION =
   'Weather data from MET Norway (https://api.met.no), licensed CC BY 4.0 ' +
   '(https://creativecommons.org/licenses/by/4.0/). Summarized into time slots by this agent.';
 
+const NWS_DOWN = 'US weather alerts (NWS) could not be reached right now.';
+
 async function weatherFor({ lat, lon, country, date, zone }) {
   const point = `lat=${deg(lat)}&lon=${deg(lon)}`;
   const forecast = await getJson(`https://api.met.no/weatherapi/locationforecast/2.0/compact?${point}`);
   const nws = country === 'US' ? `https://api.weather.gov/alerts/active?point=${deg(lat)},${deg(lon)}` : null;
-  const alerts = ((nws && (await getJson(nws, 'application/geo+json'))?.features) || []).slice(0, 3);
-  const headlines = alerts.map((a) => String(a?.properties?.headline ?? a?.properties?.event ?? ''));
-  return { forecast, slots: summarize(forecast, date, zone), alerts: headlines.filter(Boolean) };
+  const found = nws ? await getJson(nws, 'application/geo+json') : { features: [] };
+  // null: NWS could not be reached (said so on the page); [] : no active alerts.
+  const alerts = Array.isArray(found?.features)
+    ? found.features
+        .slice(0, 3)
+        .map((a) => String(a?.properties?.headline ?? a?.properties?.event ?? ''))
+        .filter(Boolean)
+    : null;
+  return { forecast, slots: summarize(forecast, date, zone), alerts };
 }
 
 /** A coordinate truncated (not rounded) to 4 decimals, as MET Norway asks. */
@@ -202,7 +211,8 @@ function pickAPlan(trip, weather, options) {
         { type: 'text', text: ATTRIBUTION },
       ]
     : [{ type: 'text', text: 'The weather service could not be reached. These plans skip the forecast.' }];
-  if (weather.alerts.length)
+  if (weather.alerts === null) shown.push({ type: 'text', text: NWS_DOWN });
+  else if (weather.alerts.length)
     shown.push(
       record(
         'US weather alerts (NWS)',

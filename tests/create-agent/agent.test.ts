@@ -151,6 +151,40 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     expect(texts(world, 2).join()).toContain('Heat Advisory until 8 PM');
   });
 
+  it('says so when NWS alerts cannot be reached, and still completes the plan', async () => {
+    const { app, record } = generate();
+    const run = await runAgent(app, record, {
+      answers: [{ place: 'chicago', day: 'saturday' }, ROUND_2],
+      nws: 'outage',
+    });
+    expect(run.stderr).toBe('');
+    expect(run.code).toBe(0);
+    expect(run.stdout).toContain('in Chicago (18 °C · dry · wind 3 m/s).');
+    expect(run.stdout).toContain('US weather alerts (NWS) could not be reached right now.');
+    expect(run.stdout).toContain('· verified ✓');
+    const world = read(record);
+    expect(world.status).toBe('completed');
+    expect(world.weather.filter((w) => w.url.startsWith('https://api.weather.gov/'))).toHaveLength(3);
+    const round2 = texts(world, 2).join();
+    expect(round2).toContain('US weather alerts (NWS) could not be reached right now.');
+    expect(round2).toContain(JSON.stringify(ATTRIBUTION));
+  });
+
+  it('stops without "verified" or completion when a receipt does not verify', async () => {
+    const { app, record } = generate();
+    const run = await runAgent(app, record, {
+      answers: [{ place: 'oslo', day: 'saturday' }, ROUND_2],
+      tamper: 2,
+    });
+    expect(run.code).toBe(1);
+    expect(run.stderr).toMatch(/^Stopped: The receipt does not bind the accepted typed input\./);
+    expect(run.stdout).not.toContain('verified');
+    expect(run.stdout).not.toContain('Your plan');
+    const world = read(record);
+    expect(world.completes).toBe(0);
+    expect(world.status).toBe('responded');
+  });
+
   it('says so on a weather outage, retries a bounded number of times and never invents weather', async () => {
     const { app, record } = generate();
     const run = await runAgent(app, record, {

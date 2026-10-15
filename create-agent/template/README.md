@@ -1,7 +1,7 @@
 # Your first SESS agent
 
-This agent asks you two questions on your phone, plans your weekend on the real forecast and proves
-your answers with signed receipts.
+This agent asks you two questions on your phone, plans your weekend on the real forecast. Each answer
+comes with a signed receipt.
 
 **Install:** `npm install --ignore-scripts`
 

@@ -79,7 +79,7 @@ console.log(`Created ${rel || 'the agent here'}: a weekend planner on real weath
 Next:
 ${rel ? `  cd ${cd}\n` : ''}  npm install --ignore-scripts
   read -rs SESS_API_KEY && export SESS_API_KEY     # paste your key from https://app.sess.si
-  export SESS_DEMO_CONTACT=<project URL or team email>
+  export SESS_DEMO_CONTACT=https://example.com/your-project   # your project URL or team email
   npm start
 
 Your key stays in your environment. This tool never asks for it or stores it.`);

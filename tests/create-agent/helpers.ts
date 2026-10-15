@@ -59,6 +59,7 @@ export interface WorldOptions {
   answers: Record<string, string>[];
   met?: 'ok' | 'busy' | 'outage' | 'revalidate';
   nws?: 'ok' | 'outage';
+  tamper?: number;
   env?: Record<string, string | undefined>;
 }
 
@@ -72,6 +73,7 @@ export function runAgent(app: string, record: string, options: WorldOptions) {
     answers: options.answers,
     met: options.met ?? 'ok',
     nws: options.nws ?? 'ok',
+    tamper: options.tamper,
     record,
   };
   const env: Record<string, string> = {

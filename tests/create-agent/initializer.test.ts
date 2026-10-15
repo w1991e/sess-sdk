@@ -38,10 +38,18 @@ describe('@sess.si/create-agent initializer', { timeout: 30_000 }, () => {
     expect(parity(app)).toEqual({ status: 0, output: expect.stringContaining('agree with the SDK pin') });
     expect(json(join(app, 'package.json')).name).toBe('my-weekend-agent');
     // Next steps, in order: cd, install without scripts, the key from the person's own environment, start.
-    const steps = ["cd 'My Weekend Agent'", 'npm install --ignore-scripts', 'SESS_API_KEY', 'npm start'];
+    const steps = [
+      "cd 'My Weekend Agent'",
+      'npm install --ignore-scripts',
+      'SESS_API_KEY',
+      'export SESS_DEMO_CONTACT=https://example.com/your-project ',
+      'npm start',
+    ];
     const at = steps.map((step) => run.stdout.indexOf(step));
     expect(at.every((index) => index >= 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
+    // Every command line is safe to paste: no <placeholder> that a shell reads as a redirection.
+    expect(run.stdout).not.toMatch(/^ {2}\S.*<[^>]*>/m);
   });
 
   it('accepts a nested new path and an empty current directory', () => {

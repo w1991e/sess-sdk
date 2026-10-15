@@ -9,6 +9,7 @@
 // SESS_FAKE_WORLD (JSON): { apiKey, answers: [round1Data, round2Data], met, nws, record }
 //   met: 'ok' | 'busy' (one 429, then ok) | 'outage' (503 every time) | 'revalidate' (304 when asked)
 //   nws: 'ok' | 'outage'
+//   tamper: <revision> signs that revision's receipt over altered input (verification must fail).
 //   weather: 'live' sends the weather requests to the real services instead (manual checks only).
 import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
@@ -102,7 +103,8 @@ function personAnswers() {
     event_id: eventId,
     surface: { revision, hash: digest(session.interaction), renderer_version: 'sess-html-form-1' },
     action: { id: action.id, label: action.label, summary: action.intent ?? '' },
-    input_hash: digest(data),
+    // tamper: the receipt of that revision binds different input, so verification must fail.
+    input_hash: digest(config.tamper === revision ? { ...data, tampered: true } : data),
     actor: { assurance: 'link_holder', subject: `${WORKSPACE}:human_link:${SESSION_ID}` },
     return_binding: { recipient: WORKSPACE, return_channel_id: null },
   };
