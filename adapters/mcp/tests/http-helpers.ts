@@ -79,6 +79,8 @@ export interface Harness {
   lines: string[];
   /** Every bearer token value presented to authenticate(). */
   authenticated: string[];
+  /** One entry per request served by the node face: when its handler promise settled (ms since entry). */
+  nodeSettled: Promise<number>[];
   close(): Promise<void>;
 }
 
@@ -132,7 +134,11 @@ export async function startHttp(
       new Sess({ ...sessOptions, fetch: routeFor(sessOptions.apiKey), maxRetries: 0 }),
     ...options.overrides,
   });
-  const server = http.createServer((req, res) => void handler.node(req, res));
+  const nodeSettled: Promise<number>[] = [];
+  const server = http.createServer((req, res) => {
+    const entered = Date.now();
+    nodeSettled.push(handler.node(req, res).then(() => Date.now() - entered));
+  });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address() as { port: number };
   return {
@@ -142,6 +148,7 @@ export async function startHttp(
     fakes,
     lines,
     authenticated,
+    nodeSettled,
     close: async () => {
       await handler.close();
       server.closeAllConnections();

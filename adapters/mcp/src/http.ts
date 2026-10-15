@@ -99,7 +99,10 @@ export interface SessMcpHttpHandlerOptions {
    * reading stops; the Node face closes the connection). During tool execution it ends an in-flight
    * sess_response wait or read as `needs_resume`. A create, publish or complete already sent is
    * never abandoned mid-flight (its outcome would become unknown); the SESS client's own timeouts
-   * bound those. The timer is cleared when the response completes, fails or the peer disconnects.
+   * bound those. The timer is cleared when the response completes or fails. A peer disconnect (fetch
+   * `request.signal`, or a Node response closed before it finished, including on entry) also
+   * cancels: a pending `authenticate` or body read stops waiting and the handler settles at once,
+   * without calling the hook if the peer was already gone.
    */
   requestTimeoutMs?: number;
   /** Upper bound and default for one sess_response wait (default and maximum 45 s). */
@@ -340,6 +343,12 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
       report('http_rejected', { reason: 'method' });
       return reject(rpcError(405, -32000, 'Method not allowed.'));
     }
+    // Nobody is waiting for an answer: settle without calling the hook. The response is discarded.
+    const gone = (): Preflight => {
+      report('http_rejected', { reason: 'disconnect' });
+      return reject(new Response(null, { status: 499 }));
+    };
+    if (peerGone(deadline)) return gone();
     let outcome: Settled<PrincipalContext | undefined>;
     try {
       outcome = await settleWithin(Promise.resolve(options.authenticate(view)), deadline);
@@ -350,6 +359,7 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
       );
     }
     if (!outcome.done) {
+      if (peerGone(deadline)) return gone();
       report('http_auth_error', { reason: 'deadline' });
       return reject(
         json(503, { error: 'temporarily_unavailable', error_description: 'Authentication is unavailable.' }),
@@ -429,8 +439,11 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
 
   const fetch = async (request: Request): Promise<Response> => {
     const deadline = startDeadline(requestTimeoutMs);
-    const onDisconnect = () => deadline.dispose();
-    request.signal.addEventListener('abort', onDisconnect, { once: true });
+    // Peer gone (now or later): cancel, so a pending authenticate or body read settles at once.
+    const onDisconnect = () => deadline.cancel();
+    if (request.signal.aborted) deadline.cancel();
+    else request.signal.addEventListener('abort', onDisconnect, { once: true });
+    // Normal completion: clear the timer and the listener; the signal is left as it is.
     const done = () => {
       request.signal.removeEventListener('abort', onDisconnect);
       deadline.dispose();
@@ -458,7 +471,7 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
           request.headers.get('content-length'),
           maxBodyBytes,
           AbortSignal.any([deadline.signal, request.signal]),
-          () => request.signal.aborted,
+          () => request.signal.aborted || peerGone(deadline.signal),
         );
         if (read.kind !== 'ok') return settleResponse(ingestFailure(read), done);
         const headers = new Headers(request.headers);
@@ -495,8 +508,11 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
 
   const node = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     const deadline = startDeadline(requestTimeoutMs);
-    // Completion, error and disconnect all end in 'close'.
-    res.once('close', deadline.dispose);
+    // Completion, error and disconnect all end in 'close' (the listener runs once and is gone). A
+    // finished response only clears the timer; anything else means the peer is gone and cancels,
+    // so a pending authenticate or body read settles at once.
+    res.once('close', () => (res.writableFinished ? deadline.dispose() : deadline.cancel()));
+    if (res.destroyed || req.socket?.destroyed === true) deadline.cancel();
     try {
       const headers = new Headers();
       for (const [name, value] of Object.entries(req.headers)) {
@@ -527,7 +543,7 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
           headers.get('content-length'),
           maxBodyBytes,
           deadline.signal,
-          () => req.destroyed && !req.complete,
+          () => peerGone(deadline.signal) || (req.destroyed && !req.complete),
         );
         if (read.kind !== 'ok') return await writeEarly(res, ingestFailure(read));
         chunks = [read.bytes];
@@ -558,12 +574,34 @@ type Settled<T> = { done: true; value: T } | { done: false };
 type BodyRead =
   { kind: 'ok'; bytes: Uint8Array } | { kind: 'too_large' } | { kind: 'timeout' } | { kind: 'aborted' };
 
-/** An absolute per-request deadline started at entry; `dispose` clears the timer (idempotent). */
-function startDeadline(ms: number): { signal: AbortSignal; dispose: () => void } {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
-  return { signal: controller.signal, dispose: () => clearTimeout(timer) };
+/** Abort reasons of the request deadline signal. */
+const DEADLINE = 'deadline';
+const DISCONNECT = 'disconnect';
+
+interface Deadline {
+  /** Aborts with DEADLINE when the time is up, or with DISCONNECT when the peer goes away. */
+  signal: AbortSignal;
+  /** Normal completion: clears the timer, leaves the signal as it is. Idempotent. */
+  dispose(): void;
+  /** Peer gone: clears the timer and aborts the signal, so pending work settles now. Idempotent. */
+  cancel(): void;
 }
+
+/** An absolute per-request deadline started at entry. */
+function startDeadline(ms: number): Deadline {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(DEADLINE), ms);
+  return {
+    signal: controller.signal,
+    dispose: () => clearTimeout(timer),
+    cancel: () => {
+      clearTimeout(timer);
+      if (!controller.signal.aborted) controller.abort(DISCONNECT);
+    },
+  };
+}
+
+const peerGone = (signal: AbortSignal) => signal.aborted && signal.reason === DISCONNECT;
 
 /** Settles with the work's value, or `{ done: false }` once `signal` aborts; rejections pass through. */
 function settleWithin<T>(work: Promise<T>, signal: AbortSignal): Promise<Settled<T>> {

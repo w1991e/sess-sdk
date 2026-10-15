@@ -109,3 +109,8 @@
   request. The request deadline starts at entry and bounds `authenticate` (`503`) and body
   ingestion (`408`; the Node face closes the connection); its timer is cleared on completion,
   error and disconnect. Tool-execution deadline semantics are unchanged.
+- HTTP-01a: a peer disconnect (fetch `request.signal`, or a Node response closed before it
+  finished, including a request already gone on entry) now cancels the request deadline instead of
+  only clearing its timer, so a pending `authenticate` or body read settles at once and the
+  handler promise resolves; a request already gone on entry never calls the hook. Normal
+  completion still only clears the timer. Mutations already sent are never abandoned.

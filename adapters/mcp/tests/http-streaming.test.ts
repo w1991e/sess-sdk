@@ -242,3 +242,94 @@ describe('[P2-14] HTTP-01 fetch face: header preflight before any body byte', ()
     untouched(h);
   });
 });
+
+// HTTP-01a (ASTRA review of sess-sdk #32 at c00e523): a peer that goes away while authenticate is
+// still pending must settle the handler at once, not leave it waiting past the deadline.
+describe('[P2-14] HTTP-01a: disconnect while authenticate is pending', () => {
+  /** A hook that never answers, counting how often it is entered. */
+  function pendingHook() {
+    const hook = { entered: 0, authenticate: () => (hook.entered++, new Promise<undefined>(() => {})) };
+    return hook;
+  }
+  async function until(condition: () => boolean, ms = 2000) {
+    const end = Date.now() + ms;
+    while (!condition()) {
+      if (Date.now() > end) throw new Error('condition not reached');
+      await sleep(5);
+    }
+  }
+  /** The promise's value, or 'pending' after `ms`; its own timer is cleared either way. */
+  const within = <T>(promise: Promise<T>, ms: number): Promise<T | 'pending'> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const expiry = new Promise<'pending'>((resolve) => (timer = setTimeout(() => resolve('pending'), ms)));
+    return Promise.race([promise, expiry]).finally(() => clearTimeout(timer));
+  };
+
+  it('control: with no disconnect, a pending hook is answered 503 at the deadline on both faces', async () => {
+    const hook = pendingHook();
+    const h = (harness = await startHttp({
+      overrides: { requestTimeoutMs: 200, authenticate: hook.authenticate },
+    }));
+    const viaFetch = await openFetch(h, ALICE, '{').response;
+    expect(viaFetch.status).toBe(503);
+    expect(viaFetch.ms).toBeGreaterThanOrEqual(150);
+    expect(viaFetch.ms).toBeLessThan(200 + 750);
+    const viaNode = await openNode(h.url, { ...ALICE, 'content-length': '2' }, '{').answer;
+    expect(viaNode.status).toBe(503);
+    expect(await within(h.nodeSettled[0]!, 1000)).not.toBe('pending');
+    expect(hook.entered).toBe(2);
+    untouched(h);
+  });
+
+  it('fetch face: an abort after the hook is entered settles the handler at once and clears its timer', async () => {
+    const hook = pendingHook();
+    const h = (harness = await startHttp({
+      overrides: { requestTimeoutMs: 2000, authenticate: hook.authenticate },
+    }));
+    const before = timers();
+    const abort = new AbortController();
+    const open = openFetch(h, ALICE, '{', abort.signal);
+    await until(() => hook.entered === 1);
+    const aborted = Date.now();
+    abort.abort();
+    const settled = await within(open.response, 1000);
+    expect(settled).not.toBe('pending');
+    expect(Date.now() - aborted).toBeLessThan(500);
+    expect(h.lines).toContain('http_rejected {"reason":"disconnect"}');
+    expect(timers()).toBeLessThanOrEqual(before);
+    untouched(h);
+  });
+
+  it('fetch face: a request already aborted on entry settles without calling the hook', async () => {
+    const hook = pendingHook();
+    const h = (harness = await startHttp({
+      overrides: { requestTimeoutMs: 2000, authenticate: hook.authenticate },
+    }));
+    const before = timers();
+    const settled = await within(openFetch(h, ALICE, '{', AbortSignal.abort()).response, 500);
+    expect(settled).not.toBe('pending');
+    expect(hook.entered).toBe(0);
+    expect(timers()).toBeLessThanOrEqual(before);
+    untouched(h);
+  });
+
+  it('node face: a client destroyed after the hook is entered settles .node at once and clears its timer', async () => {
+    const hook = pendingHook();
+    const h = (harness = await startHttp({
+      overrides: { requestTimeoutMs: 2000, authenticate: hook.authenticate },
+    }));
+    const before = timers();
+    const open = openNode(h.url, { ...ALICE, 'content-length': '2' }, '{');
+    open.answer.catch(() => undefined);
+    await until(() => hook.entered === 1);
+    const destroyed = Date.now();
+    open.req.destroy();
+    const settled = await within(h.nodeSettled[0]!, 1000);
+    expect(settled).not.toBe('pending');
+    expect(Date.now() - destroyed).toBeLessThan(500);
+    expect(h.lines).toContain('http_rejected {"reason":"disconnect"}');
+    await sleep(50);
+    expect(timers()).toBeLessThanOrEqual(before);
+    untouched(h);
+  });
+});
