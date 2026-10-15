@@ -4,15 +4,25 @@ import * as ts from 'typescript';
 import { Sess } from '@sess.si/sdk';
 import { createFakeRuntime, FAKE_LINK } from '../fixtures/fake-runtime.mjs';
 import { API_KEY } from '../fixtures/api.js';
+import { readmeExamples } from '../../scripts/readme-examples.mjs';
 
 async function firstBlock() {
   const readme = await readFile(new URL('../../README.md', import.meta.url), 'utf8');
-  const first = /```ts\n([\s\S]*?)\n```/.exec(readme);
-  const marked = /<!-- example:ask -->\s*```ts\n([\s\S]*?)\n```\s*<!-- \/example:ask -->/.exec(readme);
-  return { first: first?.[1], marked: marked?.[1] };
+  const { first, ask } = readmeExamples(readme);
+  return { first, marked: ask };
 }
 
 describe('README first code block', () => {
+  it('is found identically in an LF and a CRLF copy of the README (Windows checkouts and packs)', async () => {
+    const lf = await readFile(new URL('../../README.md', import.meta.url), 'utf8');
+    const crlf = lf.replace(/\r?\n/g, '\r\n');
+    const a = readmeExamples(lf);
+    const b = readmeExamples(crlf);
+    expect(a.ask).toBeTruthy();
+    expect(a.first).toBe(a.ask);
+    expect(b).toEqual(a);
+  });
+
   it('is the question example and fits in twelve lines', async () => {
     const { first, marked } = await firstBlock();
     expect(marked).toBeTruthy();

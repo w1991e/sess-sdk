@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
+import { readmeExamples } from './readme-examples.mjs';
 
 const root = process.cwd();
 function run(command, args, cwd = root) {
@@ -183,8 +184,7 @@ await assert.rejects(import('@sess/sdk'), { code: 'ERR_MODULE_NOT_FOUND' });
   run(process.execPath, ['commonjs.cjs'], consumer);
   // The first README block, read from the installed package, runs against a synthetic runtime.
   const installedReadme = await readFile(join(installed, 'README.md'), 'utf8');
-  const firstBlock = /```ts\n([\s\S]*?)\n```/.exec(installedReadme)?.[1];
-  const askBlock = /<!-- example:ask -->\s*```ts\n([\s\S]*?)\n```/.exec(installedReadme)?.[1];
+  const { first: firstBlock, ask: askBlock } = readmeExamples(installedReadme);
   if (!firstBlock || firstBlock !== askBlock)
     throw new Error('The packed README does not open with the sess.ask() example.');
   await writeFile(join(consumer, 'readme-first.mjs'), firstBlock);
