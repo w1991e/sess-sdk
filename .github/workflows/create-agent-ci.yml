@@ -1,0 +1,39 @@
+name: Create-agent clean install
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: create-agent-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clean-install:
+    name: Create-agent clean install / Node ${{ matrix.node }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.14.0', '24.21.0']
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      # Packs create-agent/, runs the packed initializer as `npm create` would, installs the generated
+      # agent's exact published @sess.si/sdk from the public registry with that Node's bundled npm
+      # (integrity checked against release/sdk-candidate.json), checks template parity, and times
+      # `npm create` -> "Agent running." against the 60 s budget. The agent then completes both rounds
+      # against an offline fake SESS API and fake weather services; no SESS or weather traffic leaves
+      # the runner.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Packed initializer, clean install and timed start
+        run: node create-agent/scripts/clean-install-check.mjs

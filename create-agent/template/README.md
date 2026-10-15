@@ -1,0 +1,69 @@
+# Your first SESS agent
+
+This agent asks you two questions on your phone, plans your weekend on the real forecast. Each answer
+comes with a signed receipt.
+
+**Install:** `npm install --ignore-scripts`
+
+**Run** (with `SESS_API_KEY` and `SESS_DEMO_CONTACT` set in your environment): `npm start`
+
+**What you'll see:** a private link. Open it on your phone, answer two questions, and your plan
+prints here, ending with `verified ✓`.
+
+## Details
+
+### Settings
+
+| Variable            | What it is                                                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `SESS_API_KEY`      | Your SESS API key, from [app.sess.si](https://app.sess.si). Keep it on your machine or server.                        |
+| `SESS_DEMO_CONTACT` | A project URL or team email. It goes in the `User-Agent` the weather services ask for. Do not use a personal address. |
+
+Set the key without echoing it or saving it in your shell history:
+
+```sh
+read -rs SESS_API_KEY && export SESS_API_KEY
+export SESS_DEMO_CONTACT=https://example.com/your-project
+```
+
+The agent reads both from its environment only. It never asks for them and never writes them to
+disk. [.env.example](.env.example) lists them; the agent does not read that file.
+
+### What the agent does
+
+All of it is in [agent.mjs](agent.mjs), one file.
+
+1. Creates a SESS Session asking where (a city from a short list) and which day (Saturday or Sunday).
+2. Prints the private link. Anyone holding it can answer, so keep it to yourself.
+3. Waits for your answer and verifies its signed receipt.
+4. Reads the forecast for that city from MET Norway and, for US cities, active alerts from the US
+   National Weather Service.
+5. Publishes question 2 on the same link: three plans that fit the forecast. Pick one, or change its
+   time. The plans come from a fixed rule, not an AI model. Nothing is booked.
+6. Verifies that answer, completes the Session and prints your plan and the receipt summary.
+
+If your page does not change after question 1, refresh it.
+
+### Weather data
+
+Forecasts come from [MET Norway](https://api.met.no) under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The agent summarizes them into time
+slots and shows that attribution with every forecast. US alerts come from
+[api.weather.gov](https://www.weather.gov/documentation/services-web-api).
+
+The agent follows the services' terms. It sends an identifying `User-Agent` with your contact,
+truncates coordinates to 4 decimals, caches each answer in `.weather-cache.json` until it expires
+and then revalidates it, and retries at most 3 times, waiting when asked to slow down. If a service
+cannot be reached, the agent says so and plans without a forecast. It never makes up weather.
+
+### Receipts
+
+Each answer comes with a receipt signed by SESS. The agent checks it with
+[`@sess.si/sdk`](https://www.npmjs.com/package/@sess.si/sdk) before it continues. To learn how to
+check a receipt yourself, visit [sess.si/verify](https://sess.si/verify).
+
+### Requirements
+
+Node.js 22.14 or later. `@sess.si/sdk` is pinned to an exact version in [package.json](package.json).
+
+[Apache-2.0](LICENSE)
