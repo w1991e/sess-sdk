@@ -1,4 +1,4 @@
-// R-01 regressions (ASTRA runtime-adapter-cycle review): an answer is released only after
+// R-01 regressions (runtime-adapter review finding): an answer is released only after
 // authenticated current-revision evidence obtained AFTER full receipt verification, including
 // cached answered results. Real SDK client and verifier, Ed25519-signed synthetic receipts,
 // deterministic fake HTTP API; no verifier stub.

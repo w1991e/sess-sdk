@@ -34,7 +34,7 @@ const edit = (files: Map<string, string>, path: string, change: (value: any) => 
   return new Map(files).set(path, JSON.stringify(value));
 };
 
-describe('tool annotation audit (Q-2)', () => {
+describe('tool annotation audit', () => {
   it('matches each tool’s behaviour; schemas stay sess-mcp-tools/2', () => {
     expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/2');
     const table = Object.fromEntries(TOOLS.map((t) => [t.name, t.annotations]));

@@ -1,4 +1,4 @@
-// PR-B: capacity without destroying create replay identity (ASTRA #189 §3(c), §4 item 3; #188
+// Capacity without destroying create replay identity (review finding on create replay and
 // late-replay evidence). Host boundary doubles mirror the released openclaw@2026.10.3 store API;
 // the plugin entry, SDK transport and receipt verifier are real.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

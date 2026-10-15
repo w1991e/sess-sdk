@@ -1,6 +1,5 @@
 // @acceptance P2-14
-// Port of the sess Q-1a regression EXECUTION/evidence/p2-q1a/raw-body-guard.regression.mjs into
-// this package's CI-run tests. The v2 HTTP entry (createMcpHandler) silently drops `__proto__`
+// Raw-body guard regression, run in this package's CI. The v2 HTTP entry (createMcpHandler) silently drops `__proto__`
 // keys from tools/call arguments before a tool handler runs, so @sess.si/mcp/http inspects the raw
 // body in front of the SDK entry and answers in the request's protocol era (isLegacyRequest).
 // The reference guard wrapped a stub tool; here the guarded handler is the real
@@ -37,8 +36,8 @@ function noToolRan(h: Harness) {
   for (const fake of Object.values(h.fakes)) expect(fake.calls).toHaveLength(0);
 }
 
-describe('[P2-14] raw-body unsafe-key guard (ported Q-1a regression)', () => {
-  it('[P2-14] Q-1a canary: the unguarded v2 entry drops __proto__ before the tool handler', async () => {
+describe('[P2-14] raw-body unsafe-key guard (regression)', () => {
+  it('[P2-14] canary: the unguarded v2 entry drops __proto__ before the tool handler', async () => {
     const seen: unknown[] = [];
     const handler = createMcpHandler(
       () => {

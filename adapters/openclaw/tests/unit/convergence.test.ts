@@ -285,7 +285,7 @@ describe('Convergence: shared core and error classes', () => {
   });
 });
 
-describe('Contract clarifications (sess-sdk #10 revision)', () => {
+describe('Contract clarifications', () => {
   it('Response outcomes: a revision other than the current one is a conflict with no network call', async () => {
     const { host, conv, handle } = await started();
     const before = sess.requests.length;

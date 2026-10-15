@@ -519,7 +519,7 @@ export function validate(inputs, files, schemaTexts) {
     blockers.push('all: listing copy is proposed and awaits founder sign-off');
   if (listing.remote.status !== 'deployed')
     blockers.push(
-      `all remote entries: ${listing.remote.url} is ${listing.remote.status} (Q-1c deployment and /version readback)`,
+      `all remote entries: ${listing.remote.url} is ${listing.remote.status} (deployment and /version readback pending)`,
     );
   if (listing.stdio.status !== 'published')
     blockers.push(`MCP Registry and Cursor stdio: ${manifest.name} is ${listing.stdio.status} on npm`);
