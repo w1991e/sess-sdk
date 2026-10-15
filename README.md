@@ -90,8 +90,11 @@ exact Surface and input, and the issuer's public keys. Check it on your own comp
 trust (never the keys inside the bundle):
 
 ```sh
-npx -p @sess.si/sdk sess verify bundle.json --issuer https://api.sess.si --keys sess-receipt-keys.json
+npx -p @sess.si/sdk@0.1.0-rc.5 sess verify bundle.json --issuer https://api.sess.si --keys sess-receipt-keys.json
 ```
+
+The `sess` command first ships in `0.1.0-rc.5`; name that version (or a later one) exactly, because
+the bare package name resolves to the `latest` placeholder, which has no command.
 
 You'll see `Valid decision bundle.` and what was accepted, when, on which revision; or `Invalid`
 and the first reason. Exit status is 0 valid, 1 invalid, 2 usage error; add `--json` for the full

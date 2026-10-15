@@ -22,8 +22,8 @@ Recorded in [`sdk-next-candidate.json`](sdk-next-candidate.json) by `node script
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | Filename  | `sess.si-sdk-0.1.0-rc.5.tgz`                                                                      |
-| SHA-256   | `1063060c8da4d3981534ceb313df5b0b351f9c20dc36456681b832afc8716785`                                |
-| Integrity | `sha512-6ufQ9fd6xb2oUG9BJCDCgeJSP5Ds0/RW3B9uRerrZOsgEA+e2kPDJqaRVfF5TGT3DOoPbb6vGPujcZTMD0rFKw==` |
+| SHA-256   | `2518f08bfa6f47cd53328716bfc59f8083f0683b462d370b46885892bc584ef0`                                |
+| Integrity | `sha512-dZY7RFIv1JbaIcX/lBgnWXoPeMsVrpKidIksv+8H+Lv1U4RlKbDKisp0hHlu7cEUnm8FMKALYDaWR4wAoKtchg==` |
 
 ## Founder steps
 
