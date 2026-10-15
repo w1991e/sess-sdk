@@ -1,7 +1,7 @@
 {
   "$comment": "Verbatim public copies of the Sess receipt-v1 and bundle-v1 specifications and the shared bundle-v1 conformance corpus. scripts/check-spec.mjs fails if a copy's SHA-256 differs from the Sess copy recorded here. Update only by copying the files again from the recorded Sess commit and recording the new commit and digests.",
   "repository": "https://github.com/w1991e/sess",
-  "commit": "0660729ff323d7c77c3ee20ce923554039ab3eec",
+  "commit": "ac2ebced665a3288f74b8756c14f678754b3b1aa",
   "files": [
     {
       "path": "docs/spec/receipt-v1.md",
@@ -11,7 +11,7 @@
     {
       "path": "docs/spec/bundle-v1.md",
       "source": "DOCS/spec/bundle-v1.md",
-      "sha256": "e5ae9d7bfa5138aeb60cef4afaca3088218a8c5a5dca4508e3f8b0de23fc5127"
+      "sha256": "8156886fa56dacc3c9ce65cc6e60c735969360b26c7068d4ac1bc16d8ba093cf"
     },
     {
       "path": "tests/fixtures/bundle/bundle-v1-corpus.json",

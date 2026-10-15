@@ -47,7 +47,7 @@ A public verifier (one that has no application context, such as a hosted verific
 
 ## 4. Bounds
 
-A bundle is at most 1,048,576 bytes as RFC 8785 canonical UTF-8 JSON, nested at most 32 levels deep, with at most 1,000 items in any array, 1,000 members in any object and 100,000 JSON values in total; its receipt is at most 32,768 characters and `keys.keys` holds at most 16 keys. A bundle beyond a bound is `oversized`. Values must have a JSON form (no non-finite numbers or lone surrogates); otherwise the bundle is `malformed`. An HTTP verifier may additionally refuse a request body above its own body limit (Sess: 2,097,152 bytes, `413 PAYLOAD_TOO_LARGE`).
+A bundle is at most 1,048,576 bytes as RFC 8785 canonical UTF-8 JSON, nested at most 32 levels deep, with at most 1,000 items in any array, 1,000 members in any object and 100,000 JSON values in total; its receipt is at most 32,768 characters and `keys.keys` holds at most 16 keys. A bundle beyond a bound is `oversized`. Values must have a JSON form (no non-finite numbers or lone surrogates); otherwise the bundle is `malformed`. An HTTP verifier may additionally refuse a request body above its own body limit (Sess: 2,097,152 bytes, `413 PAYLOAD_TOO_LARGE`) and bound each request's time (Sess: 2 seconds from the request's arrival, covering receipt of the body and verification; an unanswered request gets `503 SERVICE_UNAVAILABLE` with `Connection: close`, and the connection is closed). These are request errors, not verification results.
 
 ## 5. Verification
 
