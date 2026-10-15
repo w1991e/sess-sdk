@@ -1,25 +1,25 @@
 # SESS SDK
 
-Create a hosted human interaction from your application, receive the accepted input for the correct
-Surface revision, verify its receipt, and continue on the same Session.
+Ask a person a question from your server and continue with their verified answer. `@sess.si/sdk`
+creates a hosted SESS page, waits for the answer on the exact Surface revision, verifies its signed
+receipt, and continues the same Session.
 
-`@sess.si/sdk` is a server-side TypeScript and JavaScript library. Your application supplies the
-interaction and business logic; SESS owns the hosted UI, state, routing and authorization.
-
-**Start here:** the [plain-Node quickstart](examples/quickstart-node/README.md) is a runnable
-program. It needs only `SESS_API_KEY`; it prints the private human link before it starts waiting,
-then verifies the person's answer and completes the Session.
-
-**Release status:** the [changelog](CHANGELOG.md) describes each version. To see which versions the
-registry actually serves and under which tag, run `npm view @sess.si/sdk dist-tags`. Install a published version with:
+**Install** from npm:
 
 ```sh
-npm install @sess.si/sdk@<version>
+npm install --save-exact @sess.si/sdk@next
 ```
 
-If the version you need is not on the registry, the [quickstart](examples/quickstart-node/README.md)
-explains how to install a digest-checked candidate tarball instead (see also
-[Contributing](CONTRIBUTING.md)).
+**Run** the [plain-Node quickstart](examples/quickstart-node/README.md), a complete program that
+needs only `SESS_API_KEY`.
+
+**What you'll see:** a private human link, printed before the program starts waiting. Open it on any
+device and answer; the program prints the verified answer and completes the Session.
+
+**Release status:** every SDK release so far is a `0.1.0` release candidate, served under the `next`
+dist-tag. There is no stable release yet: do not install the bare name, whose `latest` tag points at a
+deprecated `0.0.0-stage` placeholder. The [changelog](CHANGELOG.md) describes each version;
+`npm view @sess.si/sdk dist-tags` shows what the registry serves now.
 
 ## Create and verify an interaction
 
@@ -82,6 +82,25 @@ The [quickstart function](examples/quickstart.ts) includes a private delivery ca
 [Three-round continuation](examples/multi-round.ts) persists mutation intent and checks that an
 answer is still the current expected business step before publishing or completing. Its store
 and worker lease are application-owned. See [Integration](docs/integration.md).
+
+## Check a decision bundle
+
+A decision bundle is one accepted decision that its owner chose to share: the signed receipt, the
+exact Surface and input, and the issuer's public keys. Check it on your own computer, with keys you
+trust (never the keys inside the bundle):
+
+```sh
+npx -p @sess.si/sdk@0.1.0-rc.5 sess verify bundle.json --issuer https://api.sess.si --keys sess-receipt-keys.json
+```
+
+The `sess` command first ships in `0.1.0-rc.5`; name that version (or a later one) exactly, because
+the bare package name resolves to the `latest` placeholder, which has no command.
+
+You'll see `Valid decision bundle.` and what was accepted, when, on which revision; or `Invalid`
+and the first reason. Exit status is 0 valid, 1 invalid, 2 usage error; add `--json` for the full
+result. Nothing is sent anywhere. In code, use `verifyDecisionBundle` from `@sess.si/sdk/receipts`
+([Security](docs/security.md#decision-bundles)). Formats: [receipt-v1](docs/spec/receipt-v1.md) and
+[bundle-v1](docs/spec/bundle-v1.md).
 
 ## Runtime and imports
 

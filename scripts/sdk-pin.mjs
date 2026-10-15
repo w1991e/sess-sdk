@@ -1,4 +1,10 @@
 // The single SDK candidate pin: release/sdk-candidate.json (not packed into the SDK tarball).
+// Every consumer (adapters, quickstart, create-agent starter) installs exactly this version.
+//
+// A prepared successor that is not yet published is recorded separately, in
+// release/sdk-next-candidate.json (same shape). While that file exists, the root packs the
+// successor's bytes and consumers stay on the published pin; the registry transition after
+// publication runs `npm run pin:update`, which repins consumers and removes the successor record.
 //
 //   node scripts/sdk-pin.mjs pack [--out <dir>] [--build]
 //       Pack the CURRENT repository root and accept the tarball only if its SHA-256 and SHA-512
@@ -8,13 +14,17 @@
 //       published version from the registry).
 //   node scripts/sdk-pin.mjs verify
 //       Part of `npm run check` (after check:package): the packed root bytes recorded in
-//       .artifacts/package-result.json equal the pin, and every consumer (adapter manifests,
+//       .artifacts/package-result.json equal the prepared successor record when one exists,
+//       otherwise the pin, and every consumer (adapter manifests,
 //       lockfiles, compatibility records, quickstart, create-agent starter) agrees with it. Any packed-file change
 //       therefore fails until the pin is deliberately updated.
 //   node scripts/sdk-pin.mjs update            (npm run pin:update)
 //       Deliberate repin after a reviewed packed-file change: builds and packs the current root,
 //       writes the pin, and updates every consumer consistently. Review the diff, then run
-//       `npm run check` and the adapter checks.
+//       `npm run check` and the adapter checks. A successor record whose bytes it pinned is removed.
+//   node scripts/sdk-pin.mjs prepare
+//       Record the current root's packed bytes as the prepared successor (a new version that is not
+//       yet published) without touching the pin or any consumer.
 //
 // Nothing here publishes, tags or contacts the registry.
 import { execFileSync } from 'node:child_process';
@@ -34,6 +44,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const PIN_PATH = join(root, 'release', 'sdk-candidate.json');
+export const NEXT_PATH = join(root, 'release', 'sdk-next-candidate.json');
 const log = (message) => process.stderr.write(`sdk-pin: ${message}\n`);
 export class Refusal extends Error {}
 const refuse = (message) => {
@@ -42,6 +53,7 @@ const refuse = (message) => {
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
 const writeJson = (path, value) => writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 export const readPin = () => readJson(PIN_PATH);
+export const readNext = () => (existsSync(NEXT_PATH) ? readJson(NEXT_PATH) : undefined);
 
 function digests(path) {
   const bytes = readFileSync(path);
@@ -162,33 +174,44 @@ export function consumerDrift(pin = readPin()) {
 /** verify: packed root bytes (from check:package) and every consumer equal the pin. */
 export function verify() {
   const pin = readPin();
+  const next = readNext();
+  if (next && (next.name !== pin.name || next.version === pin.version))
+    refuse('release/sdk-next-candidate.json must name the same package as the pin and a new version.');
+  const rootPin = next ?? pin;
+  const rootLabel = next ? 'release/sdk-next-candidate.json' : 'release/sdk-candidate.json';
   const resultPath = join(root, '.artifacts', 'package-result.json');
   if (!existsSync(resultPath)) refuse('run npm run check:package first (it records the packed root bytes).');
   const result = readJson(resultPath);
-  if (result.filename !== pin.filename || result.sha256 !== pin.sha256 || result.integrity !== pin.integrity)
+  if (
+    result.filename !== rootPin.filename ||
+    result.sha256 !== rootPin.sha256 ||
+    result.integrity !== rootPin.integrity
+  )
     refuse(
-      `the packed root (${result.filename}, sha256 ${result.sha256}) differs from release/sdk-candidate.json ` +
-        `(${pin.filename}, sha256 ${pin.sha256}). A packed file changed: review it, then run npm run pin:update.`,
+      `the packed root (${result.filename}, sha256 ${result.sha256}) differs from ${rootLabel} ` +
+        `(${rootPin.filename}, sha256 ${rootPin.sha256}). A packed file changed: review it, then run ` +
+        (next ? 'node scripts/sdk-pin.mjs prepare.' : 'npm run pin:update.'),
     );
   const drift = consumerDrift(pin);
   if (drift.length)
     refuse(`consumers disagree with the pin (run npm run pin:update):\n  ${drift.join('\n  ')}`);
   log(
-    `root bytes and ${['mcp', 'openclaw', 'quickstart', 'starter'].length} consumers match ${pin.name}@${pin.version} (sha256 ${pin.sha256})`,
+    next
+      ? `root bytes match the prepared ${next.name}@${next.version} (sha256 ${next.sha256}); ` +
+          `${['mcp', 'openclaw', 'quickstart', 'starter'].length} consumers match the published pin ${pin.version} (sha256 ${pin.sha256})`
+      : `root bytes and ${['mcp', 'openclaw', 'quickstart', 'starter'].length} consumers match ${pin.name}@${pin.version} (sha256 ${pin.sha256})`,
   );
 }
 
-/** update: deliberate repin of the current root bytes and every consumer. */
-export function update() {
+/** Builds and packs the current root; returns its pin record (not written). */
+function currentRootPin(comment) {
   build();
   const packed = packRoot();
-  let pin;
   try {
     const manifest = readJson(join(root, 'package.json'));
     const d = digests(packed.path);
-    pin = {
-      $comment:
-        'Single SDK candidate pin. Update only with `npm run pin:update` after a reviewed packed-file change; consumers and npm run check verify against it.',
+    return {
+      $comment: comment,
       name: manifest.name,
       version: manifest.version,
       filename: packed.filename,
@@ -203,7 +226,44 @@ export function update() {
   } finally {
     rmSync(packed.work, { recursive: true, force: true });
   }
+}
+
+/** prepare: record the current root as the prepared, not yet published successor. */
+export function prepare() {
+  const pin = readPin();
+  const next = currentRootPin(
+    'Prepared SDK successor, not yet published: the root packs these bytes. Consumers stay on release/sdk-candidate.json until the registry transition (npm run pin:update after publication).',
+  );
+  if (next.name !== pin.name || next.version === pin.version)
+    refuse(`bump package.json past the pinned ${pin.version} before preparing a successor.`);
+  writeJson(NEXT_PATH, next);
+  execFileSync(
+    process.execPath,
+    [join(root, 'node_modules', 'prettier', 'bin', 'prettier.cjs'), '--write', NEXT_PATH],
+    { cwd: root, stdio: 'ignore' },
+  );
+  log(
+    `prepared ${next.name}@${next.version} sha256 ${next.sha256}; consumers stay on ${pin.version}. ` +
+      'After publication, run npm run pin:update for the registry transition.',
+  );
+}
+
+/** update: deliberate repin of the current root bytes and every consumer. */
+export function update() {
+  const pin = currentRootPin(
+    'Single SDK candidate pin. Update only with `npm run pin:update` after a reviewed packed-file change; consumers and npm run check verify against it.',
+  );
+  const next = readNext();
+  if (
+    next &&
+    (next.filename !== pin.filename || next.sha256 !== pin.sha256 || next.integrity !== pin.integrity)
+  )
+    refuse(
+      `the packed root (sha256 ${pin.sha256}) is not the prepared ${next.version} (sha256 ${next.sha256}); ` +
+        'the registry transition repins exactly the prepared bytes.',
+    );
   writeJson(PIN_PATH, pin);
+  if (next) rmSync(NEXT_PATH);
   for (const dir of [MCP, OPENCLAW, QUICKSTART, STARTER]) {
     const path = join(dir, 'package.json');
     const text = readFileSync(path, 'utf8');
@@ -276,7 +336,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       );
     } else if (command === 'verify') verify();
     else if (command === 'update') update();
-    else refuse('usage: node scripts/sdk-pin.mjs pack [--out <dir>] [--build] | verify | update');
+    else if (command === 'prepare') prepare();
+    else refuse('usage: node scripts/sdk-pin.mjs pack [--out <dir>] [--build] | verify | update | prepare');
   } catch (error) {
     log(error instanceof Refusal ? `REFUSED: ${error.message}` : `failed: ${error.message}`);
     process.exitCode = 1;
