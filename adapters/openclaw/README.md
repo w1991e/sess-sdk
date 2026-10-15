@@ -6,10 +6,9 @@ An OpenClaw agent asks a person for a structured decision. SESS hosts the form b
 link, the person answers on any device, and the agent receives the answer only after the SDK has
 verified its signed receipt for that exact revision.
 
-> **Status: release candidate in qualification.** `0.1.0-rc.1` is not published. It depends on
-> the pinned `@sess.si/sdk` candidate (exact version in [package.json](package.json)), which is also not
-> published yet. Qualified host: OpenClaw `2026.10.3`
-> on Node 24. See [compatibility.json](compatibility.json) for exactly what was tested.
+> **Status: release candidate in qualification.** `0.1.0-rc.1` is not published yet. It depends on
+> `@sess.si/sdk@0.1.0-rc.4`, published on npm under the `next` dist-tag. Qualified host: OpenClaw
+> `2026.10.3` on Node 24. See [compatibility.json](compatibility.json) for exactly what was tested.
 
 ## Prerequisites
 
@@ -65,12 +64,12 @@ contacting SESS and without printing secrets.
 | Agent turn on messaging channels (Telegram, Slack, ...)     | Not qualified                                               |
 | Shared or group conversations                               | Not supported                                               |
 
-Agent-turn qualification (OpenClaw 2026.10.3, `anthropic/claude-sonnet-5-5`, Code Mode, 2026-10-14):
-the private link was observed in the conversation (via `chat.history`) while the wait was still
-blocking, a verified answer came back both during a live wait and in a later normal chat turn, `openclaw sess setup` exposed the tools to
-the model through `tools.alsoAllow`, and two simultaneous conversations stayed isolated. These turns
-used `sess_request` and `sess_response` only; `sess_publish` and `sess_complete` are qualified on
-direct invoke, not in a model-driven turn.
+Agent-turn qualification (OpenClaw 2026.10.3, `anthropic/claude-sonnet-5-5`, Code Mode,
+2026-10-14): the private link was observed in the conversation (via `chat.history`) while the wait
+was still blocking, a verified answer came back both during a live wait and in a later normal chat
+turn, `openclaw sess setup` exposed the tools to the model through `tools.alsoAllow`, and two
+simultaneous conversations stayed isolated. These turns used `sess_request` and `sess_response`
+only; `sess_publish` and `sess_complete` are qualified on direct invoke, not in a model-driven turn.
 **Limitation:** on this host `/new` keeps the conversation's session ID, so a reset does **not**
 make an earlier SESS handle unusable in that conversation (OC-18 fails). Treat a reset as the same
 conversation for SESS purposes. In Code Mode the model awaits a long `sess_response` with the host
@@ -190,8 +189,9 @@ and a redelivered terminal call still reports its terminal result.
   interactions (dry run); `--apply` marks them blocked (`operator_retired`), drops their link and
   archives them with their claim, so a redelivered call still reports blocked and never creates
   again. Retiring an `answered` interaction discards a verified answer that the agent has not
-  used yet: it can no longer be published on or completed through the plugin. `create_unknown` and pending publish/complete records are never retired automatically;
-  they need individual operator resolution.
+  used yet: it can no longer be published on or completed through the plugin. `create_unknown`
+  and pending publish/complete records are never retired automatically; they need individual
+  operator resolution.
 - The retained archive grows with every completed or blocked interaction (claims are replay
   tombstones and are never deleted). `prune --apply` compacts their payload only.
 - Uninstall/reinstall effects on stored interactions are not qualified.

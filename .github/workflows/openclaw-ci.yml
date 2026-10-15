@@ -1,9 +1,9 @@
 name: OpenClaw adapter CI
 
 # Companion package @sess.si/openclaw (adapters/openclaw). Independent of the root SDK lanes in
-# ci.yml, which stay unchanged. The unpublished SDK dependency is the CANDIDATE packed from this
-# checkout's root by scripts/sdk-pin.mjs and accepted only if its bytes equal the single pin
-# release/sdk-candidate.json (release hold until published).
+# ci.yml, which stay unchanged. The SDK dependency installs from the public npm registry (the
+# published @sess.si/sdk on dist-tag next) and must equal the single pin release/sdk-candidate.json
+# in package.json, package-lock.json, the installed tree and the registry's dist.integrity.
 on:
   pull_request:
   push:
@@ -29,14 +29,12 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24.21.0'
-      - name: Pack the pinned SDK candidate from the root (accepted only by the pinned digests)
-        run: |
-          tgz="$(node scripts/sdk-pin.mjs pack --build --out "$RUNNER_TEMP/sdk" | tail -n 1)"
-          test -f "$tgz"
-          echo "SDK_TGZ=$tgz" >> "$GITHUB_ENV"
-      - name: Install adapter dependencies (candidate SDK, integrity-locked)
+      - name: Install adapter dependencies (registry SDK, integrity-locked)
         working-directory: adapters/openclaw
-        run: node scripts/candidate-sdk.mjs "$SDK_TGZ" -- npm ci --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify the installed SDK name, version and integrity against the pin
+        working-directory: adapters/openclaw
+        run: node scripts/registry-sdk.mjs --registry
       - name: Build
         working-directory: adapters/openclaw
         run: npm run build
@@ -59,20 +57,18 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24.21.0'
-      - name: Pack the pinned SDK candidate from the root (accepted only by the pinned digests)
-        run: |
-          tgz="$(node scripts/sdk-pin.mjs pack --build --out "$RUNNER_TEMP/sdk" | tail -n 1)"
-          test -f "$tgz"
-          echo "SDK_TGZ=$tgz" >> "$GITHUB_ENV"
-      - name: Install adapter dependencies (candidate SDK, integrity-locked)
+      - name: Install adapter dependencies (registry SDK, integrity-locked)
         working-directory: adapters/openclaw
-        run: node scripts/candidate-sdk.mjs "$SDK_TGZ" -- npm ci --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify the installed SDK name, version and integrity against the pin
+        working-directory: adapters/openclaw
+        run: node scripts/registry-sdk.mjs --registry
       - name: Build
         working-directory: adapters/openclaw
         run: npm run build
       - name: Packed artifact, consumer install, network-denied import and real host install
         working-directory: adapters/openclaw
-        run: node scripts/check-package.mjs --sdk "$SDK_TGZ" --host
+        run: node scripts/check-package.mjs --registry --host
       - name: Production dependency audit
         working-directory: adapters/openclaw
         run: npm audit --omit=dev --omit=peer --audit-level=moderate

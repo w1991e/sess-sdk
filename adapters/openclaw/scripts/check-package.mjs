@@ -1,11 +1,11 @@
 // Packed-artifact checks for @sess.si/openclaw (OC-03, OC-04, OC-06, OC-41, OC-42).
-//   node scripts/check-package.mjs --sdk <candidate.tgz> [--host]   (development: candidate SDK)
-//   node scripts/check-package.mjs --registry [--host]               (release: real registry SDK)
+//   node scripts/check-package.mjs [--registry] [--host]
 // Packs with lifecycle scripts disabled, checks the file allowlist and manifest, installs the
 // exact bytes into a clean consumer the way OpenClaw's installer does (--omit=dev --omit=peer
 // --legacy-peer-deps --ignore-scripts), imports and registers the entry with networking denied,
 // and with --host installs the tarball through the real OpenClaw CLI in a DISPOSABLE profile.
-// The unpublished SDK resolves only from the integrity-pinned candidate (scripts/candidate-sdk.mjs).
+// The SDK resolves from the public npm registry and must equal release/sdk-candidate.json
+// (scripts/registry-sdk.mjs); --registry is accepted for the release workflow and is the only mode.
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
@@ -20,20 +20,13 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { CANDIDATE, serveCandidate } from './candidate-sdk.mjs';
+import { SDK_PIN, sdkDrift } from './registry-sdk.mjs';
 
 const args = process.argv.slice(2);
-const sdkIndex = args.indexOf('--sdk');
-const registryMode = args.includes('--registry');
-const sdkTarball = registryMode
-  ? undefined
-  : sdkIndex >= 0
-    ? resolve(args[sdkIndex + 1])
-    : process.env.SESS_SDK_CANDIDATE;
 const withHost = args.includes('--host');
-if (registryMode && sdkIndex >= 0) throw new Error('--registry and --sdk are mutually exclusive.');
-if (!registryMode && !sdkTarball)
-  throw new Error('Supply --sdk <candidate tgz> (development) or --registry (release).');
+for (const arg of args)
+  if (arg !== '--registry' && arg !== '--host')
+    throw new Error(`Unsupported argument ${arg}: the SDK installs from the public registry only.`);
 
 const root = resolve(new URL('..', import.meta.url).pathname);
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
@@ -52,7 +45,7 @@ const run = (cmd, argv, options = {}) => {
   return out.stdout;
 };
 
-// Async variant for commands that fetch from the in-process candidate registry (must not block).
+// Async variant for long-running commands (installs, host CLI).
 const runAsync = (cmd, argv, options = {}) =>
   new Promise((resolveRun, reject) => {
     const child = spawn(cmd, argv, { ...options, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -73,10 +66,14 @@ rmSync(artifacts, { recursive: true, force: true });
 mkdirSync(artifacts, { recursive: true });
 assert(existsSync(join(root, 'dist/index.js')), 'run npm run build first');
 
-// 1. Pack with lifecycle scripts disabled; read the filename from npm's output.
-const [packed] = JSON.parse(
+// 1. Pack with lifecycle scripts disabled; read the filename from npm's output. npm 11 prints an
+// array when run directly but an object keyed by package name when nested in an npm script.
+const packOutput = JSON.parse(
   run('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', artifacts], { cwd: root }),
 );
+const packedList = Array.isArray(packOutput) ? packOutput : Object.values(packOutput);
+assert(packedList.length === 1, `npm pack reported ${packedList.length} packages`);
+const [packed] = packedList;
 const tarball = join(artifacts, packed.filename);
 assert(
   packed.filename === 'sess.si-openclaw-0.1.0-rc.1.tgz' && existsSync(tarball),
@@ -172,8 +169,8 @@ for (const hook of [
 ])
   assert(!manifest.scripts?.[hook], `lifecycle script ${hook}`);
 assert(
-  JSON.stringify(manifest.dependencies) === JSON.stringify({ [CANDIDATE.name]: CANDIDATE.version }),
-  `dependencies must be exactly ${CANDIDATE.name} ${CANDIDATE.version} (release/sdk-candidate.json)`,
+  JSON.stringify(manifest.dependencies) === JSON.stringify({ [SDK_PIN.name]: SDK_PIN.version }),
+  `dependencies must be exactly ${SDK_PIN.name} ${SDK_PIN.version} (release/sdk-candidate.json)`,
 );
 for (const spec of Object.values({ ...manifest.dependencies, ...manifest.peerDependencies }))
   assert(!/^(file|link|workspace|git|https?):/.test(spec), 'non-registry dependency spec');
@@ -195,13 +192,10 @@ assert(
 pass('size-budget', sizes);
 result.artifact = { filename: packed.filename, ...sizes };
 
-// The adapter lockfile pins the SDK bytes (name/version/integrity); both modes must install them.
-const lockedSdkIntegrity = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8')).packages?.[
-  'node_modules/@sess.si/sdk'
-]?.integrity;
-assert(/^sha512-/.test(lockedSdkIntegrity ?? ''), 'package-lock.json does not pin the SDK integrity');
-const served = registryMode ? undefined : await serveCandidate(sdkTarball);
-if (served) assert(served.integrity === lockedSdkIntegrity, 'candidate SDK differs from the locked SDK');
+// The adapter lockfile pins the SDK bytes (name/version/integrity) to release/sdk-candidate.json.
+const drift = sdkDrift(root, { installed: false });
+assert(drift.length === 0, `SDK lock differs from the pin: ${drift.join('; ')}`);
+const lockedSdkIntegrity = SDK_PIN.integrity;
 const scratch = mkdtempSync(join(tmpdir(), 'sess-openclaw-pack-'));
 try {
   // 5. Consumer install with the host installer's flags; the SDK arrives automatically, no host.
@@ -218,7 +212,6 @@ try {
       '--ignore-scripts',
       '--no-audit',
       '--no-fund',
-      ...(served ? [`--@sess.si:registry=${served.registry}`] : []),
       `--cache=${join(scratch, 'npm-cache')}`,
       tarball,
     ],
@@ -249,7 +242,7 @@ try {
   );
   pass('consumer-install', {
     productionPackages: installed,
-    sdk: `${registryMode ? 'REGISTRY' : 'CANDIDATE'} ${CANDIDATE.name}@${CANDIDATE.version}`,
+    sdk: `REGISTRY ${SDK_PIN.name}@${SDK_PIN.version}`,
   });
 
   // 6. Network-denied import + registration (host peer linked exactly as the installer does).
@@ -298,7 +291,7 @@ console.log(JSON.stringify({ id: entry.id, tools, cli, opened, attempts, reads }
   if (withHost) {
     const home = join(scratch, 'openclaw-home');
     mkdirSync(join(home, '.openclaw'), { recursive: true });
-    writeFileSync(join(home, '.npmrc'), served ? `@sess.si:registry=${served.registry}\n` : '');
+    writeFileSync(join(home, '.npmrc'), '');
     const env = {
       ...process.env,
       HOME: home,
@@ -413,7 +406,6 @@ console.log(JSON.stringify({ id: entry.id, tools, cli, opened, attempts, reads }
     console.log('NOT RUN host-install (pass --host)');
   }
 } finally {
-  served?.server.close();
   rmSync(scratch, { recursive: true, force: true });
 }
 // Verification record consumed by the release publish job (never self-referential in the tarball).
@@ -425,7 +417,7 @@ Object.assign(result, {
   sha256,
   integrity: packed.integrity,
   node: process.version,
-  sdkSource: registryMode ? 'registry' : 'candidate',
+  sdkSource: 'registry',
   sdkIntegrity: lockedSdkIntegrity,
   sourceCommit: git(['rev-parse', 'HEAD']),
   sourceTreeDirty: git(['status', '--porcelain', '--untracked-files=no']).length > 0,

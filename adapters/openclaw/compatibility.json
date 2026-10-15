@@ -27,9 +27,9 @@
   },
   "sdk": {
     "dependency": "@sess.si/sdk at the exact version pinned in release/sdk-candidate.json (exact, production)",
-    "evidence": "CANDIDATE: the repository root packed by scripts/sdk-pin.mjs and accepted only with the pinned sha256/sha512, served for the @sess.si scope only by scripts/candidate-sdk.mjs",
-    "releaseHold": "Registry resolution of the pinned @sess.si/sdk version is required before any publication; the lockfile carries name/version/integrity only and needs no edit if identical bytes are published.",
-    "history": "Earlier qualification used @sess.si/sdk@0.1.0-rc.3 (sha256 b4d29d8f...a0502), now held by owner decision (2026-10-14) and not published; 0.1.0-rc.4 is the first SDK candidate to be published."
+    "evidence": "REGISTRY: @sess.si/sdk@0.1.0-rc.4 published on npm under dist-tag next (sha256 ccdc0121...41fb2c, integrity equal to release/sdk-candidate.json); installed by npm ci from the public registry and verified against the pin by scripts/registry-sdk.mjs (package.json, package-lock.json, installed tree, registry dist.integrity)",
+    "lockfile": "name/version/integrity only (.npmrc omit-lockfile-registry-resolved), regenerated unchanged by npm against the public registry",
+    "history": "Earlier qualification used @sess.si/sdk@0.1.0-rc.3 (sha256 b4d29d8f...a0502), now held by owner decision (2026-10-14) and not published, and then the rc.4 candidate packed from the repository root and served on loopback (scripts/candidate-sdk.mjs, removed). The rc.4 registry bytes are identical to that candidate."
   },
   "entry": {
     "shape": "native mixed plugin: definePluginEntry default export; four api.registerTool version-2 factories ({ contextVersion: 2, create }) registered optional; one api.registerCli root command",
@@ -85,7 +85,7 @@
     },
     "4_privateLinkBeforeWait": {
       "verdict": "RETURN-LINK-FIRST profile",
-      "evidence": "sess_request returns humanUrl in its private tool result before any wait; sess_response performs the wait. Early delivery through a chat surface (delivery.send / Control UI) was NOT qualified (needs an LLM-driven channel turn), so no automatic in-turn link display is claimed."
+      "evidence": "sess_request returns humanUrl in its private tool result before any wait; sess_response performs the wait. G0 (direct invoke) did not qualify early delivery through a chat surface. Later cross-reference: in dashboard (Control UI) agent turns the link reached the conversation before the wait (agentTurnQualification.items.earlyInChatLinkDelivery, PASS); delivery.send is still not used and messaging channels are not qualified."
     },
     "5_asyncResultTimeoutCancel": {
       "verdict": "PASS on /tools/invoke surface",
@@ -96,7 +96,7 @@
       "evidence": "openclaw --help lists sess from manifest metadata. openclaw sess doctor reads config presence and redacted state counts only, prints no secrets and contacts no network. openclaw sess setup previews by default and with --yes applies through the documented public api.runtime.config.mutateConfigFile (afterWrite mode none, never restarts); exercised in the real 2026.10.3 host CLI by check-package --host (preview writes nothing, additive apply keeps existing tools.alsoAllow and unrelated config, idempotent re-run)."
     },
     "7_installer": {
-      "verdict": "PASS (candidate SDK)",
+      "verdict": "PASS (qualified with the candidate SDK; check-package --host now installs the registry SDK)",
       "evidence": "openclaw plugins install npm-pack:<tgz> installs into a per-plugin npm project with --omit=dev --omit=peer --ignore-scripts, installs @sess.si/sdk automatically, and links the peer openclaw to the running host (no second gateway). Requires --force (non-ClawHub source) and --accept-capabilities (capability consent)."
     }
   },
@@ -186,7 +186,7 @@
       "sdk": "@sess.si/sdk 0.1.0-rc.3 CANDIDATE bytes, sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502 (rc.4, the first planned publication, sha256 ccdc01216bdff99f5ac07ef1a7d0bd47134984869071fc2b2792401f3641fb2c, was packed from the pin and compared file by file: dist/ (72 files) and src/ are byte-identical; only CHANGELOG.md, NOTICE, README.md and package.json differ, and package.json differs only in version and the check/check:pin/pin:update scripts; dependencies identical)",
       "host": "openclaw@2026.10.3 (59cb447), integrity sha512-ncl6LntMlf76K39LFhVrDXQTbaGNAG5j52f7PL5P8vIn0knWmCrvfAe9DHMslFq+47HeOWBH2CBYQH8zEb+UAA==",
       "runtime": "isolated local SESS runtime from sess e63d007485d225e9038b51452b4167de7921e6a0 (port 18082, synthetic keys, disposable Postgres 16.15)",
-      "knownIssue": "setup preview omits plugins.entries.sess.enabled when the authored value is unset (apply still writes it); for this run the plugin was re-enabled with `openclaw plugins enable sess` after setup had already been applied"
+      "knownIssue": "FIXED by sess-sdk #27 (setup preview reads the authored config snapshot the apply mutates; asserted by check-package --host). At the time of this run the preview omitted plugins.entries.sess.enabled when the authored value was unset (apply still wrote it); the plugin was re-enabled with `openclaw plugins enable sess` after setup had already been applied"
     },
     "model": {
       "requested": "anthropic/claude-sonnet-5-5",
