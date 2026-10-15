@@ -3,3 +3,5 @@ dist
 .artifacts
 contract/openapi.json
 package-lock.json
+# Verbatim copies of the Sess specifications, checked by digest (scripts/check-spec.mjs).
+docs/spec/*.md
