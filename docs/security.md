@@ -56,6 +56,11 @@ Unknown receipt versions and security-critical semantics fail explicitly. Retrie
 alone leaves data unverified. A legacy `receipt: null` produces
 `LEGACY_RECEIPT_UNAVAILABLE`; another key fetch cannot repair a missing receipt.
 
+`sess.ask()` uses this verifier unchanged. Before returning data, `answer()` also requires the
+verified Surface to be exactly the compiled question, checks the values against its fields, and
+reads the Session again so that a historically valid but superseded answer is never used to
+progress. It completes only with the replay identity it saved before the first attempt.
+
 ### Establish trusted audience context
 
 Configure `expectedWorkspaceId`, supply it to the verification call, or use a runtime

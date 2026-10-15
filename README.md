@@ -21,11 +21,46 @@ dist-tag. There is no stable release yet: do not install the bare name, whose `l
 deprecated `0.0.0-stage` placeholder. The [changelog](CHANGELOG.md) describes each version;
 `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
 
-## Create and verify an interaction
+## Ask a person
 
 Use a developer API key from [the SESS developer portal](https://app.sess.si). Keep it on the server.
 The [hosted no-signup demo](https://sess.si) is a separate trial flow; a human link or trial credential
 is not an owner API key. No LLM, agent framework, Docker or SESS source checkout is needed by consumers.
+
+<!-- example:ask -->
+
+```ts
+import { Sess } from '@sess.si/sdk';
+const sess = new Sess({ apiKey: process.env.SESS_API_KEY });
+const question = await sess.ask({
+  question: 'Approve the synthetic refund?',
+  fields: [
+    { name: 'approved', label: 'Approve it', type: 'boolean' },
+    { name: 'amount', label: 'Refund amount', type: 'number', minimum: 0 },
+  ],
+});
+console.log(`Send this private link to the person: ${question.link}`);
+const { approved, amount } = await question.answer(); // verified; the Session is now complete
+if (approved) console.log(`Refund of ${amount.toFixed(2)} approved.`);
+```
+
+<!-- /example:ask -->
+
+`sess.ask()` checks the question locally, creates the Session once and returns its private link
+before anything waits. The link is a bearer capability: deliver it only to the person, never to
+logs or analytics. `answer()` waits for the person (ten minutes by default), verifies the signed
+receipt against the exact question, checks that the answer is still the current step, completes the
+Session and returns the values typed from your fields. Completion closes the Session: the link no
+longer accepts answers. Field types are `text`, `number`, `integer`, `boolean`, `choice` and
+`multi_choice` ([API reference](docs/api.md#ask-one-question)).
+
+If the wait times out (`wait_ended`, code `WAIT_TIMEOUT`) or you abort it, nothing changes remotely:
+call `answer()` again on the same handle. An error with `outcome: "unknown"` means completion is not
+confirmed; calling `answer()` again replays the same completion. The handle lives in memory only. To
+resume after a restart, persist `sessionId` and `revision` and continue with the API below
+([Integration](docs/integration.md#one-question-with-sessask)).
+
+## Advanced: the full Surface API
 
 <!-- example:quickstart -->
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- `sess.ask({ question, fields })`: one question with simple typed fields (the MCP `sess_ask`
+  shape). It validates locally, creates the Session once and returns its private link before
+  waiting. `answer()` verifies the receipt and exact Surface, checks that the answer is still
+  current, completes the Session and returns values typed from the field definitions and checked at
+  runtime. New types `AskInput`, `AskField`, `AskAnswer`, `AskHandle`, `AskOptions` and
+  `AskAnswerOptions`. Every existing export, `verifyDecisionReceipt` and the advanced API are
+  unchanged.
+- The README opens with `sess.ask()`; the full Surface API is under "Advanced", unchanged.
+
 ## 0.1.0-rc.5 — 2026-10-15
 
 - `verifyDecisionBundle` in `@sess.si/sdk/receipts`: offline verification of a bundle-v1 decision
