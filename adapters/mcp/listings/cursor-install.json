@@ -1,0 +1,28 @@
+{
+  "about": "Cursor MCP install links generated from listing.json. The config never contains a secret: the key is read from the environment. Generation is not qualification.",
+  "source": "https://cursor.com/docs/mcp/install-links.md",
+  "entries": [
+    {
+      "name": "sess",
+      "transport": "streamable-http",
+      "status": "not-deployed",
+      "config": {
+        "url": "https://mcp.sess.si/mcp"
+      },
+      "deeplink": "cursor://anysphere.cursor-deeplink/mcp/install?name=sess&config=eyJ1cmwiOiJodHRwczovL21jcC5zZXNzLnNpL21jcCJ9"
+    },
+    {
+      "name": "sess",
+      "transport": "stdio",
+      "status": "unpublished",
+      "config": {
+        "command": "npx",
+        "args": ["-y", "@sess.si/mcp@0.1.0-rc.1"],
+        "env": {
+          "SESS_API_KEY": "${env:SESS_API_KEY}"
+        }
+      },
+      "deeplink": "cursor://anysphere.cursor-deeplink/mcp/install?name=sess&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBzZXNzLnNpL21jcEAwLjEuMC1yYy4xIl0sImVudiI6eyJTRVNTX0FQSV9LRVkiOiIke2VudjpTRVNTX0FQSV9LRVl9In19"
+    }
+  ]
+}

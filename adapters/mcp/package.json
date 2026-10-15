@@ -48,9 +48,11 @@
     "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.check.json --noEmit",
     "test": "vitest run",
     "check:package": "node scripts/check-package.mjs",
+    "listing": "npm run build && node scripts/listing.mjs write",
+    "check:listing": "npm run build && node scripts/listing.mjs check",
     "release:self-test": "node --test scripts/test-release-guard.mjs",
     "sdk:self-test": "node --test scripts/test-sdk-verify.mjs",
-    "check": "npm run sdk:verify && npm run sdk:self-test && npm run build && npm run typecheck && npm test && npm run release:self-test && npm run check:package",
+    "check": "npm run sdk:verify && npm run sdk:self-test && npm run build && npm run typecheck && node scripts/listing.mjs check && npm test && npm run release:self-test && npm run check:package",
     "runtime-round": "node scripts/runtime-round.mjs",
     "qualify:claude-code": "node scripts/qualify-claude-code.mjs"
   },
@@ -63,6 +65,8 @@
     "@modelcontextprotocol/client": "2.3.1",
     "@modelcontextprotocol/sdk": "1.32.1",
     "@types/node": "24.19.2",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
     "typescript": "5.9.3",
     "vitest": "5.0.4"
   }

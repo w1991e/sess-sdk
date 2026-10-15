@@ -1,0 +1,229 @@
+{
+  "listingSchema": "sess-mcp-listing/1",
+  "about": "Single source for the generated listing artifacts (npm run listing; checked by npm run check:listing). Tool names, titles and annotations come from src/tools.ts; version and package from package.json. Generating or validating an artifact is not a submission, and a submission is not an accepted listing. Copy marked proposed awaits the founder's line-by-line sign-off (DOCS/product/copy.md in the SESS repository).",
+  "name": "sess",
+  "displayName": "Sess",
+  "registryName": "io.github.w1991e/sess",
+  "copy": {
+    "status": "proposed",
+    "short": "Ask a person, get the answer",
+    "registry": "Your agent asks a person through a private link and gets back a typed, receipt-verified answer.",
+    "long": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a private link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
+    "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp"],
+    "defaultPrompts": [
+      "Ask me on my phone which time works for a call tomorrow.",
+      "Before you send the report, ask me to approve it.",
+      "Ask me three quick questions to plan my weekend."
+    ],
+    "releaseNotes": "First release: ask a person through a private link and continue with their receipt-checked answer."
+  },
+  "publisher": {
+    "name": "Sess",
+    "url": "https://sess.si"
+  },
+  "homepage": "https://sess.si",
+  "repository": {
+    "url": "https://github.com/w1991e/sess-sdk",
+    "source": "github"
+  },
+  "license": "Apache-2.0",
+  "urls": {
+    "docs": {
+      "value": "https://docs.sess.si/add-to-your-agent/",
+      "status": "placeholder",
+      "note": "The Q-3 setup page; not deployed yet."
+    },
+    "support": {
+      "value": "https://docs.sess.si/support/",
+      "status": "live"
+    },
+    "privacy": {
+      "value": null,
+      "status": "placeholder",
+      "note": "No public privacy policy page exists yet; the owner supplies it."
+    },
+    "terms": {
+      "value": null,
+      "status": "placeholder",
+      "note": "No public terms of service page exists yet; the owner supplies it."
+    }
+  },
+  "icons": {
+    "value": null,
+    "status": "placeholder",
+    "note": "A square PNG or SVG of at least 48x48, committed under listings/plugin/assets/ and hosted over HTTPS for the MCP Registry; the owner supplies the brand asset."
+  },
+  "categories": ["Productivity", "Developer Tools"],
+  "stdio": {
+    "status": "unpublished",
+    "note": "@sess.si/mcp is not on npm yet; the stdio entries work only after publication.",
+    "runtimeHint": "npx",
+    "environmentVariables": [
+      {
+        "name": "SESS_API_KEY",
+        "description": "SESS developer API key (owner credential; never a tool argument).",
+        "isRequired": true,
+        "isSecret": true
+      },
+      {
+        "name": "SESS_API_ORIGIN",
+        "description": "SESS API origin. HTTPS only; default https://api.sess.si.",
+        "isRequired": false,
+        "isSecret": false,
+        "default": "https://api.sess.si"
+      },
+      {
+        "name": "SESS_MCP_PROFILE",
+        "description": "Local profile name that interaction handles are bound to.",
+        "isRequired": false,
+        "isSecret": false,
+        "default": "default"
+      },
+      {
+        "name": "SESS_MCP_STATE_DIR",
+        "description": "Absolute path of the folder for durable interaction records.",
+        "isRequired": false,
+        "isSecret": false,
+        "format": "filepath"
+      },
+      {
+        "name": "SESS_EXPECTED_WORKSPACE_ID",
+        "description": "Trusted workspace for a runtime that does not return Sess-Workspace-Id.",
+        "isRequired": false,
+        "isSecret": false
+      },
+      {
+        "name": "SESS_RECEIPT_ISSUER",
+        "description": "Receipt issuer, only if it differs from the API origin.",
+        "isRequired": false,
+        "isSecret": false
+      },
+      {
+        "name": "SESS_MCP_MAX_WAIT_MS",
+        "description": "Lower the 45000 ms ceiling of one sess_response wait.",
+        "isRequired": false,
+        "isSecret": false,
+        "format": "number"
+      }
+    ]
+  },
+  "remote": {
+    "status": "not-deployed",
+    "note": "Q-1c deploys https://mcp.sess.si/mcp; until /version readback there, the remote entries describe an endpoint that does not answer.",
+    "type": "streamable-http",
+    "url": "https://mcp.sess.si/mcp",
+    "auth": {
+      "type": "oauth",
+      "issuer": "https://mcp.sess.si",
+      "scopes": ["sess:interact"],
+      "clientRegistration": ["client-id-metadata-document", "dynamic-client-registration"]
+    }
+  },
+  "providers": {
+    "mcpRegistry": {
+      "mapping": 1,
+      "output": "server.json",
+      "schema": {
+        "id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "vendored": "listings/schemas/mcp-registry-server-2025-12-11.schema.json",
+        "sha256": "3fba09590c99f61735d234822279f4223fab9e300c0a81e81c91ab62a4114de0",
+        "retrieved": "2026-10-15"
+      }
+    },
+    "agentPlugin": {
+      "mapping": 1,
+      "output": "listings/plugin",
+      "note": "One Agent Plugins 1.0.0 bundle for OpenAI (ChatGPT and Codex) and Cursor, both of which load the portable format. It declares exactly one MCP server, the remote endpoint.",
+      "schemas": {
+        "plugin": {
+          "id": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+          "vendored": "listings/schemas/agent-plugins-1.0.0-plugin.schema.json",
+          "sha256": "0a4aad95ce337878ad38802ebf0daa3fde76abe3f65400c86bcbb1ec0b3ab883",
+          "retrieved": "2026-10-15"
+        },
+        "mcp": {
+          "id": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+          "vendored": "listings/schemas/agent-plugins-1.0.0-mcp.schema.json",
+          "sha256": "6539175bfcdf43085855183e86da40ea94b166547a72b47ae9a0a390516d3acb",
+          "retrieved": "2026-10-15"
+        }
+      },
+      "openaiRules": {
+        "source": "https://developers.openai.com/plugins/deploy/submission.md",
+        "retrieved": "2026-10-15",
+        "note": "No published JSON schema covers extensions.com.openai; listing.mjs encodes the documented submission limits."
+      },
+      "skill": {
+        "name": "ask-a-person",
+        "description": "Ask a person a question through Sess and continue with their checked answer. Use it when you need a decision, an approval or details that only a person can give."
+      },
+      "openai": {
+        "category": "Productivity",
+        "brandColor": null,
+        "demoRecordingUrl": null,
+        "testCasesStatus": "proposed; not yet run against a Sess test account",
+        "positive": [
+          {
+            "description": "Ask a short question and read the answer",
+            "prompt": "Ask me on my phone which time works for a call tomorrow.",
+            "tools": ["sess_ask", "sess_response"],
+            "expected_behavior": "Shares a private link at once. After the reviewer submits the form, reports the chosen time."
+          },
+          {
+            "description": "Ask for an approval before acting",
+            "prompt": "Before you write the summary, ask me to approve the title 'Q3 plan'.",
+            "tools": ["sess_request", "sess_response"],
+            "expected_behavior": "Shows the title with approve and reject buttons, shares the link and reports the choice after it is submitted."
+          },
+          {
+            "description": "Show a second step on the same link",
+            "prompt": "Ask me which city I am visiting, then ask which day I arrive.",
+            "tools": ["sess_ask", "sess_response", "sess_publish"],
+            "expected_behavior": "After the first answer, the same link shows the second question; reports both answers."
+          },
+          {
+            "description": "Finish after the answer",
+            "prompt": "Ask me to confirm the meeting time, then close the form.",
+            "tools": ["sess_ask", "sess_response", "sess_complete"],
+            "expected_behavior": "Reports the confirmed time, then says the form is closed."
+          },
+          {
+            "description": "Not answered yet",
+            "prompt": "Ask me for my lunch choice. (Wait more than a minute before answering.)",
+            "tools": ["sess_ask", "sess_response"],
+            "expected_behavior": "Says the form is still open and to ask again after submitting; does not create a second form. After the reviewer submits and asks again, reports the choice."
+          }
+        ],
+        "negative": [
+          {
+            "description": "The agent must not answer the person's form itself",
+            "prompt": "Fill in the form for me and submit it yourself."
+          },
+          {
+            "description": "No person is needed",
+            "prompt": "What is 12 times 12?"
+          },
+          {
+            "description": "Payments are not supported",
+            "prompt": "Send 50 dollars to my friend."
+          }
+        ]
+      }
+    },
+    "cursorInstall": {
+      "mapping": 1,
+      "output": "listings/cursor-install.json",
+      "source": "https://cursor.com/docs/mcp/install-links.md",
+      "retrieved": "2026-10-15"
+    },
+    "claudeConnector": {
+      "mapping": 1,
+      "output": "listings/claude-connector.json",
+      "note": "Values for Anthropic's custom connector submission form; there is no published schema, so listing.mjs checks the documented requirements (HTTPS URL, OAuth, a title and read-only/destructive hints on every tool, a privacy policy URL)."
+    },
+    "clawhub": {
+      "status": "not-applicable",
+      "note": "ClawHub lists the native OpenClaw plugin (adapters/openclaw, see its RELEASING.md), not this MCP server; this repository has no ClawHub entry to generate."
+    }
+  }
+}

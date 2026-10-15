@@ -1,0 +1,60 @@
+{
+  "about": "Values for Anthropic's custom connector submission form, generated from listing.json. There is no published schema; listing.mjs checks the documented requirements. Generation is not submission.",
+  "name": "Sess",
+  "tagline": "Ask a person, get the answer",
+  "description": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a private link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
+  "serverUrl": "https://mcp.sess.si/mcp",
+  "transport": "streamable-http",
+  "status": "not-deployed",
+  "authentication": {
+    "type": "oauth",
+    "authorizationServer": "https://mcp.sess.si",
+    "scopes": ["sess:interact"],
+    "clientRegistration": ["client-id-metadata-document", "dynamic-client-registration"]
+  },
+  "websiteUrl": "https://sess.si",
+  "documentationUrl": "https://docs.sess.si/add-to-your-agent/",
+  "supportUrl": "https://docs.sess.si/support/",
+  "tools": [
+    {
+      "name": "sess_request",
+      "title": "Ask a person through SESS",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    {
+      "name": "sess_response",
+      "title": "Read the person’s SESS answer",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    {
+      "name": "sess_publish",
+      "title": "Show the next SESS step",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    {
+      "name": "sess_complete",
+      "title": "Finish the SESS interaction",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    {
+      "name": "sess_ask",
+      "title": "Ask a short question through SESS",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  ]
+}

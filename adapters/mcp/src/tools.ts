@@ -1,6 +1,9 @@
 import { ASK_LIMITS, LIMITS } from './validate.js';
 
-/** Versioned tool contract. Changing any input or output schema requires a new version. */
+/**
+ * Versioned tool contract. Changing any input or output schema requires a new version. Titles and
+ * annotations are host hints, not part of the versioned schemas; listing.json artifacts copy them.
+ */
 export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/2';
 export const TOOL_NAMES = [
   'sess_request',
@@ -256,7 +259,9 @@ export const TOOLS = [
       properties: { handle, expected_revision: revision, response_event_id: eventId },
     },
     outputSchema: resultSchema,
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    // Destructive in the MCP sense: completion is a terminal, non-additive change. The person's link
+    // stops accepting answers and the interaction never reopens. Nothing is deleted on SESS.
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
     _meta: meta,
   },
   {
