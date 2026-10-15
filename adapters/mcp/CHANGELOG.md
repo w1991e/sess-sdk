@@ -11,7 +11,8 @@
 - Owner-private single-profile boundary: handles are bound to profile, API origin and a local
   credential-generation digest; the API key is never stored.
 - Durable per-handle records (write-temp, fsync, rename, directory fsync).
-- Depends on the pinned `@sess.si/sdk` candidate (unpublished) and `@modelcontextprotocol/sdk@1.32.1`.
+- Depends on the pinned `@sess.si/sdk@0.1.0-rc.4` (published on npm, dist-tag `next`) and
+  `@modelcontextprotocol/sdk@1.32.1`.
 - Local records use format version 2. A confirmed publish/complete is remembered per answer
   event with its expected revision and publish body digest; only an identical replay is answered
   from it. Records of another format version stop before any request.
@@ -77,3 +78,10 @@
 - SDK dependency follows the repository's single pin (`release/sdk-candidate.json`), now
   `@sess.si/sdk@0.1.0-rc.4`; the candidate is packed from the repository root and accepted only with
   the pinned digests. MCP registry namespace `io.github.w1991e/sess` is owner-approved.
+- The SDK dependency now installs from the npm registry: `@sess.si/sdk@0.1.0-rc.4` is published
+  (dist-tag `next`, with provenance) with exactly the pinned bytes, and `package-lock.json` was
+  switched with `npm run sdk:switch-to-registry -- --apply`. `npm run setup` is a plain registry
+  `npm ci` and refuses candidate mode; `npm run check` starts with `npm run sdk:verify`, which
+  requires the registry lock and install record and re-reads the registry tarball to compare both
+  digests with the pin. CI no longer packs the repository root. The digest-gated candidate path
+  remains only for a future unpublished pin. `@sess.si/mcp` itself is still unpublished.

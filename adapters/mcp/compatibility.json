@@ -81,12 +81,12 @@
   "sessSdk": {
     "name": "@sess.si/sdk",
     "version": "0.1.0-rc.4",
-    "status": "candidate (unpublished); pinned in release/sdk-candidate.json",
+    "status": "published (registry): npm dist-tag next, with SLSA provenance; registry tarball digests equal the pin in release/sdk-candidate.json (never depend on latest, a deprecated 0.0.0 placeholder)",
     "sha256": "ccdc01216bdff99f5ac07ef1a7d0bd47134984869071fc2b2792401f3641fb2c",
     "integrity": "sha512-2Hugajq+ryelTXNMD0v8caLI6ZVyJEq25KRaAwDfo7mpZOCMpvNGoIGZZtNUfeXxUdvTiTlwP5EKqmScWBqzZQ==",
     "candidatePath": ".candidate/sess.si-sdk-0.1.0-rc.4.tgz",
-    "source": "scripts/sdk-pin.mjs pack: npm pack of the repository root, accepted only if the bytes equal release/sdk-candidate.json",
-    "releaseHold": "Before publishing @sess.si/mcp, the pinned @sess.si/sdk version must be genuinely published with the pinned bytes. Then `npm run sdk:switch-to-registry -- --apply` switches package-lock.json to the registry tarball, accepted only with the pinned integrity and SHA-256, and the lockfile change is reviewed. The digest-gated .candidate mechanism is retained for development; the release workflow refuses candidate mode.",
+    "source": "https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.0-rc.4.tgz",
+    "releaseHold": "none for the SDK dependency. package-lock.json was switched with `npm run sdk:switch-to-registry -- --apply` (registry integrity and re-downloaded SHA-256 both equal the pin). npm run setup, npm run check, CI and the release workflow require registry mode. candidatePath and the digest-gated .candidate mechanism are retained only for a future pin that is not yet published.",
     "history": "0.1.0-rc.3 (sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502) was the earlier approved candidate; it is held by owner decision (2026-10-14) and not published. 0.1.0-rc.4 is the first SDK candidate to be published."
   },
   "registry": {
@@ -100,6 +100,6 @@
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "not run; refuses while the SDK dependency is in candidate mode"
+    "status": "not run; @sess.si/mcp is unpublished. The SDK dependency is in registry mode."
   }
 }

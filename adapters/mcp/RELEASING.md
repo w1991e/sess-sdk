@@ -10,14 +10,15 @@ approval does.
 > **Do not push an `mcp-v*` tag until the `npm-mcp-release` environment (with required reviewers
 > and the `mcp-v*` tag rule) and the npm trusted publisher for `@sess.si/mcp` exist.** A job that
 > references a missing environment makes GitHub create it automatically, without protection rules;
-> the publish job would then run without maintainer approval. (The guards still refuse while the SDK
-> dependency is in candidate mode, but do not rely on that.)
+> the publish job would then run without maintainer approval.
 
-1. **Publish the SDK first.** The pinned `@sess.si/sdk` version (`release/sdk-candidate.json`;
-   `0.1.0-rc.4` is the first SDK candidate to be published, by owner decision of 2026-10-14) must be
-   genuinely published with exactly the pinned bytes. Then, in `adapters/mcp`, run
-   `npm run sdk:switch-to-registry -- --apply` and `npm run check`, and merge the lockfile change
-   through review. Until then the workflow refuses: a candidate-mode lock cannot be released.
+1. **SDK published — done.** The pinned `@sess.si/sdk@0.1.0-rc.4` (`release/sdk-candidate.json`) is
+   on npm under the dist-tag `next`, with provenance, and its registry tarball has exactly the
+   pinned SHA-256 and integrity. `package-lock.json` resolves it from the registry (switched with
+   `npm run sdk:switch-to-registry -- --apply`). `npm run setup`, `npm run check`, CI and the
+   release workflow all refuse a candidate-mode lock. Never depend on the `latest` dist-tag of
+   `@sess.si/sdk` (a deprecated placeholder). For a future SDK pin, publish it first, then repeat the
+   switch and merge the reviewed lockfile change before releasing.
 2. **GitHub environment `npm-mcp-release`** in `w1991e/sess-sdk`:
    - required reviewers (maintainers who approve each publication), self-review disabled;
    - deployment rule restricted to tags matching `mcp-v*`;
