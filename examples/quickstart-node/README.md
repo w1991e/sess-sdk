@@ -68,13 +68,12 @@ paste it into logs, tickets or chat channels.
 
 Optional environment (not needed for the ordinary path):
 
-| Variable                        | Meaning                                                                   |
-| ------------------------------- | ------------------------------------------------------------------------- |
-| `SESS_API_URL`                  | Non-default API origin. HTTPS only.                                       |
-| `SESS_ALLOW_INSECURE_LOCALHOST` | `1` permits `http://localhost` for local runtime tests only.              |
-| `SESS_EXPECTED_WORKSPACE_ID`    | Pin an expected workspace for receipt verification instead of the header. |
-| `SESS_WAIT_SECONDS`             | Total wait, 5 to 900 seconds. Default 180.                                |
-| `SESS_SESSION_ID`               | Resume waiting on an existing Session instead of creating a new one.      |
+| Variable                        | Meaning                                                              |
+| ------------------------------- | -------------------------------------------------------------------- |
+| `SESS_API_URL`                  | Non-default API origin. HTTPS only.                                  |
+| `SESS_ALLOW_INSECURE_LOCALHOST` | `1` permits `http://localhost` for local runtime tests only.         |
+| `SESS_WAIT_SECONDS`             | Total wait, 5 to 900 seconds. Default 180.                           |
+| `SESS_SESSION_ID`               | Resume waiting on an existing Session instead of creating a new one. |
 
 ## What the person sees
 
