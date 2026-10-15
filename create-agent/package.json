@@ -1,0 +1,31 @@
+{
+  "name": "@sess.si/create-agent",
+  "version": "0.1.0-rc.1",
+  "description": "Create your first SESS agent: npm create @sess.si/agent",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/w1991e/sess-sdk.git",
+    "directory": "create-agent"
+  },
+  "bugs": {
+    "url": "https://github.com/w1991e/sess-sdk/issues"
+  },
+  "homepage": "https://github.com/w1991e/sess-sdk/tree/master/create-agent#readme",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "bin": {
+    "create-agent": "index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "template/",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
