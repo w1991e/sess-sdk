@@ -89,6 +89,44 @@ checks it against the authorized Session's retained response. Application busine
 data still needs application validation before use. Verification does not infer your
 domain schema or coerce a string into a number.
 
+## Decision bundles
+
+A [bundle-v1](spec/bundle-v1.md) decision bundle is a deliberate disclosure of one accepted
+decision: the [receipt-v1](spec/receipt-v1.md) receipt, the complete accepted Surface and input,
+and the issuer's public keys. `verifyDecisionBundle` from `@sess.si/sdk/receipts` (and the
+`sess verify <file>` command) verifies it offline with the same checks, order, bounds, reasons
+and result object as every other Sess verification face, proven against one shared conformance
+corpus. It is separate from `verifyDecisionReceipt`, which is unchanged.
+
+```ts
+import { verifyDecisionBundle, type ReceiptKeySet } from '@sess.si/sdk/receipts';
+
+declare const bundle: unknown; // parsed from the shared file
+declare const trustedKeys: ReceiptKeySet; // the issuer's public keys you obtained yourself
+
+const result = await verifyDecisionBundle(bundle, {
+  issuer: 'https://api.sess.si',
+  trustedKeys,
+  expectedContext: { audience: 'wks_yours', sessionId: 'ses_expected' },
+});
+if (result.valid && result.application_purpose === 'matched_caller_context') {
+  // This issuer accepted exactly this input on this revision, for the decision you expected.
+}
+```
+
+- **Keys and context come only from you.** Keys inside a bundle are never trusted; a bundle
+  whose disclosed keys carry any private JWK member is `malformed`. The expected audience,
+  workspace, Session, Event, revision and action are compared only when you supply them.
+- **Without an expected context** the receipt is checked against its own signed audience and the
+  result reports `context.status: "unchecked"` and `application_purpose: "unchecked"`: the bundle
+  is genuine, but whether it is the decision your application was waiting for is yours to check.
+  `matched_caller_context` requires every supplied member, including `audience`, to match.
+- **Current time.** Expiry is checked at the current time unless you pass `now`; there is no
+  archival validity. A modified, partial or redacted Surface or input never verifies.
+- **Results, not exceptions.** Every outcome about the bundle is a result with one `reason`;
+  only invalid options throw a `TypeError`. A valid result shows link-holder assurance only. It
+  does not name or verify a person and is not evidence that anything was authorized or executed.
+
 ## Keys, rotation, and resource limits
 
 Each client has an isolated cache tied to its trusted issuer and configured key source.

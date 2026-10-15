@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -32,6 +32,9 @@ if (
   JSON.stringify(Object.keys(manifest.exports).sort()) !== JSON.stringify(['.', './receipts', './webhooks'])
 )
   throw new Error('Unexpected public export.');
+// One executable: the offline `sess verify <file>` command.
+if (JSON.stringify(manifest.bin) !== JSON.stringify({ sess: './dist/cli/main.js' }))
+  throw new Error('Unexpected package executable.');
 for (const hook of [
   'preinstall',
   'install',
@@ -112,6 +115,8 @@ try {
         license: manifest.license,
         dependencies: manifest.dependencies,
         engines: manifest.engines,
+        // npm links executables from the lockfile entry, as it does for a registry install.
+        bin: manifest.bin,
       },
     },
   };
@@ -144,7 +149,8 @@ for (const name of ['setTimeout', 'setInterval', 'setImmediate']) globalThis[nam
 for (const name of ['log', 'info', 'warn', 'error', 'debug']) console[name] = () => { throw new Error('Unexpected import/constructor console output'); };
 process.stderr.write = () => { throw new Error('Unexpected import/constructor stderr output'); };
 const { Sess, SessError, isInteractiveSession } = await import('@sess.si/sdk');
-const { verifyDecisionReceipt } = await import('@sess.si/sdk/receipts');
+const { verifyDecisionReceipt, verifyDecisionBundle } = await import('@sess.si/sdk/receipts');
+assert.equal(typeof verifyDecisionBundle, 'function');
 const { verifyWebhook } = await import('@sess.si/sdk/webhooks');
 assert.equal(typeof verifyDecisionReceipt, 'function');
 assert.equal(typeof verifyWebhook, 'function');
@@ -173,6 +179,18 @@ await assert.rejects(import('@sess/sdk'), { code: 'ERR_MODULE_NOT_FOUND' });
 `,
   );
   run(process.execPath, ['commonjs.cjs'], consumer);
+  // The installed `sess` executable: linked by npm, prints help, and exits 2 on a usage error.
+  const binLink = join(consumer, 'node_modules', '.bin', process.platform === 'win32' ? 'sess.cmd' : 'sess');
+  if (!existsSync(binLink)) throw new Error('npm did not link the sess executable.');
+  const cliPath = join(installed, 'dist', 'cli', 'main.js');
+  if (!run(process.execPath, [cliPath, '--help'], consumer).startsWith('Usage: sess verify <bundle.json>'))
+    throw new Error('The sess executable does not print its usage.');
+  const usage = spawnSync(process.execPath, [cliPath, 'verify', 'absent.json'], {
+    cwd: consumer,
+    encoding: 'utf8',
+  });
+  if (usage.status !== 2 || usage.stdout !== '')
+    throw new Error('The sess executable usage exit status drifted.');
   // Compiler is a fixture tool, not a runtime dependency of the installed package.
   consumerManifest.devDependencies = { '@types/node': manifest.devDependencies['@types/node'] };
   consumerLock.packages[''].devDependencies = consumerManifest.devDependencies;
@@ -190,7 +208,9 @@ await assert.rejects(import('@sess/sdk'), { code: 'ERR_MODULE_NOT_FOUND' });
     join(consumer, 'consumer.mts'),
     `
 import { Sess, type InteractiveInteraction, type Session, isInteractiveSession, isInteractiveSurface, type SurfaceRevision, type FieldSchema } from '@sess.si/sdk';
-import { verifyDecisionReceipt, type ReceiptKeySet } from '@sess.si/sdk/receipts';
+import { verifyDecisionReceipt, verifyDecisionBundle, type DecisionBundleVerification, type ReceiptKeySet } from '@sess.si/sdk/receipts';
+const bundleResult: Promise<DecisionBundleVerification> = verifyDecisionBundle({}, { issuer: 'https://api.sess.example', trustedKeys: { keys: [] } });
+void bundleResult;
 import { verifyWebhook } from '@sess.si/sdk/webhooks';
 const interaction = { mode: 'interactive', title: 'Review', source: { kind: 'sess_surface', components: [{ type: 'field', name: 'amount', label: 'Amount', schema: { type: 'number' }, value: 12 }] }, actions: [{ id: 'submit', label: 'Submit' }] } satisfies InteractiveInteraction;
 const sess = new Sess({ apiKey: 'synthetic-owner-key' });
@@ -288,6 +308,7 @@ if (typeof verifyDecisionReceipt !== 'function' || typeof verifyWebhook !== 'fun
       'Node server bundle',
       'included source maps',
       'no import/constructor network/timers/output',
+      'sess executable linked, usage and exit status',
     ],
   };
   if (result.integrity !== packed.integrity) throw new Error('Pack integrity differs from tested bytes.');
