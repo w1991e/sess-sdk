@@ -6,9 +6,9 @@ Tool names, titles and annotations come from `src/tools.ts`, and the version and
 
 **Generating a file is not submitting it, and submitting is not acceptance.** A generated
 `server.json` or plugin bundle is never evidence of an accepted listing. Submissions are owner
-actions; record "submitted" and "accepted" separately, with the provider's own confirmation, in the
-SESS repository evidence. The descriptions and test cases in `listing.json` are proposed copy and
-wait for the founder's line-by-line sign-off (`DOCS/product/copy.md` in the SESS repository).
+actions; record "submitted" and "accepted" separately, with the provider's own confirmation. The
+descriptions and test cases in `listing.json` are proposed copy and wait for a maintainer's
+line-by-line sign-off.
 
 ## Commands
 
@@ -60,7 +60,7 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/2` sc
 
 `npm run check:listing` lists what is still open. Today:
 
-- the founder signs off the copy and the test cases in `listing.json`;
+- a maintainer signs off the copy and the test cases in `listing.json`;
 - `https://mcp.sess.si/mcp` is deployed and read back. Until then every remote entry
   describes an endpoint that does not answer;
 - `@sess.si/mcp` is published on npm (`RELEASING.md`) for the stdio entries;
@@ -90,9 +90,9 @@ so the stdio package is not eligible. Needs a verified developer identity in the
 organization and the Apps Management Write role.
 
 1. Complete the blockers above, add `demoRecordingUrl`, and run the five positive and three
-   negative test cases against a dedicated Sess test account that signs in without MFA codes.
+   negative test cases against a dedicated Sess test account.
 2. Serve the portal's domain challenge token at `https://mcp.sess.si/.well-known/openai-apps-challenge`
-   (a hosted-runtime change in the SESS repository).
+   (a hosted-runtime change).
 3. Build the ZIP from the bundle (from `adapters/mcp`):
    `mkdir -p .artifacts && (cd listings/plugin && zip -r -X ../../.artifacts/sess-plugin.zip .)`
 4. Upload it at https://platform.openai.com/plugins, resolve findings, connect the MCP server

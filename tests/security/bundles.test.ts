@@ -1,4 +1,4 @@
-// Decision-bundle verification, SDK library face (bundle-v1; Sess P2-01). The shared conformance
+// Decision-bundle verification, SDK library face (bundle-v1). The shared conformance
 // corpus is rebuilt from labelled test seeds and checked against its frozen digests before any
 // verification; then every vector must reach its frozen result for a trusting caller (expected
 // context, fixed time) and for a public verifier (no expected context, current time), exactly as

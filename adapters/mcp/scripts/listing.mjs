@@ -14,7 +14,7 @@ export const LISTING_SCHEMA = 'sess-mcp-listing/1';
 const PLUGIN_DIR = 'listings/plugin';
 const PRINT_WIDTH = 110;
 
-// Words that must not appear in any listing until a public directory exists (P2 §7.7), and claims
+// Words that must not appear in any listing, and claims
 // that overstate what a receipt or the product does. Matched case-insensitively on word starts.
 export const FORBIDDEN_WORDS = [
   /\bmarketplaces?\b/i,
@@ -516,7 +516,7 @@ export function validate(inputs, files, schemaTexts) {
 
   // Owner actions before any submission. These never fail the check.
   if (listing.copy.status !== 'approved')
-    blockers.push('all: listing copy is proposed and awaits founder sign-off');
+    blockers.push('all: listing copy is proposed and awaits maintainer sign-off');
   if (listing.remote.status !== 'deployed')
     blockers.push(
       `all remote entries: ${listing.remote.url} is ${listing.remote.status} (deployment and /version readback pending)`,

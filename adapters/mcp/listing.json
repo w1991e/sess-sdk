@@ -1,6 +1,6 @@
 {
   "listingSchema": "sess-mcp-listing/1",
-  "about": "Single source for the generated listing artifacts (npm run listing; checked by npm run check:listing). Tool names, titles and annotations come from src/tools.ts; version and package from package.json. Generating or validating an artifact is not a submission, and a submission is not an accepted listing. Copy marked proposed awaits the founder's line-by-line sign-off (DOCS/product/copy.md in the SESS repository).",
+  "about": "Single source for the generated listing artifacts (npm run listing; checked by npm run check:listing). Tool names, titles and annotations come from src/tools.ts; version and package from package.json. Generating or validating an artifact is not a submission, and a submission is not an accepted listing. Copy marked proposed awaits a maintainer's line-by-line sign-off.",
   "name": "sess",
   "displayName": "Sess",
   "registryName": "io.github.w1991e/sess",

@@ -16,7 +16,7 @@ const reject = (mutate: (i: any) => unknown, pattern: RegExp = /INVALID_ARGUMENT
   expect(() => parseRequestArgs({ interaction: replaced ?? interaction })).toThrow(pattern);
 };
 
-describe('OC-08 closed, bounded tool schemas', () => {
+describe('closed, bounded tool schemas', () => {
   it('accepts the shared fixtures', () => {
     expect(parseRequestArgs({ interaction: base() }).interaction.title).toBe('Plan an afternoon');
     expect(parseRequestArgs({ interaction: fixtures('round-2.json') }).interaction.actions[0]!.id).toBe(
@@ -99,7 +99,7 @@ describe('OC-08 closed, bounded tool schemas', () => {
     );
   });
 
-  it('OC-09: no tool schema exposes origin, credential, workspace, session or callback inputs', () => {
+  it('no tool schema exposes origin, credential, workspace, session or callback inputs', () => {
     const allowed: Record<string, string[]> = {
       sess_request: ['interaction'],
       sess_response: ['handle', 'revision', 'wait_ms'],

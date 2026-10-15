@@ -432,7 +432,7 @@ describe('prune and redacted diagnostics', () => {
   });
 });
 
-// ---------------------------------------------------------------- R-02 follow-ups (#16 review)
+// ---------------------------------------------------------------- release-boundary follow-ups
 
 describe('release-boundary revocation for request and publish', () => {
   /** Revokes right after the next write of `state` commits. */

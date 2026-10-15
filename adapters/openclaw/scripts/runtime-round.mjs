@@ -1,15 +1,15 @@
-// OPT-IN G1 evidence: one deterministic round through a REAL OpenClaw Gateway that has the
+// OPT-IN runtime-round evidence: one deterministic round through a REAL OpenClaw Gateway that has the
 // INSTALLED packed plugin, against an ISOLATED local SESS runtime with synthetic credentials.
 // Not run in public CI (it needs the private runtime). No LLM: tools are invoked through the
 // Gateway's documented POST /tools/invoke endpoint, and sessions are created/reset through the
 // documented sessions.create / sessions.reset Gateway methods. Human URLs are never printed.
 //
 // Required environment (all synthetic / local):
-//   G1_OPENCLAW_BIN     command that runs `openclaw` in the disposable profile
-//   G1_GATEWAY_URL      e.g. http://127.0.0.1:18799 (loopback only)
-//   G1_GATEWAY_TOKEN    disposable gateway token
-//   G1_SESS_ORIGIN      SESS_PUBLIC_BASE_URL of the isolated runtime, e.g. http://localhost:18082
-//   G1_FIXTURES         path to adapters/fixtures/plan-afternoon
+//   RUNTIME_ROUND_OPENCLAW_BIN     command that runs `openclaw` in the disposable profile
+//   RUNTIME_ROUND_GATEWAY_URL      e.g. http://127.0.0.1:18799 (loopback only)
+//   RUNTIME_ROUND_GATEWAY_TOKEN    disposable gateway token
+//   RUNTIME_ROUND_SESS_ORIGIN      SESS_PUBLIC_BASE_URL of the isolated runtime, e.g. http://localhost:18082
+//   RUNTIME_ROUND_FIXTURES         path to adapters/fixtures/plan-afternoon
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -20,14 +20,16 @@ const need = (name) => {
   if (!value) throw new Error(`${name} is required`);
   return value;
 };
-const bin = need('G1_OPENCLAW_BIN');
-const gateway = need('G1_GATEWAY_URL');
-const token = need('G1_GATEWAY_TOKEN');
-const sessOrigin = need('G1_SESS_ORIGIN');
-const fixtures = need('G1_FIXTURES');
+const bin = need('RUNTIME_ROUND_OPENCLAW_BIN');
+const gateway = need('RUNTIME_ROUND_GATEWAY_URL');
+const token = need('RUNTIME_ROUND_GATEWAY_TOKEN');
+const sessOrigin = need('RUNTIME_ROUND_SESS_ORIGIN');
+const fixtures = need('RUNTIME_ROUND_FIXTURES');
 for (const url of [gateway, sessOrigin])
   if (!['127.0.0.1', 'localhost', '[::1]'].includes(new URL(url).hostname))
-    throw new Error('G1 evidence runs against loopback services only; never a deployed environment.');
+    throw new Error(
+      'Runtime-round evidence runs against loopback services only; never a deployed environment.',
+    );
 
 const fixture = (name) => JSON.parse(readFileSync(join(fixtures, name), 'utf8'));
 const secrets = new Set([token]);
@@ -96,16 +98,16 @@ async function submitHuman(humanUrl, revision, answer) {
 }
 
 const check = (condition, message) => {
-  if (!condition) throw new Error(`G1 check failed: ${message}`);
+  if (!condition) throw new Error(`Runtime round check failed: ${message}`);
   console.log(`PASS ${message}`);
 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
-  console.log('G1 deterministic host invocation (no LLM) through the installed packed plugin.');
-  const a = gatewayCall('sessions.create', { agentId: 'main', label: `g1-a-${Date.now()}` });
-  const b = gatewayCall('sessions.create', { agentId: 'main', label: `g1-b-${Date.now()}` });
+  console.log('Deterministic host invocation (no LLM) through the installed packed plugin.');
+  const a = gatewayCall('sessions.create', { agentId: 'main', label: `round-a-${Date.now()}` });
+  const b = gatewayCall('sessions.create', { agentId: 'main', label: `round-b-${Date.now()}` });
 
   // 1. request -> private link + handle, returned before any wait.
   const request = await invoke('sess_request', a.key, { interaction: fixture('round-1.json') });
@@ -199,7 +201,7 @@ async function main() {
     'repeated complete is idempotent (no second mutation)',
   );
 
-  // 6. G0 observation (not a G1 pass condition): does a reset give this key a new incarnation?
+  // 6. Observation only (not a pass condition): does a reset give this key a new incarnation?
   // The adapter binds the host's documented sessionId ("regenerated on /new and /reset"). On
   // OpenClaw 2026.10.3, sessions.reset of a transcript-less session preserved sessionId (only
   // lifecycleRevision, which tool contexts do not expose, changed), so rejection after reset is
@@ -215,8 +217,8 @@ async function main() {
     `OBSERVED reset: sessionId ${rotated ? 'rotated' : 'preserved'}; old handle ${afterReset.ok ? 'still readable' : 'refused'} (${rotated === !afterReset.ok ? 'consistent with binding' : 'UNEXPECTED'})`,
   );
   if (rotated && afterReset.ok)
-    throw new Error('G1 check failed: a rotated incarnation could read the old handle');
-  console.log('G1 round: ALL CHECKS PASSED');
+    throw new Error('Runtime round check failed: a rotated incarnation could read the old handle');
+  console.log('Runtime round: ALL CHECKS PASSED');
 }
 
 main().catch((error) => {

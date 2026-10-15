@@ -1,4 +1,4 @@
-// Alignment with adapters/CONTRACT.md after G1 convergence. Each block names its contract section.
+// Alignment with adapters/CONTRACT.md after the adapters converged. Each block names its contract section.
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ERROR_CLASSES } from '../../src/errors.js';

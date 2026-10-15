@@ -117,7 +117,7 @@ for (const state of [original, current]) {
   for (const idempotencyKey of invalidReplayKeys)
     malformed.push({ ...state, intent: { ...state.intent, idempotencyKey } });
 }
-describe('T-01 durable SDK example checkpoint boundary', () => {
+describe('durable SDK example checkpoint boundary', () => {
   it.each([original, current])(
     'refuses inherited or accessor keys in schema $version without evaluating them',
     async (state) => {
