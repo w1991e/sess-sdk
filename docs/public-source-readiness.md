@@ -5,7 +5,7 @@ decision. The runtime/renderer and testbed remain private. Package checks and pu
 checks cover different boundaries; passing either is not publication authorization.
 
 The approved current distribution is `@sess.si/sdk`, with `/receipts` and `/webhooks` subpaths.
-The preserved R1 reports in `docs/reviews/` and retained Git history still describe earlier
+Retained Git history still describes earlier
 `@sess/sdk` candidates and their original source/archive identities. Those references are historical
 evidence, not aliases or instructions to install the former name. Private runtime workspace
 packages, GitHub repository names, API hosts, receipt issuers and wire contracts retain their names.

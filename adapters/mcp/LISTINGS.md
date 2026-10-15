@@ -61,11 +61,11 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/2` sc
 `npm run check:listing` lists what is still open. Today:
 
 - the founder signs off the copy and the test cases in `listing.json`;
-- `https://mcp.sess.si/mcp` is deployed and read back (Q-1c). Until then every remote entry
+- `https://mcp.sess.si/mcp` is deployed and read back. Until then every remote entry
   describes an endpoint that does not answer;
 - `@sess.si/mcp` is published on npm (`RELEASING.md`) for the stdio entries;
 - privacy policy and terms of service pages exist; set `urls.privacy` and `urls.terms`;
-- the Q-3 setup page exists at `urls.docs`;
+- the setup page exists at `urls.docs`;
 - an icon (square, at least 48x48) is committed under `listings/plugin/assets/` and referenced.
 
 After any change to `listing.json`, run `npm run listing` and commit the result.
@@ -103,7 +103,7 @@ organization and the Apps Management Write role.
 
 ### Cursor
 
-- Install links (`listings/cursor-install.json`) need no submission; they belong on the Q-3 page
+- Install links (`listings/cursor-install.json`) need no submission; they belong on the setup page
   once their status is deployed or published.
 - The plugin bundle is submitted as a public Git repository at https://cursor.com/marketplace/publish.
   Confirm that a subfolder (`adapters/mcp/listings/plugin`) is accepted; otherwise the owner decides
