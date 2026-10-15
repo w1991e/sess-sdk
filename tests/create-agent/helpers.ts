@@ -7,7 +7,15 @@ import { fileURLToPath } from 'node:url';
 export const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 export const INITIALIZER = join(ROOT, 'create-agent', 'index.mjs');
 export const FAKE_WORLD = join(ROOT, 'create-agent', 'test', 'fake-world.mjs');
-export const GENERATED = ['.env.example', '.gitignore', 'LICENSE', 'README.md', 'agent.mjs', 'package.json'];
+export const GENERATED = [
+  '.env.example',
+  '.gitignore',
+  'LICENSE',
+  'README.md',
+  'agent.mjs',
+  'package.json',
+  'weather.mjs',
+];
 
 export function scratch(prefix: string): string {
   return realpathSync(mkdtempSync(join(realpathSync(tmpdir()), prefix)));
