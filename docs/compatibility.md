@@ -1,9 +1,8 @@
 # Compatibility and evidence
 
-SDK version: **0.1.0-rc.5**, prepared and not yet published (recorded in
-[release/sdk-next-candidate.json](../release/sdk-next-candidate.json)); it adds decision-bundle
-verification and the `sess verify` executable. Consumers stay on the published **0.1.0-rc.4**
-(pinned in [release/sdk-candidate.json](../release/sdk-candidate.json)) until rc.5 is published.
+SDK version: **0.1.0-rc.5**, published on npm under the `next` dist-tag with provenance and pinned
+in [release/sdk-candidate.json](../release/sdk-candidate.json); it adds decision-bundle
+verification and the `sess verify` executable. **0.1.0-rc.4** remains published.
 **0.1.0-rc.3** is held and will not be published. The SDK version is independent of HTTP API
 `info.version` 0.1.0 and the runtime's Git commit.
 

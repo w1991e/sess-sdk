@@ -49,8 +49,8 @@ at that tag and publishes only those bytes.
 
 ## Prepared successor
 
-A prepared, unpublished version is recorded in
-[`release/sdk-next-candidate.json`](../release/sdk-next-candidate.json); consumers stay on the
+A prepared, unpublished version is recorded in `release/sdk-next-candidate.json` while one
+exists; consumers stay on the
 published pin until the registry transition. Its maintainer steps and expected digests are in its
 release packet under [`release/`](../release/).
 
