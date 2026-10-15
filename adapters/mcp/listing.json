@@ -31,7 +31,7 @@
     "docs": {
       "value": "https://docs.sess.si/add-to-your-agent/",
       "status": "placeholder",
-      "note": "The Q-3 setup page; not deployed yet."
+      "note": "The setup page; not deployed yet."
     },
     "support": {
       "value": "https://docs.sess.si/support/",
@@ -109,7 +109,7 @@
   },
   "remote": {
     "status": "not-deployed",
-    "note": "Q-1c deploys https://mcp.sess.si/mcp; until /version readback there, the remote entries describe an endpoint that does not answer.",
+    "note": "Until https://mcp.sess.si/mcp is deployed and its /version is read back, the remote entries describe an endpoint that does not answer.",
     "type": "streamable-http",
     "url": "https://mcp.sess.si/mcp",
     "auth": {
