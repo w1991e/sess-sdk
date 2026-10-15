@@ -421,7 +421,7 @@ function fieldSchema(value: unknown, path: string): CheckedFieldSchema {
   return invalid(`${path}.type`, 'must be string, number, integer, boolean or array.');
 }
 
-/** Validates an InteractiveInteraction before any network dispatch (OC-08). */
+/** Validates an InteractiveInteraction before any network dispatch. */
 export function validateInteraction(value: unknown, path = 'interaction'): InteractiveInteraction {
   const top = closed(
     value,

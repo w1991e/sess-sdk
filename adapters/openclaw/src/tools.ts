@@ -368,7 +368,7 @@ export async function sessResponse(deps: InvocationDeps, args: ResponseArgs): Pr
     await block(deps, record, 'answer_identity_changed');
     fail('RECOVERY_BLOCKED', 'A different accepted answer was already recorded for this revision.');
   }
-  // R-01: the SDK verifies retained history, not currency. After verification and before accepting
+  // Currentness: the SDK verifies retained history, not currency. After verification and before accepting
   // or releasing anything, a fresh authenticated read must show the Session still at this revision
   // (responded, or completed at this same revision) with this exact accepted event. An earlier
   // read or the verifier's own snapshot is not sufficient.

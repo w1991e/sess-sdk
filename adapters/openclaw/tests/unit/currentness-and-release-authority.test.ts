@@ -1,5 +1,5 @@
-// Regressions for the independent review findings R-01 (an obsolete answer released as current) and
-// R-02 (terminal results escaping the final authority guard). Real SDK receipt verifier, synthetic
+// Regressions: an obsolete answer must never be released as current, and terminal results must not
+// escape the final authority guard. Real SDK receipt verifier, synthetic
 // Ed25519-signed receipts, deterministic fake HTTP; only the host boundary is a test double.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -64,7 +64,7 @@ async function expectNoRelease(promise: Promise<unknown>, code: RegExp) {
   expect(JSON.stringify(outcome)).not.toContain('museum');
 }
 
-describe('R-01: after verification, an authenticated current-revision read precedes any answer release', () => {
+describe('after verification, an authenticated current-revision read precedes any answer release', () => {
   it('read-once: Session advances during the verifier read (review reproduction) -> blocked, no data', async () => {
     const { host, conv, handle } = await started();
     sess.answer(1, 'submit', answer1().data);
@@ -194,7 +194,7 @@ describe('R-01: after verification, an authenticated current-revision read prece
   });
 });
 
-describe('R-02: the final release boundary re-asserts live authority', () => {
+describe('the final release boundary re-asserts live authority', () => {
   async function completed() {
     const ctx = await started();
     const eventId = sess.answer(1, 'submit', answer1().data);

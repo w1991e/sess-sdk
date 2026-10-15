@@ -405,7 +405,7 @@ export class SessMcpAdapter {
         'The verified answer did not match the requested revision.',
       );
     }
-    // R-01: the verifier proves the retained historical event, not that it is still the current
+    // Currentness: the verifier proves the retained historical event, not that it is still the current
     // step. An authenticated current-revision read after verification gates every release.
     const fresh = await this.#confirmCurrent(sessionId, args.revision, response.event_id, signal);
     if (fresh.kind === 'aborted') return await this.#transition(record, 'needs_resume');

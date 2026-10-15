@@ -94,7 +94,7 @@ describe('listing.json artifacts', () => {
     expect(errors).toEqual([]);
     expect(blockers.join('\n')).toMatch(/not-deployed/);
     expect(blockers.join('\n')).toMatch(/unpublished/);
-    expect(blockers.join('\n')).toMatch(/founder sign-off/);
+    expect(blockers.join('\n')).toMatch(/maintainer sign-off/);
   });
 
   it('server.json carries the stdio package and the remote endpoint under the approved namespace', () => {
