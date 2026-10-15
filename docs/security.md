@@ -127,6 +127,61 @@ if (result.valid && result.application_purpose === 'matched_caller_context') {
   only invalid options throw a `TypeError`. A valid result shows link-holder assurance only. It
   does not name or verify a person and is not evidence that anything was authorized or executed.
 
+## Archival envelopes (not yet released)
+
+`@sess.si/sdk/archival` is in this repository but not in any published or prepared version. It is
+the successor archival verifier of [archival-core-v1](spec/archival-core-v1.md): a separately named
+interface beside `verifyDecisionReceipt` and `verifyDecisionBundle`, which are unchanged. An archival
+envelope carries the exact original receipt-v1 JWS, the issuer's signed archival core (its signed
+statement that it holds those exact bytes in custody) and detachable
+[witness evidence](spec/witness-evidence-v1.md).
+
+```ts
+import {
+  parseTrustedRoot,
+  parseWitnessKeySet,
+  presentArchivalVerification,
+  verifyArchivalEnvelope,
+} from '@sess.si/sdk/archival';
+import type { ReceiptKeySet } from '@sess.si/sdk/receipts';
+
+declare const envelopeText: string; // the envelope file, as text or bytes
+declare const trustedKeys: ReceiptKeySet; // the issuer's public receipt keys you obtained yourself
+declare const trustedRootBytes: Uint8Array; // a Sigstore trusted_root.json you checked yourself
+declare const witnessKeySet: unknown; // the issuer's /.well-known/sess-witness-keys.json, parsed
+
+const result = await verifyArchivalEnvelope(envelopeText, {
+  trustedKeys,
+  expectedContext: { issuer: 'https://api.sess.si', audience: 'wks_yours' },
+  witnessAnchors: {
+    trustedRoot: parseTrustedRoot(trustedRootBytes),
+    witnessKeys: parseWitnessKeySet(witnessKeySet, 'https://api.sess.si'),
+  },
+});
+const shown = presentArchivalVerification(result);
+if (shown.verified && result.witness.status === 'witnessed') {
+  // The issuer held these exact bytes; they existed no later than result.witness.witnessed_at.
+}
+```
+
+- **Independent dimensions.** `signature` (structure, the core signature in its own signing domain,
+  the receipt's exact bytes and its receipt-v1 signature at its own issuance time), `contents` (only
+  when you pass `content`), `context` (only the members you pass; `verified` needs issuer and
+  audience), `witness`, `key_trust` and `live_expiry` (the same current-time `exp` rule receipt-v1
+  applies). Each is `{status, reason}` with the Sess core's reason codes; when the signature is not
+  valid every later dimension is `signature_unverified`.
+- **Trust comes only from you.** Receipt keys, witness anchors and context are never read from the
+  envelope. Without witness anchors attached evidence is `indeterminate: witness_trust_unavailable`;
+  without evidence the witness is `pending: unwitnessed`. Malformed or failing evidence is `invalid`,
+  never pending. The verifier makes no network request: obtaining and checking the trusted root (for
+  example through Sigstore's TUF repository) and the witness key set is yours.
+- **What a verified result means.** The issuer held these exact receipt bytes. It is not execution
+  authority, not a named or verified person, and a witness time is an upper bound on existence, not
+  the acceptance time. Only invalid options throw a `TypeError`.
+- **Parity.** The archival-v1 corpus and the witness vectors are verbatim, digest-pinned copies of the
+  Sess files (`docs/spec/source.json`); the library and the `sess verify --archival` command reach the
+  same results on every vector as the Sess core.
+
 ## Keys, rotation, and resource limits
 
 Each client has an isolated cache tied to its trusted issuer and configured key source.

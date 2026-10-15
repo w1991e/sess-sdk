@@ -1,0 +1,798 @@
+{
+  "format": "sess.archival-corpus",
+  "version": 2,
+  "spec": "DOCS/spec/archival-core-v1.md",
+  "note": "Synthetic vectors, rebuilt by archival-corpus-vectors.ts from labelled test-only keys; frozen here by digest.",
+  "key_labels": {
+    "corpus": "sess archival-core corpus test key v1",
+    "stranger": "sess archival-core corpus stranger key v1"
+  },
+  "keys": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "ltao0TVfv2exa1C3g3KkYlqjz2KDEkoACLCRaaumawo",
+      "kid": "corpus-2026-01",
+      "alg": "EdDSA",
+      "use": "sig"
+    }
+  ],
+  "content": {
+    "disclosed": {
+      "surface": {
+        "title": "Approve the weather plan",
+        "blocks": [
+          {
+            "type": "text",
+            "text": "Rain after 3 pm; move the walk to 10 am."
+          }
+        ],
+        "actions": [
+          {
+            "id": "approve",
+            "label": "Approve"
+          }
+        ]
+      },
+      "input": {
+        "approved": true
+      }
+    },
+    "altered": {
+      "surface": {
+        "title": "Approve the weather plan",
+        "blocks": [
+          {
+            "type": "text",
+            "text": "Rain after 3 pm; move the walk to 10 am."
+          }
+        ],
+        "actions": [
+          {
+            "id": "approve",
+            "label": "Approve"
+          }
+        ]
+      },
+      "input": {
+        "approved": false
+      }
+    }
+  },
+  "receipt_v1": {
+    "jws": {
+      "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+      "byte_length": 1111
+    },
+    "issuer": "https://api.sess.example",
+    "audience": "wks_corpus",
+    "claims_digest": "sha256:87f1a694e77c9b8946f2989c78668869944d5c973d833a1a020e6edb647f46d0",
+    "valid_at": "2026-01-20T00:00:00.000Z",
+    "expired_at": "2026-03-01T00:00:00.000Z"
+  },
+  "core_text": "{\"accepted_at\":\"2026-01-05T09:30:00.250Z\",\"bindings\":{\"capability\":null,\"owner\":null,\"target\":null},\"event_id\":\"evt_corpus_1\",\"issuer\":\"https://api.sess.example\",\"purpose\":\"sess.receipt-custody\",\"receipt\":{\"byte_length\":1111,\"digest\":\"sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437\",\"typ\":\"sess-receipt+jwt\",\"version\":1},\"type\":\"sess.archival-core\",\"version\":1,\"workspace_id\":\"wks_corpus\",\"workspace_sequence\":1}",
+  "cases": [
+    {
+      "name": "positive: content disclosed, trusted context",
+      "vector": {
+        "input": {
+          "sha256": "sha256:501d6a492ebfdcf811168924281c28e59b42b13a7204c103ffb743fc862793ab",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z",
+        "content": "disclosed",
+        "context": {
+          "issuer": "https://api.sess.example",
+          "audience": "wks_corpus",
+          "workspace_id": "wks_corpus",
+          "session_id": "ses_corpus_1",
+          "event_id": "evt_corpus_1",
+          "surface_revision": 1,
+          "action_id": "approve"
+        }
+      },
+      "expect": {
+        "signature": "valid:verified",
+        "key_trust": "valid:trusted",
+        "witness": "pending:unwitnessed",
+        "verified": true,
+        "contents": "valid:verified",
+        "context": "valid:verified",
+        "live_expiry": "valid:unexpired",
+        "messages": ["signature_verified", "contents_verified"]
+      }
+    },
+    {
+      "name": "positive: no content, no context",
+      "vector": {
+        "input": {
+          "sha256": "sha256:501d6a492ebfdcf811168924281c28e59b42b13a7204c103ffb743fc862793ab",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "valid:verified",
+        "key_trust": "valid:trusted",
+        "witness": "pending:unwitnessed",
+        "verified": true,
+        "contents": "unverifiable:content_unavailable",
+        "context": "unverifiable:unchecked",
+        "live_expiry": "valid:unexpired",
+        "messages": ["signature_verified", "contents_unavailable", "application_context_unchecked"]
+      }
+    },
+    {
+      "name": "positive: expired for live use",
+      "vector": {
+        "input": {
+          "sha256": "sha256:501d6a492ebfdcf811168924281c28e59b42b13a7204c103ffb743fc862793ab",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-03-01T00:00:00.000Z",
+        "content": "disclosed",
+        "context": {
+          "issuer": "https://api.sess.example",
+          "audience": "wks_corpus",
+          "workspace_id": "wks_corpus",
+          "session_id": "ses_corpus_1",
+          "event_id": "evt_corpus_1",
+          "surface_revision": 1,
+          "action_id": "approve"
+        }
+      },
+      "expect": {
+        "signature": "valid:verified",
+        "key_trust": "valid:trusted",
+        "witness": "pending:unwitnessed",
+        "verified": true,
+        "contents": "valid:verified",
+        "context": "valid:verified",
+        "live_expiry": "invalid:expired",
+        "messages": ["signature_verified", "contents_verified"]
+      }
+    },
+    {
+      "name": "content mismatch",
+      "vector": {
+        "input": {
+          "sha256": "sha256:501d6a492ebfdcf811168924281c28e59b42b13a7204c103ffb743fc862793ab",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z",
+        "content": "altered",
+        "context": {
+          "issuer": "https://api.sess.example",
+          "audience": "wks_corpus",
+          "workspace_id": "wks_corpus",
+          "session_id": "ses_corpus_1",
+          "event_id": "evt_corpus_1",
+          "surface_revision": 1,
+          "action_id": "approve"
+        }
+      },
+      "expect": {
+        "signature": "valid:verified",
+        "key_trust": "valid:trusted",
+        "witness": "pending:unwitnessed",
+        "verified": false,
+        "contents": "invalid:content_mismatch",
+        "context": "valid:verified",
+        "live_expiry": "valid:unexpired",
+        "messages": []
+      }
+    },
+    {
+      "name": "context mismatch",
+      "vector": {
+        "input": {
+          "sha256": "sha256:501d6a492ebfdcf811168924281c28e59b42b13a7204c103ffb743fc862793ab",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z",
+        "context": {
+          "issuer": "https://api.sess.example",
+          "audience": "wks_other",
+          "workspace_id": "wks_corpus",
+          "session_id": "ses_corpus_1",
+          "event_id": "evt_corpus_1",
+          "surface_revision": 1,
+          "action_id": "approve"
+        }
+      },
+      "expect": {
+        "signature": "valid:verified",
+        "key_trust": "valid:trusted",
+        "witness": "pending:unwitnessed",
+        "verified": false,
+        "contents": "unverifiable:content_unavailable",
+        "context": "invalid:mismatch",
+        "live_expiry": "valid:unexpired",
+        "messages": []
+      }
+    },
+    {
+      "name": "tampered core",
+      "vector": {
+        "input": {
+          "sha256": "sha256:4f15c213e9362c16696610ba08ea8688c13c7a07b22a49b1596f673a2ac256ac",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:6a96d62bccad264ec6952ee527556e1834f25545268da38e28c594232b4e91f1",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:core_signature",
+        "key_trust": "valid:trusted",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "wrong signing domain (plain JCS signature)",
+      "vector": {
+        "input": {
+          "sha256": "sha256:6929b086110317cb64f85f7ff1bb0caecd0c0f0c959ffea53fb54f836e373bf5",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:core_signature",
+        "key_trust": "valid:trusted",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "receipt signature presented as core signature",
+      "vector": {
+        "input": {
+          "sha256": "sha256:3aa1cfbb8be71e9b149bb7886ab7a4d39676a30bfb32205d20e3ae69524adeba",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:core_signature",
+        "key_trust": "valid:trusted",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "wrong core type",
+      "vector": {
+        "input": {
+          "sha256": "sha256:377966779ea18456dca234ce75b42df0c23725cb73671f3ba00d32ac767491e5",
+          "byte_length": 1835
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:4cc215818c96a548f87f9409ae6ef4a2944dd2e74263041c618deb6010d7718d",
+          "byte_length": 431
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:wrong_type",
+        "key_trust": "unverifiable:not_evaluated",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "wrong envelope type",
+      "vector": {
+        "input": {
+          "sha256": "sha256:e4e2bc5f6f8a79616f72b8122ab18c726a956395fc1f9bb21cedd4acde19f85a",
+          "byte_length": 1839
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:wrong_type",
+        "key_trust": "unverifiable:not_evaluated",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "unknown core version",
+      "vector": {
+        "input": {
+          "sha256": "sha256:a07dfcbc810e5ce965e435eb59812bde6602183e4eb79eda2af59697ca46be4f",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:531b0026d829419bba88590af19903a55b70c939de2bb571d014a98bbf7dbd87",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "unsupported:unknown_version",
+        "key_trust": "unverifiable:not_evaluated",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "unknown envelope version",
+      "vector": {
+        "input": {
+          "sha256": "sha256:61c51501a7ab3a0c5fcc46851fbf32b64abb08cc02eaf8d21a91a6a49b14af42",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "unsupported:unknown_version",
+        "key_trust": "unverifiable:not_evaluated",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "unsupported core signature algorithm",
+      "vector": {
+        "input": {
+          "sha256": "sha256:886ac3e28af9cf996a3952f0d7d786bee122719f39005c82cd3b1728d6e8e3fd",
+          "byte_length": 1839
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "unsupported:unsupported_algorithm",
+        "key_trust": "unverifiable:not_evaluated",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "malformed: missing evidence member",
+      "vector": {
+        "input": {
+          "sha256": "sha256:49a58d6e84228c55979ab6c40bdebf5366d7b43bab418f78363173dcbcd0d2a8",
+          "byte_length": 1827
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:malformed",
+        "key_trust": "unverifiable:not_evaluated",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "malformed: extra core member",
+      "vector": {
+        "input": {
+          "sha256": "sha256:c4c52dfe5443c1a19631940d152541e4676ade5a4fd925f06276b61cb887dce7",
+          "byte_length": 1858
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:317d2a4297cd3e59d21f52e5b147b978d45d8347cfd9458d3ec99f65cedf17f5",
+          "byte_length": 454
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:malformed",
+        "key_trust": "unverifiable:not_evaluated",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "malformed: a receipt-v1 JWS is not an envelope",
+      "vector": {
+        "input": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:malformed",
+        "key_trust": "unverifiable:not_evaluated",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "oversized: the envelope text padded past the bound",
+      "vector": {
+        "input": {
+          "sha256": "sha256:501d6a492ebfdcf811168924281c28e59b42b13a7204c103ffb743fc862793ab",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "padding": 65536,
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:oversized",
+        "key_trust": "unverifiable:not_evaluated",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "mismatched original digest: the core names other receipt bytes",
+      "vector": {
+        "input": {
+          "sha256": "sha256:9584317f88f965aad6b173c0725140fd0cc6b03a37bfeb2a85de835322a1759b",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:7d7d35ef2fb667dad11f3815cdac7771f6a40ac28d9ba35a1f7157f7d5c73d50",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:receipt_digest_mismatch",
+        "key_trust": "valid:trusted",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "receipt signature does not verify",
+      "vector": {
+        "input": {
+          "sha256": "sha256:f8522a31af44e10fc165cfbea1e47c70274b8b8f7ddbbd4e31b23121057d4181",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:71446f0df0d4316ecb0c95eb22967c7a7d03de0ad318c35b3f403156be8da112",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:b14ca4f3e0c6fe318e141b4126a91b9bb0ddd819c086c74419c1fceff818802a",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:receipt_signature",
+        "key_trust": "valid:trusted",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "core signed by an untrusted key",
+      "vector": {
+        "input": {
+          "sha256": "sha256:b58df77fb173ec4c80078c55f2472855fd6e700da4ddc9085a4c1ea98990a1fe",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "invalid:core_signature",
+        "key_trust": "valid:trusted",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "unknown kid",
+      "vector": {
+        "input": {
+          "sha256": "sha256:1db80a8e8f6d48127ac08b2579335c2548bdeeecbbe540350e5891c352f3225c",
+          "byte_length": 1841
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "unverifiable:untrusted_key",
+        "key_trust": "unverifiable:unknown_kid",
+        "contents": "unverifiable:signature_unverified",
+        "context": "unverifiable:signature_unverified",
+        "witness": "unverifiable:signature_unverified",
+        "live_expiry": "unverifiable:signature_unverified",
+        "verified": false,
+        "messages": []
+      }
+    },
+    {
+      "name": "witness evidence of an unsupported type",
+      "vector": {
+        "input": {
+          "sha256": "sha256:1a1375d0e05acc173d55c3dd1cc19140ff5c46962a3ccbe2afc193971aa7d992",
+          "byte_length": 1865
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "valid:verified",
+        "key_trust": "valid:trusted",
+        "witness": "unsupported:unsupported_evidence",
+        "verified": true,
+        "contents": "unverifiable:content_unavailable",
+        "context": "unverifiable:unchecked",
+        "live_expiry": "valid:unexpired",
+        "messages": ["signature_verified", "contents_unavailable", "application_context_unchecked"]
+      }
+    },
+    {
+      "name": "malformed witness evidence",
+      "vector": {
+        "input": {
+          "sha256": "sha256:db21bad7ca62a0431d22232ed41d136a73f551c833de9ed92b6b7b89df158b25",
+          "byte_length": 1855
+        },
+        "receipt": {
+          "sha256": "sha256:fe67a0b20a55c31f97fb823dfef35b173e19667fee58e56b83a4d2c3dba52437",
+          "byte_length": 1111
+        },
+        "core": {
+          "sha256": "sha256:7465be08345ba9dbc02005ebb853a776e82e26b07b359da8d8604755c9682d62",
+          "byte_length": 437
+        }
+      },
+      "options": {
+        "now": "2026-01-20T00:00:00.000Z"
+      },
+      "expect": {
+        "signature": "valid:verified",
+        "key_trust": "valid:trusted",
+        "witness": "invalid:malformed_evidence",
+        "verified": true,
+        "contents": "unverifiable:content_unavailable",
+        "context": "unverifiable:unchecked",
+        "live_expiry": "valid:unexpired",
+        "messages": ["signature_verified", "contents_unavailable", "application_context_unchecked"]
+      }
+    }
+  ]
+}

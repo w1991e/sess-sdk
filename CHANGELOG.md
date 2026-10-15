@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+Not part of any published or prepared version. `0.1.0-rc.5` as prepared does not contain it.
+
+- `@sess.si/sdk/archival`, a new subpath with the successor archival verifier: `verifyArchivalEnvelope`
+  checks an archival envelope (the exact original receipt, the issuer's signed archival core and any
+  witness evidence) offline against the receipt keys and witness anchors you trust, and reports
+  independent dimensions (signature, contents, context, witness, key trust, live expiry) with the
+  Sess core's reason codes. `presentArchivalVerification` maps them to the user-facing messages.
+  `parseTrustedRoot` and `parseWitnessKeySet` read a Sigstore `trusted_root.json` and the issuer's
+  witness key set into anchors. `verifyDecisionReceipt`, `verifyDecisionBundle` and receipt-v1
+  behaviour are unchanged.
+- `sess verify --archival <envelope.json> --keys <jwks.json>` with optional `--issuer`, context,
+  `--content`, `--witness-root` and `--witness-keys`; exits 0 verified, 1 not verified, 2 usage error,
+  and makes no network calls.
+- Verbatim archival-core-v1 and witness-evidence-v1 specifications, the archival-v1 corpus, the
+  witness renewal vector and the recorded Sigstore staging run in the source repository, pinned by
+  SHA-256 to one Sess commit and checked by `npm run check:spec`.
+
 ## 0.1.0-rc.5 — 2026-10-15
 
 - `verifyDecisionBundle` in `@sess.si/sdk/receipts`: offline verification of a bundle-v1 decision

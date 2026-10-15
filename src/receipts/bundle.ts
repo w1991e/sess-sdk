@@ -148,7 +148,7 @@ export interface DecisionBundleVerification {
   receipt: VerifiedReceiptSummary | null;
 }
 
-interface ReceiptV1Claims {
+export interface ReceiptV1Claims {
   sess_receipt: 1;
   iss: string;
   aud: string;
@@ -171,7 +171,7 @@ interface ReceiptV1Claims {
 // receipt-v1 §6, in its order and with its codes
 // ------------------------------------------------------------------------------------------------
 
-class ReceiptV1Failure extends Error {
+export class ReceiptV1Failure extends Error {
   readonly code: ReceiptV1Rejection;
   constructor(code: ReceiptV1Rejection) {
     super(code);
@@ -247,7 +247,7 @@ function receiptV1Claims(p: Record<string, unknown>): ReceiptV1Claims {
  * current-time expiry, then the claims and their canonical serialization. Throws ReceiptV1Failure
  * with the first failing code; any other error means the receipt could not be read at all.
  */
-async function verifyReceiptV1(
+export async function verifyReceiptV1(
   jws: string,
   keys: ReceiptKeySet,
   options: { issuer: string; audience: string; now: Date },
