@@ -26,7 +26,7 @@ OpenClaw adapters and CI pack the current repository root with
 equal the pin. The Node quickstart check instead installs the published version from the npm registry
 and accepts it only if npm's recorded integrity equals the pinned SHA-512. `npm run check` ends with `check:pin`. It fails if the packed root differs from the pin,
 or if any consumer (adapter dependency, lockfile entry and integrity, MCP compatibility record,
-quickstart dependency) disagrees with it.
+quickstart dependency, `create-agent` starter template dependency) disagrees with it.
 
 Changing a packed file (for example `NOTICE`, `LICENSE`, `README.md`, `CHANGELOG.md`, `package.json`
 or `src/`) therefore requires a deliberate repin:
@@ -34,7 +34,8 @@ or `src/`) therefore requires a deliberate repin:
 ```sh
 npm run pin:update   # build + pack the root, rewrite release/sdk-candidate.json and every consumer
 npm run check        # root checks, including check:pin
-# then: adapters/mcp `npm run setup && npm run check`; the OpenClaw checks; the quickstart check
+# then: adapters/mcp `npm run setup && npm run check`; the OpenClaw checks; the quickstart check;
+# node create-agent/scripts/clean-install-check.mjs
 ```
 
 `pin:update` refuses if the SDK's runtime dependency set changed. That needs a real regeneration of

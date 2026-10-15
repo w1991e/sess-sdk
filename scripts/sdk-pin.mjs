@@ -9,7 +9,7 @@
 //   node scripts/sdk-pin.mjs verify
 //       Part of `npm run check` (after check:package): the packed root bytes recorded in
 //       .artifacts/package-result.json equal the pin, and every consumer (adapter manifests,
-//       lockfiles, compatibility records, quickstart) agrees with it. Any packed-file change
+//       lockfiles, compatibility records, quickstart, create-agent starter) agrees with it. Any packed-file change
 //       therefore fails until the pin is deliberately updated.
 //   node scripts/sdk-pin.mjs update            (npm run pin:update)
 //       Deliberate repin after a reviewed packed-file change: builds and packs the current root,
@@ -109,6 +109,8 @@ export function pack({ out, doBuild = false }) {
 const MCP = join(root, 'adapters', 'mcp');
 const OPENCLAW = join(root, 'adapters', 'openclaw');
 const QUICKSTART = join(root, 'examples', 'quickstart-node');
+// The starter agent written by `npm create @sess.si/agent` (and the public starter template).
+const STARTER = join(root, 'create-agent', 'template');
 const SDK_DEPENDENCY_FIELDS = ['dependencies', 'engines', 'license'];
 
 /** Returns a list of drift descriptions (empty when every consumer agrees with the pin). */
@@ -122,6 +124,7 @@ export function consumerDrift(pin = readPin()) {
     ['adapters/mcp', MCP],
     ['adapters/openclaw', OPENCLAW],
     ['examples/quickstart-node', QUICKSTART],
+    ['create-agent/template', STARTER],
   ]) {
     expect(
       `${label} package.json dependency`,
@@ -171,7 +174,7 @@ export function verify() {
   if (drift.length)
     refuse(`consumers disagree with the pin (run npm run pin:update):\n  ${drift.join('\n  ')}`);
   log(
-    `root bytes and ${['mcp', 'openclaw', 'quickstart'].length} consumers match ${pin.name}@${pin.version} (sha256 ${pin.sha256})`,
+    `root bytes and ${['mcp', 'openclaw', 'quickstart', 'starter'].length} consumers match ${pin.name}@${pin.version} (sha256 ${pin.sha256})`,
   );
 }
 
@@ -201,7 +204,7 @@ export function update() {
     rmSync(packed.work, { recursive: true, force: true });
   }
   writeJson(PIN_PATH, pin);
-  for (const dir of [MCP, OPENCLAW, QUICKSTART]) {
+  for (const dir of [MCP, OPENCLAW, QUICKSTART, STARTER]) {
     const path = join(dir, 'package.json');
     const text = readFileSync(path, 'utf8');
     const current = readJson(path).dependencies?.[pin.name];
@@ -247,14 +250,14 @@ export function update() {
       '--write',
       PIN_PATH,
       compatibilityPath,
-      ...[MCP, OPENCLAW, QUICKSTART].map((dir) => join(dir, 'package.json')),
+      ...[MCP, OPENCLAW, QUICKSTART, STARTER].map((dir) => join(dir, 'package.json')),
     ],
     { cwd: root, stdio: 'ignore' },
   );
   const drift = consumerDrift(pin);
   if (drift.length) refuse(`update left drift:\n  ${drift.join('\n  ')}`);
   log(
-    `pinned ${pin.name}@${pin.version} sha256 ${pin.sha256}; updated MCP, OpenClaw and quickstart. ` +
+    `pinned ${pin.name}@${pin.version} sha256 ${pin.sha256}; updated MCP, OpenClaw, quickstart and starter. ` +
       'Next: review the diff, run npm run check, then npm run setup + npm run check in adapters/mcp and the OpenClaw checks.',
   );
 }

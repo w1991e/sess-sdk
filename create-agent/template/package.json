@@ -1,0 +1,17 @@
+{
+  "name": "sess-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A weekend planner agent: two questions on your phone, a plan on real weather, a verified receipt.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "dependencies": {
+    "@sess.si/sdk": "0.1.0-rc.4"
+  },
+  "scripts": {
+    "start": "node agent.mjs"
+  }
+}
