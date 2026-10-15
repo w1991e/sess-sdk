@@ -51,10 +51,13 @@
     "qualify:claude-code": "node scripts/qualify-claude-code.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.32.1",
+    "@modelcontextprotocol/node": "2.1.1",
+    "@modelcontextprotocol/server": "2.3.1",
     "@sess.si/sdk": "0.1.0-rc.4"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "@types/node": "24.19.2",
     "typescript": "5.9.3",
     "vitest": "5.0.4"
