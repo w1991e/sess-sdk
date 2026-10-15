@@ -291,7 +291,8 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
   };
 
   const handle = async (request: Request): Promise<Response> => {
-    const host = validateHostHeader(request.headers.get('host'), allowedHosts);
+    // Node faces carry the Host header; a fetch-native runtime's URL host is derived from it.
+    const host = validateHostHeader(request.headers.get('host') ?? new URL(request.url).host, allowedHosts);
     if (!host.ok) {
       report('http_rejected', { reason: 'host' });
       return rpcError(403, -32000, 'Forbidden: host not allowed.');

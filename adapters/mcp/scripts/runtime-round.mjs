@@ -66,7 +66,6 @@ try {
     `${install.packed.id} (${install.packed.files.length} files, ${install.packed.size} bytes) + @sess.si/sdk@${JSON.parse(await readFile(join(adapterDir, 'compatibility.json'), 'utf8')).sessSdk.version} ${install.sdkMode.toUpperCase()}`,
   );
   session = await connectStdio({
-    requireFrom: install.consumer,
     binPath: install.binPath,
     cwd: install.consumer,
     env: {

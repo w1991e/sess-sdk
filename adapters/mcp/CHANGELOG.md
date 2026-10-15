@@ -85,3 +85,21 @@
   requires the registry lock and install record and re-reads the registry tarball to compare both
   digests with the pin. CI no longer packs the repository root. The digest-gated candidate path
   remains only for a future unpublished pin. `@sess.si/mcp` itself is still unpublished.
+- MCP library moved from `@modelcontextprotocol/sdk@1.32.1` (MIT) to the v2 packages
+  `@modelcontextprotocol/server@2.3.1` and `@modelcontextprotocol/node@2.1.1` (Apache-2.0, exact
+  pins; NOTICE updated). stdio is unchanged on the wire: the same five tools and
+  `sess-mcp-tools/2` schemas, instructions, tool errors, unsafe-key and unknown-property
+  rejections and the unknown-tool error are byte-identical, still negotiated up to `2025-11-25`.
+  One SDK-level difference: a `tools/call` whose `arguments` is not an object is now `-32602`
+  (was `-32603`). The 1.x library remains a devDependency for the legacy-client tests only.
+- Operations/store seam: `HandleStore` is an interface injected through an explicit operation
+  context (SESS client, store, wait bound). The local stdio composition keeps the environment
+  credential and the per-profile file store (`ProfileHandleStore`, record format 2 unchanged).
+  Hosted records bind to a `GrantBinding` (origin, workspace, principal, client, grant and grant
+  generation); every loaded record is re-checked against the call's authority.
+- `@sess.si/mcp/http`: `createSessMcpHttpHandler`, a stateless Streamable HTTP composition on
+  `createMcpHandler` with its default stateless legacy fallback (2026-07-28 and 2025-era clients
+  on one endpoint). Host/Origin validation, a required `authenticate` hook with RFC 6750
+  challenges, a bounded body, the raw-body unsafe-key guard answered in the request's era, and a
+  per-request deadline. Library only: no bin flag, OAuth server, hosted store or deployment.
+  The package now ships type declarations.

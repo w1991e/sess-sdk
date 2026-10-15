@@ -21,6 +21,10 @@
     "sess-mcp": "dist/bin.js"
   },
   "exports": {
+    "./http": {
+      "types": "./dist/http.d.ts",
+      "default": "./dist/http.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

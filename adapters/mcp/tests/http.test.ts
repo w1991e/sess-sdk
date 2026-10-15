@@ -1,6 +1,6 @@
 // @acceptance P2-14 (groundwork): stateless HTTP composition and the hosted operations/store seam.
 import { afterEach, describe, expect, it } from 'vitest';
-import { createSessMcpHttpHandler } from '../src/http.js';
+import { AdapterError, RECORD_SCHEMA, assertBindingAccess, createSessMcpHttpHandler, decodeRecord, grantBinding } from '../src/http.js';
 import { TOOLS } from '../src/tools.js';
 import { ANSWER_1, FakeSess, ORIGIN, ROUND_1 } from './helpers.js';
 import {
@@ -80,8 +80,11 @@ describe('[P2-14] stateless HTTP: declared revisions and the five tools', () => 
     });
     expect((done.structuredContent as any).interaction.state).toBe('completed');
 
-    // The SESS API saw only the principal's SESS credential, never the MCP bearer token.
-    expect(new Set(fake.calls.map((c) => c.authorization))).toEqual(new Set(['Bearer sess-cred-alice']));
+    // The SESS API saw only the principal's SESS credential, never the MCP bearer token. The one
+    // unauthenticated call is the public receipt-key fetch.
+    for (const c of fake.calls)
+      if (c.path === '/.well-known/sess-receipt-keys.json') expect(c.authorization).toBeNull();
+      else expect(c.authorization).toBe('Bearer sess-cred-alice');
     // The human URL went to the agent only: never into diagnostics.
     const log = h.lines.join('\n');
     expect(log).not.toContain(fake.humanUrl);
@@ -271,7 +274,7 @@ describe('[P2-14] handle isolation, refresh, revocation and recovery through the
       const h = await start({ naive });
       const handle = await aliceHandle(h);
       const fake = h.fakes['sess-cred-alice']!;
-      const eventId = fake.answer(ANSWER_1.data);
+      const eventId = fake.answerSigned(ANSWER_1.data, ANSWER_1.action_id);
       const before = h.backend.rows.get(handle);
       const aliceCalls = fake.calls.length;
       for (const token of ['mcp-token-bob', 'mcp-token-carol', 'mcp-token-alice-host-two']) {
@@ -388,5 +391,63 @@ describe('[P2-14] handle isolation, refresh, revocation and recovery through the
     expect(toolPayload(result).error.code).toBe('STATE_STORE_ERROR');
     expect(h.fakes['sess-cred-alice']!.calls).toHaveLength(0);
     expect(backend.rows.size).toBe(0);
+  });
+});
+
+describe('[P2-14] grant binding primitives', () => {
+  const authority = {
+    origin: ORIGIN,
+    workspaceId: 'wks_synthetic',
+    principalId: 'usr_alice',
+    clientId: 'https://host-one.test/client.json',
+    grantId: 'grt_alice_one',
+    grantGeneration: 'gen_1',
+  };
+
+  it('derives a stable, secret-free generation digest and refuses malformed identifiers', () => {
+    const a = grantBinding(authority);
+    expect(a.credentialGeneration).toMatch(/^cg1_[A-Za-z0-9_-]{22}$/);
+    expect(grantBinding({ ...authority }).credentialGeneration).toBe(a.credentialGeneration);
+    expect(grantBinding({ ...authority, grantGeneration: 'gen_2' }).credentialGeneration).not.toBe(
+      a.credentialGeneration,
+    );
+    expect(() => grantBinding({ ...authority, workspaceId: 'wks with space' })).toThrow(TypeError);
+    expect(() => grantBinding({ ...authority, principalId: '' })).toThrow(TypeError);
+    expect(() => grantBinding({ ...authority, origin: 'ftp://x' })).toThrow(TypeError);
+  });
+
+  it('decodeRecord refuses a hosted record whose generation digest does not match its fields', () => {
+    const binding = grantBinding(authority);
+    const record = {
+      schema: RECORD_SCHEMA,
+      handle: 'sh_AAAAAAAAAAAAAAAAAAAAAA',
+      binding,
+      state: 'create_intent',
+      createdAt: 'x',
+      updatedAt: 'x',
+      requestDigest: '0'.repeat(64),
+      revision: 1,
+      processed: [],
+    };
+    expect(decodeRecord(record, record.handle).binding).toEqual(binding);
+    const forged = { ...record, binding: { ...binding, principalId: 'usr_bob' } };
+    expect(() => decodeRecord(forged, record.handle)).toThrow(/unreadable or inconsistent/);
+  });
+
+  it('access: other authority is an unknown handle, other generation is a binding mismatch', () => {
+    const own = grantBinding(authority);
+    const code = (record: ReturnType<typeof grantBinding>) => {
+      try {
+        assertBindingAccess(record, own);
+        return 'ok';
+      } catch (error) {
+        return (error as AdapterError).code;
+      }
+    };
+    expect(code(own)).toBe('ok');
+    expect(code(grantBinding({ ...authority, principalId: 'usr_bob' }))).toBe('HANDLE_NOT_FOUND');
+    expect(code(grantBinding({ ...authority, workspaceId: 'wks_other' }))).toBe('HANDLE_NOT_FOUND');
+    expect(code(grantBinding({ ...authority, clientId: 'cli_two' }))).toBe('HANDLE_NOT_FOUND');
+    expect(code(grantBinding({ ...authority, grantGeneration: 'gen_2' }))).toBe('BINDING_MISMATCH');
   });
 });
