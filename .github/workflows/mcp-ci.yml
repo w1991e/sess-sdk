@@ -37,12 +37,15 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             adapters/mcp/package-lock.json
-      # The documented maintainer path from a clean clone: build and pack the SDK root, accept it only
-      # if its bytes equal release/sdk-candidate.json, then npm ci.
-      - name: Maintainer setup (pinned SDK candidate from the root, npm ci)
+      # The documented maintainer path from a clean clone: npm ci installs the published
+      # @sess.si/sdk registry tarball locked with the pinned integrity. It refuses a candidate-mode
+      # lock; the repository root is not built or packed.
+      - name: Maintainer setup (npm ci, registry @sess.si/sdk only)
         working-directory: adapters/mcp
         run: npm run setup
-      - name: Candidate digest, build, typecheck, tests and packed consumer
+      # npm run check starts with sdk:verify: lock and installed record are the registry tarball
+      # with the pinned integrity, and the re-read registry tarball's SHA-256/SHA-512 equal the pin.
+      - name: Registry SDK identity and digests, build, typecheck, tests and packed consumer
         working-directory: adapters/mcp
         run: npm run check
       - name: Audit production dependencies

@@ -4,10 +4,9 @@ A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent a
 a hosted SESS form and receive a receipt-verified answer. The agent gets the private link
 immediately, the person answers on any device, and the agent continues on the same Session.
 
-**Candidate status:** `0.1.0-rc.1` is unpublished, and so is its pinned SDK dependency (the exact
-version in [package.json](package.json), recorded with its digest in the repository's
-`release/sdk-candidate.json`).
-`npm install @sess.si/mcp` and `npx @sess.si/mcp` do **not** work yet. Everything below marked
+**Candidate status:** `@sess.si/mcp@0.1.0-rc.1` is **not published yet**, so
+`npm install @sess.si/mcp` and `npx @sess.si/mcp` do **not** work yet. Its SDK dependency,
+`@sess.si/sdk@0.1.0-rc.4`, is published on npm (dist-tag `next`) and installs from the registry. Everything below marked
 _tested_ was run from a packed, installed tarball; everything marked _untested_ is the intended
 form after publication. See [compatibility.json](compatibility.json) for the exact tuple.
 
@@ -221,25 +220,30 @@ The tool error names the state (`RECOVERY_BLOCKED` with a reason, `CREATE_OUTCOM
 The adapter is an independent package with its own lockfile. `package.json` always declares the
 exact SDK version from the repository's single pin, `release/sdk-candidate.json` (name, version,
 filename, SHA-256, SHA-512). `package-lock.json` is a maintainer file only; npm never ships it to
-consumers. The real hold is that the SDK is not published yet: until then the lock resolves the SDK
-to a local, gitignored **candidate** tarball in `.candidate/`. npm does not enforce lock integrity for
-`file:` tarballs, so `scripts/sdk-candidate.mjs` packs the current repository root with
-`scripts/sdk-pin.mjs pack` and accepts the tarball only if its digests equal the pin.
-`compatibility.json` mirrors the pin; `npm run pin:update` at the root keeps both, the lockfile
-and the dependency in step after a deliberate change, and the root `npm run check` fails on drift.
-
-From a clean clone, one command prepares everything. A plain `npm ci` without it fails because
-`.candidate/` does not exist yet.
+consumers. The lock resolves the SDK to the genuine npm registry tarball
+(`https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.0-rc.4.tgz`, dist-tag `next`) with the pinned
+integrity, so no local SDK build or pack is needed. `compatibility.json` mirrors the pin;
+`npm run pin:update` at the root keeps both, the lockfile and the dependency in step after a
+deliberate change, and the root `npm run check` fails on drift.
 
 ```sh
 cd adapters/mcp
-npm run setup    # packs the SDK root, accepts it only by the pinned digest, then npm ci
-npm run check    # digest, build, typecheck, unit tests, packed-consumer check
+npm run setup    # npm ci from the registry; refuses a lock that is not the registry SDK
+npm run check    # SDK identity and digests, build, typecheck, unit tests, packed-consumer check
 ```
 
-### Switching to the published SDK
+`npm run check` starts with `npm run sdk:verify`: the lock and the installed SDK must be the
+registry tarball with the pinned integrity, and the registry tarball is read again and its SHA-256
+and SHA-512 compared with the pin. Packed and loopback installs of `@sess.si/mcp` itself are
+candidate evidence; they do not qualify a public registry install of the adapter.
 
-After the pinned SDK version is genuinely published:
+### A future, not yet published SDK pin
+
+The digest-gated candidate path is kept only for a pin that is not on npm yet:
+`npm run candidate:prepare` packs the repository root with `scripts/sdk-pin.mjs pack` and accepts
+the tarball into the gitignored `.candidate/` only if its digests equal the pin (npm does not
+enforce lock integrity for `file:` tarballs), and `npm run candidate:verify` accepts either mode.
+`npm run setup`, `npm run check`, CI and releases refuse candidate mode. Once that pin is published:
 
 ```sh
 npm run sdk:switch-to-registry            # dry run: confirms the registry integrity equals the pinned one
@@ -250,10 +254,7 @@ npm run check
 `--apply` runs `npm install --save-exact --ignore-scripts @sess.si/sdk@<pinned version>`, requires
 the regenerated lock entry to be the registry tarball with the pinned integrity, downloads the
 published tarball again and compares its SHA-256 with the pin, and records the published status in
-`compatibility.json`. It refuses any other bytes. Review and commit the lockfile change; no other
-step is needed (`verify`, the packed check and CI accept either mode). Until then the dry run exits
-with "not available from the registry yet" and changes nothing. Packed and loopback installs are
-candidate evidence; they do not qualify a public registry install.
+`compatibility.json`. It refuses any other bytes. Review and commit the lockfile change.
 
 `npm run runtime-round` (opt-in, `SESS_MCP_RUNTIME_ROUND=1`) drives the packed, installed server
 through one request → answer → complete round against a local isolated SESS runtime. It is not run
