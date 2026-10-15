@@ -226,13 +226,23 @@ The hosting runtime supplies the authority; this package never decides it:
   operations re-check every loaded record, whatever the store does. The durable hosted store is
   not in this package.
 
-In front of the SDK entry: a `Host` allowlist (required), an exact `Origin` allowlist (requests
-without `Origin`, as non-browser clients send them, are accepted), a bounded body (default
-256 KiB, `413`; non-JSON `415`), the raw-body unsafe-key guard answered in the request's protocol
-era, and a per-request deadline (default 60 s) that ends an in-flight `sess_response` wait as
-`needs_resume`. A create, publish or complete already sent is never abandoned mid-flight. The
-human link is returned to the agent in the tool result exactly as over stdio and never appears in
-diagnostics.
+In front of the SDK entry, in this order on both faces:
+
+1. A header-only preflight before any body byte is read: the `Host` allowlist (required), an
+   exact `Origin` allowlist (requests without `Origin`, as non-browser clients send them, are
+   accepted), then exactly one `authenticate` call and the scope check. A rejection is answered
+   at once, even while the client is still sending; the Node face then closes the connection.
+2. A bounded body (default 256 KiB: a larger declared `Content-Length` or streamed body gets
+   `413`; non-JSON gets `415` from the SDK) read under the request deadline.
+3. The raw-body unsafe-key guard, answered in the request's protocol era.
+
+The deadline (`requestTimeoutMs`, default 60 s) is absolute from the moment the request enters
+the handler. A body that has not arrived by then gets `408` and reading stops (the Node face
+closes the connection); an `authenticate` hook that has not answered gets `503`. During tool
+execution the same deadline ends an in-flight `sess_response` wait as `needs_resume`; a create,
+publish or complete already sent is never abandoned mid-flight. The timer is cleared when the
+response completes or fails, or when the client disconnects. The human link is returned to the
+agent in the tool result exactly as over stdio and never appears in diagnostics.
 
 ## Resolving a blocked or unconfirmed interaction (owner procedure)
 

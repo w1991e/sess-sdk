@@ -103,3 +103,9 @@
   challenges, a bounded body, the raw-body unsafe-key guard answered in the request's era, and a
   per-request deadline. Library only: no bin flag, OAuth server, hosted store or deployment.
   The package now ships type declarations.
+- HTTP-01 (review of the HTTP composition): Host, Origin and `authenticate` now run on the
+  headers before any body byte is read, on the Node face as well as the fetch face (the Node face
+  no longer lets the SDK adapter buffer the body first), and `authenticate` runs exactly once per
+  request. The request deadline starts at entry and bounds `authenticate` (`503`) and body
+  ingestion (`408`; the Node face closes the connection); its timer is cleared on completion,
+  error and disconnect. Tool-execution deadline semantics are unchanged.

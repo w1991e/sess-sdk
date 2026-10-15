@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { toNodeHandler, type NodeMcpRequestHandler } from '@modelcontextprotocol/node';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { Readable } from 'node:stream';
+import { toNodeHandler } from '@modelcontextprotocol/node';
 import {
   SERVER_INFO_META_KEY,
   createMcpHandler,
@@ -92,10 +94,12 @@ export interface SessMcpHttpHandlerOptions {
   /** Bounded body size in bytes (default 256 KiB). */
   maxBodyBytes?: number;
   /**
-   * Per-request deadline in milliseconds (default 60 s). When it passes, an in-flight
-   * sess_response wait or read ends as `needs_resume`. A create, publish or complete already sent
-   * is never abandoned mid-flight (its outcome would become unknown); the SESS client's own
-   * timeouts bound those.
+   * Absolute per-request deadline in milliseconds (default 60 s), started when the request
+   * enters either face. It bounds `authenticate` (503 when exceeded) and body ingestion (`408`,
+   * reading stops; the Node face closes the connection). During tool execution it ends an in-flight
+   * sess_response wait or read as `needs_resume`. A create, publish or complete already sent is
+   * never abandoned mid-flight (its outcome would become unknown); the SESS client's own timeouts
+   * bound those. The timer is cleared when the response completes, fails or the peer disconnects.
    */
   requestTimeoutMs?: number;
   /** Upper bound and default for one sess_response wait (default and maximum 45 s). */
@@ -110,8 +114,11 @@ export interface SessMcpHttpHandlerOptions {
 export interface SessMcpHttpHandler {
   /** Web-standard face: serves one HTTP request. */
   fetch(request: Request): Promise<Response>;
-  /** `node:http` face (`(req, res)`), built with `@modelcontextprotocol/node`. */
-  node: NodeMcpRequestHandler;
+  /**
+   * `node:http` face. Host, Origin and authentication run on the headers before any body byte is
+   * read; the bounded body is then replayed through `@modelcontextprotocol/node`'s adapter.
+   */
+  node: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
   close(): Promise<void>;
 }
 
@@ -304,33 +311,54 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
     return answers.length ? json(200, answers) : new Response(null, { status: 202 });
   };
 
-  const handle = async (request: Request): Promise<Response> => {
-    // Node faces carry the Host header; a fetch-native runtime's URL host is derived from it.
-    const host = validateHostHeader(request.headers.get('host') ?? new URL(request.url).host, allowedHosts);
-    if (!host.ok) {
+  /**
+   * Header-only preflight, run before any body byte is read: Host, Origin, then exactly one
+   * `authenticate` call (raced against the request deadline), principal validation and scopes.
+   */
+  const preflight = async (
+    method: string,
+    host: string | null,
+    url: () => string,
+    headers: Headers,
+    deadline: AbortSignal,
+  ): Promise<Preflight> => {
+    const reject = (response: Response): Preflight => ({ kind: 'reject', response });
+    if (!validateHostHeader(host ?? undefined, allowedHosts).ok) {
       report('http_rejected', { reason: 'host' });
-      return rpcError(403, -32000, 'Forbidden: host not allowed.');
+      return reject(rpcError(403, -32000, 'Forbidden: host not allowed.'));
     }
-    const origin = request.headers.get('origin');
+    const origin = headers.get('origin');
     if (origin !== null && origin !== '' && !allowedOrigins.has(origin)) {
       report('http_rejected', { reason: 'origin' });
-      return rpcError(403, -32000, 'Forbidden: origin not allowed.');
+      return reject(rpcError(403, -32000, 'Forbidden: origin not allowed.'));
     }
-    // The hook sees method, URL and headers only; the body stays unread for the guard and the SDK.
-    const view = new Request(request.url, { method: request.method, headers: request.headers });
-    let principal: PrincipalContext | undefined;
+    let view: Request;
     try {
-      principal = await options.authenticate(view);
+      // The hook sees method, URL and headers only; there is no body to read.
+      view = new Request(url(), { method, headers });
+    } catch {
+      report('http_rejected', { reason: 'method' });
+      return reject(rpcError(405, -32000, 'Method not allowed.'));
+    }
+    let outcome: Settled<PrincipalContext | undefined>;
+    try {
+      outcome = await settleWithin(Promise.resolve(options.authenticate(view)), deadline);
     } catch {
       report('http_auth_error');
-      return json(503, {
-        error: 'temporarily_unavailable',
-        error_description: 'Authentication is unavailable.',
-      });
+      return reject(
+        json(503, { error: 'temporarily_unavailable', error_description: 'Authentication is unavailable.' }),
+      );
     }
+    if (!outcome.done) {
+      report('http_auth_error', { reason: 'deadline' });
+      return reject(
+        json(503, { error: 'temporarily_unavailable', error_description: 'Authentication is unavailable.' }),
+      );
+    }
+    const principal = outcome.value;
     if (principal === undefined || principal === null) {
       report('http_rejected', { reason: 'unauthenticated' });
-      return challenge(401, 'invalid_token', 'Authentication required.', request);
+      return reject(challenge(401, 'invalid_token', 'Authentication required.', view));
     }
     let binding: GrantBinding;
     try {
@@ -345,29 +373,36 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
       });
     } catch {
       report('http_principal_invalid');
-      return rpcError(500, -32603, 'Internal server error');
+      return reject(rpcError(500, -32603, 'Internal server error'));
     }
     if (!options.requiredScopes.every((scope) => principal.scopes.includes(scope))) {
       report('http_rejected', { reason: 'insufficient_scope' });
-      return challenge(
-        403,
-        'insufficient_scope',
-        'The authorization does not include the required scope.',
-        request,
+      return reject(
+        challenge(403, 'insufficient_scope', 'The authorization does not include the required scope.', view),
       );
     }
+    return { kind: 'ok', principal, binding };
+  };
+
+  /** The answer for a body that could not be ingested within the bounds. */
+  const ingestFailure = (read: Exclude<BodyRead, { kind: 'ok' }>): Response => {
+    report('http_rejected', { reason: `body_${read.kind}` });
+    if (read.kind === 'too_large')
+      return rpcError(413, -32000, `Payload Too Large: Request body must not exceed ${maxBodyBytes} bytes`);
+    if (read.kind === 'timeout')
+      return rpcError(408, -32000, 'Request Timeout: the request body did not arrive within the deadline.');
+    return rpcError(400, -32700, 'Parse error: the request body could not be read');
+  };
+
+  /**
+   * After preflight and ingestion: the body is complete and in memory. Applies the raw-body
+   * unsafe-key guard and hands the request to the SDK entry under the request's authority.
+   */
+  const dispatch = async (request: Request, pre: Admitted, deadline: AbortSignal): Promise<Response> => {
     let forward = request;
     if (request.method.toUpperCase() === 'POST' && isJsonContentType(request.headers.get('content-type'))) {
-      let read: Awaited<ReturnType<typeof readRequestBody>>;
-      try {
-        read = await readRequestBody(request, maxBodyBytes);
-      } catch {
-        return rpcError(400, -32700, 'Parse error: the request body could not be read');
-      }
-      if (read.tooLarge || read.text === undefined) {
-        report('http_rejected', { reason: 'body_too_large' });
-        return rpcError(413, -32000, `Payload Too Large: Request body must not exceed ${maxBodyBytes} bytes`);
-      }
+      const read = await readRequestBody(request, maxBodyBytes);
+      if (read.tooLarge || read.text === undefined) return ingestFailure({ kind: 'too_large' });
       const headers = new Headers(request.headers);
       headers.delete('content-length');
       headers.delete('transfer-encoding');
@@ -388,21 +423,263 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
       if (parsedOk && (Array.isArray(parsed) ? parsed : [parsed]).some(isUnsafeToolCall))
         return rejectUnsafe(forward, parsed);
     }
-    const scope: RequestScope = { principal, binding, deadline: AbortSignal.timeout(requestTimeoutMs) };
+    const scope: RequestScope = { principal: pre.principal, binding: pre.binding, deadline };
     return requestScope.run(scope, () => mcp.fetch(forward));
   };
 
   const fetch = async (request: Request): Promise<Response> => {
+    const deadline = startDeadline(requestTimeoutMs);
+    const onDisconnect = () => deadline.dispose();
+    request.signal.addEventListener('abort', onDisconnect, { once: true });
+    const done = () => {
+      request.signal.removeEventListener('abort', onDisconnect);
+      deadline.dispose();
+    };
     try {
-      return await handle(request);
+      const pre = await preflight(
+        request.method.toUpperCase(),
+        // A fetch-native runtime may omit Host from the Request; its URL host is derived from it.
+        request.headers.get('host') ?? new URL(request.url).host,
+        () => request.url,
+        request.headers,
+        deadline.signal,
+      );
+      if (pre.kind === 'reject') return settleResponse(pre.response, done);
+      let forward = request;
+      if (
+        request.method.toUpperCase() === 'POST' &&
+        isJsonContentType(request.headers.get('content-type')) &&
+        request.body !== null
+      ) {
+        const reader = request.body.getReader();
+        const read = await ingest(
+          () => reader.read(),
+          () => void reader.cancel().catch(() => undefined),
+          request.headers.get('content-length'),
+          maxBodyBytes,
+          AbortSignal.any([deadline.signal, request.signal]),
+          () => request.signal.aborted,
+        );
+        if (read.kind !== 'ok') return settleResponse(ingestFailure(read), done);
+        const headers = new Headers(request.headers);
+        headers.set('content-length', String(read.bytes.byteLength));
+        headers.delete('transfer-encoding');
+        forward = new Request(request.url, {
+          method: 'POST',
+          headers,
+          body: read.bytes,
+          signal: request.signal,
+        });
+      }
+      return settleResponse(await dispatch(forward, pre, deadline.signal), done);
     } catch {
+      done();
       report('http_internal_error');
       return rpcError(500, -32603, 'Internal server error');
     }
   };
-  const node = toNodeHandler(
-    { fetch: (request) => fetch(request) },
+
+  // The node face reuses the SDK's Node adapter for request conversion and response streaming, fed
+  // with a body this handler has already admitted and bounded.
+  const nodeScope = new AsyncLocalStorage<{ pre: Admitted; deadline: AbortSignal }>();
+  const sdkNode = toNodeHandler(
+    {
+      fetch: async (request) => {
+        const scope = nodeScope.getStore();
+        if (!scope) return rpcError(500, -32603, 'Internal server error');
+        return dispatch(request, scope.pre, scope.deadline);
+      },
+    },
     { maxRequestBodySize: maxBodyBytes, onerror: () => report('http_internal_error') },
   );
+
+  const node = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+    const deadline = startDeadline(requestTimeoutMs);
+    // Completion, error and disconnect all end in 'close'.
+    res.once('close', deadline.dispose);
+    try {
+      const headers = new Headers();
+      for (const [name, value] of Object.entries(req.headers)) {
+        if (value === undefined || name.startsWith(':')) continue;
+        if (Array.isArray(value)) for (const item of value) headers.append(name, item);
+        else headers.set(name, value);
+      }
+      const method = (req.method ?? 'GET').toUpperCase();
+      const host = headers.get('host');
+      const pre = await preflight(
+        method,
+        host,
+        () => new URL(req.url ?? '/', `http://${host}`).href,
+        headers,
+        deadline.signal,
+      );
+      if (pre.kind === 'reject') return await writeEarly(res, pre.response);
+      const replayHeaders: IncomingMessage['headers'] = { ...req.headers };
+      delete replayHeaders['content-length'];
+      delete replayHeaders['transfer-encoding'];
+      let chunks: Uint8Array[] = [];
+      if (method === 'POST' && isJsonContentType(headers.get('content-type'))) {
+        const iterator = req[Symbol.asyncIterator]() as AsyncIterator<Uint8Array>;
+        const read = await ingest(
+          () => iterator.next(),
+          // Reading simply stops; the early answer carries Connection: close.
+          () => undefined,
+          headers.get('content-length'),
+          maxBodyBytes,
+          deadline.signal,
+          () => req.destroyed && !req.complete,
+        );
+        if (read.kind !== 'ok') return await writeEarly(res, ingestFailure(read));
+        chunks = [read.bytes];
+        replayHeaders['content-length'] = String(read.bytes.byteLength);
+      } else if (hasUnreadBody(headers)) {
+        // The SDK answers without this body (415, 405); do not keep the connection for it.
+        res.setHeader('connection', 'close');
+      }
+      const replay = Object.assign(Readable.from(chunks), {
+        method: req.method,
+        url: req.url,
+        headers: replayHeaders,
+      });
+      await nodeScope.run({ pre, deadline: deadline.signal }, () => sdkNode(replay, res));
+    } catch {
+      report('http_internal_error');
+      if (!res.headersSent) await writeEarly(res, rpcError(500, -32603, 'Internal server error'));
+      else res.destroy();
+    }
+  };
+
   return { fetch, node, close: () => mcp.close() };
+}
+
+type Admitted = { principal: PrincipalContext; binding: GrantBinding };
+type Preflight = ({ kind: 'ok' } & Admitted) | { kind: 'reject'; response: Response };
+type Settled<T> = { done: true; value: T } | { done: false };
+type BodyRead =
+  { kind: 'ok'; bytes: Uint8Array } | { kind: 'too_large' } | { kind: 'timeout' } | { kind: 'aborted' };
+
+/** An absolute per-request deadline started at entry; `dispose` clears the timer (idempotent). */
+function startDeadline(ms: number): { signal: AbortSignal; dispose: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, dispose: () => clearTimeout(timer) };
+}
+
+/** Settles with the work's value, or `{ done: false }` once `signal` aborts; rejections pass through. */
+function settleWithin<T>(work: Promise<T>, signal: AbortSignal): Promise<Settled<T>> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      work.catch(() => undefined);
+      resolve({ done: false });
+      return;
+    }
+    const onAbort = () => resolve({ done: false });
+    signal.addEventListener('abort', onAbort, { once: true });
+    work.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve({ done: true, value });
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      },
+    );
+  });
+}
+
+/**
+ * Reads a body chunk by chunk under a byte bound and an abort signal: a declared Content-Length
+ * over the bound is refused before reading; reading stops at the first byte over the bound or when
+ * the signal aborts (deadline: `timeout`, peer gone: `aborted`).
+ */
+async function ingest(
+  next: () => Promise<IteratorResult<Uint8Array>>,
+  stop: () => void,
+  declaredLength: string | null,
+  maxBytes: number,
+  signal: AbortSignal,
+  disconnected: () => boolean,
+): Promise<BodyRead> {
+  if (Number(declaredLength) > maxBytes) {
+    stop();
+    return { kind: 'too_large' };
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    let step: Settled<IteratorResult<Uint8Array>>;
+    try {
+      step = await settleWithin(next(), signal);
+    } catch {
+      return { kind: 'aborted' };
+    }
+    if (!step.done) {
+      stop();
+      return disconnected() ? { kind: 'aborted' } : { kind: 'timeout' };
+    }
+    if (step.value.done) break;
+    const chunk = step.value.value;
+    total += chunk.byteLength;
+    if (total > maxBytes) {
+      stop();
+      return { kind: 'too_large' };
+    }
+    chunks.push(chunk);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return { kind: 'ok', bytes };
+}
+
+function hasUnreadBody(headers: Headers): boolean {
+  const length = headers.get('content-length');
+  return headers.has('transfer-encoding') || (length !== null && length !== '0');
+}
+
+/** Fetch face: runs `done` once the response body is fully delivered, cancelled or failed. */
+function settleResponse(response: Response, done: () => void): Response {
+  if (response.body === null) {
+    done();
+    return response;
+  }
+  const reader = response.body.getReader();
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const step = await reader.read();
+        if (step.done) {
+          done();
+          controller.close();
+        } else controller.enqueue(step.value);
+      } catch (error) {
+        done();
+        controller.error(error);
+      }
+    },
+    cancel(reason) {
+      done();
+      return reader.cancel(reason);
+    },
+  });
+  return new Response(body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+}
+
+/** Node face: a complete answer written before (or instead of) reading the body; closes the connection. */
+async function writeEarly(res: ServerResponse, response: Response): Promise<void> {
+  if (res.headersSent || res.destroyed) return;
+  const headers: Record<string, string> = {};
+  for (const [name, value] of response.headers) headers[name] = value;
+  headers.connection = 'close';
+  const body = Buffer.from(await response.arrayBuffer());
+  res.writeHead(response.status, headers);
+  res.end(body);
 }
