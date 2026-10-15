@@ -31,7 +31,8 @@ disk. [.env.example](.env.example) lists them; the agent does not read that file
 
 ### What the agent does
 
-All of it is in [agent.mjs](agent.mjs), one file.
+The flow is in [agent.mjs](agent.mjs); the weather, the plan rule and their attribution are in
+[weather.mjs](weather.mjs).
 
 1. Creates a SESS Session asking where (a city from a short list) and which day (Saturday or Sunday).
 2. Prints the private link. Anyone holding it can answer, so keep it to yourself.
