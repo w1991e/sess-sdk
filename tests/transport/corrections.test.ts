@@ -4,7 +4,7 @@ import { Sess, type MutationOptions } from '../../src/index.js';
 import { API_KEY, INTERACTION, SESSION_ID, json, session } from '../fixtures/api.js';
 import { fixture, digest, signClaims } from '../security/fixtures.js';
 
-describe('correction regressions S-02/S-03/S-04', () => {
+describe('transport correction regressions', () => {
   it('returns a rejected Promise for a malformed plain-JavaScript mutation key', async () => {
     const fetch = vi.fn();
     const sdk = new Sess({ apiKey: API_KEY, fetch });
