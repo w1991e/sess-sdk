@@ -1,0 +1,19 @@
+{
+  "$comment": "Prepared SDK successor, not yet published: the root packs these bytes. Consumers stay on release/sdk-candidate.json until the registry transition (npm run pin:update after publication).",
+  "name": "@sess.si/sdk",
+  "version": "0.1.0-rc.5",
+  "filename": "sess.si-sdk-0.1.0-rc.5.tgz",
+  "sha256": "1063060c8da4d3981534ceb313df5b0b351f9c20dc36456681b832afc8716785",
+  "integrity": "sha512-6ufQ9fd6xb2oUG9BJCDCgeJSP5Ds0/RW3B9uRerrZOsgEA+e2kPDJqaRVfF5TGT3DOoPbb6vGPujcZTMD0rFKw==",
+  "package": {
+    "license": "Apache-2.0",
+    "dependencies": {
+      "canonicalize": "5.1.0",
+      "jose": "6.2.12",
+      "standardwebhooks": "1.1.1"
+    },
+    "engines": {
+      "node": ">=22.14.0"
+    }
+  }
+}

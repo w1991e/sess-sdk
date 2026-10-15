@@ -1,6 +1,6 @@
 {
   "name": "@sess.si/sdk",
-  "version": "0.1.0-rc.4",
+  "version": "0.1.0-rc.5",
   "description": "Server-side SESS API client, exact-revision human interaction polling, and receipt/webhook verification.",
   "type": "module",
   "license": "Apache-2.0",

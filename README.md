@@ -1,25 +1,25 @@
 # SESS SDK
 
-Create a hosted human interaction from your application, receive the accepted input for the correct
-Surface revision, verify its receipt, and continue on the same Session.
+Ask a person a question from your server and continue with their verified answer. `@sess.si/sdk`
+creates a hosted SESS page, waits for the answer on the exact Surface revision, verifies its signed
+receipt, and continues the same Session.
 
-`@sess.si/sdk` is a server-side TypeScript and JavaScript library. Your application supplies the
-interaction and business logic; SESS owns the hosted UI, state, routing and authorization.
-
-**Start here:** the [plain-Node quickstart](examples/quickstart-node/README.md) is a runnable
-program. It needs only `SESS_API_KEY`; it prints the private human link before it starts waiting,
-then verifies the person's answer and completes the Session.
-
-**Release status:** the [changelog](CHANGELOG.md) describes each version. To see which versions the
-registry actually serves and under which tag, run `npm view @sess.si/sdk dist-tags`. Install a published version with:
+**Install** from npm:
 
 ```sh
-npm install @sess.si/sdk@<version>
+npm install --save-exact @sess.si/sdk@next
 ```
 
-If the version you need is not on the registry, the [quickstart](examples/quickstart-node/README.md)
-explains how to install a digest-checked candidate tarball instead (see also
-[Contributing](CONTRIBUTING.md)).
+**Run** the [plain-Node quickstart](examples/quickstart-node/README.md), a complete program that
+needs only `SESS_API_KEY`.
+
+**What you'll see:** a private human link, printed before the program starts waiting. Open it on any
+device and answer; the program prints the verified answer and completes the Session.
+
+**Release status:** every SDK release so far is a `0.1.0` release candidate, served under the `next`
+dist-tag. There is no stable release yet: do not install the bare name, whose `latest` tag points at a
+deprecated `0.0.0-stage` placeholder. The [changelog](CHANGELOG.md) describes each version;
+`npm view @sess.si/sdk dist-tags` shows what the registry serves now.
 
 ## Create and verify an interaction
 

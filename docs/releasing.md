@@ -3,7 +3,8 @@
 ## Current state and owner prerequisites
 
 `0.1.0-rc.4` is published on npm under the `next` dist-tag with provenance; `latest` is a deprecated
-`0.0.0-stage` placeholder. Do not equate a green tarball check with a public release.
+`0.0.0-stage` placeholder. `0.1.0-rc.5` is prepared and not yet published (see
+[Prepared successor](#prepared-successor-rc5) and its [release packet](../release/rc5-packet.md)). Do not equate a green tarball check with a public release.
 The owner confirmed creation of the npm organization `sess.si` and approved `@sess.si/sdk`
 as the public package name, superseding the previously proposed `@sess/sdk`. Organization creation
 and naming approval do not verify package publication, account MFA, trusted-publisher configuration
@@ -16,7 +17,7 @@ token creation is automatic.
 The candidate uses Apache-2.0 terms and preserves dependency notices; final copyright-holder and
 publication approval remain explicit prerequisites. The existing MIT testbed is not relicensed.
 
-## Candidate pin: rc.4 (first published candidate) and rc.3 (held)
+## Candidate pin: rc.4 (published)
 
 **`0.1.0-rc.4` is the first SDK candidate to be published** (owner decision, 2026-10-14). Its exact
 bytes are pinned in [`release/sdk-candidate.json`](../release/sdk-candidate.json): name, version,
@@ -38,12 +39,38 @@ npm run check        # root checks, including check:pin
 # node create-agent/scripts/clean-install-check.mjs
 ```
 
+`pin:update` is the repin for a version consumers can already install. Since consumers install the
+SDK from the npm registry, a new version that is not yet published is **prepared** instead:
+
+```sh
+node scripts/sdk-pin.mjs prepare   # build + pack the root, write release/sdk-next-candidate.json only
+npm run check                      # check:pin: root bytes = the prepared record; consumers = the pin
+```
+
+While `release/sdk-next-candidate.json` exists, `check:pin` compares the packed root with it and
+keeps every consumer on the published pin, so the release tag's `npm run check` passes without any
+consumer naming an unpublished version. After the prepared version is published, the **registry
+transition** is `npm run pin:update`: it refuses unless the root still packs exactly the prepared
+bytes, then repins `release/sdk-candidate.json` and every consumer and removes the prepared record.
+
 `pin:update` refuses if the SDK's runtime dependency set changed. That needs a real regeneration of
 the adapter lockfiles. Review the resulting diff like any other change.
 
 Publish rc.4 only from a `v0.1.0-rc.4` tag on the merged, reviewed master commit whose packed bytes
 equal the pin, after its review and release authorization. The release workflow re-packs and tests
 at that tag and publishes only those bytes.
+
+## Prepared successor: rc.5
+
+`0.1.0-rc.5` adds `verifyDecisionBundle`, `BUNDLE_LIMITS` and the `sess verify` executable, and
+corrects the README's first screen. Its exact bytes are recorded in
+[`release/sdk-next-candidate.json`](../release/sdk-next-candidate.json); consumers stay on the
+published rc.4 pin. Publish rc.5 only from a `v0.1.0-rc.5` tag on the merged, reviewed master
+commit whose packed bytes equal that record, after its review and release authorization. The
+founder steps, expected digests and the registry transition are in the
+[rc.5 release packet](../release/rc5-packet.md).
+
+## Held candidate: rc.3
 
 **`0.1.0-rc.3` is held** (owner decision, 2026-10-14): it will not be published. Its approval and
 archive digest SHA-256 `b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502` remain
