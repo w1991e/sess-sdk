@@ -77,7 +77,6 @@ if (!apiKey) fail('Set SESS_API_KEY in the environment (never as an argument).',
 const resumeId = process.env.SESS_SESSION_ID || undefined;
 if (resumeId !== undefined && !SESSION_ID.test(resumeId))
   fail('SESS_SESSION_ID must be a Session ID such as ses_...', 2);
-const expectedWorkspaceId = process.env.SESS_EXPECTED_WORKSPACE_ID || undefined;
 
 let sess;
 try {
@@ -152,7 +151,6 @@ try {
   const verified = await sess.receipts.verifyResponse({
     sessionId,
     response: answer.response,
-    ...(expectedWorkspaceId ? { expectedWorkspaceId } : {}),
   });
   amount = acceptedAmount(verified.response);
 } catch (error) {
