@@ -146,13 +146,13 @@
   "untestedClients": ["Cursor", "Claude Desktop", "any other MCP host"],
   "sessSdk": {
     "name": "@sess.si/sdk",
-    "version": "0.1.0-rc.4",
-    "status": "published (registry): npm dist-tag next, with SLSA provenance; registry tarball digests equal the pin in release/sdk-candidate.json (never depend on latest, a deprecated 0.0.0 placeholder)",
-    "sha256": "ccdc01216bdff99f5ac07ef1a7d0bd47134984869071fc2b2792401f3641fb2c",
-    "integrity": "sha512-2Hugajq+ryelTXNMD0v8caLI6ZVyJEq25KRaAwDfo7mpZOCMpvNGoIGZZtNUfeXxUdvTiTlwP5EKqmScWBqzZQ==",
-    "candidatePath": ".candidate/sess.si-sdk-0.1.0-rc.4.tgz",
-    "source": "https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.0-rc.4.tgz",
-    "releaseHold": "none for the SDK dependency. package-lock.json was switched with `npm run sdk:switch-to-registry -- --apply` (registry integrity and re-downloaded SHA-256 both equal the pin). npm run setup, npm run check, CI and the release workflow require registry mode. candidatePath and the digest-gated .candidate mechanism are retained only for a future pin that is not yet published.",
+    "version": "0.1.0-rc.5",
+    "status": "published (registry)",
+    "sha256": "20a7f6277755a943f789a0fc26658e51ea5c8a8a3b270200802dcd2a2e0e707e",
+    "integrity": "sha512-t/alGpesXns5ngtH4k07U8LR31+aPqq1yPtCatRrVKQhcWcDGOiVnSPUliLOmh802mH2mW5JhkB7IkpN9IVQtg==",
+    "candidatePath": ".candidate/sess.si-sdk-0.1.0-rc.5.tgz",
+    "source": "https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.0-rc.5.tgz",
+    "releaseHold": "none for the SDK dependency; review the regenerated package-lock.json",
     "history": "0.1.0-rc.3 (sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502) was the earlier approved candidate; it is held by owner decision (2026-10-14) and not published. 0.1.0-rc.4 is the first SDK candidate to be published."
   },
   "registry": {

@@ -16,7 +16,7 @@ unchanged (`canonicalize` 5.1.0, `jose` 6.2.12, `standardwebhooks` 1.1.1).
 
 ## Expected tarball
 
-Recorded in [`sdk-next-candidate.json`](sdk-next-candidate.json) by `node scripts/sdk-pin.mjs prepare`
+Recorded in `sdk-next-candidate.json` (removed by the registry transition after publication) by `node scripts/sdk-pin.mjs prepare`
 (Node 24.21.0, npm 11.19.0). `npm run check` (its `check:pin` step) fails if the packed root differs.
 
 | Field     | Value                                                                                             |
