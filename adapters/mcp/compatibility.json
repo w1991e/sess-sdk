@@ -74,7 +74,7 @@
     "stdio": {
       "negotiated": ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05", "2024-10-07"],
       "latestNegotiable": "2025-11-25",
-      "note": "Unchanged on the wire: raw initialize, tools/list (five tools, sess-mcp-tools/2), tool errors, unknown-tool error, unsafe-key and unknown-property rejections, server/discover (method not found), ping and stderr diagnostics are byte-identical to the 1.32.1 build. One SDK-level difference: a tools/call whose arguments is not an object was -32603 and is now -32602 Invalid params."
+      "note": "Unchanged on the wire: raw initialize, tools/list (five tools, sess-mcp-tools/2), tool errors, unknown-tool error, unsafe-key and unknown-property rejections, server/discover (method not found), ping and stderr diagnostics are byte-identical to the 1.32.1 build. One SDK-level difference: a tools/call whose arguments is not an object was -32603 and is now -32602 Invalid params. Since the Q-2 annotation audit (2026-10-15), tools/list differs from that build in one tool hint: sess_complete has destructiveHint true (was false); titles, descriptions, schemas and sess-mcp-tools/2 are unchanged."
     },
     "http": {
       "modern": ["2026-07-28"],
@@ -159,7 +159,8 @@
     "serverJson": "server.json",
     "schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
     "name": "io.github.w1991e/sess",
-    "validated": "2026-10-14 with ajv against the downloaded 2025-12-11 schema (sha256 3fba09590c99f61735d234822279f4223fab9e300c0a81e81c91ab62a4114de0)",
+    "validated": "2026-10-14 with ajv against the downloaded 2025-12-11 schema (sha256 3fba09590c99f61735d234822279f4223fab9e300c0a81e81c91ab62a4114de0). Since Q-2 (2026-10-15) server.json is generated from listing.json and npm run check validates it against that schema, vendored at listings/schemas/ with the same SHA-256.",
+    "remote": "https://mcp.sess.si/mcp (streamable-http) is declared in server.json and is not deployed; see LISTINGS.md before submitting",
     "status": "namespace io.github.w1991e/sess approved by the owner (2026-10-14); not submitted"
   },
   "release": {

@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.w1991e/sess",
-  "title": "SESS",
-  "description": "Ask a person through a hosted SESS form and receive a receipt-verified answer.",
+  "title": "Sess",
+  "description": "Your agent asks a person through a private link and gets back a typed, receipt-verified answer.",
   "repository": {
     "url": "https://github.com/w1991e/sess-sdk",
     "source": "github",
@@ -42,7 +42,7 @@
         },
         {
           "name": "SESS_MCP_STATE_DIR",
-          "description": "Absolute directory for durable interaction records.",
+          "description": "Absolute path of the folder for durable interaction records.",
           "isRequired": false,
           "isSecret": false,
           "format": "filepath"
@@ -67,6 +67,12 @@
           "format": "number"
         }
       ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.sess.si/mcp"
     }
   ]
 }
