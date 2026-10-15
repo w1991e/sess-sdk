@@ -3,3 +3,4 @@ dist
 .artifacts
 contract/openapi.json
 package-lock.json
+adapters/mcp/listings/schemas

@@ -36,8 +36,9 @@ approval does.
 
 ## Cutting a release
 
-1. Bump `version` in `package.json`, `src/version.ts`, `compatibility.json` (`package.version`) and
-   `server.json` (`version` and `packages[0].version`), update `CHANGELOG.md`, merge to master.
+1. Bump `version` in `package.json`, `src/version.ts` and `compatibility.json` (`package.version`),
+   run `npm run listing` to regenerate `server.json` and the other listing artifacts from
+   `listing.json`, update `CHANGELOG.md`, merge to master.
 2. Tag the merged commit: `git tag mcp-v<version> <commit> && git push origin mcp-v<version>`.
 3. Review the prepare job's summary (tested tarball link and SHA-256), then approve the
    `npm-mcp-release` deployment.
@@ -78,4 +79,5 @@ mismatched readback. Nothing in them publishes.
 
 Record the published version, integrity, dist-tag and provenance link in `compatibility.json`, and
 qualify the registry install (`npx -y @sess.si/mcp@<version>`) before documenting it as tested.
-Submitting `server.json` to the MCP registry is a separate owner action with `mcp-publisher`.
+Submitting `server.json` to the MCP registry is a separate owner action with `mcp-publisher`; see
+[LISTINGS.md](LISTINGS.md).
