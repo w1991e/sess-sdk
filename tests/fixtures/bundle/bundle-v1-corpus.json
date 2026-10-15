@@ -1,0 +1,1343 @@
+{
+  "$comment": "bundle-v1 conformance corpus (DOCS/spec/bundle-v1.md §7). Vectors are rebuilt by bundle-corpus-vectors.ts from labelled public test seeds; this file freezes each by the SHA-256 and UTF-8 byte length of its RFC 8785 canonical bundle and of its receipt string, and states the expected result for a trusted caller (with expected_context, at now) and for a public verifier (no expected context, current time). Test-only keys: never trust them outside tests.",
+  "format": "sess.bundle-v1-corpus",
+  "version": 1,
+  "issuer": "https://receipts.corpus.sess.test",
+  "now": "2026-10-09T12:05:00.000Z",
+  "keys": {
+    "current": {
+      "kid": "corpus-current",
+      "seed_label": "sess bundle-v1 corpus test key v1 current"
+    },
+    "previous": {
+      "kid": "corpus-previous",
+      "seed_label": "sess bundle-v1 corpus test key v1 previous"
+    },
+    "retired": {
+      "kid": "corpus-retired",
+      "seed_label": "sess bundle-v1 corpus test key v1 retired"
+    },
+    "stranger": {
+      "kid": "corpus-current",
+      "seed_label": "sess bundle-v1 corpus test key v1 stranger"
+    }
+  },
+  "trusted_keys": ["current", "previous"],
+  "vectors": [
+    {
+      "id": "valid-full-context",
+      "description": "An exported bundle with the full trusted context: valid, context verified.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "c25ccfd271f90aca9d0fd46ffa666c2aa7d8d09eddc493f4f76da56ddda83c9e",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "verified",
+          "mismatches": [],
+          "application_purpose": "matched_caller_context"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "valid-partial-context",
+      "description": "The same bundle with only a session ID expected: valid, context incomplete, purpose unchecked.",
+      "expected_context": {
+        "sessionId": "ses_corpus_session_1"
+      },
+      "bundle": {
+        "sha256": "c25ccfd271f90aca9d0fd46ffa666c2aa7d8d09eddc493f4f76da56ddda83c9e",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "incomplete",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "valid-no-context",
+      "description": "The same bundle with no expected context: valid, context unchecked.",
+      "expected_context": null,
+      "bundle": {
+        "sha256": "c25ccfd271f90aca9d0fd46ffa666c2aa7d8d09eddc493f4f76da56ddda83c9e",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "valid-key-rotation-overlap",
+      "description": "Signed by the previous key, still in the trusted set during rotation overlap: valid.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "4709ad49729b8d4aa8ecf9733e177a10a90dc5f12435d97d58f99f4a0c99c77a",
+        "bytes": 2168
+      },
+      "receipt": {
+        "sha256": "63cbe73f454673a845cb7f9440a16cf5b3b94cd143ce47d4867778f9d4f8b3c1",
+        "bytes": 1173
+      },
+      "expected": {
+        "trusted": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "verified",
+          "mismatches": [],
+          "application_purpose": "matched_caller_context"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "unknown-retired-key",
+      "description": "Signed by a key the trusted set no longer holds: unknown_kid.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "5a3c9ba2c12525df5f6b6c771fa3b8aaf0fca62089ff8637e6e033c73ab19ea0",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "4e9d684909ec208d603fff9cb4eca52a291a07ca480d498b211070247c7237ca",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "unknown_kid",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "unknown_kid",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "wrong-key-same-kid",
+      "description": "Signed by another key that presents the issuer's current kid: signature.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "395d8aec63e19711ba2ab350a953ab24678976571d228034421a1427d94dec61",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "7cebf4adbc247fda196d8ed77b757de3b7bf1c04d5adebbfa99921f4280c6a76",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "signature",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "signature",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "tampered-claims",
+      "description": "One signed claim changed after signing: signature.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "7b8d3116b4a64b5544e92e069d1a601a00d6a86fe81e0c4ffe4cd8de77537378",
+        "bytes": 2165
+      },
+      "receipt": {
+        "sha256": "56fd236c4c39dbade962356bd737c29a2ab297e9d00396d6ad2113d7655cab00",
+        "bytes": 1170
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "signature",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "signature",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "tampered-signature",
+      "description": "One signature bit flipped: signature.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "8e0aa0018a1e38da55793e1d0dac806ddcb26c74ea091cf48d9664590053fac0",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "b74228a4a6d3f43d68eaab067e883063513ebeef9693eb310cfc06294601a6c0",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "signature",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "signature",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "wrong-issuer",
+      "description": "Signed with a trusted key but naming another issuer: issuer.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "a11bd9880d34e9755ad2e8987c9f69f7e2ac5d3d6bbd4fbb62ca22d81ecedac4",
+        "bytes": 2162
+      },
+      "receipt": {
+        "sha256": "91f282a3beadd7a9433ce76bd463ac324e24b8071173d476cf781cc0d79aa7ff",
+        "bytes": 1167
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "issuer",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "issuer",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "wrong-algorithm-none",
+      "description": "Unsigned (alg none): algorithm.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "d473e78ef4ac232e0050d7372a8c1e75d77a96f5e0f44e4882a746eb3f5b98cf",
+        "bytes": 2079
+      },
+      "receipt": {
+        "sha256": "f39a15f2223df912966e9acbb4c1cf44a6af066d749a5e1576d7677c39731074",
+        "bytes": 1084
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "algorithm",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "algorithm",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "wrong-algorithm-hs256",
+      "description": "HMAC-signed (alg HS256): algorithm.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "98a18f4caf97834962e1efba90bcebf12d4b5af696e24d093baff58339a3c109",
+        "bytes": 2123
+      },
+      "receipt": {
+        "sha256": "61ff53af92c454bf95a8011f16ed1a8282c4a4308453e21d70a6772bfed87e12",
+        "bytes": 1128
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "algorithm",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "algorithm",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "wrong-type",
+      "description": "Protected header typ JWT instead of sess-receipt+jwt: type.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "d56edb62d6fdc319a68e9bd99f97d31a84e23c8857b01fed3c7939428ef7e7c8",
+        "bytes": 2149
+      },
+      "receipt": {
+        "sha256": "78e95c87f14a71168adf06b6073995a321a82654dfec1130c26cee1e77c4268b",
+        "bytes": 1154
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "type",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "type",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "missing-kid",
+      "description": "No kid in the protected header: missing_kid.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "4230375de8a6511cc1beedf99efe1bc75f7a8785d02cee97dfe12a83ab052845",
+        "bytes": 2136
+      },
+      "receipt": {
+        "sha256": "2f489e99a248f7535daff6619d2de77c44fd2102aeb49605f80195ee451a7e56",
+        "bytes": 1141
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "missing_kid",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "missing_kid",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "non-canonical-claims",
+      "description": "Validly signed claims that are not RFC 8785 canonical JSON: claims.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "8eaeb2007554729b6139f93c2bc371a5ec41a262dd8fe8ebc0fa55f40a5a242e",
+        "bytes": 2295
+      },
+      "receipt": {
+        "sha256": "6cd8f11080ec699b97e53bfa16270a23951fcb1323dfd65227afd917908f39dc",
+        "bytes": 1300
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "claims",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "claims",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "wrong-audience",
+      "description": "The caller expects another recipient: audience (public verifier: valid, unchecked).",
+      "expected_context": {
+        "audience": "wks_other",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "c25ccfd271f90aca9d0fd46ffa666c2aa7d8d09eddc493f4f76da56ddda83c9e",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "audience",
+          "content": "not_checked",
+          "context": "mismatch",
+          "mismatches": ["audience"],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "wrong-workspace",
+      "description": "The caller expects another workspace: context_mismatch (public: valid, unchecked).",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_other",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "c25ccfd271f90aca9d0fd46ffa666c2aa7d8d09eddc493f4f76da56ddda83c9e",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "context_mismatch",
+          "content": "verified",
+          "context": "mismatch",
+          "mismatches": ["workspace_id"],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "wrong-session",
+      "description": "The caller expects another Session: context_mismatch (public: valid, unchecked).",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_other",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "c25ccfd271f90aca9d0fd46ffa666c2aa7d8d09eddc493f4f76da56ddda83c9e",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "context_mismatch",
+          "content": "verified",
+          "context": "mismatch",
+          "mismatches": ["session_id"],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "wrong-event",
+      "description": "The caller expects another Event: context_mismatch (public: valid, unchecked).",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_other",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "c25ccfd271f90aca9d0fd46ffa666c2aa7d8d09eddc493f4f76da56ddda83c9e",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "context_mismatch",
+          "content": "verified",
+          "context": "mismatch",
+          "mismatches": ["event_id"],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "wrong-revision",
+      "description": "The caller expects another Surface revision: context_mismatch (public: valid, unchecked).",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 2,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "c25ccfd271f90aca9d0fd46ffa666c2aa7d8d09eddc493f4f76da56ddda83c9e",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "context_mismatch",
+          "content": "verified",
+          "context": "mismatch",
+          "mismatches": ["surface.revision"],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "wrong-action",
+      "description": "The caller expects another action: context_mismatch (public: valid, unchecked).",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "reject"
+      },
+      "bundle": {
+        "sha256": "c25ccfd271f90aca9d0fd46ffa666c2aa7d8d09eddc493f4f76da56ddda83c9e",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "context_mismatch",
+          "content": "verified",
+          "context": "mismatch",
+          "mismatches": ["action.id"],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "altered-input",
+      "description": "One submitted value changed: input_mismatch.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "32de29786254fd5983201d92573a5d3b06c0e014def6b79f1c88898de352446b",
+        "bytes": 2167
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "input_mismatch",
+          "content": "mismatch",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "input_mismatch",
+          "content": "mismatch",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "redacted-input",
+      "description": "One submitted field removed: input_mismatch.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "e4c94dd0e50e353abd59789ea990519ee27a5bb2ef63e67a6c6613b404f0f516",
+        "bytes": 2144
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "input_mismatch",
+          "content": "mismatch",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "input_mismatch",
+          "content": "mismatch",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "altered-surface",
+      "description": "The Surface title changed: surface_mismatch.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "d0a550ef8e4771083bacc3fbcba58117c703d2f887a2febdc1b52904d3b03412",
+        "bytes": 2156
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "surface_mismatch",
+          "content": "mismatch",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "surface_mismatch",
+          "content": "mismatch",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "expired",
+      "description": "A receipt whose exp has passed: expired.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "2dff4733a129f1e9d22b01e208b000341830c53cd29b3d78ad326e8001aab002",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "33e83b4fe7e9c3edeb603de5f4e0f2d5d19e3580b1f475596b2d5639407ca605",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "expired",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "expired",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "future",
+      "description": "A receipt issued in the future beyond the clock tolerance: not_yet_valid.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "5170cccbbc2eefae977ea2983d989d6db3b837772edf036520ecb50d7ecc0d8c",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "0bcddce95b8cef87baa0175cc47fcf3b28c0546851522d02b47b789e65b3686b",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "not_yet_valid",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "not_yet_valid",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "malformed-not-an-object",
+      "description": "A JSON array instead of a bundle object: malformed.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "97eb3738c28aecce72b24575ddb9cc34da951a4f8df17394a47ee41cf9c53925",
+        "bytes": 2168
+      },
+      "receipt": null,
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "malformed-wrong-type",
+      "description": "Another type tag: malformed.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "e93c68cb14dc4abd8d48d04af110933bc379ce34e216497b690b0752d301ef47",
+        "bytes": 2158
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "malformed-extra-member",
+      "description": "An extra top-level member: malformed.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "017d5f53fc3c491c05aa9bcfd6e6e3f595b7cf8fa326a58f800e2b165ed1235d",
+        "bytes": 2188
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "malformed-missing-content",
+      "description": "The content member removed (a redacted bundle): malformed.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "590b13b780a09785602c9c959cf4be0f9486997805db764b5ea4c2442daf6c45",
+        "bytes": 1504
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "malformed-private-key-material",
+      "description": "A key with a private member (d): malformed.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "a43c0e368a037723f0ae32484aff6eaec6ebed15a7b73ec340808729f89a0f45",
+        "bytes": 2086
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "malformed-receipt-not-a-jws",
+      "description": "A receipt that is not a compact JWS: receipt_malformed.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "09bf686d154f330bddf65fdba4ef27bc4db1143b7afa7d64a64e23d6536734fd",
+        "bytes": 1008
+      },
+      "receipt": {
+        "sha256": "9bf010b172fea1975af169b4449388d22e6f6cb4fa60fffb4901f657c71a9a30",
+        "bytes": 13
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "receipt_malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "receipt_malformed",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "unsupported-version",
+      "description": "A later bundle version: unsupported_version.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "365fbe3de0973b069953e852f81df4b7c21876eea4d3ee7fe918cb0070a916c8",
+        "bytes": 2166
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "unsupported_version",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "unsupported_version",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "oversized-bytes",
+      "description": "Validly signed input above the 1 MiB bundle bound: oversized.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "c25ce2a95da5ab6206fe0971d0375110dd8bb6cde72726f21c4fd114ddacbf8e",
+        "bytes": 1102154
+      },
+      "receipt": {
+        "sha256": "9fb7e545e4b533ea34fbbac283256f878f636f8454bfbc2f022eb7b5f4fe85af",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "oversized",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "oversized",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "oversized-depth",
+      "description": "Validly signed input nested beyond the depth bound: oversized.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "6e64c8e3128ffdf5ae6722e1e832590672ea4d81f72e59df3c498335a5d392a3",
+        "bytes": 2398
+      },
+      "receipt": {
+        "sha256": "10dcf95b8d9499bd8794133c5c48b0d1821e4be7154d34694df7ff125f10a345",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "oversized",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "oversized",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "oversized-array",
+      "description": "Validly signed input with an array above the item bound: oversized.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "809cd3cc5e1d898d6c7e85e917203d28528dbc8f3d348f379583f1d502210aff",
+        "bytes": 6048
+      },
+      "receipt": {
+        "sha256": "ccf8c790a4c8bc469c43ee7f586ac7c8669af7102eae424ac0b38f778a2e0cfa",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "oversized",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "oversized",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    }
+  ]
+}

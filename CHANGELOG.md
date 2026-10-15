@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.0-rc.5 — 2026-10-15
+
+- `verifyDecisionBundle` in `@sess.si/sdk/receipts`: offline verification of a bundle-v1 decision
+  bundle against the issuer and keys the caller trusts, with the Sess core's checks, order, bounds,
+  reasons and result object, proven against the shared conformance corpus. `BUNDLE_LIMITS` exports
+  its size bounds. `verifyDecisionReceipt` is unchanged.
+- The `sess` executable: `sess verify <file> --issuer <url> --keys <jwks.json>` prints a short
+  summary (or `--json`), exits 0 valid, 1 invalid, 2 usage error, and makes no network calls.
+- Verbatim receipt-v1 and bundle-v1 specifications in the source repository's `docs/spec/`, checked
+  against the Sess copies.
+- The README's first screen installs from npm (`@sess.si/sdk@next`), runs the quickstart and says what
+  you'll see; it no longer describes installing a candidate tarball. Release status follows it.
+
 ## 0.1.0-rc.4 — 2026-10-14
 
 Documentation and packaging only; the library source is unchanged from `0.1.0-rc.3`. The README's
