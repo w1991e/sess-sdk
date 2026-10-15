@@ -14,28 +14,94 @@
   },
   "transport": {
     "supported": ["stdio"],
-    "notSupported": ["streamable-http", "sse", "remote/hosted"]
+    "library": ["streamable-http (stateless, @sess.si/mcp/http createSessMcpHttpHandler)"],
+    "notSupported": [
+      "sse",
+      "sessionful streamable-http",
+      "remote/hosted deployment",
+      "sess-mcp HTTP bin flag"
+    ],
+    "note": "The HTTP composition is a library export for the hosted SESS runtime to compose with its own authentication and durable handle store. This package ships no HTTP server, bin flag, OAuth server or deployment; no remote endpoint or host is qualified by this record."
   },
   "mcpLibrary": {
-    "name": "@modelcontextprotocol/sdk",
-    "version": "1.32.1",
-    "integrity": "sha512-2DdE+SJDtzLEEWzY1ZjY7Q+VcPhcV1KisD3zI4u0XZyktsjHum1mwbMI+JaulUBi2OZk+KJAi2uPXzxichPkdw==",
-    "registryLatestAtQualification": "1.32.1",
-    "peer": {
-      "name": "zod",
-      "version": "4.6.7",
-      "integrity": "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=="
+    "name": "@modelcontextprotocol/server",
+    "version": "2.3.1",
+    "integrity": "sha512-e59MfWuSssj6DoQ96JCTqdW1AXT5/XtnTl0WWd6MU1Ka434fFUGGosCLJbGNySDhHGvxQWoRWK137FXYFkYNWw==",
+    "license": "Apache-2.0",
+    "registryLatestAtQualification": "2.3.1",
+    "node": {
+      "name": "@modelcontextprotocol/node",
+      "version": "2.1.1",
+      "integrity": "sha512-EY92OAXN2xYL7tNS/MVsWJW1v8VHAPwl9B4Ca3pCrjmvqyC+S1C/6UHsMxF2GoFPraS5Yyg56vFz9brVpFojMA==",
+      "license": "Apache-2.0",
+      "registryLatestAtQualification": "2.1.1"
     },
-    "serverApi": "Server (low-level request handlers) with StdioServerTransport"
+    "transitive": [
+      {
+        "name": "@modelcontextprotocol/core",
+        "version": "2.3.1",
+        "license": "Apache-2.0",
+        "integrity": "sha512-laVmIhPGpWi7rG9q+0UigblRN0Hws/Yjlb6qLFtVqryXVLkc4h+yN8z731POD2LnAGQlFe7/tXhUm7Bi0YB91g=="
+      },
+      {
+        "name": "zod",
+        "version": "4.6.7",
+        "license": "MIT",
+        "integrity": "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=="
+      },
+      {
+        "name": "hono",
+        "version": "4.13.13",
+        "license": "MIT",
+        "integrity": "sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA=="
+      },
+      {
+        "name": "@hono/node-server",
+        "version": "1.19.17",
+        "license": "MIT",
+        "integrity": "sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ=="
+      }
+    ],
+    "serverApi": "low-level Server (request handlers). stdio: Server.connect(StdioServerTransport) through the raw-message unsafe-key guard, a 2025-era connection exactly as before. HTTP: createMcpHandler with its default legacy: 'stateless' fallback, one server instance per request.",
+    "previous": {
+      "name": "@modelcontextprotocol/sdk",
+      "version": "1.32.1",
+      "license": "MIT",
+      "note": "Runtime dependency until this change; now a devDependency used only as the declared-legacy test client."
+    }
   },
   "protocol": {
-    "negotiatedByLibrary": ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05", "2024-10-07"],
-    "latestNegotiable": "2025-11-25",
+    "stdio": {
+      "negotiated": ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05", "2024-10-07"],
+      "latestNegotiable": "2025-11-25",
+      "note": "Unchanged on the wire: raw initialize, tools/list (five tools, sess-mcp-tools/2), tool errors, unknown-tool error, unsafe-key and unknown-property rejections, server/discover (method not found), ping and stderr diagnostics are byte-identical to the 1.32.1 build. One SDK-level difference: a tools/call whose arguments is not an object was -32603 and is now -32602 Invalid params."
+    },
+    "http": {
+      "modern": ["2026-07-28"],
+      "legacy": ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05", "2024-10-07"],
+      "unsupportedModernRevision": "400, JSON-RPC -32022 with data.supported [\"2026-07-28\"]",
+      "note": "One endpoint serves both eras: per-request 2026-07-28 traffic and the stateless legacy fallback (initialize answered with 2025-11-25, no session ID)."
+    },
     "currentSpecification": "2026-07-28",
-    "currentSpecificationNegotiated": false,
-    "note": "@modelcontextprotocol/sdk 1.32.1 negotiates up to 2025-11-25 through initialize. 2026-07-28 per-request negotiation is not claimed. No Tasks, Apps, elicitation, sampling, resources or prompts are offered; only the tools capability."
+    "offered": "Only the tools capability. No Tasks, Apps, elicitation, sampling, resources or prompts; the human step never depends on elicitation."
   },
   "clients": [
+    {
+      "name": "HTTP composition unit tests (loopback node:http, synthetic principals, fake SESS runtime)",
+      "packages": [
+        "@modelcontextprotocol/client 2.3.1 pinned to 2026-07-28 (negotiated 2026-07-28)",
+        "@modelcontextprotocol/client 2.3.1 default mode (negotiated 2025-11-25)",
+        "@modelcontextprotocol/sdk 1.32.1 Client (negotiated 2025-11-25, no session ID)"
+      ],
+      "tested": [
+        "tests/http.test.ts and tests/http-guard.test.ts in npm test: five tools with byte-identical tools/list in both eras, a receipt-verified round over independent requests, -32022, 415, 413, deadline, 401/403 challenges, Host/Origin, handle isolation between principals, hosts and workspaces, refresh, grant generation, restart and concurrent replay identity, lost create reply, and the raw-body unsafe-key guard in both eras"
+      ],
+      "notTested": [
+        "any real host (claude.ai, ChatGPT, Claude Code, Cursor or others) over HTTP",
+        "a deployed endpoint",
+        "OAuth"
+      ]
+    },
     {
       "name": "@modelcontextprotocol/sdk Client (official TypeScript client)",
       "version": "1.32.1",

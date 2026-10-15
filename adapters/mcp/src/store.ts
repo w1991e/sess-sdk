@@ -1,7 +1,8 @@
-import { createHmac, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { AdapterError } from './errors.js';
+import { canonicalJson } from './internal/shared.js';
 import { EVENT_ID_PATTERN, HANDLE_PATTERN, type JsonObject } from './validate.js';
 
 /** Recovery state names shared with the companion adapter contract. */
@@ -19,14 +20,129 @@ export const STATES = [
 export type RecoveryState = (typeof STATES)[number];
 
 /**
- * The owner-private boundary a handle is bound to. stdio has no authenticated conversation
+ * The owner-private boundary a stdio handle is bound to. stdio has no authenticated conversation
  * identity, so the boundary is the configured profile, API origin and credential generation.
  * The credential generation is a keyed digest local to the profile; the raw key is never stored.
+ * This is the on-disk shape of record schema 2 and is unchanged.
  */
-export interface Binding {
+export interface ProfileBinding {
   profile: string;
   origin: string;
   credentialGeneration: string;
+}
+
+/**
+ * The boundary a hosted handle is bound to: the server-resolved workspace, user or service
+ * principal, client (agent host) and consent grant with its stable generation. A token refresh
+ * keeps the generation, so handles survive it; a revoked or re-issued grant has a new generation
+ * and its earlier handles are refused. `credentialGeneration` is an unkeyed digest of the other
+ * fields (no secret is involved); pending mutations record it, as for the profile binding.
+ */
+export interface GrantBinding {
+  kind: 'grant';
+  origin: string;
+  workspaceId: string;
+  principalId: string;
+  clientId: string;
+  grantId: string;
+  grantGeneration: string;
+  credentialGeneration: string;
+}
+
+export type Binding = ProfileBinding | GrantBinding;
+
+/** The authority fields of a hosted binding, as resolved server-side for one request. */
+export type GrantAuthority = Omit<GrantBinding, 'kind' | 'credentialGeneration'>;
+
+export const WORKSPACE_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+/** Principal, client, grant and generation identifiers: printable ASCII, bounded. */
+export const AUTHORITY_ID_PATTERN = /^[\x21-\x7e]{1,2048}$/;
+const ORIGIN_PATTERN = /^https?:\/\/[\x21-\x7e]{1,2048}$/;
+
+function grantDigest(a: GrantAuthority): string {
+  const fields = {
+    origin: a.origin,
+    workspaceId: a.workspaceId,
+    principalId: a.principalId,
+    clientId: a.clientId,
+    grantId: a.grantId,
+    grantGeneration: a.grantGeneration,
+  };
+  const digest = createHash('sha256').update(canonicalJson(fields), 'utf8').digest('base64url');
+  return `cg1_${digest.slice(0, 22)}`;
+}
+
+/** Builds the binding for one server-resolved authority; throws a TypeError if a field is malformed. */
+export function grantBinding(authority: GrantAuthority): GrantBinding {
+  const ok =
+    typeof authority.origin === 'string' &&
+    ORIGIN_PATTERN.test(authority.origin) &&
+    typeof authority.workspaceId === 'string' &&
+    WORKSPACE_ID_PATTERN.test(authority.workspaceId) &&
+    [authority.principalId, authority.clientId, authority.grantId, authority.grantGeneration].every(
+      (value) => typeof value === 'string' && AUTHORITY_ID_PATTERN.test(value),
+    );
+  if (!ok) throw new TypeError('Invalid hosted authority: malformed origin or identifier.');
+  return {
+    kind: 'grant',
+    origin: authority.origin,
+    workspaceId: authority.workspaceId,
+    principalId: authority.principalId,
+    clientId: authority.clientId,
+    grantId: authority.grantId,
+    grantGeneration: authority.grantGeneration,
+    credentialGeneration: grantDigest(authority),
+  };
+}
+
+/** True when two bindings name exactly the same authority. */
+export function sameBinding(a: Binding, b: Binding): boolean {
+  try {
+    assertBindingAccess(a, b);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Access check for a loaded record against the authority of the current call. A profile binding
+ * must match exactly (BINDING_MISMATCH, as before). A hosted record of another origin, workspace,
+ * principal, client or grant is reported as an unknown handle, so its existence is not disclosed;
+ * the same grant at another generation (revoked or re-issued) is BINDING_MISMATCH.
+ */
+export function assertBindingAccess(record: Binding, expected: Binding): void {
+  if (!('kind' in expected)) {
+    if (
+      'kind' in record ||
+      record.profile !== expected.profile ||
+      record.origin !== expected.origin ||
+      record.credentialGeneration !== expected.credentialGeneration
+    )
+      throw new AdapterError(
+        'BINDING_MISMATCH',
+        'This interaction belongs to a different SESS profile, API origin or credential. It was not accessed.',
+      );
+    return;
+  }
+  if (
+    !('kind' in record) ||
+    record.kind !== 'grant' ||
+    record.origin !== expected.origin ||
+    record.workspaceId !== expected.workspaceId ||
+    record.principalId !== expected.principalId ||
+    record.clientId !== expected.clientId ||
+    record.grantId !== expected.grantId
+  )
+    throw new AdapterError('HANDLE_NOT_FOUND', 'Unknown interaction handle.');
+  if (
+    record.grantGeneration !== expected.grantGeneration ||
+    record.credentialGeneration !== expected.credentialGeneration
+  )
+    throw new AdapterError(
+      'BINDING_MISMATCH',
+      'This interaction belongs to an earlier authorization of this agent host. It was not accessed.',
+    );
 }
 
 export interface VerifiedAnswer {
@@ -117,7 +233,19 @@ export function decodeRecord(raw: unknown, expectedHandle: string): HandleRecord
     );
   if (r.handle !== expectedHandle || !str(r.handle, HANDLE_PATTERN)) corrupt();
   const b = obj(r.binding);
-  if (!str(b.profile) || !str(b.origin) || !str(b.credentialGeneration, GENERATION)) corrupt();
+  if (b.kind === 'grant') {
+    if (
+      !str(b.origin, ORIGIN_PATTERN) ||
+      !str(b.workspaceId, WORKSPACE_ID_PATTERN) ||
+      !str(b.principalId, AUTHORITY_ID_PATTERN) ||
+      !str(b.clientId, AUTHORITY_ID_PATTERN) ||
+      !str(b.grantId, AUTHORITY_ID_PATTERN) ||
+      !str(b.grantGeneration, AUTHORITY_ID_PATTERN) ||
+      !str(b.credentialGeneration, GENERATION) ||
+      b.credentialGeneration !== grantDigest(b as unknown as GrantAuthority)
+    )
+      corrupt();
+  } else if (!str(b.profile) || !str(b.origin) || !str(b.credentialGeneration, GENERATION)) corrupt();
   if (!STATES.includes(r.state as RecoveryState)) corrupt();
   if (!str(r.createdAt) || !str(r.updatedAt) || !str(r.requestDigest, /^[0-9a-f]{64}$/)) corrupt();
   if (!Number.isSafeInteger(r.revision) || (r.revision as number) < 1) corrupt();
@@ -209,22 +337,54 @@ export async function atomicWrite(path: string, directory: string, content: stri
 
 export const MAX_ACTIVE_RECORDS = 100;
 
+/** A new opaque interaction handle (128 random bits) matching HANDLE_PATTERN. */
+export function generateHandle(): string {
+  return `sh_${randomBytes(16).toString('base64url')}`;
+}
+
 /**
- * One owner-private profile directory: `<stateDir>/profiles/<profile>/`. Each handle has its own
- * record file. A single server process per profile is the supported G1 boundary; within the
- * process, writes to one handle are serialized.
+ * The handle store the operations use, injected by a composition. One instance is a view bound to
+ * one authority (`binding`): `load` returns only records of that authority (checked with
+ * `assertBindingAccess`) and every returned record has passed `decodeRecord`. The operations check
+ * each loaded record against `binding` again, so a store that is keyed only by handle still cannot
+ * hand one principal's record to another. `withLock` must serialize read-modify-write sections for
+ * one handle across every process that shares the store. Failures are AdapterErrors
+ * (`HANDLE_NOT_FOUND`, `STATE_STORE_ERROR`, `STATE_STORE_FULL`, `BINDING_MISMATCH`).
  */
-export class HandleStore {
+export interface HandleStore {
   readonly binding: Binding;
+  /** A new handle; `generateHandle()` unless the store has its own allocation. */
+  newHandle(): string;
+  load(handle: string): Promise<HandleRecord>;
+  save(record: HandleRecord): Promise<void>;
+  /** Deletes a record only for a create that authoritatively did not happen. */
+  discard(handle: string): Promise<void>;
+  /** Bounded admission: refuse new work rather than evict a pending interaction. */
+  assertCapacity(): Promise<void>;
+  withLock<T>(handle: string, fn: () => Promise<T>): Promise<T>;
+}
+
+/**
+ * The local stdio store: one owner-private profile directory, `<stateDir>/profiles/<profile>/`.
+ * Each handle has its own record file. A single server process per profile is the supported G1
+ * boundary; within the process, writes to one handle are serialized.
+ */
+export class ProfileHandleStore implements HandleStore {
+  readonly binding: ProfileBinding;
   readonly #handles: string;
   #locks = new Map<string, Promise<unknown>>();
 
-  private constructor(binding: Binding, handles: string) {
+  private constructor(binding: ProfileBinding, handles: string) {
     this.binding = binding;
     this.#handles = handles;
   }
 
-  static async open(stateDir: string, profile: string, origin: string, apiKey: string): Promise<HandleStore> {
+  static async open(
+    stateDir: string,
+    profile: string,
+    origin: string,
+    apiKey: string,
+  ): Promise<ProfileHandleStore> {
     const root = join(stateDir, 'profiles', profile);
     const handles = join(root, 'handles');
     try {
@@ -248,14 +408,14 @@ export class HandleStore {
           salt = fresh;
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-          return HandleStore.open(stateDir, profile, origin, apiKey);
+          return ProfileHandleStore.open(stateDir, profile, origin, apiKey);
         }
       }
       const digest = createHmac('sha256', salt)
         .update(`${origin}\n${apiKey}`)
         .digest('base64url')
         .slice(0, 22);
-      return new HandleStore({ profile, origin, credentialGeneration: `cg1_${digest}` }, handles);
+      return new ProfileHandleStore({ profile, origin, credentialGeneration: `cg1_${digest}` }, handles);
     } catch (error) {
       if (error instanceof AdapterError) throw error;
       throw new AdapterError('STATE_STORE_ERROR', 'The local state directory could not be prepared.');
@@ -263,7 +423,7 @@ export class HandleStore {
   }
 
   newHandle(): string {
-    return `sh_${randomBytes(16).toString('base64url')}`;
+    return generateHandle();
   }
 
   #path(handle: string): string {
@@ -290,17 +450,7 @@ export class HandleStore {
       return corrupt();
     }
     const record = decodeRecord(parsed, handle);
-    const b = record.binding;
-    if (
-      b.profile !== this.binding.profile ||
-      b.origin !== this.binding.origin ||
-      b.credentialGeneration !== this.binding.credentialGeneration
-    ) {
-      throw new AdapterError(
-        'BINDING_MISMATCH',
-        'This interaction belongs to a different SESS profile, API origin or credential. It was not accessed.',
-      );
-    }
+    assertBindingAccess(record.binding, this.binding);
     return record;
   }
 

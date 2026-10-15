@@ -8,7 +8,14 @@ import {
 } from '@sess.si/sdk';
 import { loadConfig, type AdapterConfig } from './config.js';
 import { AdapterError, type Diagnostics } from './errors.js';
-import { HandleStore, RECORD_SCHEMA, type HandleRecord, type PendingMutation } from './store.js';
+import {
+  ProfileHandleStore,
+  RECORD_SCHEMA,
+  assertBindingAccess,
+  type HandleRecord,
+  type HandleStore,
+  type PendingMutation,
+} from './store.js';
 import { bodyDigest, canonicalJson, classifyVerification } from './internal/shared.js';
 import {
   plainJson,
@@ -43,19 +50,44 @@ export interface AdapterResult {
   };
 }
 
-export interface AdapterOptions {
+/**
+ * The authority the operations run with, supplied by a composition and never by tool arguments:
+ * a SESS client acting for exactly that authority (its credential comes from the composition), a
+ * handle store view bound to the same authority, and the wait bound.
+ */
+export interface OperationContext {
+  client: SessClient;
+  store: HandleStore;
+  /** Upper bound and default for one sess_response wait. */
+  maxWaitMs: number;
+}
+
+/**
+ * Local (stdio) composition: the owner credential and profile store come from the server process
+ * environment on the first tool call, exactly as before.
+ */
+export interface LocalAdapterOptions {
   env: NodeJS.ProcessEnv;
   diagnostics: Diagnostics;
   /** Test seam only; never reachable from tool arguments. */
   createClient?: (config: AdapterConfig) => SessClient;
   now?: () => Date;
+  context?: never;
 }
 
-interface Context {
-  config: AdapterConfig;
-  store: HandleStore;
-  client: SessClient;
+/**
+ * Explicit composition (for example the hosted HTTP handler): `context` resolves the authority
+ * once per adapter, on the first tool call; a failure is not cached.
+ */
+export interface ContextAdapterOptions {
+  context: () => Promise<OperationContext>;
+  diagnostics: Diagnostics;
+  now?: () => Date;
+  env?: never;
+  createClient?: never;
 }
+
+export type AdapterOptions = LocalAdapterOptions | ContextAdapterOptions;
 
 /**
  * Canonical body digest from the shared adapter core. Inputs are validated plain JSON (finite
@@ -123,7 +155,7 @@ function unavailable(error: unknown): AdapterError {
 
 export class SessMcpAdapter {
   #options: AdapterOptions;
-  #context?: Promise<Context>;
+  #context?: Promise<OperationContext>;
   #secrets: string[] = [];
 
   constructor(options: AdapterOptions) {
@@ -139,21 +171,37 @@ export class SessMcpAdapter {
     return (this.#options.now?.() ?? new Date()).toISOString();
   }
 
-  async #ctx(): Promise<Context> {
-    this.#context ??= (async () => {
-      const config = loadConfig(this.#options.env);
-      this.#secrets.push(config.apiKey);
-      const store = await HandleStore.open(config.stateDir, config.profile, config.origin, config.apiKey);
-      const client = (this.#options.createClient ?? defaultClient)(config);
-      this.#options.diagnostics('configured', { profile: config.profile });
-      return { config, store, client };
-    })();
+  /** The local composition: env credential and profile store, read on the first tool call. */
+  async #local(options: LocalAdapterOptions): Promise<OperationContext> {
+    const config = loadConfig(options.env);
+    this.#secrets.push(config.apiKey);
+    const store = await ProfileHandleStore.open(
+      config.stateDir,
+      config.profile,
+      config.origin,
+      config.apiKey,
+    );
+    const client = (options.createClient ?? defaultClient)(config);
+    options.diagnostics('configured', { profile: config.profile });
+    return { client, store, maxWaitMs: config.maxWaitMs };
+  }
+
+  async #ctx(): Promise<OperationContext> {
+    const options = this.#options;
+    this.#context ??= options.context ? options.context() : this.#local(options);
     try {
       return await this.#context;
     } catch (error) {
       this.#context = undefined;
       throw error;
     }
+  }
+
+  /** Every loaded record is checked against the authority of this call, whatever the store does. */
+  async #load(store: HandleStore, handle: string): Promise<HandleRecord> {
+    const record = await store.load(handle);
+    assertBindingAccess(record.binding, store.binding);
+    return record;
   }
 
   #result(record: HandleRecord, state: InteractionState, extra: Partial<AdapterResult['interaction']> = {}) {
@@ -260,13 +308,13 @@ export class SessMcpAdapter {
 
   /** response: authorize, then read or perform one bounded wait for the exact revision; verify fully. */
   async response(args: ResponseArgs, signal?: AbortSignal): Promise<AdapterResult> {
-    const { config, store, client } = await this.#ctx();
-    const record = await store.load(args.handle);
+    const { maxWaitMs, store, client } = await this.#ctx();
+    const record = await this.#load(store, args.handle);
     if (record.state === 'answered') return this.#releaseCached(record, args.revision, signal);
     const settled = this.#settledWithoutAnswer(record, args.revision);
     if (settled) return settled;
     const sessionId = record.sessionId!;
-    const waitMs = Math.min(args.waitMs ?? config.maxWaitMs, config.maxWaitMs);
+    const waitMs = Math.min(args.waitMs ?? maxWaitMs, maxWaitMs);
     let found: { response: AcceptedResponse; etag: string; currentRevision: number } | undefined;
     try {
       if (waitMs === 0) {
@@ -364,7 +412,7 @@ export class SessMcpAdapter {
     if (fresh.kind === 'progress') return await this.#block(record, fresh.reason);
     const data = plainJson(JSON.parse(JSON.stringify(response.data)), 'data') as JsonObject;
     return store.withLock(record.handle, async () => {
-      const current = await store.load(record.handle);
+      const current = await this.#load(store, record.handle);
       // Same accepted event already saved by a concurrent call; this call made its own fresh read.
       if (
         current.state === 'answered' &&
@@ -495,7 +543,7 @@ export class SessMcpAdapter {
       );
     if (fresh.kind === 'progress') return await this.#block(record, fresh.reason);
     return store.withLock(record.handle, async () => {
-      const current = await store.load(record.handle);
+      const current = await this.#load(store, record.handle);
       if (
         current.state !== 'answered' ||
         current.revision !== record.revision ||
@@ -518,7 +566,7 @@ export class SessMcpAdapter {
   async #transition(record: HandleRecord, state: 'waiting' | 'needs_resume'): Promise<AdapterResult> {
     const { store } = await this.#ctx();
     return store.withLock(record.handle, async () => {
-      const current = await store.load(record.handle);
+      const current = await this.#load(store, record.handle);
       if (
         (current.state === 'waiting' || current.state === 'needs_resume') &&
         current.revision === record.revision
@@ -547,7 +595,7 @@ export class SessMcpAdapter {
     const safe = /^[A-Z_]{1,64}$/.test(reason) ? reason : 'UNEXPECTED';
     const group = (state: string) => (state === 'needs_resume' ? 'waiting' : state);
     const applied = await store.withLock(observed.handle, async () => {
-      const current = await store.load(observed.handle);
+      const current = await this.#load(store, observed.handle);
       if (current.state === 'blocked') return true;
       if (group(current.state) !== group(observed.state) || current.revision !== observed.revision)
         return false;
@@ -580,7 +628,7 @@ export class SessMcpAdapter {
   ): Promise<{ record: HandleRecord; pending: PendingMutation } | { done: AdapterResult }> {
     const { store } = await this.#ctx();
     return store.withLock(args.handle, async () => {
-      const record = await store.load(args.handle);
+      const record = await this.#load(store, args.handle);
       const pendingState = operation === 'publish' ? 'publish_pending' : 'complete_pending';
       if (record.state === pendingState) {
         const p = record.pending!;
@@ -737,7 +785,7 @@ export class SessMcpAdapter {
     }
     if (!confirmed) return this.#block(record, 'COMPLETE_NOT_CONFIRMED');
     return store.withLock(record.handle, async () => {
-      const current = await store.load(record.handle);
+      const current = await this.#load(store, record.handle);
       if (current.state === 'completed') return this.#result(current, 'completed');
       if (current.state !== 'complete_pending')
         throw new AdapterError('INVALID_STATE', 'The interaction changed.');
@@ -783,7 +831,7 @@ export class SessMcpAdapter {
     if (result.data.id !== pending.sessionId || result.data.revision !== nextRevision)
       return this.#block(record, 'PUBLISH_NOT_CONFIRMED');
     return store.withLock(record.handle, async () => {
-      const current = await store.load(record.handle);
+      const current = await this.#load(store, record.handle);
       if (current.state !== 'publish_pending') {
         if (current.state === 'waiting' && current.revision === nextRevision)
           return this.#result(current, 'waiting');
