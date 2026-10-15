@@ -140,7 +140,9 @@ function quoted(value: string): string {
 function positiveInteger(value: number | undefined, fallback: number, name: string, max?: number): number {
   const n = value ?? fallback;
   if (!Number.isSafeInteger(n) || n < 1 || (max !== undefined && n > max))
-    throw new TypeError(`createSessMcpHttpHandler: ${name} must be a positive integer${max ? ` up to ${max}` : ''}.`);
+    throw new TypeError(
+      `createSessMcpHttpHandler: ${name} must be a positive integer${max ? ` up to ${max}` : ''}.`,
+    );
   return n;
 }
 
@@ -190,7 +192,9 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
   );
   const maxWaitMs = options.maxWaitMs ?? DEFAULT_WAIT_MS;
   if (!Number.isSafeInteger(maxWaitMs) || maxWaitMs < 0 || maxWaitMs > DEFAULT_WAIT_MS)
-    throw new TypeError(`createSessMcpHttpHandler: maxWaitMs must be an integer from 0 to ${DEFAULT_WAIT_MS}.`);
+    throw new TypeError(
+      `createSessMcpHttpHandler: maxWaitMs must be an integer from 0 to ${DEFAULT_WAIT_MS}.`,
+    );
   let resourceMetadataUrl: string | undefined;
   if (options.resourceMetadataUrl !== undefined) {
     const url = new URL(options.resourceMetadataUrl);
@@ -265,7 +269,11 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
       // 2026-07-28 results carry resultType and the server identity, as the SDK's own results do.
       const shaped = legacy
         ? result
-        : { ...result, resultType: 'complete', _meta: { [SERVER_INFO_META_KEY]: { name: SERVER_NAME, version: VERSION } } };
+        : {
+            ...result,
+            resultType: 'complete',
+            _meta: { [SERVER_INFO_META_KEY]: { name: SERVER_NAME, version: VERSION } },
+          };
       return { jsonrpc: '2.0', id, result: shaped };
     };
     report('tool_error', { code: 'INVALID_ARGUMENTS' });
@@ -277,14 +285,20 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
     // Batches are 2025-era only; a modern one is refused outright, as the SDK would.
     if (!legacy) return rpcError(400, -32600, 'Bad Request: invalid batch.');
     const answers = parsed
-      .filter((m): m is { id: unknown } => !!m && typeof m === 'object' && 'method' in m && (m as { id?: unknown }).id !== undefined)
+      .filter(
+        (m): m is { id: unknown } =>
+          !!m && typeof m === 'object' && 'method' in m && (m as { id?: unknown }).id !== undefined,
+      )
       .map((m) =>
         isUnsafeToolCall(m)
           ? toolError(m.id)
           : {
               jsonrpc: '2.0',
               id: m.id,
-              error: { code: -32600, message: 'Not processed: this batch contains a tools/call with unsafe argument keys.' },
+              error: {
+                code: -32600,
+                message: 'Not processed: this batch contains a tools/call with unsafe argument keys.',
+              },
             },
       );
     return answers.length ? json(200, answers) : new Response(null, { status: 202 });
@@ -309,7 +323,10 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
       principal = await options.authenticate(view);
     } catch {
       report('http_auth_error');
-      return json(503, { error: 'temporarily_unavailable', error_description: 'Authentication is unavailable.' });
+      return json(503, {
+        error: 'temporarily_unavailable',
+        error_description: 'Authentication is unavailable.',
+      });
     }
     if (principal === undefined || principal === null) {
       report('http_rejected', { reason: 'unauthenticated' });
@@ -332,7 +349,12 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
     }
     if (!options.requiredScopes.every((scope) => principal.scopes.includes(scope))) {
       report('http_rejected', { reason: 'insufficient_scope' });
-      return challenge(403, 'insufficient_scope', 'The authorization does not include the required scope.', request);
+      return challenge(
+        403,
+        'insufficient_scope',
+        'The authorization does not include the required scope.',
+        request,
+      );
     }
     let forward = request;
     if (request.method.toUpperCase() === 'POST' && isJsonContentType(request.headers.get('content-type'))) {
@@ -349,7 +371,12 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
       const headers = new Headers(request.headers);
       headers.delete('content-length');
       headers.delete('transfer-encoding');
-      forward = new Request(request.url, { method: 'POST', headers, body: read.text, signal: request.signal });
+      forward = new Request(request.url, {
+        method: 'POST',
+        headers,
+        body: read.text,
+        signal: request.signal,
+      });
       let parsed: unknown;
       let parsedOk = false;
       try {

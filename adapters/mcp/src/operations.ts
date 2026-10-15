@@ -175,7 +175,12 @@ export class SessMcpAdapter {
   async #local(options: LocalAdapterOptions): Promise<OperationContext> {
     const config = loadConfig(options.env);
     this.#secrets.push(config.apiKey);
-    const store = await ProfileHandleStore.open(config.stateDir, config.profile, config.origin, config.apiKey);
+    const store = await ProfileHandleStore.open(
+      config.stateDir,
+      config.profile,
+      config.origin,
+      config.apiKey,
+    );
     const client = (options.createClient ?? defaultClient)(config);
     options.diagnostics('configured', { profile: config.profile });
     return { client, store, maxWaitMs: config.maxWaitMs };

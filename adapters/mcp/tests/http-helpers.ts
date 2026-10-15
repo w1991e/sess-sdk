@@ -29,9 +29,17 @@ const who = (fields: Partial<Who> & Pick<Who, 'principalId' | 'grantId' | 'sessC
 
 /** Synthetic principals. MCP bearer tokens and SESS credentials are deliberately different values. */
 export const PRINCIPALS: Record<string, Who> = {
-  'mcp-token-alice': who({ principalId: 'usr_alice', grantId: 'grt_alice_one', sessCredential: 'sess-cred-alice' }),
+  'mcp-token-alice': who({
+    principalId: 'usr_alice',
+    grantId: 'grt_alice_one',
+    sessCredential: 'sess-cred-alice',
+  }),
   // A refreshed access token for the same grant and generation.
-  'mcp-token-alice-refreshed': who({ principalId: 'usr_alice', grantId: 'grt_alice_one', sessCredential: 'sess-cred-alice' }),
+  'mcp-token-alice-refreshed': who({
+    principalId: 'usr_alice',
+    grantId: 'grt_alice_one',
+    sessCredential: 'sess-cred-alice',
+  }),
   // The same grant after revocation and re-consent: a new generation.
   'mcp-token-alice-regranted': who({
     principalId: 'usr_alice',
@@ -46,7 +54,12 @@ export const PRINCIPALS: Record<string, Who> = {
     grantId: 'grt_alice_two',
     sessCredential: 'sess-cred-alice',
   }),
-  'mcp-token-alice-noscope': who({ principalId: 'usr_alice', grantId: 'grt_alice_one', scopes: [], sessCredential: 'sess-cred-alice' }),
+  'mcp-token-alice-noscope': who({
+    principalId: 'usr_alice',
+    grantId: 'grt_alice_one',
+    scopes: [],
+    sessCredential: 'sess-cred-alice',
+  }),
   // A second user of the same host and workspace.
   'mcp-token-bob': who({ principalId: 'usr_bob', grantId: 'grt_bob_one', sessCredential: 'sess-cred-bob' }),
   // A user of another workspace.
@@ -93,7 +106,9 @@ export async function startHttp(
       const key = String(typeof apiKey === 'function' ? await apiKey() : apiKey);
       const fake = fakes[key.replace(/#\d+$/, '')];
       if (!fake)
-        return new Response('{"error":{"code":"UNAUTHORIZED","request_id":"req_x","message":"x"}}', { status: 401 });
+        return new Response('{"error":{"code":"UNAUTHORIZED","request_id":"req_x","message":"x"}}', {
+          status: 401,
+        });
       return fake.fetch(input, init);
     }) as typeof fetch;
   const handler = createSessMcpHttpHandler({
@@ -155,7 +170,10 @@ export async function legacyV2Client(url: URL, token?: string): Promise<ModernCl
 }
 
 /** The v1 SDK client (1.32.1), the generation most hosts ship today. */
-export async function legacyV1Client(url: URL, token?: string): Promise<{ client: V1Client; transport: V1Transport }> {
+export async function legacyV1Client(
+  url: URL,
+  token?: string,
+): Promise<{ client: V1Client; transport: V1Transport }> {
   const client = new V1Client({ name: 'legacy-v1-test', version: '0.0.0' });
   const transport = new V1Transport(url, { requestInit: { headers: auth(token) } });
   await client.connect(transport);
@@ -206,7 +224,11 @@ export async function rpcBody(response: Response): Promise<any> {
 }
 
 /** Calls a tool and returns its parsed adapter result or error envelope. */
-export function toolPayload(result: { content?: unknown; structuredContent?: unknown; isError?: unknown }): any {
+export function toolPayload(result: {
+  content?: unknown;
+  structuredContent?: unknown;
+  isError?: unknown;
+}): any {
   const content = result.content as { type: string; text: string }[];
   return JSON.parse(content[0]!.text);
 }

@@ -43,7 +43,9 @@ describe('[P2-14] raw-body unsafe-key guard (ported Q-1a regression)', () => {
     const handler = createMcpHandler(
       () => {
         const s = new Server({ name: 'guard-canary', version: '1' }, { capabilities: { tools: {} } });
-        s.setRequestHandler('tools/list', async () => ({ tools: [{ name: 't', inputSchema: { type: 'object' } }] }));
+        s.setRequestHandler('tools/list', async () => ({
+          tools: [{ name: 't', inputSchema: { type: 'object' } }],
+        }));
         s.setRequestHandler('tools/call', async (req) => {
           seen.push(req.params.arguments);
           return { content: [{ type: 'text', text: 'ran' }] };
@@ -107,7 +109,10 @@ describe('[P2-14] raw-body unsafe-key guard (ported Q-1a regression)', () => {
     closers.push(() => client.close());
     expect(client.getNegotiatedProtocolVersion()).toBe('2026-07-28');
     // The modern client validates the result shape (resultType); a legacy-shaped answer would fail here.
-    const r = await client.callTool({ name: 'sess_request', arguments: JSON.parse('{"__proto__":{"polluted":true}}') });
+    const r = await client.callTool({
+      name: 'sess_request',
+      arguments: JSON.parse('{"__proto__":{"polluted":true}}'),
+    });
     expect(r.isError).toBe(true);
     expect((r.content as { text: string }[])[0]!.text).toMatch(/INVALID_ARGUMENTS.*unsafe key/);
     // A raw modern request gets the modern shape, and a modern batch is refused outright.
@@ -123,7 +128,10 @@ describe('[P2-14] raw-body unsafe-key guard (ported Q-1a regression)', () => {
     const h = (harness = await startHttp());
     const { client } = await legacyV1Client(h.url, 'mcp-token-alice');
     closers.push(() => client.close());
-    const r = await client.callTool({ name: 'sess_request', arguments: JSON.parse('{"__proto__":{"polluted":true}}') });
+    const r = await client.callTool({
+      name: 'sess_request',
+      arguments: JSON.parse('{"__proto__":{"polluted":true}}'),
+    });
     expect(r.isError).toBe(true);
     expect((r.content as { text: string }[])[0]!.text).toMatch(/INVALID_ARGUMENTS.*unsafe key/);
     noToolRan(h);

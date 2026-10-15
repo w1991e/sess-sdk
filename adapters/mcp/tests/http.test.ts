@@ -1,6 +1,13 @@
 // @acceptance P2-14 (groundwork): stateless HTTP composition and the hosted operations/store seam.
 import { afterEach, describe, expect, it } from 'vitest';
-import { AdapterError, RECORD_SCHEMA, assertBindingAccess, createSessMcpHttpHandler, decodeRecord, grantBinding } from '../src/http.js';
+import {
+  AdapterError,
+  RECORD_SCHEMA,
+  assertBindingAccess,
+  createSessMcpHttpHandler,
+  decodeRecord,
+  grantBinding,
+} from '../src/http.js';
 import { TOOLS } from '../src/tools.js';
 import { ANSWER_1, FakeSess, ORIGIN, ROUND_1 } from './helpers.js';
 import {
@@ -43,7 +50,12 @@ async function legacyCall(url: URL, token: string, name: string, args: unknown) 
 
 /** One tool call as an independent modern (2026-07-28) HTTP request. */
 async function modernCall(url: URL, token: string, name: string, args: unknown) {
-  const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args, _meta: MODERN_META } });
+  const body = JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'tools/call',
+    params: { name, arguments: args, _meta: MODERN_META },
+  });
   const response = await rawPost(url, body, modernHeaders('tools/call', name), token);
   expect(response.status).toBe(200);
   return (await rpcBody(response)).result;
@@ -121,7 +133,10 @@ describe('[P2-14] stateless HTTP: declared revisions and the five tools', () => 
     closers.push(() => v2.close());
     expect(v2.getNegotiatedProtocolVersion()).toBe('2025-11-25');
     // Another client, another connection: the same principal continues the same handle.
-    const waiting = await v2.callTool({ name: 'sess_response', arguments: { handle, revision: 1, wait_ms: 0 } });
+    const waiting = await v2.callTool({
+      name: 'sess_response',
+      arguments: { handle, revision: 1, wait_ms: 0 },
+    });
     expect((waiting.structuredContent as any).interaction.state).toBe('waiting');
   });
 
@@ -150,7 +165,11 @@ describe('[P2-14] stateless HTTP: declared revisions and the five tools', () => 
     const direct = await h.handler.fetch(
       new Request(h.url, {
         method: 'POST',
-        headers: { host: h.url.host, 'content-type': 'application/json', authorization: 'Bearer mcp-token-alice' },
+        headers: {
+          host: h.url.host,
+          'content-type': 'application/json',
+          authorization: 'Bearer mcp-token-alice',
+        },
         body: big,
       }),
     );
@@ -164,7 +183,11 @@ describe('[P2-14] stateless HTTP: declared revisions and the five tools', () => 
     const created = await legacyCall(h.url, 'mcp-token-alice', 'sess_request', { interaction: ROUND_1 });
     const handle = toolPayload(created).interaction.handle;
     const started = Date.now();
-    const waited = await legacyCall(h.url, 'mcp-token-alice', 'sess_response', { handle, revision: 1, wait_ms: 30_000 });
+    const waited = await legacyCall(h.url, 'mcp-token-alice', 'sess_response', {
+      handle,
+      revision: 1,
+      wait_ms: 30_000,
+    });
     expect(toolPayload(waited).interaction.state).toBe('needs_resume');
     expect(Date.now() - started).toBeLessThan(10_000);
     expect(h.backend.record(handle).state).toBe('needs_resume');
@@ -177,7 +200,12 @@ describe('[P2-14] authentication, Host and Origin in front of the SDK', () => {
     const missing = await rawPost(h.url, '{"jsonrpc":"2.0","id":1,"method":"tools/list"}', {}, null);
     expect(missing.status).toBe(401);
     expect(missing.headers.get('www-authenticate')).toBe(`Bearer resource_metadata="${RESOURCE_METADATA}"`);
-    const invalid = await rawPost(h.url, call(2, 'sess_request', JSON.stringify({ interaction: ROUND_1 })), {}, 'mcp-token-revoked');
+    const invalid = await rawPost(
+      h.url,
+      call(2, 'sess_request', JSON.stringify({ interaction: ROUND_1 })),
+      {},
+      'mcp-token-revoked',
+    );
     expect(invalid.status).toBe(401);
     expect(invalid.headers.get('www-authenticate')).toBe(
       `Bearer error="invalid_token", resource_metadata="${RESOURCE_METADATA}"`,
@@ -211,7 +239,12 @@ describe('[P2-14] authentication, Host and Origin in front of the SDK', () => {
     const evilHost = await h.handler.fetch(
       new Request('http://evil.test/mcp', {
         method: 'POST',
-        headers: { host: 'evil.test', 'content-type': 'application/json', accept: 'application/json, text/event-stream', authorization: 'Bearer mcp-token-alice' },
+        headers: {
+          host: 'evil.test',
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+          authorization: 'Bearer mcp-token-alice',
+        },
         body: list,
       }),
     );
@@ -256,8 +289,12 @@ describe('[P2-14] authentication, Host and Origin in front of the SDK', () => {
       allowedHosts: ['localhost'],
       apiOrigin: ORIGIN,
     };
-    expect(() => createSessMcpHttpHandler({ ...base, authenticate: undefined as never })).toThrow(/authenticate/);
-    expect(() => createSessMcpHttpHandler({ ...base, handleStore: undefined as never })).toThrow(/handleStore/);
+    expect(() => createSessMcpHttpHandler({ ...base, authenticate: undefined as never })).toThrow(
+      /authenticate/,
+    );
+    expect(() => createSessMcpHttpHandler({ ...base, handleStore: undefined as never })).toThrow(
+      /handleStore/,
+    );
     expect(() => createSessMcpHttpHandler({ ...base, allowedHosts: [] })).toThrow(/allowedHosts/);
     expect(() => createSessMcpHttpHandler({ ...base, apiOrigin: 'http://api.sess.test' })).toThrow();
   });
@@ -281,7 +318,10 @@ describe('[P2-14] handle isolation, refresh, revocation and recovery through the
         for (const [name, args] of [
           ['sess_response', { handle, revision: 1, wait_ms: 0 }],
           ['sess_complete', { handle, expected_revision: 1, response_event_id: eventId }],
-          ['sess_publish', { handle, expected_revision: 1, response_event_id: eventId, interaction: ROUND_1 }],
+          [
+            'sess_publish',
+            { handle, expected_revision: 1, response_event_id: eventId, interaction: ROUND_1 },
+          ],
         ] as const) {
           const result = await modernCall(h.url, token, name, args);
           expect(result.isError).toBe(true);
@@ -293,7 +333,11 @@ describe('[P2-14] handle isolation, refresh, revocation and recovery through the
       expect(h.backend.rows.get(handle)).toBe(before);
       for (const key of ['sess-cred-bob', 'sess-cred-carol']) expect(h.fakes[key]!.calls).toHaveLength(0);
       // Alice still reads her own answer.
-      const own = await modernCall(h.url, 'mcp-token-alice', 'sess_response', { handle, revision: 1, wait_ms: 0 });
+      const own = await modernCall(h.url, 'mcp-token-alice', 'sess_response', {
+        handle,
+        revision: 1,
+        wait_ms: 0,
+      });
       expect(toolPayload(own).interaction.state).toBe('answered');
     });
   }
@@ -305,16 +349,26 @@ describe('[P2-14] handle isolation, refresh, revocation and recovery through the
       credential: (who) => () => `${who.sessCredential}#${++refreshes}`,
     });
     const handle = await aliceHandle(h);
-    const refreshed = await modernCall(h.url, 'mcp-token-alice-refreshed', 'sess_response', { handle, revision: 1, wait_ms: 0 });
+    const refreshed = await modernCall(h.url, 'mcp-token-alice-refreshed', 'sess_response', {
+      handle,
+      revision: 1,
+      wait_ms: 0,
+    });
     expect(toolPayload(refreshed).interaction.state).toBe('waiting');
     const keys = new Set(h.fakes['sess-cred-alice']!.calls.map((c) => c.authorization));
     expect(keys.size).toBeGreaterThan(1);
 
-    const regranted = await modernCall(h.url, 'mcp-token-alice-regranted', 'sess_response', { handle, revision: 1, wait_ms: 0 });
+    const regranted = await modernCall(h.url, 'mcp-token-alice-regranted', 'sess_response', {
+      handle,
+      revision: 1,
+      wait_ms: 0,
+    });
     expect(regranted.isError).toBe(true);
     expect(toolPayload(regranted).error.code).toBe('BINDING_MISMATCH');
     // The new generation starts fresh handles of its own.
-    const fresh = await modernCall(h.url, 'mcp-token-alice-regranted', 'sess_request', { interaction: ROUND_1 });
+    const fresh = await modernCall(h.url, 'mcp-token-alice-regranted', 'sess_request', {
+      interaction: ROUND_1,
+    });
     expect(fresh.isError).toBeFalsy();
   });
 
@@ -374,7 +428,11 @@ describe('[P2-14] handle isolation, refresh, revocation and recovery through the
     expect(toolPayload(lost).error.code).toBe('CREATE_OUTCOME_UNKNOWN');
     const [handle] = [...h.backend.rows.keys()];
     expect(h.backend.record(handle!).state).toBe('create_unknown');
-    const again = await modernCall(h.url, 'mcp-token-alice', 'sess_response', { handle, revision: 1, wait_ms: 0 });
+    const again = await modernCall(h.url, 'mcp-token-alice', 'sess_response', {
+      handle,
+      revision: 1,
+      wait_ms: 0,
+    });
     expect(toolPayload(again).error.code).toBe('CREATE_OUTCOME_UNKNOWN');
     expect(fake.calls.filter((c) => c.method === 'POST')).toHaveLength(1);
   });

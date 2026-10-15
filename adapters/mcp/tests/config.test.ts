@@ -69,11 +69,17 @@ describe('owner-controlled configuration', () => {
     expect(compatibility.package.version).toBe(manifest.version);
     expect(manifest.dependencies['@sess.si/sdk']).toBe(compatibility.sessSdk.version);
     expect(manifest.dependencies[compatibility.mcpLibrary.name]).toBe(compatibility.mcpLibrary.version);
-    expect(manifest.dependencies[compatibility.mcpLibrary.node.name]).toBe(compatibility.mcpLibrary.node.version);
+    expect(manifest.dependencies[compatibility.mcpLibrary.node.name]).toBe(
+      compatibility.mcpLibrary.node.version,
+    );
     // The 1.x library is a test-only client now; it must never return as a runtime dependency.
     expect(manifest.dependencies['@modelcontextprotocol/sdk']).toBeUndefined();
     const lock = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'package-lock.json'), 'utf8'));
-    for (const pkg of [compatibility.mcpLibrary, compatibility.mcpLibrary.node, ...compatibility.mcpLibrary.transitive]) {
+    for (const pkg of [
+      compatibility.mcpLibrary,
+      compatibility.mcpLibrary.node,
+      ...compatibility.mcpLibrary.transitive,
+    ]) {
       const entry = lock.packages[`node_modules/${pkg.name}`];
       expect(entry.version).toBe(pkg.version);
       expect(entry.integrity).toBe(pkg.integrity);

@@ -15,7 +15,12 @@
   "transport": {
     "supported": ["stdio"],
     "library": ["streamable-http (stateless, @sess.si/mcp/http createSessMcpHttpHandler)"],
-    "notSupported": ["sse", "sessionful streamable-http", "remote/hosted deployment", "sess-mcp HTTP bin flag"],
+    "notSupported": [
+      "sse",
+      "sessionful streamable-http",
+      "remote/hosted deployment",
+      "sess-mcp HTTP bin flag"
+    ],
     "note": "The HTTP composition is a library export for the hosted SESS runtime to compose with its own authentication and durable handle store. This package ships no HTTP server, bin flag, OAuth server or deployment; no remote endpoint or host is qualified by this record."
   },
   "mcpLibrary": {
@@ -32,10 +37,30 @@
       "registryLatestAtQualification": "2.1.1"
     },
     "transitive": [
-      { "name": "@modelcontextprotocol/core", "version": "2.3.1", "license": "Apache-2.0", "integrity": "sha512-laVmIhPGpWi7rG9q+0UigblRN0Hws/Yjlb6qLFtVqryXVLkc4h+yN8z731POD2LnAGQlFe7/tXhUm7Bi0YB91g==" },
-      { "name": "zod", "version": "4.6.7", "license": "MIT", "integrity": "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==" },
-      { "name": "hono", "version": "4.13.13", "license": "MIT", "integrity": "sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==" },
-      { "name": "@hono/node-server", "version": "1.19.17", "license": "MIT", "integrity": "sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ==" }
+      {
+        "name": "@modelcontextprotocol/core",
+        "version": "2.3.1",
+        "license": "Apache-2.0",
+        "integrity": "sha512-laVmIhPGpWi7rG9q+0UigblRN0Hws/Yjlb6qLFtVqryXVLkc4h+yN8z731POD2LnAGQlFe7/tXhUm7Bi0YB91g=="
+      },
+      {
+        "name": "zod",
+        "version": "4.6.7",
+        "license": "MIT",
+        "integrity": "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=="
+      },
+      {
+        "name": "hono",
+        "version": "4.13.13",
+        "license": "MIT",
+        "integrity": "sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA=="
+      },
+      {
+        "name": "@hono/node-server",
+        "version": "1.19.17",
+        "license": "MIT",
+        "integrity": "sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ=="
+      }
     ],
     "serverApi": "low-level Server (request handlers). stdio: Server.connect(StdioServerTransport) through the raw-message unsafe-key guard, a 2025-era connection exactly as before. HTTP: createMcpHandler with its default legacy: 'stateless' fallback, one server instance per request.",
     "previous": {
@@ -71,7 +96,11 @@
       "tested": [
         "tests/http.test.ts and tests/http-guard.test.ts in npm test: five tools with byte-identical tools/list in both eras, a receipt-verified round over independent requests, -32022, 415, 413, deadline, 401/403 challenges, Host/Origin, handle isolation between principals, hosts and workspaces, refresh, grant generation, restart and concurrent replay identity, lost create reply, and the raw-body unsafe-key guard in both eras"
       ],
-      "notTested": ["any real host (claude.ai, ChatGPT, Claude Code, Cursor or others) over HTTP", "a deployed endpoint", "OAuth"]
+      "notTested": [
+        "any real host (claude.ai, ChatGPT, Claude Code, Cursor or others) over HTTP",
+        "a deployed endpoint",
+        "OAuth"
+      ]
     },
     {
       "name": "@modelcontextprotocol/sdk Client (official TypeScript client)",
