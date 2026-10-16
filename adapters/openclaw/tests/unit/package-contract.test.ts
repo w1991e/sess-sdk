@@ -55,7 +55,7 @@ describe('manifest and runtime declarations agree', () => {
   });
 });
 
-describe('OC-40 no MCP, Front Door, routes, services or detached wake-up in this package', () => {
+describe('no MCP server, routes, services or detached wake-up in this package', () => {
   it('declares and registers none of them', () => {
     expect(manifest.mcpServers).toBeUndefined();
     expect(Object.keys(pkg.dependencies)).not.toContain('@modelcontextprotocol/sdk');
@@ -73,7 +73,7 @@ describe('OC-40 no MCP, Front Door, routes, services or detached wake-up in this
   });
 });
 
-describe('OC-06 import and registration have no network, timer, state or secret side effects', () => {
+describe('import and registration have no network, timer, state or secret side effects', () => {
   it('imports the entry and registers without fetch, timers, state or credential reads', async () => {
     vi.resetModules();
     const fetchSpy = vi.fn(() => Promise.reject(new Error('network is denied in this test')));
@@ -119,7 +119,7 @@ describe('OC-06 import and registration have no network, timer, state or secret 
   });
 });
 
-describe('OC-09/OC-39 owner-controlled origin and credentials', () => {
+describe('owner-controlled origin and credentials', () => {
   it('defaults to the official origin and refuses non-HTTPS or test flags off loopback', () => {
     expect(parseConfig(undefined).baseUrl).toBe(DEFAULT_ORIGIN);
     expect(() => parseConfig({ baseUrl: 'http://api.sess.si' })).toThrow(/HTTPS/);
@@ -142,7 +142,7 @@ describe('OC-09/OC-39 owner-controlled origin and credentials', () => {
     expect(credential.generation).not.toContain(API_KEY);
   });
 
-  it('OC-12/OC-39: the guarded fetch refuses foreign origins and revoked authority before dispatch', async () => {
+  it('the guarded fetch refuses foreign origins and revoked authority before dispatch', async () => {
     const { guardFetch } = await import('../../src/client.js');
     const base = vi.fn(async () => new Response('{}'));
     let revoked = false;

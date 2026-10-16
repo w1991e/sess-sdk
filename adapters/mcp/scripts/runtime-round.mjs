@@ -1,4 +1,4 @@
-// G1 isolated-runtime rounds (OPT-IN; not part of public CI because the SESS runtime is private).
+// Isolated-runtime rounds (OPT-IN; not part of public CI because they need a running SESS runtime).
 //
 // Drives the PACKED, INSTALLED adapter over stdio with the official MCP client against an already
 // running, isolated SESS runtime that uses synthetic credentials only:

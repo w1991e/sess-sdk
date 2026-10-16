@@ -1,26 +1,15 @@
 # Releasing @sess.si/sdk
 
-## Current state and owner prerequisites
+The initializer `@sess.si/create-agent` has its own workflow and runbook: [create-agent/RELEASING.md](../create-agent/RELEASING.md).
 
-`0.1.0-rc.4` is published on npm under the `next` dist-tag with provenance; `latest` is a deprecated
-`0.0.0-stage` placeholder. `0.1.0-rc.5` is prepared and not yet published (see
-[Prepared successor](#prepared-successor-rc5) and its [release packet](../release/rc5-packet.md)). Do not equate a green tarball check with a public release.
-The owner confirmed creation of the npm organization `sess.si` and approved `@sess.si/sdk`
-as the public package name, superseding the previously proposed `@sess/sdk`. Organization creation
-and naming approval do not verify package publication, account MFA, trusted-publisher configuration
-or permission to publish this exact candidate. Before the first release, the owner must verify those
-prerequisites, approve source/package visibility, confirm copyright-holder/license notices, enable a
-verified private vulnerability-reporting channel, and authorize the exact candidate. No alias or
-compatibility package under `@sess/sdk` is planned; no visibility change, production deployment or
-token creation is automatic.
+Release candidates `0.1.0-rc.N` are published under the `next` dist-tag with provenance; `latest`
+never points at a prerelease. A green tarball check is not a release. Publication needs an
+authorized maintainer's environment approval and npm 2FA stage approval.
 
-The candidate uses Apache-2.0 terms and preserves dependency notices; final copyright-holder and
-publication approval remain explicit prerequisites. The existing MIT testbed is not relicensed.
+## Candidate pin
 
-## Candidate pin: rc.4 (published)
-
-**`0.1.0-rc.4` is the first SDK candidate to be published** (owner decision, 2026-10-14). Its exact
-bytes are pinned in [`release/sdk-candidate.json`](../release/sdk-candidate.json): name, version,
+The published candidate's exact bytes are pinned in
+[`release/sdk-candidate.json`](../release/sdk-candidate.json): name, version,
 tarball filename, SHA-256 and SHA-512. That file is the single source for every consumer. The MCP and
 OpenClaw adapters and CI pack the current repository root with
 `node scripts/sdk-pin.mjs pack [--build] [--out <dir>]`, which accepts the tarball only if its bytes
@@ -56,34 +45,22 @@ bytes, then repins `release/sdk-candidate.json` and every consumer and removes t
 `pin:update` refuses if the SDK's runtime dependency set changed. That needs a real regeneration of
 the adapter lockfiles. Review the resulting diff like any other change.
 
-Publish rc.4 only from a `v0.1.0-rc.4` tag on the merged, reviewed master commit whose packed bytes
-equal the pin, after its review and release authorization. The release workflow re-packs and tests
+Publish a version only from a `v<version>` tag on the merged, reviewed master commit whose packed
+bytes equal its record, after review and release authorization. The release workflow re-packs and tests
 at that tag and publishes only those bytes.
 
-## Prepared successor: rc.5
+## Prepared successor
 
-`0.1.0-rc.5` adds `verifyDecisionBundle`, `BUNDLE_LIMITS` and the `sess verify` executable, and
-corrects the README's first screen. Its exact bytes are recorded in
-[`release/sdk-next-candidate.json`](../release/sdk-next-candidate.json); consumers stay on the
-published rc.4 pin. Publish rc.5 only from a `v0.1.0-rc.5` tag on the merged, reviewed master
-commit whose packed bytes equal that record, after its review and release authorization. The
-founder steps, expected digests and the registry transition are in the
-[rc.5 release packet](../release/rc5-packet.md).
-
-## Held candidate: rc.3
-
-**`0.1.0-rc.3` is held** (owner decision, 2026-10-14): it will not be published. Its approval and
-archive digest SHA-256 `b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502` remain
-historical record. `node scripts/rc3-candidate.mjs [--out <dir>]` can still reproduce those bytes
-from the reviewed source commit `cea3f1eda448e632d5e3a4e5e717bf4986c0e506`. It needs full git
-history, and is a history and reproduction tool only; no consumer uses it. Never publish edited
-bytes under an existing version.
+A prepared, unpublished version is recorded in `release/sdk-next-candidate.json` while one
+exists; consumers stay on the
+published pin until the registry transition. Its maintainer steps and expected digests are in its
+release packet under [`release/`](../release/).
 
 ## Selected publishing mode
 
 Use one GitHub protected environment, **npm-release**, and an npm OIDC trusted publisher that is
 **stage-only** (`--allow-stage-publish`; direct publish not permitted). CI runs `npm stage publish`;
-nothing becomes installable until a maintainer runs `npm stage approve` with npm 2FA. Bind it to owner `w1991e`, repository `sess-sdk`, workflow `release.yml`
+nothing becomes installable until a maintainer runs `npm stage approve` with npm 2FA. Bind it to this repository, workflow `release.yml`
 and environment `npm-release`. Require an authorized maintainer's environment approval; restrict
 its deployment refs to release tags. Ordinary PR CI has only `contents: read` and no publishing token.
 
@@ -119,28 +96,20 @@ permanent automation token as a workaround.
 5. Verify package identity, version, repository, public access, dist-tag, dependency list, registry
    integrity and provenance. [npm provenance](https://docs.npmjs.com/generating-provenance-statements/)
    links an artifact to source/build identity; it is not a correctness or security certification.
-6. Install that exact registry version in a clean consumer and update the testbed manifest/lock from
-   the registry. Run its full checks and a separately authorized preview interoperability smoke.
-7. Record the SDK source, runtime SHA, contract digest, registry integrity and observed outcome. Obtain
-   independent developer cold-start evidence with consent; do not publish their key or human URL.
+6. Install that exact registry version in a clean consumer and run its full checks.
+7. Record the SDK source, runtime SHA, contract digest, registry integrity and observed outcome.
 
 The workflow verifies the registry integrity against the tested tarball and checks provenance metadata;
-registry-install/live-preview/independent-person evidence remains part of release completion.
+the registry install remains part of release completion.
 First-party packed/unpacked size and runtime-dependency count are recorded by the package check for review.
 The package record includes the actual Git checkout commit and whether its tree was modified. Release
 requires a clean tree at the workflow's exact commit; local modified-tree records are development evidence.
 The public tarball excludes contract/review plans, CI, tests, fixture private keys and local checkpoints.
-
-After OIDC works, the owner can restrict token publishing, require MFA and remove obsolete automation
-tokens, with an account-recovery procedure. Never change account security settings as an incidental CI fix.
 
 ## Versioning, rollback and repair
 
 Before 1.0, breaking documented API changes increase the minor version; patches preserve that API.
 Every release version has immutable bytes. Stop promotion for a defective release, then move the
 approved dist-tag to a known-good version, deprecate the bad version if warranted, and publish a new
-fixed version. Each is a release-owner action. Consumers pinned to the bad version need migration
+fixed version. Each is a maintainer action. Consumers pinned to the bad version need migration
 instructions. Unpublish is not the routine rollback strategy. Revoke any leaked credential at its source.
-
-Publication, public-repo transition, npm provenance, registry install, approved live smoke and an
-independent cold-start are **BLOCKED/NOT RUN** until their actual prerequisites and evidence exist.

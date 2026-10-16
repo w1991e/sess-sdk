@@ -1,5 +1,5 @@
 {
-  "source": "https://github.com/w1991e/sess/blob/6007a406ff0a64fe0fdfe484a0a568e49e97f0b0/packages/spec/openapi.json",
+  "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (served at https://api.sess.si/openapi.json)",
   "source_runtime_commit": "6007a406ff0a64fe0fdfe484a0a568e49e97f0b0",
   "source_git_blob_sha1": "59b806a1d50554e2705592d5ab622d3672536e40",
   "snapshot_sha256": "68acc8dfe74c2f33b266e06536405d3c8c7cca49787d62e0e3d1c6cf5a191ce5",

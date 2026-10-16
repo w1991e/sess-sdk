@@ -1,5 +1,4 @@
-// @acceptance P2-14
-// Streaming regressions for HTTP-01 (ASTRA review of sess-sdk #32): Host, Origin and authentication
+// Streaming regressions: Host, Origin and authentication
 // are decided from the headers before any body byte is read, and an absolute deadline started at
 // entry bounds body ingestion. Each case sends a real, deliberately incomplete or slow body and
 // asserts the answer arrives while the body is still open, with no store opened and no SESS call.
@@ -100,7 +99,7 @@ function openFetch(h: Harness, headers: Record<string, string>, first: string, s
 
 const ALICE = { authorization: 'Bearer mcp-token-alice' };
 
-describe('[P2-14] HTTP-01 node face: header preflight before any body byte', () => {
+describe('node face: header preflight before any body byte', () => {
   it('rejects a disallowed Host while the body is still open, without calling authenticate', async () => {
     const h = (harness = await startHttp());
     const { answer } = openNode(h.url, { ...ALICE, host: 'evil.test', 'content-length': '2' }, '{');
@@ -144,7 +143,7 @@ describe('[P2-14] HTTP-01 node face: header preflight before any body byte', () 
     untouched(h);
   });
 
-  it('terminates an authorized incomplete body at the deadline (ASTRA repro: Content-Length 2, only "{")', async () => {
+  it('terminates an authorized incomplete body at the deadline (reproduction: Content-Length 2, only "{")', async () => {
     const h = (harness = await startHttp({ overrides: { requestTimeoutMs: 250 } }));
     const a = await openNode(h.url, { ...ALICE, 'content-length': '2' }, '{').answer;
     expect(a.status).toBe(408);
@@ -181,7 +180,7 @@ describe('[P2-14] HTTP-01 node face: header preflight before any body byte', () 
   });
 });
 
-describe('[P2-14] HTTP-01 fetch face: header preflight before any body byte', () => {
+describe('fetch face: header preflight before any body byte', () => {
   it('rejects Host, Origin and missing credentials while the body stream is still open', async () => {
     const h = (harness = await startHttp());
     const host = await openFetch(h, { ...ALICE, host: 'evil.test' }, '{').response;
@@ -243,9 +242,9 @@ describe('[P2-14] HTTP-01 fetch face: header preflight before any body byte', ()
   });
 });
 
-// HTTP-01a (ASTRA review of sess-sdk #32 at c00e523): a peer that goes away while authenticate is
+// A peer that goes away while authenticate is
 // still pending must settle the handler at once, not leave it waiting past the deadline.
-describe('[P2-14] HTTP-01a: disconnect while authenticate is pending', () => {
+describe('disconnect while authenticate is pending', () => {
   /** A hook that never answers, counting how often it is entered. */
   function pendingHook() {
     const hook = { entered: 0, authenticate: () => (hook.entered++, new Promise<undefined>(() => {})) };

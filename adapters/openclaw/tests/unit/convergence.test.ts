@@ -1,4 +1,4 @@
-// Alignment with adapters/CONTRACT.md after G1 convergence. Each block names its contract section.
+// Alignment with adapters/CONTRACT.md after the adapters converged. Each block names its contract section.
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ERROR_CLASSES } from '../../src/errors.js';
@@ -285,7 +285,7 @@ describe('Convergence: shared core and error classes', () => {
   });
 });
 
-describe('Contract clarifications (sess-sdk #10 revision)', () => {
+describe('Contract clarifications', () => {
   it('Response outcomes: a revision other than the current one is a conflict with no network call', async () => {
     const { host, conv, handle } = await started();
     const before = sess.requests.length;

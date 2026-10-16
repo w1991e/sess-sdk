@@ -158,6 +158,7 @@ describe('@sess.si/create-agent initializer', { timeout: 30_000 }, () => {
       'template/_gitignore',
       'template/agent.mjs',
       'template/package.json',
+      'template/weather.mjs',
     ]);
   });
 });

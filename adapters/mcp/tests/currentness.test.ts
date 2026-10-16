@@ -1,4 +1,4 @@
-// R-01 regressions (ASTRA runtime-adapter-cycle review): an answer is released only after
+// Currentness regressions: an answer is released only after
 // authenticated current-revision evidence obtained AFTER full receipt verification, including
 // cached answered results. Real SDK client and verifier, Ed25519-signed synthetic receipts,
 // deterministic fake HTTP API; no verifier stub.
@@ -89,7 +89,7 @@ async function requested(h: ReturnType<typeof harness>) {
   return { handle: interaction.handle, eventId };
 }
 
-describe('R-01: progress between the first read and the post-verification check', () => {
+describe('progress between the first read and the post-verification check', () => {
   // GET 1 = adapter read/wait, GET 2 = verifier's authenticated read, GET 3 = post-verify read.
   for (const [label, waitMs] of [
     ['read-once', 0],
@@ -155,7 +155,7 @@ describe('R-01: progress between the first read and the post-verification check'
   });
 });
 
-describe('R-01: cached answered results', () => {
+describe('cached answered results', () => {
   async function answered(h: ReturnType<typeof harness>) {
     const ids = await requested(h);
     await h.adapter.response({ handle: ids.handle, revision: 1, waitMs: 0 });
@@ -267,7 +267,7 @@ describe('R-01: cached answered results', () => {
   });
 });
 
-describe('R-01: a wait that ends never releases an answer saved by another call', () => {
+describe('a wait that ends never releases an answer saved by another call', () => {
   it('WAIT_TIMEOUT after a concurrent answered save → conflict, no cached data', async () => {
     const fake = new FakeSess();
     let adapter!: SessMcpAdapter;
@@ -308,7 +308,7 @@ describe('R-01: a wait that ends never releases an answer saved by another call'
   });
 });
 
-describe('R-01: other unexpected observations at the post-verification read', () => {
+describe('other unexpected observations at the post-verification read', () => {
   const cases: [string, (fake: FakeSess) => void][] = [
     [
       'retained event missing',

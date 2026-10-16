@@ -1,4 +1,4 @@
-// Packed-artifact checks for @sess.si/openclaw (OC-03, OC-04, OC-06, OC-41, OC-42).
+// Packed-artifact checks for @sess.si/openclaw.
 //   node scripts/check-package.mjs [--registry] [--host]
 // Packs with lifecycle scripts disabled, checks the file allowlist and manifest, installs the
 // exact bytes into a clean consumer the way OpenClaw's installer does (--omit=dev --omit=peer
@@ -119,10 +119,8 @@ assert(
   'packed content contains secret-like material',
 );
 assert(
-  !/@sess\/(core|spec|security|session-web|db)|sess-agent-testbed|adapters\/mcp|@modelcontextprotocol/.test(
-    text,
-  ),
-  'packed content references private/runtime/testbed/MCP sources',
+  !/@sess\/(core|spec|security|session-web|db)|adapters\/mcp|@modelcontextprotocol/.test(text),
+  'packed content references runtime or MCP sources',
 );
 pass('pack-allowlist', { files: files.length });
 

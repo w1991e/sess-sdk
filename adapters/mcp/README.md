@@ -6,7 +6,7 @@ immediately, the person answers on any device, and the agent continues on the sa
 
 **Candidate status:** `@sess.si/mcp@0.1.0-rc.1` is **not published yet**, so
 `npm install @sess.si/mcp` and `npx @sess.si/mcp` do **not** work yet. Its SDK dependency,
-`@sess.si/sdk@0.1.0-rc.4`, is published on npm (dist-tag `next`) and installs from the registry. Everything below marked
+`@sess.si/sdk@0.1.0-rc.5`, is published on npm (dist-tag `next`) and installs from the registry. Everything below marked
 _tested_ was run from a packed, installed tarball; everything marked _untested_ is the intended
 form after publication. See [compatibility.json](compatibility.json) for the exact tuple.
 
@@ -264,7 +264,7 @@ The adapter is an independent package with its own lockfile. `package.json` alwa
 exact SDK version from the repository's single pin, `release/sdk-candidate.json` (name, version,
 filename, SHA-256, SHA-512). `package-lock.json` is a maintainer file only; npm never ships it to
 consumers. The lock resolves the SDK to the genuine npm registry tarball
-(`https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.0-rc.4.tgz`, dist-tag `next`) with the pinned
+(`https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.0-rc.5.tgz`, dist-tag `next`) with the pinned
 integrity, so no local SDK build or pack is needed. `compatibility.json` mirrors the pin;
 `npm run pin:update` at the root keeps both, the lockfile and the dependency in step after a
 deliberate change, and the root `npm run check` fails on drift.
