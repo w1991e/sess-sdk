@@ -78,6 +78,31 @@ saved expected step, matching Session/revision, `status === 'responded'`, and th
 The tested [multi-round example](../examples/multi-round.ts) performs those checks before domain
 calculation. A later receipt-context read never supplies a replacement write ETag.
 
+## One question with sess.ask()
+
+For a single question with simple fields, `sess.ask()` creates the Session with the whole
+interaction, returns its private link before waiting, and `answer()` verifies, checks currentness,
+completes and returns typed values ([API reference](api.md#ask-one-question)). Completing closes the
+Session: a later step needs the advanced API instead (create, publish, complete), as in the
+[multi-round example](../examples/multi-round.ts).
+
+The handle is an in-memory convenience, not durable state. Its completion identity (If-Match and
+Idempotency-Key) is kept only in the process, and nothing survives a restart. Business workflow,
+checkpoints and side effects stay in your application. To make a question recoverable:
+
+- persist `sessionId` and `revision` as soon as `ask()` resolves (and the link only if you must
+  deliver it again; it is a bearer capability, so protect it like a credential);
+- after a restart, call `sessions.waitForResponse(sessionId, { revision })`, then
+  `receipts.verifyResponse`, then check your own expected step and the current Session
+  (`status === "responded"` at that revision, retaining that event) as described above;
+- if the Session already reads back as `completed` at that revision and retains that event, the
+  answer was completed; otherwise persist a completion intent and call `sessions.complete` with it,
+  following the durable workflow rules below;
+- record the accepted `event_id` with any side effect so a replay cannot apply it twice.
+
+An `ask()` that fails with `unknown_outcome` may have created a Session whose link was lost; do not
+ask again automatically. Inspect `error.getRecoveryResult()` as described below.
+
 ## Durable workflow integration
 
 A pending JavaScript promise is not durable suspension. Persist the Session ID, private human URL,
