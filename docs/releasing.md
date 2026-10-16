@@ -1,5 +1,7 @@
 # Releasing @sess.si/sdk
 
+The initializer `@sess.si/create-agent` has its own workflow and runbook: [create-agent/RELEASING.md](../create-agent/RELEASING.md).
+
 Release candidates `0.1.0-rc.N` are published under the `next` dist-tag with provenance; `latest`
 never points at a prerelease. A green tarball check is not a release. Publication needs an
 authorized maintainer's environment approval and npm 2FA stage approval.
