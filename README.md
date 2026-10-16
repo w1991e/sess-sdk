@@ -181,11 +181,10 @@ contract is served at [OpenAPI](https://api.sess.si/openapi.json).
 - [Integration](docs/integration.md): authoring, lifecycle, validation, durability and future boundaries.
 - [Security](docs/security.md) and [receipt example](examples/receipt-verification.ts).
 - [Webhooks](docs/webhooks.md) and [Node receiver with a durable-inbox boundary](examples/webhook-receiver.ts).
-- [Compatibility](docs/compatibility.md), [testbed migration](docs/migration.md) and [release runbook](docs/releasing.md).
+- [Compatibility](docs/compatibility.md), [migrating to the registry package](docs/migration.md) and [release runbook](docs/releasing.md).
 - [Plain-Node quickstart](examples/quickstart-node/README.md): a complete program, from the first call to the verified answer.
 
 The present runtime can require manual browser refresh between rounds. Owner polling in this
-SDK does not change that browser behavior. Appearance configuration and front-door invocation
-helpers remain conditional future work, with no placeholder exports.
+SDK does not change that browser behavior. Appearance configuration is not part of this SDK.
 
 [Contribute](CONTRIBUTING.md) · [Security reporting](SECURITY.md) · [Apache-2.0](LICENSE)

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.6 — 2026-10-15
 
 - `sess.ask({ question, fields })`: one question with simple typed fields (the MCP `sess_ask`
   shape). It validates locally, creates the Session once and returns its private link before
@@ -10,6 +10,8 @@
   `AskAnswerOptions`. Every existing export, `verifyDecisionReceipt` and the advanced API are
   unchanged.
 - The README opens with `sess.ask()`; the full Surface API is under "Advanced", unchanged.
+- Wording only: the README's guide list and closing note, and the `0.1.0-rc.3` entry below, no
+  longer refer to internal processes or unreleased work.
 
 ## 0.1.0-rc.5 — 2026-10-15
 
@@ -32,7 +34,7 @@ printed before waiting) and points to this changelog and the registry's dist-tag
 
 ## 0.1.0-rc.3 — 2026-10-13
 
-Unpublished R2 corrective candidate, now named `@sess.si/sdk` by the owner's superseding distribution decision. Earlier candidates and their recorded hashes retain their historical `@sess/sdk` identity; no alias is created. Inherit and validate polling operation budgets, dispose cancelled polling/backoff listeners, and match the runtime replay-key alphabet in transport and durable examples. Extend tracked-source and retained-history scanning with pinned tooling and synthetic controls.
+Unpublished corrective candidate, the first named `@sess.si/sdk`. Earlier candidates and their recorded hashes keep their historical `@sess/sdk` name; no alias is created. Inherit and validate polling operation budgets, dispose cancelled polling/backoff listeners, and match the runtime replay-key alphabet in transport and durable examples. Extend tracked-source and retained-history scanning with pinned tooling and synthetic controls.
 
 ## 0.1.0-rc.2 — 2026-10-13
 
