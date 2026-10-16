@@ -7,6 +7,8 @@
 //                                                         tree; writes version and dist-tag outputs
 //   node create-agent/scripts/release-guard.mjs pack      packs once into create-agent/.artifacts and
 //                                                         records the tested bytes
+//   node create-agent/scripts/release-guard.mjs exercised the clean-install check passed on exactly
+//                                                         the packed candidate's bytes
 //   node create-agent/scripts/release-guard.mjs artifact  the downloaded artifact is the tested one
 //   node create-agent/scripts/release-guard.mjs readback  registry metadata equals the tested artifact
 import { execFileSync } from 'node:child_process';
@@ -95,6 +97,14 @@ export function checkPackEntry({ entry, version }) {
   if (entry.filename !== `sess.si-create-agent-${version}.tgz`) refuse('packed filename drift');
   const files = (entry.files ?? []).map((f) => f.path).sort();
   if (JSON.stringify(files) !== JSON.stringify(PACKED_FILES)) refuse('packed file list drift');
+}
+
+/** The clean-install record names exactly the packed candidate's bytes, and it passed. */
+export function checkExercised({ result, exercised }) {
+  if (exercised?.check !== 'create-agent-clean-install' || exercised.passed !== true)
+    refuse('no passing clean-install record for the candidate');
+  if (!/^[a-f0-9]{64}$/.test(exercised.sha256 ?? '') || exercised.sha256 !== result?.sha256)
+    refuse('the clean-install check exercised different bytes than the packed candidate');
 }
 
 /**
@@ -213,6 +223,17 @@ async function main() {
     writeFileSync(join(dir, 'package-result.json'), `${JSON.stringify(result, null, 2)}\n`);
     output({ sha256 });
     console.log(`release-guard: packed ${entry.filename} sha256=${sha256}`);
+  } else if (command === 'exercised') {
+    const dir = join(pkg, '.artifacts');
+    const result = readJson(join(dir, 'package-result.json'));
+    checkArtifactPath({ result, version: manifest.version });
+    // Re-hash the candidate on disk: the bytes uploaded next are the bytes that were exercised.
+    const onDisk = createHash('sha256')
+      .update(readFileSync(join(pkg, result.tarball)))
+      .digest('hex');
+    if (onDisk !== result.sha256) refuse('the packed candidate changed on disk');
+    checkExercised({ result, exercised: readJson(join(dir, 'exercised.json')) });
+    console.log(`release-guard: the clean-install check exercised ${result.filename} sha256=${onDisk}`);
   } else if (command === 'artifact') {
     const result = readJson(join(pkg, '.artifacts', 'package-result.json'));
     // Path validation precedes any read of the recorded tarball path.
@@ -252,7 +273,9 @@ async function main() {
       `release-guard: verified ${manifest.name}@${manifest.version} on ${process.env.RELEASE_DIST_TAG}, integrity and provenance`,
     );
   } else {
-    refuse('usage: node create-agent/scripts/release-guard.mjs prepare | pack | artifact | readback');
+    refuse(
+      'usage: node create-agent/scripts/release-guard.mjs prepare | pack | exercised | artifact | readback',
+    );
   }
 }
 

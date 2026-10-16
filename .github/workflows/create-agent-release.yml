@@ -52,11 +52,18 @@ jobs:
         run: |
           npm run build
           npx vitest run tests/create-agent
-      - name: Packed initializer, clean registry install and timed start
-        run: node create-agent/scripts/clean-install-check.mjs
-      - name: Pack once and record the tested bytes
+      - name: Pack the release candidate once and record its bytes
         id: pack
         run: node create-agent/scripts/release-guard.mjs pack
+      # The clean install exercises that exact tarball (no repack): npm create from it, the
+      # registry SDK with the pinned integrity, both rounds against the offline fake world.
+      - name: Clean registry install, timed start and both rounds from the candidate
+        run: |
+          tarball="create-agent/$(node -p "require('./create-agent/.artifacts/package-result.json').tarball")"
+          node create-agent/scripts/clean-install-check.mjs --tarball "$tarball" \
+            --record-exercised create-agent/.artifacts/exercised.json
+      - name: Bind the exercised bytes to the candidate
+        run: node create-agent/scripts/release-guard.mjs exercised
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         id: artifact
         with:

@@ -15,6 +15,7 @@ import {
   PACKED_FILES,
   checkArtifact,
   checkArtifactPath,
+  checkExercised,
   checkGit,
   checkIdentity,
   checkPackEntry,
@@ -122,6 +123,43 @@ test('pack entry: exact identity, file name and the allowlisted 11 files only', 
     /file list/,
   );
   refuses(() => checkPackEntry({ entry: { ...entry, files: entry.files.slice(1) }, version }), /file list/);
+});
+
+test('exercised: only a passing clean-install record of exactly the candidate bytes passes', () => {
+  const result = { sha256: 'a'.repeat(64) };
+  checkExercised({
+    result,
+    exercised: { check: 'create-agent-clean-install', passed: true, sha256: 'a'.repeat(64) },
+  });
+  refuses(
+    () =>
+      checkExercised({
+        result,
+        exercised: { check: 'create-agent-clean-install', passed: true, sha256: 'b'.repeat(64) },
+      }),
+    /different bytes/,
+  );
+  refuses(
+    () =>
+      checkExercised({
+        result,
+        exercised: { check: 'create-agent-clean-install', passed: false, sha256: 'a'.repeat(64) },
+      }),
+    /no passing/,
+  );
+  refuses(
+    () => checkExercised({ result, exercised: { check: 'other', passed: true, sha256: 'a'.repeat(64) } }),
+    /no passing/,
+  );
+  refuses(() => checkExercised({ result, exercised: undefined }), /no passing/);
+  refuses(
+    () =>
+      checkExercised({
+        result: {},
+        exercised: { check: 'create-agent-clean-install', passed: true, sha256: 'a'.repeat(64) },
+      }),
+    /different bytes/,
+  );
 });
 
 // GitHub runners and the release workflow have git; minimal containers may not. Skip visibly there.
