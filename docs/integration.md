@@ -118,7 +118,6 @@ its caller must hold an exclusive worker lease. It flushes file contents, uses a
 syncs the parent directory on POSIX before returning. Windows crash durability requires a suitable store.
 Choose a transactional database/store and platform-appropriate permissions for a production app;
 on Windows, Unix file modes do not establish a complete ACL. Local checkpoints contain a bearer link.
-The reference testbed implements its own startup lock and checkpoint handling.
 
 Pass an application-owned credential slot/version label as the fifth argument to `runMultiRound`,
 for example `owner-key-v1`. This is a stable label for the exact owner credential, never the key
@@ -153,17 +152,12 @@ Avoid thousands of pending promises in functions that can be suspended or termin
 Aborting a request ends the local request only. It neither cancels the Session nor undoes a write.
 Write outcomes distinguish local `not_sent`, authoritative `rejected`, and conservative `unknown`.
 
-## Hosting, adapters and future front doors
+## Hosting and adapters
 
 The runtime manages lifecycle, state, routing and authorization. An integration adapter translates
 a specific external framework or protocol where needed. The SDK exposes supported SESS operations;
-it is not a universal conversion engine or an agent framework.
-
-A later human-to-agent front door must first have a reviewed runtime invocation contract. A small
-framework-neutral receiving helper could then verify dispatch and continuation bindings before
-calling application handlers. The publisher still owns execution and durable storage. No handler
-subpath, invocation endpoint, MCP/A2A implementation, OpenClaw dependency or host-compatibility claim
-is included in this candidate.
+it is not a universal conversion engine or an agent framework. The publisher owns execution and
+durable storage.
 
 Browser continuity is runtime work. Keep manual-refresh instructions until a deployed waiting-page
 implementation is verified. SDK owner polling cannot update the human's browser or relax its CSP.

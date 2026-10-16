@@ -1,4 +1,4 @@
-// @acceptance P2-14 (groundwork): stateless HTTP composition and the hosted operations/store seam.
+// Stateless HTTP composition and the hosted operations/store seam.
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   AdapterError,
@@ -61,7 +61,7 @@ async function modernCall(url: URL, token: string, name: string, args: unknown) 
   return (await rpcBody(response)).result;
 }
 
-describe('[P2-14] stateless HTTP: declared revisions and the five tools', () => {
+describe('stateless HTTP: declared revisions and the five tools', () => {
   it('serves a modern 2026-07-28 client with the five tools, byte-identical schemas and a full verified round', async () => {
     const h = await start();
     const client = await modernClient(h.url, 'mcp-token-alice');
@@ -194,7 +194,7 @@ describe('[P2-14] stateless HTTP: declared revisions and the five tools', () => 
   });
 });
 
-describe('[P2-14] authentication, Host and Origin in front of the SDK', () => {
+describe('authentication, Host and Origin in front of the SDK', () => {
   it('answers 401 with a resource-metadata challenge and never opens a store or calls SESS', async () => {
     const h = await start();
     const missing = await rawPost(h.url, '{"jsonrpc":"2.0","id":1,"method":"tools/list"}', {}, null);
@@ -300,7 +300,7 @@ describe('[P2-14] authentication, Host and Origin in front of the SDK', () => {
   });
 });
 
-describe('[P2-14] handle isolation, refresh, revocation and recovery through the injected store', () => {
+describe('handle isolation, refresh, revocation and recovery through the injected store', () => {
   async function aliceHandle(h: Harness) {
     const created = await modernCall(h.url, 'mcp-token-alice', 'sess_request', { interaction: ROUND_1 });
     return toolPayload(created).interaction.handle as string;
@@ -452,7 +452,7 @@ describe('[P2-14] handle isolation, refresh, revocation and recovery through the
   });
 });
 
-describe('[P2-14] grant binding primitives', () => {
+describe('grant binding primitives', () => {
   const authority = {
     origin: ORIGIN,
     workspaceId: 'wks_synthetic',

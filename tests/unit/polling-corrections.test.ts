@@ -34,7 +34,7 @@ function abortListeners() {
   return () => [...listeners.values()].reduce((total, current) => total + current.size, 0);
 }
 
-describe('E-01 exported polling operation budgets', () => {
+describe('exported polling operation budgets', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
     vi.spyOn(Math, 'random').mockReturnValue(0);

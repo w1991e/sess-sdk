@@ -117,7 +117,7 @@ jobs:
           artifact-ids: ${{ needs.validate.outputs.artifact-id }}
           path: .artifacts
           merge-multiple: true
-      - name: Stage exactly the tested tarball with npm provenance (founder approves with npm 2FA)
+      - name: Stage exactly the tested tarball with npm provenance (a maintainer approves with npm 2FA)
         run: |
           node --input-type=module <<'JS'
           import { execFileSync } from 'node:child_process';
@@ -144,15 +144,15 @@ jobs:
           if (execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim() !== '11.19.0') throw new Error('Unexpected publisher version.');
           execFileSync('npm', ['stage', 'publish', result.tarball, '--ignore-scripts', '--provenance', '--access', 'public', '--tag', distTag], { stdio: 'inherit' });
           JS
-      - name: Record the staged candidate for founder approval
+      - name: Record the staged candidate for maintainer approval
         working-directory: ${{ github.workspace }}
         run: |
           {
-            echo '## Staged — awaiting founder approval'
+            echo '## Staged — awaiting maintainer approval'
             echo
             echo "Staged ${RELEASE_VERSION} on dist-tag ${RELEASE_DIST_TAG}; not installable until approved."
             echo
-            echo 'Founder: npm stage list <package> --json; npm stage download <stage-id>;'
+            echo 'Maintainer: npm stage list <package> --json; npm stage download <stage-id>;'
             echo "check SHA-256 ${EXPECTED_TARBALL_SHA256}; npm stage view <stage-id> shows tag ${RELEASE_DIST_TAG}; npm stage approve <stage-id> (2FA)."
             echo 'The readback job waits up to 60 minutes; if it times out, approve, then re-run failed jobs.'
           } >> "$GITHUB_STEP_SUMMARY"
@@ -163,7 +163,7 @@ jobs:
     if: github.repository == 'w1991e/sess-sdk'
     runs-on: ubuntu-24.04
     timeout-minutes: 75
-    # No environment and no id-token: this job only reads the public registry after the founder
+    # No environment and no id-token: this job only reads the public registry after a maintainer
     # approves the staged version with npm 2FA.
     permissions:
       contents: read
@@ -186,7 +186,7 @@ jobs:
           artifact-ids: ${{ needs.validate.outputs.artifact-id }}
           path: .artifacts
           merge-multiple: true
-      - name: Wait for the founder's staged-version approval
+      - name: Wait for a maintainer's staged-version approval
         working-directory: .
         run: |
           name="$(node -p "require('./package.json').name")"

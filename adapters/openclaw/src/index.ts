@@ -108,7 +108,7 @@ function createTool(
       await gate.ensure(store);
       const client = createGuardedClient(config, credential, lease);
       const outcome = await RUNNERS[name].run({ config, credential, lease, store, client, toolCallId }, args);
-      // R-02: the final release boundary re-asserts live authority after every awaited runner, so
+      // The final release boundary re-asserts live authority after every awaited runner, so
       // no result (terminal shortcuts included) escapes a revoked or cancelled invocation.
       try {
         lease.assertCurrent();

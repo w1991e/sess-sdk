@@ -1,7 +1,7 @@
 # Release packet: `@sess.si/sdk@0.1.0-rc.5`
 
 Maintainer document; not packed. Preparing this candidate publishes nothing. The tag, the
-`npm-release` environment approval and the npm 2FA stage approval are the founder's actions.
+`npm-release` environment approval and the npm 2FA stage approval are a maintainer's actions.
 
 ## What rc.5 contains
 
@@ -16,16 +16,16 @@ unchanged (`canonicalize` 5.1.0, `jose` 6.2.12, `standardwebhooks` 1.1.1).
 
 ## Expected tarball
 
-Recorded in [`sdk-next-candidate.json`](sdk-next-candidate.json) by `node scripts/sdk-pin.mjs prepare`
+Recorded in `sdk-next-candidate.json` (removed by the registry transition after publication) by `node scripts/sdk-pin.mjs prepare`
 (Node 24.21.0, npm 11.19.0). `npm run check` (its `check:pin` step) fails if the packed root differs.
 
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | Filename  | `sess.si-sdk-0.1.0-rc.5.tgz`                                                                      |
-| SHA-256   | `2518f08bfa6f47cd53328716bfc59f8083f0683b462d370b46885892bc584ef0`                                |
-| Integrity | `sha512-dZY7RFIv1JbaIcX/lBgnWXoPeMsVrpKidIksv+8H+Lv1U4RlKbDKisp0hHlu7cEUnm8FMKALYDaWR4wAoKtchg==` |
+| SHA-256   | `20a7f6277755a943f789a0fc26658e51ea5c8a8a3b270200802dcd2a2e0e707e`                                |
+| Integrity | `sha512-t/alGpesXns5ngtH4k07U8LR31+aPqq1yPtCatRrVKQhcWcDGOiVnSPUliLOmh802mH2mW5JhkB7IkpN9IVQtg==` |
 
-## Founder steps
+## Maintainer steps
 
 1. Confirm the reviewed PR carrying this packet is merged and its CI is green on master. Note the
    merged master commit `<sha>` and check that it still records the digest above:
@@ -87,4 +87,4 @@ published `0.1.0-rc.4`, pinned in [`sdk-candidate.json`](sdk-candidate.json).
    that byte parity holds.
 6. Docs: `docs/releasing.md`, `docs/compatibility.md` and `docs/migration.md` record rc.5 as
    published; the adapters' README, RELEASING and CHANGELOG mentions of rc.4 move to rc.5.
-7. Record the published version, registry integrity and readback in the Sess execution state.
+7. Record the published version, registry integrity and readback.

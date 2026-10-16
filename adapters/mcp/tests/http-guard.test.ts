@@ -1,6 +1,4 @@
-// @acceptance P2-14
-// Port of the sess Q-1a regression EXECUTION/evidence/p2-q1a/raw-body-guard.regression.mjs into
-// this package's CI-run tests. The v2 HTTP entry (createMcpHandler) silently drops `__proto__`
+// Raw-body guard regression, run in this package's CI. The v2 HTTP entry (createMcpHandler) silently drops `__proto__`
 // keys from tools/call arguments before a tool handler runs, so @sess.si/mcp/http inspects the raw
 // body in front of the SDK entry and answers in the request's protocol era (isLegacyRequest).
 // The reference guard wrapped a stub tool; here the guarded handler is the real
@@ -37,8 +35,8 @@ function noToolRan(h: Harness) {
   for (const fake of Object.values(h.fakes)) expect(fake.calls).toHaveLength(0);
 }
 
-describe('[P2-14] raw-body unsafe-key guard (ported Q-1a regression)', () => {
-  it('[P2-14] Q-1a canary: the unguarded v2 entry drops __proto__ before the tool handler', async () => {
+describe('raw-body unsafe-key guard (regression)', () => {
+  it('canary: the unguarded v2 entry drops __proto__ before the tool handler', async () => {
     const seen: unknown[] = [];
     const handler = createMcpHandler(
       () => {
@@ -67,7 +65,7 @@ describe('[P2-14] raw-body unsafe-key guard (ported Q-1a regression)', () => {
     expect(Object.keys(seen[0] as object)).toEqual(['a']);
   });
 
-  it('[P2-14] rejects unsafe keys at any depth without running a tool', async () => {
+  it('rejects unsafe keys at any depth without running a tool', async () => {
     const h = (harness = await startHttp());
     for (const body of [
       call(2, '{"__proto__":{"polluted":true}}'),
@@ -85,7 +83,7 @@ describe('[P2-14] raw-body unsafe-key guard (ported Q-1a regression)', () => {
     noToolRan(h);
   });
 
-  it('[P2-14] rejects a legacy batch containing an unsafe call, answering every request in it', async () => {
+  it('rejects a legacy batch containing an unsafe call, answering every request in it', async () => {
     // Expectation change from the reference: the reference answered a batch with one response
     // object for the first offending call. JSON-RPC answers a batch with an array, and the SDK's
     // legacy leg does process batches, so this guard answers each request in the batch: the
@@ -103,7 +101,7 @@ describe('[P2-14] raw-body unsafe-key guard (ported Q-1a regression)', () => {
     noToolRan(h);
   });
 
-  it('[P2-14] rejects unsafe keys from a pinned 2026-07-28 client, answered in that era', async () => {
+  it('rejects unsafe keys from a pinned 2026-07-28 client, answered in that era', async () => {
     const h = (harness = await startHttp());
     const client = await modernClient(h.url, 'mcp-token-alice');
     closers.push(() => client.close());
@@ -124,7 +122,7 @@ describe('[P2-14] raw-body unsafe-key guard (ported Q-1a regression)', () => {
     noToolRan(h);
   });
 
-  it('[P2-14] rejects unsafe keys from the v1 SDK client (2025-11-25)', async () => {
+  it('rejects unsafe keys from the v1 SDK client (2025-11-25)', async () => {
     const h = (harness = await startHttp());
     const { client } = await legacyV1Client(h.url, 'mcp-token-alice');
     closers.push(() => client.close());
@@ -137,7 +135,7 @@ describe('[P2-14] raw-body unsafe-key guard (ported Q-1a regression)', () => {
     noToolRan(h);
   });
 
-  it('[P2-14] passes clean arguments unchanged in both eras', async () => {
+  it('passes clean arguments unchanged in both eras', async () => {
     const h = (harness = await startHttp());
     const legacy = await rpcBody(await rawPost(h.url, call(8, JSON.stringify({ interaction: ROUND_1 }))));
     expect(legacy.result.isError).toBeFalsy();

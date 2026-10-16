@@ -31,7 +31,7 @@ const invalidKeys: unknown[] = [
   new String('valid-key'),
 ];
 
-describe('E-02 public mutation replay alphabet', () => {
+describe('public mutation replay alphabet', () => {
   it.each(['publish', 'complete'] as const)(
     'preserves valid %s key bytes and boundaries',
     async (operation) => {

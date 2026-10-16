@@ -96,7 +96,7 @@ describe('one round through the registered entry (fake host, real SDK)', () => {
   });
 });
 
-describe('OC-16 timeout is normal pending work', () => {
+describe('timeout is normal pending work', () => {
   it('returns needs_resume, creates nothing, cancels nothing, and resumes the same handle', async () => {
     const host = await registerPlugin();
     const conv = conversation();
@@ -158,7 +158,7 @@ describe('receipt failures never become verified answers', () => {
   }
 });
 
-describe("OC-09/OC-10 model input cannot select credentials, origin or someone else's interaction", () => {
+describe("model input cannot select credentials, origin or someone else's interaction", () => {
   it('other conversations, agents and incarnations see NOT_FOUND for the same handle', async () => {
     const host = await registerPlugin();
     const conv = conversation();
@@ -201,7 +201,7 @@ describe("OC-09/OC-10 model input cannot select credentials, origin or someone e
   });
 });
 
-describe('OC-11/OC-12 live authority is checked before every dispatch', () => {
+describe('live authority is checked before every dispatch', () => {
   it('a revoked invocation sends nothing', async () => {
     const host = await registerPlugin();
     const conv = conversation({ revoked: true });
@@ -283,7 +283,7 @@ describe('uncertain outcomes', () => {
   });
 });
 
-describe('OC-14 the human link never reaches logs or errors', () => {
+describe('the human link never reaches logs or errors', () => {
   it('captures all console/stdout/stderr output during a full round and failures', async () => {
     const captured: string[] = [];
     const capture = (...args: unknown[]) => void captured.push(args.map(String).join(' '));
