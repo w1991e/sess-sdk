@@ -17,8 +17,8 @@ const required = [
   'tests/fixtures/archival/renewal-vector.der',
   'tests/fixtures/archival/sigstage-run.json',
 ];
-if (record.repository !== 'https://github.com/w1991e/sess' || !/^[0-9a-f]{40}$/.test(record.commit ?? ''))
-  throw new Error('docs/spec/source.json must record the Sess repository and a full source commit.');
+if (record.repository !== 'Sess runtime' || !/^[0-9a-f]{40}$/.test(record.commit ?? ''))
+  throw new Error('docs/spec/source.json must record the Sess runtime and a full source commit.');
 const paths = (record.files ?? []).map((f) => f.path);
 if (JSON.stringify([...paths].sort()) !== JSON.stringify([...required].sort()))
   throw new Error(`docs/spec/source.json must record exactly: ${required.join(', ')}`);

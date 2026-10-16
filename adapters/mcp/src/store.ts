@@ -366,7 +366,7 @@ export interface HandleStore {
 
 /**
  * The local stdio store: one owner-private profile directory, `<stateDir>/profiles/<profile>/`.
- * Each handle has its own record file. A single server process per profile is the supported G1
+ * Each handle has its own record file. A single server process per profile is the supported
  * boundary; within the process, writes to one handle are serialized.
  */
 export class ProfileHandleStore implements HandleStore {

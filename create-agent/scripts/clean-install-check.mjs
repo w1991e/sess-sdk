@@ -1,9 +1,14 @@
 // Clean-install check of the starter, timed against the 60 s "npm create -> agent running" budget.
 //
 //   node create-agent/scripts/clean-install-check.mjs [--offline] [--keep]
+//        [--tarball <path> --record-exercised <path>]
 //
 // 1. Packs create-agent/ into a fresh temporary directory outside the repository (no node_modules
 //    in any ancestor), exactly as it would be published. No lifecycle script runs (--ignore-scripts).
+//    With --tarball, it does not pack: it copies that exact tarball (the release candidate packed
+//    by release-guard.mjs) into the temporary directory and exercises it, and --record-exercised
+//    writes the SHA-256 of the bytes it exercised, so the release binds the tested tarball to the
+//    published one.
 // 2. Starts the clock and runs the packed initializer the way `npm create @sess.si/agent my-agent`
 //    does (`npm create` is `npm exec @sess.si/create-agent`; a local tarball has to be named with
 //    `npm exec --package=<tarball>`), then the README's `npm install --ignore-scripts` and
@@ -17,7 +22,17 @@
 // Network: only the npm install of the SDK and its pinned dependencies (npm's cache is preferred;
 // --offline forbids the network and fails if the cache lacks them). No SESS or weather traffic.
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, mkdtempSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  mkdtempSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -30,10 +45,25 @@ const root = resolve(initializer, '..');
 const fakeWorld = join(initializer, 'test', 'fake-world.mjs');
 const pin = JSON.parse(readFileSync(join(root, 'release', 'sdk-candidate.json'), 'utf8'));
 const args = process.argv.slice(2);
+const valueOf = (flag) => {
+  const i = args.indexOf(flag);
+  if (i === -1) return undefined;
+  const value = args[i + 1];
+  args.splice(i, 2);
+  return value;
+};
+const candidate = valueOf('--tarball');
+const recordExercised = valueOf('--record-exercised');
 const offline = args.includes('--offline');
 const keep = args.includes('--keep');
-if (args.some((arg) => arg !== '--offline' && arg !== '--keep')) {
-  console.error('usage: node create-agent/scripts/clean-install-check.mjs [--offline] [--keep]');
+if (
+  args.some((arg) => arg !== '--offline' && arg !== '--keep') ||
+  (candidate === undefined) !== (recordExercised === undefined) ||
+  (candidate !== undefined && (!candidate.endsWith('.tgz') || !existsSync(candidate)))
+) {
+  console.error(
+    'usage: node create-agent/scripts/clean-install-check.mjs [--offline] [--keep] [--tarball <file.tgz> --record-exercised <file.json>]',
+  );
   process.exit(2);
 }
 
@@ -59,14 +89,22 @@ try {
   const registry = npm(['config', 'get', 'registry'], work).trim();
   if (registry !== PUBLIC_REGISTRY) fail(`npm is configured for ${registry}, not ${PUBLIC_REGISTRY}`);
 
-  // --- 1. Pack the initializer as it would be published. ---
+  // --- 1. Pack the initializer as it would be published, or take the given release candidate. ---
   const packDir = join(work, 'pack');
   mkdirSync(packDir);
-  const [packed] = JSON.parse(
-    npm(['pack', '--json', '--ignore-scripts', '--pack-destination', packDir], initializer),
-  );
-  const tarball = join(packDir, packed.filename);
-  console.log(`packed ${packed.name}@${packed.version} (${packed.files.length} files)`);
+  let tarball;
+  if (candidate === undefined) {
+    const [packed] = JSON.parse(
+      npm(['pack', '--json', '--ignore-scripts', '--pack-destination', packDir], initializer),
+    );
+    tarball = join(packDir, packed.filename);
+    console.log(`packed ${packed.name}@${packed.version} (${packed.files.length} files)`);
+  } else {
+    tarball = join(packDir, 'candidate.tgz');
+    copyFileSync(candidate, tarball);
+    console.log('exercising the given release candidate (no repack)');
+  }
+  const exercisedSha256 = createHash('sha256').update(readFileSync(tarball)).digest('hex');
 
   // --- 2. npm create -> npm install -> npm start, timed. ---
   const project = join(work, 'project');
@@ -143,6 +181,13 @@ try {
   for (const message of failures) console.log(`FAIL: ${message}`);
   if (failures.length) console.log('CREATE-AGENT CLEAN INSTALL CHECK FAILED');
   else {
+    // Written only after every check passed: the record names exactly the bytes that were exercised.
+    if (recordExercised !== undefined)
+      writeFileSync(
+        recordExercised,
+        `${JSON.stringify({ check: 'create-agent-clean-install', passed: true, sha256: exercisedSha256 })}\n`,
+      );
+    console.log(`exercised sha256=${exercisedSha256}`);
     console.log('CREATE-AGENT CLEAN INSTALL CHECK PASSED');
     exitCode = 0;
   }

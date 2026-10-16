@@ -90,7 +90,7 @@ observation reports a conflict.
 - The human URL is a bearer capability: never logged, traced or placed in diagnostics.
 - A wait is a bounded read. No unbounded wait, no model polling loop, no claim that an agent
   wakes up after its run has ended.
-- No Front Door, hosted service, webhook receiver or private host API.
+- No hosted service, webhook receiver or private host API.
 
 ## Create outcomes
 
@@ -121,7 +121,7 @@ observation reports a conflict.
 - `receipt_verification` with `KEY_RESOLUTION_FAILED` or `KEY_FETCH_COOLDOWN` → retryable
   unavailable. `VERIFICATION_CONTEXT_MISSING` → configuration error naming the expected-workspace
   setting. Neither records anything nor changes state.
-- **Currentness at release (R-01).** Receipt verification proves a retained historical answer, not
+- **Currentness at release.** Receipt verification proves a retained historical answer, not
   that its revision is still current. After verification succeeds, and again before re-releasing a
   cached `answered` result, the adapter performs a fresh authenticated read of the Session and
   releases answer data only if the Session is still at the requested revision with that accepted
@@ -188,7 +188,7 @@ never creates again and reports, by stored state:
 A host without a durable call identity treats every call as new, and its tool description tells the
 model not to repeat `request`.
 
-## Release authority (R-02)
+## Release authority
 
 A host with live invocation authority asserts it again at the final tool-result release boundary,
 after every awaited step; a revoked or cancelled invocation releases no result, status or data.
@@ -224,9 +224,9 @@ record entries, ≤ 100 enum values. Field-schema rules converge on one shared v
 accepted answer for it and the next revision. Weather values are illustrative. Fixtures are test
 inputs only and are not shipped in either package.
 
-## Convergence (recorded after both G1s)
+## Convergence
 
-Both G1s landed (sess-sdk #6, #8). Decisions:
+Recorded once both adapters had landed. Decisions:
 
 - Extract now, as shared pure logic: canonical JSON with its body digest, and verification-error
   classification (`transient | configuration | genuine | other`).

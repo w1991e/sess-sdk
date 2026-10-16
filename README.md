@@ -167,7 +167,7 @@ contract is served at [OpenAPI](https://api.sess.si/openapi.json).
 - [Security](docs/security.md) and [receipt example](examples/receipt-verification.ts).
 - [Webhooks](docs/webhooks.md) and [Node receiver with a durable-inbox boundary](examples/webhook-receiver.ts).
 - [Compatibility](docs/compatibility.md), [testbed migration](docs/migration.md) and [release runbook](docs/releasing.md).
-- [Reference demo](https://github.com/w1991e/sess-agent-testbed): the application and terminal handoff.
+- [Plain-Node quickstart](examples/quickstart-node/README.md): a complete program, from the first call to the verified answer.
 
 The present runtime can require manual browser refresh between rounds. Owner polling in this
 SDK does not change that browser behavior. Appearance configuration and front-door invocation
