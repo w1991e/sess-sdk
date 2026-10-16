@@ -18,9 +18,17 @@ concurrency:
 
 jobs:
   checks:
-    name: OpenClaw adapter / build, types, unit
+    name: OpenClaw adapter / build, types, unit${{ matrix.label }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Existing check names are kept for Node 24.21.0. Node 24.16.0 is the declared engines
+          # floor (package.json engines and compatibility.json), with its bundled npm.
+          - { node: '24.21.0', label: '', artifact: '' }
+          - { node: '24.16.0', label: ' (Node 24.16.0)', artifact: '-node-24.16.0' }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -28,7 +36,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: '24.21.0'
+          node-version: ${{ matrix.node }}
       - name: Install adapter dependencies (registry SDK, integrity-locked)
         working-directory: adapters/openclaw
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -46,9 +54,17 @@ jobs:
         run: npm test
 
   packed-host:
-    name: OpenClaw adapter / packed artifact and host install
+    name: OpenClaw adapter / packed artifact and host install${{ matrix.label }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Existing check names are kept for Node 24.21.0. Node 24.16.0 is the declared engines
+          # floor (package.json engines and compatibility.json), with its bundled npm.
+          - { node: '24.21.0', label: '', artifact: '' }
+          - { node: '24.16.0', label: ' (Node 24.16.0)', artifact: '-node-24.16.0' }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -56,7 +72,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: '24.21.0'
+          node-version: ${{ matrix.node }}
       - name: Install adapter dependencies (registry SDK, integrity-locked)
         working-directory: adapters/openclaw
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -75,7 +91,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
-          name: openclaw-package
+          name: openclaw-package${{ matrix.artifact }}
           path: |
             adapters/openclaw/.artifacts/package-result.json
             adapters/openclaw/.artifacts/*.tgz
