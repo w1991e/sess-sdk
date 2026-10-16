@@ -2,15 +2,18 @@
 
 Maintainer document; not shipped in the package. A release is the tag `mcp-v<version>` on a
 reviewed master commit, published by `.github/workflows/mcp-release.yml`. Nothing is published
-from a laptop. Preparing a release does not authorize publishing; the protected environment
-approval does.
+from a laptop. Preparing a release does not authorize publishing. The workflow stages the tested
+tarball only after a maintainer approves the protected environment, and nothing is installable
+until a maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`) go to
+`next`, never to `latest`.
 
 ## Prerequisites (owner actions)
 
-> **Do not push an `mcp-v*` tag until the `npm-mcp-release` environment (with required reviewers
-> and the `mcp-v*` tag rule) and the npm trusted publisher for `@sess.si/mcp` exist.** A job that
-> references a missing environment makes GitHub create it automatically, without protection rules;
-> the publish job would then run without maintainer approval.
+> **Do not push an `mcp-v*` tag until the stage-only npm trusted publisher for `@sess.si/mcp`
+> (step 4) is configured.** The `npm-mcp-release` environment must keep its required reviewer and
+> `mcp-v*` tag rule: a job that references a missing environment makes GitHub create it
+> automatically, without protection rules, and the publish job would then run without maintainer
+> approval.
 
 1. **SDK published — done.** The pinned `@sess.si/sdk@0.1.0-rc.5` (`release/sdk-candidate.json`) is
    on npm under the dist-tag `next`, with provenance, and its registry tarball has exactly the
@@ -19,15 +22,22 @@ approval does.
    release workflow all refuse a candidate-mode lock. Never depend on the `latest` dist-tag of
    `@sess.si/sdk` (a deprecated placeholder). For a future SDK pin, publish it first, then repeat the
    switch and merge the reviewed lockfile change before releasing.
-2. **GitHub environment `npm-mcp-release`** in `w1991e/sess-sdk`:
-   - required reviewers (maintainers who approve each publication), self-review disabled;
+2. **GitHub environment `npm-mcp-release` — exists** in `w1991e/sess-sdk`:
+   - a required reviewer: the maintainer who approves each publication run. Self-review is
+     allowed, so a sole maintainer can approve a run they started; the release gate is the npm 2FA
+     approval of the staged version;
    - deployment rule restricted to tags matching `mcp-v*`;
    - no secrets: publishing uses npm trusted publishing (OIDC), not a token.
-3. **npm trusted publisher for `@sess.si/mcp`**, bound to repository `w1991e/sess-sdk`, workflow
-   `mcp-release.yml` and environment `npm-mcp-release`. The `@sess.si` scope must allow the package
-   name. The package does not exist on npm yet; npm's flow for a first publish under trusted
-   publishing needs to be confirmed by the owner when configuring it.
-4. **MCP registry namespace — approved.** The owner approved `io.github.w1991e/sess` on
+3. **npm package — exists; no release version is published.** A never-approved bootstrap stage
+   created `@sess.si/mcp` so that a trusted publisher can be configured. npm also published the
+   public `0.0.0-stage` placeholder, and `latest` points at it: deprecate it with a pointer to
+   `@next` (`latest` never points at a prerelease). The package's presence on npm is not a release.
+4. **Stage-only npm trusted publisher for `@sess.si/mcp`**, bound to repository `w1991e/sess-sdk`,
+   workflow `mcp-release.yml` and environment `npm-mcp-release`, with direct publishing not
+   permitted. Reject the bootstrap stage. Consult the current
+   [npm trusted-publisher guide](https://docs.npmjs.com/trusted-publishers/) when configuring it and
+   match every OIDC identity field exactly. Do not install an automation token as a workaround.
+5. **MCP registry namespace — approved.** The owner approved `io.github.w1991e/sess` on
    2026-10-14. `server.json` `name` and `package.json` `mcpName` both use it (a test keeps them
    equal). Submitting `server.json` to the official registry is still a separate owner action; it
    needs GitHub authentication as `w1991e` with `mcp-publisher`. The registry checks that the
@@ -41,7 +51,10 @@ approval does.
    `listing.json`, update `CHANGELOG.md`, merge to master.
 2. Tag the merged commit: `git tag mcp-v<version> <commit> && git push origin mcp-v<version>`.
 3. Review the prepare job's summary (tested tarball link and SHA-256), then approve the
-   `npm-mcp-release` deployment.
+   `npm-mcp-release` deployment. The publish job stages the tested tarball.
+4. `npm stage list @sess.si/mcp --json`, `npm stage download <stage-id>`, check the SHA-256,
+   `npm stage view <stage-id>` (tag `next` for a release candidate), then
+   `npm stage approve <stage-id>` with 2FA. The readback job then verifies the registry.
 
 ## What the workflow verifies
 
