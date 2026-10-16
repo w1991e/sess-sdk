@@ -3,8 +3,8 @@
   "name": "@sess.si/sdk",
   "version": "0.1.0-rc.6",
   "filename": "sess.si-sdk-0.1.0-rc.6.tgz",
-  "sha256": "b0658bd8dfaf9ef2129318572836e06c32aef9032bc532ef4c468a65d65af107",
-  "integrity": "sha512-ekIQhcZcB3e5QAfYwbkMsEtXB54U2+07jU2j9Q8SKWTPzgm0DNEEntOr0eDgtpJy0Vc0BPX3xtDOdaIgvdO/vg==",
+  "sha256": "8c9557dcd6c55eb9dbc71e4bfc8596dce351b68905b986575cc4a103e499f476",
+  "integrity": "sha512-qmDHBAumzhrWWIOrpE0NrcCiX5ITzwcLKNh224eSubWMh+59Q/+rGphDYvezz2Ux5hKLT6aYku4IBSY/JWzVLQ==",
   "package": {
     "license": "Apache-2.0",
     "dependencies": {

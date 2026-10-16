@@ -8,9 +8,14 @@ Maintainer document; not packed. Preparing this candidate publishes nothing. The
 - `sess.ask({ question, fields })`: one question with simple typed fields, the private link before
   waiting, and `answer()` returning the verified, current answer typed from the fields after
   completing the Session. New types `AskInput`, `AskField`, `AskAnswer`, `AskHandle`, `AskOptions`
-  and `AskAnswerOptions`. Every existing export is unchanged.
+  and `AskAnswerOptions`.
 - The README opens with `sess.ask()`; the full Surface API is under "Advanced", unchanged.
 - Wording: the README's guide list and closing note, and the `0.1.0-rc.3` changelog entry.
+- **Contract snapshot refreshed** to the OpenAPI document production serves at
+  `c93d54fbe0ad9c2ed50000b752039cd23f7deff6` (`contract/contract-lock.json`). The generated
+  `components`, `paths` and `operations` types change with it: they gain the operations that
+  document lists, and the Session schemas carry the now-required `action_expires_at`, the stored
+  expiry of the Session's human link. The SDK's runtime code is unchanged.
 
 No other packed file changed on master since the `v0.1.0-rc.5` tag. Runtime dependencies are
 unchanged (`canonicalize` 5.1.0, `jose` 6.2.12, `standardwebhooks` 1.1.1).
@@ -23,8 +28,8 @@ Recorded in [`sdk-next-candidate.json`](sdk-next-candidate.json) by `node script
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | Filename  | `sess.si-sdk-0.1.0-rc.6.tgz`                                                                      |
-| SHA-256   | `b0658bd8dfaf9ef2129318572836e06c32aef9032bc532ef4c468a65d65af107`                                |
-| Integrity | `sha512-ekIQhcZcB3e5QAfYwbkMsEtXB54U2+07jU2j9Q8SKWTPzgm0DNEEntOr0eDgtpJy0Vc0BPX3xtDOdaIgvdO/vg==` |
+| SHA-256   | `8c9557dcd6c55eb9dbc71e4bfc8596dce351b68905b986575cc4a103e499f476`                                |
+| Integrity | `sha512-qmDHBAumzhrWWIOrpE0NrcCiX5ITzwcLKNh224eSubWMh+59Q/+rGphDYvezz2Ux5hKLT6aYku4IBSY/JWzVLQ==` |
 
 If another packed change lands before the tag, it re-runs `node scripts/sdk-pin.mjs prepare` and
 updates this table in the same PR.

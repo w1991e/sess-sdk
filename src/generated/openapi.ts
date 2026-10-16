@@ -1,4 +1,311 @@
 export interface paths {
+  '/.well-known/oauth-protected-resource': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description RFC 9728 metadata of the remote MCP resource: the resource, its one authorization server and the one scope (the five Sess tools). Served at the root and with the resource path appended. Hosted MCP only; on the MCP host (mcp.sess.si). */
+    get: operations['protectedResourceMetadata'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/.well-known/oauth-protected-resource/mcp': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description RFC 9728 metadata of the remote MCP resource: the resource, its one authorization server and the one scope (the five Sess tools). Served at the root and with the resource path appended. Hosted MCP only; on the MCP host (mcp.sess.si). */
+    get: operations['protectedResourceMetadataForPath'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/.well-known/oauth-authorization-server': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description RFC 8414 metadata: authorization code with S256 PKCE only, public clients only (token_endpoint_auth_method none), client ID metadata documents preferred (client_id_metadata_document_supported) and dynamic registration as compatibility, refresh and revocation, RFC 9207 `iss` in every authorization response. The issuer and the token, registration and revocation endpoints are on the MCP host (mcp.sess.si); the authorization endpoint is the account pages’ consent page (app.sess.si). Hosted MCP only. */
+    get: operations['authorizationServerMetadata'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/oauth/authorize': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description The authorization endpoint. Query: response_type=code, client_id (a registered id, or the https URL of a client ID metadata document, fetched over the SSRF-safe egress: public addresses, port 443, no redirects, 16 KiB, 5 s, reused for 5 minutes), redirect_uri (required; exactly one of the client’s registered URIs), code_challenge and code_challenge_method=S256 (required), state (optional, ≤ 512), scope (optional; sess:interact), resource (optional; must be the MCP resource). Without an account signed in within the last 15 minutes a page asks to sign in (again), and nothing is validated or fetched. Then an unknown client or an unregistered redirect URI is an HTML error page here, never a redirect; later errors are 303 to the redirect URI with error, state and iss; a valid request shows "Authorize an agent host" (the host, the workspace and the five tools). GET never decides, consumes or issues anything. Hosted MCP only. */
+    get: operations['authorizeAgentHost'];
+    put?: never;
+    /** @description The deliberate decision. Form fields: csrf, request (the page’s single-use consent request, 10 minutes, bound to the account session), decision (allow or deny). Same origin, CSRF token and a sign-in within 15 minutes required. Allow creates or renews the consent grant of (workspace, account, agent host) with a new generation (earlier tokens and hosted handles of the host end) and answers 303 to the redirect URI with a single-use code (5 minutes), state and iss. A (client, state) pair is accepted once. Hosted MCP only. */
+    post: operations['decideAgentHost'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/hosts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description The account’s authorized agent hosts. Without a live account session: 303 to /app/sign-in. Hosted MCP only. */
+    get: operations['agentHostsPage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/hosts/{id}/revoke': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Removes an agent host now: the grant gets a new generation and every token is revoked, so its access and its hosted interaction handles end at once. Form field: csrf. Same origin. Hosted MCP only. */
+    post: operations['removeAgentHost'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/oauth/token': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description grant_type=authorization_code: code, redirect_uri (as authorized), client_id, code_verifier (S256), resource (optional). grant_type=refresh_token: refresh_token, client_id, scope and resource (optional; never wider). Public clients: no client secret or HTTP authentication. A used code or refresh token presented again revokes every token of its family. Cache-Control: no-store. Body at most 16 KiB. Hosted MCP only; on the MCP host (mcp.sess.si). */
+    post: operations['oauthToken'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/oauth/register': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description RFC 7591 dynamic registration of a public client (the compatibility path; client ID metadata documents are preferred). Redirect URIs: https, http on a loopback host, or a native app scheme; no fragment or user info. Registration grants nothing: every use needs the person’s consent. At most 10 registrations per client per hour and 500 in total. Hosted MCP only; on the MCP host (mcp.sess.si). */
+    post: operations['oauthRegister'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/oauth/revoke': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description RFC 7009. Form fields: token, client_id (token_type_hint ignored). An access token ends with the API credentials minted under it; a refresh token ends its whole family. An unknown or another client’s token is answered the same (200). Hosted MCP only; on the MCP host (mcp.sess.si). */
+    post: operations['oauthRevoke'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/sign-in': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description P2-15 personal sign-in. Emails one challenge: a six-digit code (10 minutes, 5 guesses, only in this browser: it is bound to the __Host-sess_personal_signin challenge cookie set here) and a 256-bit single-use link (15 minutes) whose token is in the URL fragment of /personal/confirm. The answer is the same whether or not an identity, a personal account or a developer account exists. The send is reserved before the email provider is called, so every attempt counts: per address, per client and in total (shared with developer sign-in: 5, 20 and 1000 per rolling hour), per browser (5 per hour), one email per address and per browser per minute, and at most 20 sends in flight. */
+    post: operations['requestPersonalSignIn'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/sign-in/code': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Redeems the emailed code in the browser that asked for it (its challenge cookie). Using the code or the link ends the other. */
+    post: operations['redeemPersonalSignInCode'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/sign-in/link': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Redeems the emailed link: the page at /personal/confirm posts the token from its URL fragment. Opening the link never consumes it. */
+    post: operations['redeemPersonalSignInLink'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/session': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description The live personal session’s own account (its address, to name it before a Save) and its CSRF token. Reads only. A developer session is never accepted here. */
+    get: operations['getPersonalSession'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/sign-out': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Revokes this personal session and clears its cookie. */
+    post: operations['personalSignOut'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/close': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Personal closure: deletes every personal session of this identity, every claim redeemed into its personal grant and every saved copy under it, and the grant itself; leaves an opaque tombstone (no address), and deletes the identity record unless a developer membership still uses the address. A developer membership, its sessions, keys and workspace are untouched. */
+    post: operations['closePersonalAccount'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/save/destination': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description The Save sheet binds its own random nonce to this personal session: the answer is an HMAC of the nonce keyed by the session’s secret. Nothing is stored. A claim created for this binding can be redeemed only by this session presenting the same nonce. */
+    post: operations['bindSaveDestination'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/save/redeem': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Redeems a claim into this personal grant, atomically with the saved copy: the secret, source verifier, nonce and this session’s binding must all match (the secret alone never does). Suppression is rechecked: if the rounds the claim’s grants authorize are no longer exactly its batch, the claim is aborted and nothing is saved. The identical request again answers the prior result without a second write. */
+    post: operations['redeemSaveClaim'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/save/direct': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Apex-native Save: the human page is on this same origin, so it saves without a claim. The link token and Keep grants are in the body (never a URL); the rounds the grants authorize now are saved as Keep would export them. Not available on any other origin. */
+    post: operations['saveDirect'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/v1/auth/email-link': {
     parameters: {
       query?: never;
@@ -16,6 +323,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/app/sign-in': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description The developer sign-in page: an email field and an explicit, unticked "Remember this device" box (remember=1) whose form (POST, same-origin only) requests a sign-in email. A request from this page is one challenge: a link and a six-digit code (P2 D2(a)), with a random browser challenge in an HttpOnly, Secure, SameSite=Strict, host-only cookie (Path=/app, 15 minutes) that the code is bound to; then 303 to /app/check-email, whose code form posts to /app/sign-in/code. With a live account session (unexpired, not revoked) the answer is 303 to /app/keys, a fixed internal path that nothing in the request can change. With a pending key creation (a valid key-intent cookie) the page is always shown, re-titled "Verify it’s you", whatever the session: that key is created only after the email link is confirmed. When GitHub sign-in is configured (P2 D2(b)) the page also has "Continue with GitHub" (POST /app/sign-in/github), and then its form-action also allows https://github.com. Reading this page never consumes a link, creates a key or changes anything. */
+    get: operations['signInPage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/app/confirm/{token}': {
     parameters: {
       query?: never;
@@ -26,8 +350,111 @@ export interface paths {
     /** @description The page the emailed link opens (the token is a single-use secret; never log it). It only shows a Sign in button (with ?continue=key, a link requested to finish a key creation: "Continue creating your key"); it consumes nothing. */
     get: operations['signInConfirmPage'];
     put?: never;
-    /** @description Consumes the link once (same-origin requests only) and sets the account-page cookie: HttpOnly, Secure, SameSite=Strict, host-only, Path=/app, 12 hours. When the same browser holds a pending key creation of the same account (the key-intent cookie, set by a create post with an expired session of that account), the key is created now with that label and expiry, once, and the response is the one-time reveal; the intent cookie is cleared. A pending creation of another account creates nothing. */
+    /** @description Consumes the link once (same-origin requests only), which also ends the code of the same challenge, and sets the account-page cookie: HttpOnly, Secure, SameSite=Strict, host-only, Path=/app, 12 hours, or 30 days when "Remember this device" was chosen and the link is confirmed in the browser that chose it (absolute: never extended). A previous session of this browser is revoked. When the same browser holds a pending key creation of the same account (the key-intent cookie, set by a create post with an expired session of that account), the key is created now with that label and expiry, once, and the response is the one-time reveal; the intent cookie is cleared. A pending creation of another account creates nothing. */
     post: operations['signInConfirm'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/sign-in/code': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Redeems the emailed six-digit sign-in code (P2 D2(a)) in the browser that requested it. Form fields: csrf (the check-email page’s token, derived from the browser challenge) and code (6 digits; spaces and hyphens are ignored). Same-origin form posts only. The code works for 10 minutes and for at most 5 guesses per challenge; failed guesses also count, across resends, toward per-address (10), per-client (30) and global (2000) limits per rolling hour. A match consumes the challenge atomically (its link stops working) and then behaves as POST /app/confirm/{token}: the session cookie (12 hours, or 30 days when "Remember this device" was chosen), and a pending key creation of the same account in this browser is created and shown once. Every refusal is the same answer. */
+    post: operations['signInWithCode'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/devices/{id}/revoke': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Signs out one remembered device of the signed-in account (P2 D2(a)), listed with its public id (acs_…) under "Sign-in and sessions" on /app/keys. Same-origin form posts with the session’s CSRF token only. Signing out this device clears its cookie. */
+    post: operations['signOutDevice'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/sign-in/github': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Starts a GitHub account sign-in (P2 D2(b)): "Continue with GitHub" on /app/sign-in, shown only when the deployment has a GitHub OAuth app (SESS_GITHUB_CLIENT_ID and SESS_GITHUB_CLIENT_SECRET). Same-origin form posts only. A new random state (256 bits, stored only as its hash, single use, 10 minutes) is bound to a new browser binding secret in the __Secure-sess_github cookie (HttpOnly, Secure, SameSite=Strict, host-only, Path=/app, 10 minutes; stored only as its hash), which also derives the PKCE verifier (never stored or sent to the browser). The answer is 303 to https://github.com/login/oauth/authorize with client_id, the fixed redirect_uri <account origin>/app/sign-in/github/callback, scope=user:email (the only scope), state, code_challenge and code_challenge_method=S256. Optional field return: /keys (default) or /evidence; anything else is /keys. At most 30 starts per client and 1000 in total per rolling hour. A page with this form also allows https://github.com in form-action; every other account page keeps form-action 'self'. */
+    post: operations['gitHubSignInStart'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/sign-in/github/callback': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Where GitHub sends the browser back (the callback URL registered with the OAuth app). GET reads only: with a well-formed code and state, a "Finish signing in with GitHub" page whose Continue button posts them back (same origin); GitHub’s own error (error=access_denied when the person cancelled) is shown as such. The code and state are single-use secrets: the request log carries the route pattern only, never the query. */
+    get: operations['gitHubSignInReturn'];
+    put?: never;
+    /** @description Finishes a GitHub sign-in or link in the browser that started it. Form fields: code and state. Same-origin form posts only, carrying the __Secure-sess_github binding cookie whose hash the state is bound to: the state is used once, whatever happens next (a replay, another browser or a planted callback finds it used or unbound). Then the code is exchanged at GitHub with the PKCE verifier, the stable numeric GitHub user ID and the verified primary address are read with user:email, and the GitHub access token is discarded (never stored or logged). A sign-in: a linked GitHub ID signs in to its account (whatever the address or login now); a new ID with a verified, usable primary address that no account has creates an account and its link; an address that an existing account has is never merged (GITHUB_NOT_LINKED: sign in with email, then link); no verified usable address leads to the email sign-in (nothing created). Signing in opens a new 12-hour account session exactly as the email sign-in does (the cookie policy is the same; the browser’s previous session is revoked) and continues a pending key creation of the same account in this browser. A link: only the account session that started it, still live and signed in within 12 hours, links; a GitHub account links to one Sess account and an account to one GitHub account. */
+    post: operations['gitHubSignInFinish'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/github/link': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Starts linking a GitHub account to the signed-in account (P2 D2(b)), from "Sign-in and sessions" on /app/keys. Same-origin form posts with the session’s CSRF token only, and a sign-in within the last 12 hours. Then exactly as POST /app/sign-in/github, with the state also bound to this account and session. */
+    post: operations['gitHubLinkStart'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/github/unlink': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Unlinks the account’s GitHub account (P2 D2(b)). Same-origin form posts with the session’s CSRF token only, and a sign-in within the last 12 hours. Every other live session that GitHub account opened is signed out; this one goes on. The account always keeps its email sign-in, so unlinking never leaves it without a way in. Works even when GitHub sign-in is no longer configured. */
+    post: operations['gitHubUnlink'];
     delete?: never;
     options?: never;
     head?: never;
@@ -44,8 +471,59 @@ export interface paths {
     /** @description The account page listing the workspace’s API keys (label, fingerprint, created, last used, expiry, state). Without a live account session: 303 to /app/sign-in. */
     get: operations['apiKeysPage'];
     put?: never;
-    /** @description Creates an owner API key (sess_sk_…) of the developer workspace and shows it once, in one post of the keys page’s create form. The form states each expiry choice’s exact date and carries a single-use nonce bound to the account session (15 minutes); creating consumes it, so a refresh or repeat never creates a second key or shows the secret again. The stored expiry has the date the form showed (rendered_at, bound to the nonce); when that date is no longer true the form is shown again (400). Form fields: csrf (the page’s token), nonce, rendered_at, label (optional, ≤ 64 characters, no control characters), expires_in_days (30, 90, 365 or never; required). Same-origin requests with the session’s CSRF token only. At most 10 active keys per account. With an expired account session (same-origin posts only), a valid label and expiry choice, bound to that account, is kept in a key-intent cookie (HMAC-protected, HttpOnly, Secure, SameSite=Strict, host-only, Path=/app, 15 minutes) and the answer is 303 to /app/sign-in ("Verify it’s you"); the key is created only after the email link is confirmed in the same browser. Revoke: POST /app/keys/{id}/revoke (same rules), immediate. Sign out: POST /app/sign-out. */
+    /** @description Creates an owner API key (sess_sk_…) of the developer workspace and shows it once, in one post of the keys page’s create form. The form states each expiry choice’s exact date and carries a single-use nonce bound to the account session (15 minutes); creating consumes it, so a refresh or repeat never creates a second key or shows the secret again. The stored expiry has the date the form showed (rendered_at, bound to the nonce); when that date is no longer true the form is shown again (400). Form fields: csrf (the page’s token), nonce, rendered_at, label (optional, ≤ 64 characters, no control characters), expires_in_days (30, 90, 365 or never; required). Same-origin requests with the session’s CSRF token only. At most 10 active keys per account. With an expired account session (same-origin posts only), a valid label and expiry choice, bound to that account, is kept in a key-intent cookie (HMAC-protected, HttpOnly, Secure, SameSite=Strict, host-only, Path=/app, 15 minutes) and the answer is 303 to /app/sign-in ("Verify it’s you"); the key is created only after the email link is confirmed in the same browser. A live session whose sign-in is more than 12 hours old (a remembered device) is treated the same way: revealing a new key needs a recent email verification. Revoke: POST /app/keys/{id}/revoke (same rules), immediate. Sign out: POST /app/sign-out. */
     post: operations['createApiKey'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/usage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description P2-12: the account page with the workspace’s plan, resolved Sessions used of the allowance, the next reset (UTC), active Sessions and the 80%/100% allowance warnings. P2-12 B3: with billing configured, the Change plan section (Checkout from Free, an in-place change for a subscribed workspace, Manage billing) and the plan badge; at the limit a link to Change plan beside the reason. Query billing (a fixed notice code after a billing action) is display only. Its CSP form-action also allows the payment provider’s hosted Checkout and portal origins. Without a live account session: 303 to /app/sign-in. */
+    get: operations['usagePage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/billing/plan': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description P2-12 B3: changes the signed-in developer workspace’s paid plan. Form fields: csrf (the page’s token) and plan (starter or pro; the server selects the approved price, nothing else comes from the browser). Same-origin requests with the session’s CSRF token only. Without a subscription: a hosted Checkout (the same one as POST /v1/account/billing/checkout), answered 303 to the provider’s Checkout page. With a subscription: its one subscription changes in place (never a second subscription or a new Checkout), which needs a sign-in within the last 12 hours; the plan changes only when the provider’s verified subscription state shows it (a signed event or reconciliation), never from this request. An uncertain provider outcome is never success: the change stays pending and the next request replays it under the same idempotency key before anything else is sent. */
+    post: operations['changeBillingPlan'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/billing/portal': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description P2-12 B3: the payment provider’s hosted customer portal (payment details, invoices, cancellation) for the signed-in workspace’s own provider customer, resolved server-side (no customer id or email from the browser). Form field: csrf. Same-origin requests with the session’s CSRF token and a sign-in within the last 12 hours only. Cancellation there ends the subscription at the provider; the plan returns to Free only from its verified state. */
+    post: operations['openBillingPortal'];
     delete?: never;
     options?: never;
     head?: never;
@@ -63,6 +541,40 @@ export interface paths {
     put?: never;
     /** @description Claims a no-signup trial for the signed-in developer account. Form fields: csrf (the page’s token) and management_credential (the trial’s sess_mg_… credential, in the form body only, never in a URL). Same-origin requests with the session’s CSRF token only; the human link can never claim. A claim records the account as the trial’s owner, once: nothing moves, the trial keeps its deadlines, limits and deletion time, its receipts stay as issued and its management credential keeps working. The account’s API keys can then read (only read) the trial’s Sessions with the owner read routes, each Session until its result_available_until (as with the management credential). Claiming the same trial again from the same account answers as the first claim. */
     post: operations['claimTrial'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/evidence': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description P2-13 V6: the console page listing the signed-in developer workspace’s receipts as metadata only (receipt and Session IDs, workspace sequence, acceptance time, witness status, whether the answers are still kept, and the receipts held unverified in their own view). Query: custody (exception), from and to (UTC dates, to inclusive), target (a target ID), cursor. Never a receipt or an answer on the page. Without a live account session: 303 to /app/sign-in. Labelled "issued records in this defined scope/range". */
+    get: operations['evidencePage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/evidence/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description P2-13 V6: the console’s deliberate export, a download of the same document as POST /v1/evidence/export for the accepted dates chosen (form fields: csrf, custody, from and to as UTC dates, both required, to inclusive; target optional). The page states the disclosure before the button. Same-origin requests with the session’s CSRF token only. Content-Disposition: attachment with a filename built from the workspace, custody and range only. */
+    post: operations['evidenceExportDownload'];
     delete?: never;
     options?: never;
     head?: never;
@@ -127,7 +639,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description The Session. Interactive Sessions return status, the current revision, its response_schema and every accepted response bound to its revision; repeated reads of an unchanged Session are byte-identical. A developer API key also reads the Sessions of trials its account claimed (read-only), each until that Session’s result_available_until. */
+    /** @description The Session. Interactive Sessions return status, the current revision, its response_schema and every accepted response bound to its revision; repeated reads of an unchanged Session are byte-identical. Every Session carries action_expires_at, its human link’s stored expiry; a read never extends it. A developer API key also reads the Sessions of trials its account claimed (read-only), each until that Session’s result_available_until. */
     get: operations['getSession'];
     put?: never;
     post?: never;
@@ -198,8 +710,127 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description The human form submission (the human link is the capability; never log it). Accepted only from the page itself: Sec-Fetch-Site same-origin, or without Fetch Metadata an Origin equal to the public origin. The server resolves action_id from the exact stored revision and validates data against its response_schema. Responses are HTML pages whose stable code is in a data-error-code attribute. */
+    /** @description The human form submission (the human link is the capability; never log it). Accepted only from the page itself: Sec-Fetch-Site same-origin, or without Fetch Metadata an Origin equal to the public origin. The server resolves action_id from the exact stored revision and validates data against its response_schema. Success is a 303 redirect to the same link; refusals are HTML pages whose stable code is in a data-error-code attribute (422 and 409 re-render the form with the safe draft for explicit resubmit). */
     post: operations['submitHumanAction'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/s/{token}/keep/challenge': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description P2-13 V3 / P2-11, step 1 of "Keep your receipt" (DOCS/spec/keep-v1.md). The human link is the capability; never log it. Sent by the receipt card’s same-origin script after the person taps Keep: Sec-Fetch-Site same-origin (or, without Fetch Metadata, an Origin equal to the page’s origin), application/json, at most 65536 bytes, at most 128 grants. Each round is authorized only by its own receipt-scoped Keep grant: the Session, a receipt list or another round’s grant never authorize it. Reads one Session snapshot (its Event sequence cutoff) and, when some authorized receipt in custody has no holder yet, records one fresh challenge (5 minutes) bound to exactly that batch. Headers as every /s/* response (no-store, no-referrer, noindex, no CORS). */
+    post: operations['createKeepChallenge'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/s/{token}/keep': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description P2-13 V3 / P2-11, step 2: the kept-conversation file (DOCS/spec/keep-v1.md), the one bounded, versioned file the person saves — every authorized accepted round of the Session through the snapshot cutoff with its unchanged receipt and bundle (or content unavailable once purged), preservation status (the witness state at snapshot time, with the evidence attached by then), holder status and an inventory. Same request checks as the challenge. With `enrollment`, first enrolls one fresh holder key per receipt of the challenge’s exact batch (or only its final receipt: the disclosed fallback): every proof is checked, then all enrollments and the challenge’s consumption commit atomically; the same request again is an idempotent replay, a different one is refused, a receipt keeps its first holder and a key holds one receipt. Without `enrollment` (key generation or storage failed, or nothing to enrol) the file is exported with every round marked unenrolled: export never depends on enrollment. The file holds no private key, grant secret or human link. Content-Disposition: attachment. */
+    post: operations['keepConversation'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/s/{token}/claim': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description P2-15 PR-B, Save to Sess from a human page on another origin than /personal (DOCS/spec/personal-copies-v1.md §7). The human link is the capability; never log it. Sent by the receipt card’s same-origin script once the Save sheet on the personal origin is signed in and has sent its destination binding: Sec-Fetch-Site same-origin (or an Origin equal to the page’s), application/json, at most 65536 bytes, rate limited per link. Records one pending claim bound to the rounds the presented Keep grants authorize now, exactly as Keep reads them (restricted or deleted rounds never included; no client-chosen IDs), their cutoff, a fresh 256-bit transfer secret (stored as its hash), the purpose, the personal origin, the source verifier’s challenge and the destination binding. The claim expires in 5 minutes. Nothing is saved until the sheet redeems it. Headers as every /s/* response. */
+    post: operations['createSaveClaim'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/s/{token}/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description The read-only status of a human link, for its waiting page (S2): the current revision and the person’s view of the state, nothing else (no owner data, Event IDs, receipts, responses or Surface content). The human link is the capability; never log it. Nothing is written or consumed. The waiting page’s same-origin script calls it about every 4 s while the page waits, and navigates to the same link (a GET) once the revision or the state differs. Headers as every /s/* response: Cache-Control: no-store, Referrer-Policy: no-referrer, X-Robots-Tag: noindex, nofollow, no CORS. */
+    get: operations['getHumanStatus'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/account/usage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description P2-12: the developer workspace’s plan, resolved Sessions used in the current period, the next reset, active Sessions and the 80%/100% allowance warnings. Read only. A resolved Session is one the owner completed after at least one accepted response whose final result was accepted by the webhook endpoint or fetched with an owner credential (a read or completion response sent in full) before its delivery deadline (completion plus the Session’s retention); it counts once, in the period it qualifies. Periods are monthly from the workspace’s billing anchor (its creation on Free). Admission reserves one unit per admitted interactive Session that can still qualify, so admitted work always fits the allowance. Workspaces without a plan (the deployment owner key) → 404 NOT_FOUND. */
+    get: operations['getAccountUsage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/account/billing/checkout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description P2-12: a hosted Checkout for upgrading the developer workspace to a paid plan, at the server’s approved price for that plan (the caller names only the plan). Idempotent: while a Checkout for this plan is open, every request (concurrent or retried) returns the same one; a Checkout for the other plan is ended first, so at most one is payable (it is replaced only after the provider confirms its expiry), and a paid Checkout fences the workspace until its subscription is recorded. A workspace with a subscription gets no new Checkout (409 SUBSCRIPTION_EXISTS: plan changes happen in place). Returning from the Checkout page grants nothing: the plan changes only when the provider’s signed subscription state says it is paid, and the Usage page shows “processing” until then. */
+    post: operations['createBillingCheckout'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/billing/provider-events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description P2-12: the payment provider’s signed asynchronous events (provider-to-Sess only; DOCS/spec/billing-provider-v1.md). The signature header is verified over the exact raw body (at most 256 KiB, timestamp within 300 s) before the body is parsed. Each event id is processed once (a duplicate is acknowledged without effect); older subscription states never replace newer ones; unknown event types are acknowledged and ignored. Not configured → 404. */
+    post: operations['receiveBillingProviderEvent'];
     delete?: never;
     options?: never;
     head?: never;
@@ -292,6 +923,279 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/v1/sessions/{id}/events/{event_id}/bundle': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description The deliberate export of one accepted response as a bundle-v1 disclosure (DOCS/spec/bundle-v1.md): its stored receipt exactly as issued, the complete normalized Surface of the revision it was accepted on, the accepted data, and the current public receipt keys. Never a private key, owner credential or human link. Anyone holding the bundle can verify it (POST /v1/receipts/verify, or offline with trusted keys); share it only with whom you mean to show the decision. Read-only. Cache-Control: no-store, no-transform; Referrer-Policy: no-referrer. */
+    get: operations['exportDecisionBundle'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/receipts/verify': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Public, no credential. Verifies a disclosed bundle-v1 against this server's own receipt issuer and published keys (never keys in the bundle) at the current time: the receipt by the receipt-v1 rules, then that the disclosed Surface and input match the receipt hashes. It looks nothing up and stores nothing. The declared signed context is checked only against itself, so context is "unchecked" and application_purpose is "unchecked": check the event, Session and workspace you expect in your own application. A valid result means the issuer accepted this input from someone holding the human link; it never names a person or proves that anything was executed. An invalid bundle is a 200 result with valid false and a reason. Body: application/json, at most 2097152 bytes (413 above); 1 MiB canonical bundle bound (reason oversized). Rate limited per client and in total (429 RATE_LIMITED with Retry-After). An absolute 2-second deadline runs from the request's arrival and covers receiving the body as well as verifying it: an unanswered request then gets 503 SERVICE_UNAVAILABLE with Connection: close and the connection is closed. Cache-Control: no-store, no-transform; Referrer-Policy: no-referrer; CORS only for the product site origins. Never put a bundle or receipt in a URL. */
+    post: operations['verifyDecisionBundle'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/receipts/verify-archival': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Public, no credential. Verifies an archival envelope (DOCS/spec/archival-core-v1.md §3) with the successor archival verifier against this server's own configuration only: its published receipt keys, its receipt issuer as the expected context issuer, its published witness key set (/.well-known/sess-witness-keys.json) and, when configured, its TUF-verified witness trusted root. Nothing in the request is trusted. It reports the independent dimensions of archival-core-v1 §5 (signature, contents, context, witness, key_trust, live_expiry) with the same statuses and reasons as @sess.si/sdk/archival, and their presentation. The body is the envelope only: contents is therefore unverifiable: content_unavailable (verify a bundle-v1 at /v1/receipts/verify for content), and context is at most incomplete (application_context_unchecked). Without a witness trusted root, attached evidence is indeterminate: witness_trust_unavailable. It looks nothing up and stores nothing. A malformed or oversized envelope is a 200 result. The bundle route is unchanged. Body: application/json, at most 2097152 bytes (413 above); 65,536 bytes envelope bound (reason oversized). The same per-client and total rate limits as /v1/receipts/verify, shared with it (429 RATE_LIMITED with Retry-After), and the same absolute 2-second deadline from the request's arrival (503 SERVICE_UNAVAILABLE with Connection: close). Cache-Control: no-store, no-transform; Referrer-Policy: no-referrer; CORS only for the product site origins. Never put an envelope or receipt in a URL. */
+    post: operations['verifyArchivalEnvelope'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/targets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description The owner workspace’s targets with owner-only start and completion counts. */
+    get: operations['listTargets'];
+    put?: never;
+    /** @description Registers an HTTP Agent Target in the owner workspace (from the credential only). Requires the explicit type http, an https endpoint on port 443 (no user info or fragment; an IP literal must be public), a versioned capability with a bounded input schema, a grant policy (audience origins and lifetime), a budget and an optional enabled switch. Starts are possible only after domain verification. Human, trial and probe credentials cannot register or modify targets. */
+    post: operations['registerTarget'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/targets/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['getTarget'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** @description Enables or disables the target, or changes its capability, grant policy or budget (each of those increments the version). Disabling refuses new starts at once and fails admitted runs not yet dispatched (target_disabled); a new version makes older grants stale (409 TARGET_VERSION_CONFLICT on start) and fails admitted runs not yet dispatched (stale_binding). Runs already dispatched are not recalled. */
+    patch: operations['updateTarget'];
+    trace?: never;
+  };
+  '/v1/targets/{id}/sharing': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** @description Sets how the target is shared at /a/{name}: the name, whether it is shared (off by default), the owner description and data-source attribution shown on the card, and whether a finished run offers “Ask this agent again”. Not part of the versioned binding: the version does not change and admitted runs continue. The card answers 404 unless the target is shared, enabled and verified, lists the site origin among its grant audiences and accepts an empty start input; unsharing or disabling makes it 404 at once, and admission refuses every grant the card issued while the target is not shared. Start and completion counts stay owner-only (TargetResponse.counts). */
+    patch: operations['updateTargetSharing'];
+    trace?: never;
+  };
+  '/v1/targets/{id}/verify': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description GETs /.well-known/sess-target/{id}.json on the endpoint origin through the egress safeguards (no redirect followed, non-public and rebound addresses refused) and verifies the target for 30 days when it is a JSON TargetVerificationDocument naming this target_id and its verification token. Never calls the capability endpoint. */
+    post: operations['verifyTarget'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/targets/{id}/grants': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Issues a start grant (256-bit, stored only as a hash) bound to this workspace, target, current target version, capability and one audience origin from the grant policy, expiring after the policy lifetime. The secret is returned once. */
+    post: operations['issueTargetGrant'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/targets/{id}/grants/{grant_id}/revoke': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Revokes a grant at once (idempotent). Runs it already admitted continue and stay observable with their participant credential. */
+    post: operations['revokeTargetGrant'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/invocations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description The deliberate start: one transaction checks the grant (live, unrevoked, from its audience Origin) and the target (enabled, verified, same version and capability), validates the input, reserves global, workspace, target, grant and client-bucket limits, records the Invocation with its request identity and an audit event, and enqueues its dispatch. Target, endpoint, capability and policy come only from the grant; any other body field is refused. The same request_id and body returns the same run (200) with the same participant credential; a different body → 409 IDEMPOTENCY_CONFLICT. GET never starts work. Initial limits: 10 active runs globally and per workspace, 1 per grant, 10 starts per client per 24 h, the target’s own budget; a 15-minute run lifetime; input at most 4 KiB. An operator switch refuses every start (503, reason admission_disabled). A target whose workspace is at its plan limit starts nothing new (429, reason workspace_paused); its admitted runs finish. */
+    post: operations['startInvocation'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/invocations/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description The run’s status and, once completed, its bound result. */
+    get: operations['getInvocation'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/invocations/{id}/cancel': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Cancels an active run (idempotent once cancelled). A run not yet dispatched is never sent; a later target answer is recorded as late and never applied. */
+    post: operations['cancelInvocation'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/invocations/{id}/result': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description The target’s result for a dispatched run, with the callback credential of that dispatch, naming the same invocation_id and target_version. Terminal runs never reopen: a late result → 409 INVOCATION_TERMINAL. */
+    post: operations['reportInvocationResult'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/evidence': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description P2-13 V6: the custody records of the owner workspace (from the credential only), newest first: archival custody by workspace sequence, or (custody=exception) the receipts held unverified, by acceptance time. Minimal metadata only; a list never carries a receipt, a Surface or an answer. Filters: target_id (records whose archival core binds that target; records with no target binding never match) and accepted_from/accepted_to. Every answer is labelled "issued records in this defined scope/range" with complete_history false: it is never a complete history. Cursor-paginated (next_cursor). Cache-Control: no-store, no-transform. */
+    get: operations['listEvidence'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/evidence/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description P2-13 V6: a deliberate, bounded export of one explicit range of the owner workspace’s custody records: both from_sequence and to_sequence (archival), or both accepted_from and accepted_to. At most limit (≤ 100) records and 8 MiB; a range beyond either is truncated and range.next_cursor continues it. Each record carries its exact receipt, its archival envelope (signed core and preservation evidence) and preservation status; the original Surface and input only while still retained, otherwise content {status: unavailable, reason: purged} (never reconstructed). Exception-custody records are labelled unverified. The document carries a disclosure warning and the scope label "issued records in this defined scope/range" (never a complete history). Content-Disposition: attachment; the filename is built from the workspace, custody and range only. At most 6 exports per workspace per 10 minutes. The export’s content is never logged. */
+    post: operations['exportEvidence'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/evidence/records/{event_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description P2-13 V5: the status of one custody record of the owner workspace (from the credential only), never its content: available, restricted (with its reason code and since when) or deleted (with its reason code and deletion time). A restricted or deleted record is excluded from the list, the export, its bundle and every other receipt-scoped fetch; a restricted one stays verifiable for preservation integrity. Restriction, holds and deletion are decided by the operator through the recorded procedure (DOCS/spec/custody-restriction-deletion-v1.md); holds are not shown here. A deletion does not recall exported copies or files people already kept, and the public witness commitment (an aggregate batch root) remains. Another workspace’s record, or an unknown event ID, is 404. Cache-Control: no-store, no-transform. */
+    get: operations['getEvidenceRecordStatus'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/.well-known/sess-receipt-keys.json': {
     parameters: {
       query?: never;
@@ -301,6 +1205,23 @@ export interface paths {
     };
     /** @description The public decision-receipt verification keys as a JWK Set (Ed25519, alg EdDSA): the active signing key and every retained key of the rotation overlap. Verify a receipt (compact JWS, typ sess-receipt+jwt) with the key its protected header kid names. Expected issuer: configured SESS_RECEIPT_ISSUER, otherwise the origin of SESS_PUBLIC_BASE_URL. Expected audience: the Session’s actual workspace, from independently trusted configuration or Sess-Workspace-Id on authenticated owner create/retrieve. Claimed trials retain their original workspace. No credential. 503 SERVICE_UNAVAILABLE while the receipt keys are not configured. Cache-Control: no-store, no-transform. */
     get: operations['receiptKeys'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/.well-known/sess-witness-keys.json': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description The issuer’s published witness key set (DOCS/spec/witness-evidence-v1.md §5.1): the public ECDSA P-256 keys that sign witness checkpoints, each with its validity window. The current key has valid_to null; a rotated-out key is kept with its closed window, so evidence it signed stays verifiable. Read with parseWitnessKeySet and pass as the witnessKeys anchor of verifyWitnessEvidence, beside an independently distributed trusted root. Public keys only. No credential. Empty keys when no witness key is configured; 503 SERVICE_UNAVAILABLE when a configured key set is unusable (it is never trimmed or served empty). Cache-Control: no-store, no-transform. */
+    get: operations['witnessKeys'];
     put?: never;
     post?: never;
     delete?: never;
@@ -413,6 +1334,23 @@ export interface webhooks {
     patch?: never;
     trace?: never;
   };
+  targetDispatch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description POSTed to the exact registered target endpoint once per admitted Invocation, through the same egress safeguards as webhooks (HTTPS on port 443, every connection resolved and refused for non-public addresses, no redirects followed, 10-second timeout, response read up to 64 KiB). Headers: content-type, User-Agent Sess-Target/1 and sess-invocation-id (deduplicate on it); never an owner key, human link or caller header. Answer 2xx with TargetDispatchAnswer naming the same invocation_id and target_version: accepted (report later on callback.url with callback.credential), completed with result, or failed. An answer that does not bind, a timeout, a dropped connection or a 5xx leaves the Invocation unknown: it is never treated as success and never sent again. Only a DNS failure or an explicit 429/503 is retried (at most 3 attempts within the Invocation lifetime); 3xx and other 4xx fail it. */
+    post: operations['targetDispatch'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export interface components {
   schemas: {
@@ -472,6 +1410,8 @@ export interface components {
     SessionResponse: {
       id: string;
       revision: number;
+      /** @description When the Session’s human link expires: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Fixed when the Session is created and never extended by a read; never null. A link revoked by the operator stops earlier; this field does not report revocation. */
+      action_expires_at: string;
       interaction: {
         /** @constant */
         mode: 'display';
@@ -498,6 +1438,8 @@ export interface components {
       status: 'active' | 'responded' | 'completed';
       /** @description The current Surface revision. */
       revision: number;
+      /** @description When the Session’s human link expires: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Fixed when the Session is created and never extended by a read; never null. A link revoked by the operator stops earlier; this field does not report revocation. */
+      action_expires_at: string;
       interaction: {
         /** @constant */
         mode: 'interactive';
@@ -645,6 +1587,35 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    DisplaySurfaceResponse: {
+      id: string;
+      revision: number;
+      interaction: {
+        /** @constant */
+        mode: 'display';
+        title: string;
+        description?: string;
+        source: {
+          /** @constant */
+          kind: 'data';
+          data: {
+            [key: string]:
+              | (string | number | boolean | null)
+              | {
+                  [key: string]: string | number | boolean | null;
+                }
+              | {
+                  [key: string]: string | number | boolean | null;
+                }[];
+          };
+        };
+      };
+    };
+    HumanStatusResponse: {
+      state: 'waiting' | 'active' | 'completed';
+      /** @description The current Surface revision. */
+      revision: number;
+    };
     SessionEventsResponse: {
       id: string;
       /** @description Every Event of the Session, in sequence order (append-only; never rewritten). */
@@ -682,6 +1653,416 @@ export interface components {
         alg: 'EdDSA';
         /** @constant */
         use: 'sig';
+      }[];
+    };
+    WitnessKeysResponse: {
+      /** @constant */
+      type: 'sess.witness-key-set';
+      /** @constant */
+      version: 1;
+      /** @description The receipt issuer whose witness checkpoints these keys sign. */
+      issuer: string;
+      /** @description The current witness key (open window) first, then every retained key, newest first. Empty when no witness key is configured. */
+      keys: {
+        /** @description sha256:<hex> of the SPKI DER: the key id stored with each witnessed batch. */
+        key_id: string;
+        /** @constant */
+        key_details: 'PKIX_ECDSA_P256_SHA_256';
+        /** @description Standard base64 of the ECDSA P-256 SubjectPublicKeyInfo DER. Public material only. */
+        spki: string;
+        /** @description RFC 3339 UTC: from when the key may have signed a checkpoint (TSA time). */
+        valid_from: string;
+        /** @description RFC 3339 UTC end of the window; null for the current key. A retired key keeps its closed window, so evidence it signed stays verifiable. */
+        valid_to: string | null;
+      }[];
+    };
+    /** @description A deliberate disclosure of one accepted decision: the receipt, the accepted record and the issuer's public keys. Never a private key, owner credential or human link. At most 1 MiB canonical, depth 32, 1000 items per array and members per object, 100000 values. */
+    DecisionBundle: {
+      /** @constant */
+      type: 'sess.decision-bundle';
+      /** @constant */
+      version: 1;
+      /** @description The receipt-v1 compact JWS exactly as issued. */
+      receipt: string;
+      content: {
+        /** @description The complete normalized Surface document of the accepted revision (its RFC 8785 SHA-256 is the receipt surface.hash). */
+        surface: {
+          [key: string]: unknown;
+        };
+        /** @description The complete validated input as accepted (its RFC 8785 SHA-256 is the receipt input_hash). */
+        input: {
+          [key: string]: unknown;
+        };
+      };
+      keys: {
+        /** @description The issuer's public verification keys when the bundle was exported. Disclosed for convenience only: verifiers use keys they trust, never these. */
+        keys: {
+          /** @constant */
+          kty: 'OKP';
+          /** @constant */
+          crv: 'Ed25519';
+          x: string;
+          kid: string;
+          /** @constant */
+          alg?: 'EdDSA';
+          /** @constant */
+          use?: 'sig';
+        }[];
+      };
+    };
+    DecisionBundleVerification: {
+      valid: boolean;
+      /** @description null when valid; otherwise the first check that failed. */
+      reason:
+        | (
+            | 'malformed'
+            | 'oversized'
+            | 'unsupported_version'
+            | 'receipt_malformed'
+            | 'algorithm'
+            | 'missing_kid'
+            | 'unknown_kid'
+            | 'type'
+            | 'signature'
+            | 'issuer'
+            | 'audience'
+            | 'expired'
+            | 'claims'
+            | 'not_yet_valid'
+            | 'surface_mismatch'
+            | 'input_mismatch'
+            | 'context_mismatch'
+          )
+        | null;
+      /** @description The time the receipt was checked against (UTC). */
+      checked_at: string;
+      content: 'verified' | 'mismatch' | 'not_checked';
+      context: {
+        status: 'verified' | 'incomplete' | 'mismatch' | 'unchecked' | 'not_checked';
+        checked: (
+          'audience' | 'workspace_id' | 'session_id' | 'event_id' | 'surface.revision' | 'action.id'
+        )[];
+        mismatches: (
+          'audience' | 'workspace_id' | 'session_id' | 'event_id' | 'surface.revision' | 'action.id'
+        )[];
+      };
+      /** @description Always unchecked from the public verifier: it checks the signed declared context only, never what the decision was for in your application. */
+      application_purpose: 'unchecked' | 'matched_caller_context';
+      actor: {
+        /** @constant */
+        assurance: 'link_holder';
+      } | null;
+      receipt: {
+        key_id: string;
+        issuer: string;
+        audience: string;
+        event_id: string;
+        session_id: string;
+        workspace_id: string;
+        step_id: string;
+        surface: {
+          revision: number;
+          hash: string;
+          renderer_version: string;
+        };
+        action: {
+          id: string;
+          label: string;
+          summary: string;
+        };
+        input_hash: string;
+        accepted_at: string;
+        expires_at: string;
+      } | null;
+    };
+    /** @description An archival envelope: the original receipt, the signed archival core that binds it and its preservation evidence. Public structure only; never a private key, holder secret or recovery section. */
+    ArchivalEnvelope: {
+      /** @constant */
+      type: 'sess.archival-envelope';
+      /** @constant */
+      version: 1;
+      /** @description The original receipt-v1 compact JWS, exactly as issued. */
+      receipt: string;
+      signed_core: {
+        /** @constant */
+        type: 'sess.signed-archival-core';
+        /** @constant */
+        version: 1;
+        /** @description The archival core (archival-core-v1 §1), strictly checked by the verifier. */
+        core: {
+          [key: string]: unknown;
+        };
+        signature: {
+          /** @constant */
+          alg: 'Ed25519';
+          kid: string;
+          /** @description base64url, 64 bytes. */
+          value: string;
+        };
+      };
+      /** @description Detachable preservation evidence: witness evidence version 1 entries (witness-evidence-v1 §4). Empty while the witness is pending. */
+      evidence: {
+        [key: string]: unknown;
+      }[];
+    };
+    ArchivalVerifyResponse: {
+      /** @description The current time the check used (UTC). */
+      checked_at: string;
+      signature: {
+        status: 'valid' | 'invalid' | 'unsupported' | 'unverifiable';
+        reason:
+          | 'verified'
+          | 'malformed'
+          | 'oversized'
+          | 'wrong_type'
+          | 'unknown_version'
+          | 'unsupported_algorithm'
+          | 'core_signature'
+          | 'receipt_digest_mismatch'
+          | 'receipt_malformed'
+          | 'receipt_signature'
+          | 'core_receipt_mismatch'
+          | 'untrusted_key';
+      };
+      contents: {
+        status: 'valid' | 'invalid' | 'unsupported' | 'unverifiable';
+        reason:
+          | 'verified'
+          | 'content_unavailable'
+          | 'content_mismatch'
+          | 'content_malformed'
+          | 'content_oversized'
+          | 'signature_unverified';
+      };
+      context: {
+        status: 'valid' | 'invalid' | 'unsupported' | 'unverifiable';
+        reason: 'verified' | 'unchecked' | 'incomplete' | 'mismatch' | 'signature_unverified';
+        /** @description The expected members checked, of: issuer, audience, workspace_id, session_id, event_id, surface_revision, action_id. */
+        checked: string[];
+        /** @description The checked members that did not match. */
+        mismatched: string[];
+      };
+      witness: {
+        status: 'witnessed' | 'pending' | 'indeterminate' | 'invalid' | 'unsupported' | 'unverifiable';
+        reason:
+          | 'verified'
+          | 'unwitnessed'
+          | 'malformed_evidence'
+          | 'invalid_evidence'
+          | 'unsupported_evidence'
+          | 'witness_trust_unavailable'
+          | 'untrusted_witness_key'
+          | 'untrusted_tsa'
+          | 'unknown_log'
+          | 'renewal_lapsed'
+          | 'signature_unverified';
+        /** @description Witnessed only: the TSA time, an upper bound on when the signed core existed. */
+        witnessed_at?: string;
+        /** @description invalid_evidence only: which part failed. */
+        detail?: string;
+      };
+      key_trust: {
+        status: 'valid' | 'invalid' | 'unsupported' | 'unverifiable';
+        reason: 'trusted' | 'unknown_kid' | 'not_evaluated';
+        /**
+         * @description Always this server's own published receipt keys, never the envelope's.
+         * @constant
+         */
+        key_set: 'caller_supplied';
+        key_set_observed_at: string | null;
+      };
+      live_expiry: {
+        status: 'valid' | 'invalid' | 'unsupported' | 'unverifiable';
+        reason: 'unexpired' | 'expired' | 'signature_unverified';
+        expires_at: string | null;
+      };
+      /** @description The validated archival core; null unless signature is valid. */
+      core: {
+        [key: string]: unknown;
+      } | null;
+      /** @description The verified receipt-v1 claims; null unless signature is valid. */
+      claims: {
+        [key: string]: unknown;
+      } | null;
+      /** @description presentArchivalVerification of the dimensions: the user-facing messages, or the refusal. Witness status and live expiry are beside the messages, never folded in. */
+      presentation: {
+        verified: boolean;
+        messages: (
+          | 'signature_verified'
+          | 'contents_verified'
+          | 'contents_unavailable'
+          | 'application_context_unchecked'
+        )[];
+        refusal: {
+          dimension: 'signature' | 'contents' | 'context';
+          reason: string;
+        } | null;
+        witness: 'witnessed' | 'pending' | 'indeterminate' | 'invalid' | 'unsupported' | 'unverifiable';
+        expired_for_live_use: boolean | null;
+      };
+    };
+    KeepChallengeRequest: {
+      /** @description The Keep grant secrets this browser holds for this link: each the 32-byte secret whose domain-separated SHA-256 was the client_event_id of a round it submitted (`kg-` + hash). A round is authorized only by its own grant. Sent in the body only, never in a URL. */
+      grants: string[];
+    };
+    KeepChallengeResponse: {
+      /** @description The authorized accepted rounds the file will hold. */
+      rounds: number;
+      cutoff_sequence: number;
+      challenge: null | {
+        id: string;
+        nonce: string;
+        issuer: string;
+        workspace_id: string;
+        session_id: string;
+        /** Format: date-time */
+        expires_at: string;
+        /** @description The exact batch, in order: every authorized round whose receipt is in custody and has no holder yet. */
+        items: {
+          event_id: string;
+          core_digest: string;
+        }[];
+      };
+    };
+    KeepRequest: {
+      /** @description The Keep grant secrets this browser holds for this link: each the 32-byte secret whose domain-separated SHA-256 was the client_event_id of a round it submitted (`kg-` + hash). A round is authorized only by its own grant. Sent in the body only, never in a URL. */
+      grants: string[];
+      enrollment?: {
+        challenge_id: string;
+        /** @description Exactly the challenge's batch in order, or only its final receipt (the disclosed fallback). One distinct key per receipt. */
+        items: {
+          event_id: string;
+          /** @description A fresh public P-256 key (never a private one). */
+          holder_key: {
+            /** @constant */
+            crv: 'P-256';
+            /** @constant */
+            kty: 'EC';
+            x: string;
+            y: string;
+          };
+          /** @description base64url of the 64-byte ECDSA P-256 SHA-256 signature (IEEE P1363) over the holder proof message (DOCS/spec/keep-v1.md §3). */
+          proof: string;
+        }[];
+      };
+    };
+    /** @description The kept conversation (DOCS/spec/keep-v1.md): every authorized accepted round of the Session through the snapshot cutoff, each with its unchanged receipt-v1, its bundle-v1 while the content is retained (else unavailable, never reconstructed), its preservation status and holder status, plus an inventory. No private key, grant secret or human link. Each extracted bundle verifies with the unchanged bundle-v1 verifier. */
+    KeptConversation: {
+      /** @constant */
+      type: 'sess.kept-conversation';
+      /** @constant */
+      version: 1;
+      issuer: string;
+      workspace_id: string;
+      session_id: string;
+      snapshot: {
+        cutoff_sequence: number;
+        /** Format: date-time */
+        taken_at: string;
+      };
+      coverage: 'every_accepted_round' | 'partial';
+      inventory: {
+        event_id: string;
+        sequence: number;
+        revision: number;
+        /** Format: date-time */
+        accepted_at: string;
+        content: 'included' | 'unavailable';
+        preservation: 'preserved' | 'not_preserved';
+        witness: string | null;
+        holder: 'enrolled' | 'unenrolled' | 'revoked';
+      }[];
+      rounds: {
+        event_id: string;
+        sequence: number;
+        revision: number;
+        /** Format: date-time */
+        accepted_at: string;
+        /** @description The receipt-v1 compact JWS exactly as issued. */
+        receipt: string;
+        content:
+          | {
+              /** @constant */
+              status: 'included';
+              /** @description A deliberate disclosure of one accepted decision: the receipt, the accepted record and the issuer's public keys. Never a private key, owner credential or human link. At most 1 MiB canonical, depth 32, 1000 items per array and members per object, 100000 values. */
+              bundle: {
+                /** @constant */
+                type: 'sess.decision-bundle';
+                /** @constant */
+                version: 1;
+                /** @description The receipt-v1 compact JWS exactly as issued. */
+                receipt: string;
+                content: {
+                  /** @description The complete normalized Surface document of the accepted revision (its RFC 8785 SHA-256 is the receipt surface.hash). */
+                  surface: {
+                    [key: string]: unknown;
+                  };
+                  /** @description The complete validated input as accepted (its RFC 8785 SHA-256 is the receipt input_hash). */
+                  input: {
+                    [key: string]: unknown;
+                  };
+                };
+                keys: {
+                  /** @description The issuer's public verification keys when the bundle was exported. Disclosed for convenience only: verifiers use keys they trust, never these. */
+                  keys: {
+                    /** @constant */
+                    kty: 'OKP';
+                    /** @constant */
+                    crv: 'Ed25519';
+                    x: string;
+                    kid: string;
+                    /** @constant */
+                    alg?: 'EdDSA';
+                    /** @constant */
+                    use?: 'sig';
+                  }[];
+                };
+              };
+            }
+          | {
+              /** @constant */
+              status: 'unavailable';
+            };
+        preservation:
+          | {
+              /** @constant */
+              status: 'preserved';
+              /** @description The witness state at snapshot time (the custody witness job: `pending` until a witness attaches, then e.g. `witnessed`); the envelope carries the evidence attached by then. */
+              witness: string;
+              /** @description The archival envelope (DOCS/spec/archival-core-v1.md). */
+              archival_envelope: {
+                [key: string]: unknown;
+              };
+            }
+          | {
+              /** @constant */
+              status: 'not_preserved';
+            };
+        holder:
+          | {
+              status: 'enrolled' | 'revoked';
+              /** @description A fresh public P-256 key (never a private one). */
+              public_key: {
+                /** @constant */
+                crv: 'P-256';
+                /** @constant */
+                kty: 'EC';
+                x: string;
+                y: string;
+              };
+              key_thumbprint: string;
+              /** Format: date-time */
+              enrolled_at: string;
+              batch: {
+                [key: string]: unknown;
+              };
+              proof: string;
+            }
+          | {
+              /** @constant */
+              status: 'unenrolled';
+              reason: 'not_preserved' | 'final_only' | 'not_enrolled' | 'holder_withheld';
+            };
       }[];
     };
     WebhookRegisterRequest: {
@@ -981,10 +2362,22 @@ export interface components {
           | 'SIGN_IN_UNAVAILABLE'
           | 'WEBHOOK_INVALID_URL'
           | 'WEBHOOK_VERIFICATION_FAILED'
-          | 'WEBHOOK_NOT_CONFIGURED';
+          | 'WEBHOOK_NOT_CONFIGURED'
+          | 'TARGET_INVALID_URL'
+          | 'TARGET_INVALID_CAPABILITY'
+          | 'TARGET_VERIFICATION_FAILED'
+          | 'TARGET_VERSION_CONFLICT'
+          | 'INVOCATION_TERMINAL'
+          | 'HOLDER_ENROLLMENT_REFUSED'
+          | 'PLAN_LIMIT_REACHED'
+          | 'SUBSCRIPTION_EXISTS'
+          | 'TARGET_NAME_TAKEN'
+          | 'EVIDENCE_RESTRICTED'
+          | 'EVIDENCE_DELETED'
+          | 'CUSTODY_HOLD_ACTIVE';
         message: string;
         request_id: string;
-        /** @description A stable machine-readable refinement of some codes (P1 A4 webhook errors). */
+        /** @description A stable machine-readable refinement of some codes (P1 A4 webhook errors; P2 target, admission and limit errors). */
         reason?: string;
       };
     };
@@ -1155,6 +2548,708 @@ export interface components {
        */
       status: 'accepted';
     };
+    PersonalSignInRequest: {
+      /** @description The address to send the personal sign-in code and link to. Trimmed and lower-cased. */
+      email: string;
+    };
+    PersonalSignInAccepted: {
+      /**
+       * @description The email was handed to the email provider. The same answer for every address: it never says whether an identity, a personal account or a developer account exists.
+       * @constant
+       */
+      status: 'accepted';
+    };
+    PersonalCodeRequest: {
+      /** @description The six-digit code from the email (spaces and hyphens are ignored). */
+      code: string;
+    };
+    PersonalLinkRequest: {
+      /** @description The sign-in link token, read by the page from the link’s URL fragment (it is never in a request URL). */
+      token: string;
+    };
+    PersonalEmptyRequest: Record<string, never>;
+    PersonalSignedInResponse: {
+      /** @constant */
+      status: 'signed_in';
+      /**
+       * Format: date-time
+       * @description The personal session’s absolute expiry (never extended).
+       */
+      expires_at: string;
+      /** @description The personal session’s CSRF token: send it as the x-sess-csrf header on /personal/sign-out and /personal/close. */
+      csrf: string;
+    };
+    PersonalSessionResponse: {
+      /** @description The address of this session’s own identity. */
+      email: string;
+      /** Format: date-time */
+      expires_at: string;
+      /** @description The personal session’s CSRF token: send it as the x-sess-csrf header on /personal/sign-out and /personal/close. */
+      csrf: string;
+    };
+    PersonalDone: {
+      status: 'signed_out' | 'closed';
+    };
+    SaveClaimRequest: {
+      /** @description The Keep grant secrets this browser holds for this link: each the 32-byte secret whose domain-separated SHA-256 was the client_event_id of a round it submitted (`kg-` + hash). A round is authorized only by its own grant. Sent in the body only, never in a URL. */
+      grants: string[];
+      /** @description base64url SHA-256 of UTF-8 "sess.personal-save.source/v1", one 0x00 byte and the source verifier: a 32-byte random value (base64url) this page keeps and hands only to the destination page. */
+      source: string;
+      /** @description The destination binding the signed-in destination page obtained from POST /personal/save/destination for its own nonce. */
+      destination: string;
+    };
+    SaveClaimResponse: {
+      /** @description The 256-bit transfer secret (stored only as its hash). Hand it, with the source verifier, only to the destination page, in a window message or a body; never put it in a URL. */
+      secret: string;
+      /**
+       * Format: date-time
+       * @description The claim’s expiry.
+       */
+      expires_at: string;
+    };
+    SaveDestinationRequest: {
+      /** @description A 32-byte random nonce this destination page keeps until it redeems. */
+      nonce: string;
+    };
+    SaveDestinationResponse: {
+      /** @description The destination binding: bound to the nonce and to this personal session, so a claim made for it can be redeemed only by this session presenting the same nonce. */
+      destination: string;
+    };
+    SaveRedeemRequest: {
+      /** @description The claim’s transfer secret. */
+      secret: string;
+      /** @description The source verifier whose hash the claim was created with. */
+      verifier: string;
+      /** @description This page’s nonce, the one its destination binding was made for. */
+      nonce: string;
+    };
+    SaveDirectRequest: {
+      /** @description The human link token of the page on this same origin (read from its path; sent only in this body, never in a URL). */
+      link: string;
+      /** @description The Keep grant secrets this browser holds for this link: each the 32-byte secret whose domain-separated SHA-256 was the client_event_id of a round it submitted (`kg-` + hash). A round is authorized only by its own grant. Sent in the body only, never in a URL. */
+      grants: string[];
+    };
+    SavedResponse: {
+      /** @constant */
+      status: 'saved';
+      /**
+       * Format: date-time
+       * @description When the saved copy was written. The identical request again answers the same time: nothing is written twice.
+       */
+      saved_at: string;
+    };
+    ProtectedResourceMetadata: {
+      /** @description The MCP resource (RFC 8707), e.g. https://mcp.sess.si/mcp. */
+      resource: string;
+      authorization_servers: string[];
+      scopes_supported: 'sess:interact'[];
+      bearer_methods_supported: 'header'[];
+      resource_name: string;
+    };
+    AuthorizationServerMetadata: {
+      issuer: string;
+      authorization_endpoint: string;
+      token_endpoint: string;
+      registration_endpoint: string;
+      revocation_endpoint: string;
+      scopes_supported: 'sess:interact'[];
+      response_types_supported: 'code'[];
+      response_modes_supported: 'query'[];
+      grant_types_supported: ('authorization_code' | 'refresh_token')[];
+      token_endpoint_auth_methods_supported: 'none'[];
+      revocation_endpoint_auth_methods_supported: 'none'[];
+      code_challenge_methods_supported: 'S256'[];
+      /** @constant */
+      client_id_metadata_document_supported: true;
+      /** @constant */
+      authorization_response_iss_parameter_supported: true;
+    };
+    OAuthTokenResponse: {
+      /** @description Bearer for the MCP resource only (audience-bound), 256 bits, about one hour. */
+      access_token: string;
+      /** @constant */
+      token_type: 'Bearer';
+      expires_in: number;
+      /** @description Single use: every refresh returns a new one. Presenting a used one again revokes the whole token family. */
+      refresh_token: string;
+      /** @constant */
+      scope: 'sess:interact';
+    };
+    OAuthErrorResponse: {
+      error:
+        | 'invalid_request'
+        | 'invalid_client'
+        | 'invalid_grant'
+        | 'invalid_scope'
+        | 'invalid_target'
+        | 'unsupported_grant_type'
+        | 'invalid_redirect_uri'
+        | 'invalid_client_metadata'
+        | 'temporarily_unavailable'
+        | 'server_error';
+    };
+    /** @description A public client (no secret). Other RFC 7591 metadata is ignored; a client secret, `jwks` or another authentication method is refused. */
+    ClientRegistrationRequest: {
+      redirect_uris: string[];
+      client_name?: string;
+      /** @constant */
+      token_endpoint_auth_method?: 'none';
+      grant_types?: ('authorization_code' | 'refresh_token')[];
+      response_types?: 'code'[];
+    };
+    ClientRegistrationResponse: {
+      client_id: string;
+      client_id_issued_at: number;
+      client_name: string;
+      redirect_uris: string[];
+      /** @constant */
+      token_endpoint_auth_method: 'none';
+      grant_types: ('authorization_code' | 'refresh_token')[];
+      response_types: 'code'[];
+    };
+    TargetRegisterRequest: {
+      /**
+       * @description The only supported target protocol type.
+       * @constant
+       */
+      type: 'http';
+      /** @description Absolute https:// URL on port 443 without user info or fragment; an IP literal must be public. Immutable: register a new target to change it. */
+      endpoint: string;
+      capability: {
+        name: string;
+        version: string;
+        /** @description JSON Schema 2020-12 for the start input: an object schema using only type, properties, required, additionalProperties, items, enum, const, numeric and length bounds, title and description (no pattern, format, $ref or composition), at most 6 levels deep and 8192 bytes. */
+        input_schema: {
+          [key: string]: unknown;
+        };
+      };
+      grant: {
+        /** @description The exact browser origins a grant may be issued for. A start must come from its grant’s origin (the Origin header). */
+        audiences: string[];
+        /** @description How long an issued grant lives. */
+        lifetime_seconds: number;
+      };
+      budget: {
+        max_concurrent: number;
+        max_starts_per_day: number;
+      };
+      /** @description Default true. */
+      enabled?: boolean;
+    };
+    TargetUpdateRequest: {
+      enabled?: boolean;
+      capability?: {
+        name: string;
+        version: string;
+        /** @description JSON Schema 2020-12 for the start input: an object schema using only type, properties, required, additionalProperties, items, enum, const, numeric and length bounds, title and description (no pattern, format, $ref or composition), at most 6 levels deep and 8192 bytes. */
+        input_schema: {
+          [key: string]: unknown;
+        };
+      };
+      grant?: {
+        /** @description The exact browser origins a grant may be issued for. A start must come from its grant’s origin (the Origin header). */
+        audiences: string[];
+        /** @description How long an issued grant lives. */
+        lifetime_seconds: number;
+      };
+      budget?: {
+        max_concurrent: number;
+        max_starts_per_day: number;
+      };
+    };
+    TargetSharingRequest: {
+      name?: string | null;
+      shared?: boolean;
+      description?: string | null;
+      attribution?: string | null;
+      ask_again?: boolean;
+    };
+    TargetResponse: {
+      id: string;
+      /** @constant */
+      type: 'http';
+      endpoint: string;
+      /** @description Incremented by every change of capability, grant policy or budget. Grants are bound to one version; a start with an older grant → 409 TARGET_VERSION_CONFLICT, and admitted runs not yet dispatched fail as stale_binding. */
+      version: number;
+      capability: {
+        name: string;
+        version: string;
+        /** @description JSON Schema 2020-12 for the start input: an object schema using only type, properties, required, additionalProperties, items, enum, const, numeric and length bounds, title and description (no pattern, format, $ref or composition), at most 6 levels deep and 8192 bytes. */
+        input_schema: {
+          [key: string]: unknown;
+        };
+      };
+      grant: {
+        /** @description The exact browser origins a grant may be issued for. A start must come from its grant’s origin (the Origin header). */
+        audiences: string[];
+        /** @description How long an issued grant lives. */
+        lifetime_seconds: number;
+      };
+      budget: {
+        max_concurrent: number;
+        max_starts_per_day: number;
+      };
+      enabled: boolean;
+      verification: {
+        status: 'pending' | 'verified';
+        /** @description Publish it at well_known_url (public by design). */
+        token: string;
+        well_known_url: string;
+        verified_at: string | null;
+        expires_at: string | null;
+      };
+      /** @description Owner-only counts; never public. */
+      counts: {
+        started: number;
+        completed: number;
+      };
+      sharing: {
+        name: string | null;
+        /** @description Off by default. While false, /a/{name} answers 404 and its starts stop. */
+        shared: boolean;
+        description: string | null;
+        attribution: string | null;
+        /** @description Off by default. When on, the completion page of a run started from the card offers “Ask this agent again”: a new start (a new Invocation and a new Session) that carries nothing from the finished one. */
+        ask_again: boolean;
+      };
+      created_at: string;
+    };
+    TargetListResponse: {
+      targets: {
+        id: string;
+        /** @constant */
+        type: 'http';
+        endpoint: string;
+        /** @description Incremented by every change of capability, grant policy or budget. Grants are bound to one version; a start with an older grant → 409 TARGET_VERSION_CONFLICT, and admitted runs not yet dispatched fail as stale_binding. */
+        version: number;
+        capability: {
+          name: string;
+          version: string;
+          /** @description JSON Schema 2020-12 for the start input: an object schema using only type, properties, required, additionalProperties, items, enum, const, numeric and length bounds, title and description (no pattern, format, $ref or composition), at most 6 levels deep and 8192 bytes. */
+          input_schema: {
+            [key: string]: unknown;
+          };
+        };
+        grant: {
+          /** @description The exact browser origins a grant may be issued for. A start must come from its grant’s origin (the Origin header). */
+          audiences: string[];
+          /** @description How long an issued grant lives. */
+          lifetime_seconds: number;
+        };
+        budget: {
+          max_concurrent: number;
+          max_starts_per_day: number;
+        };
+        enabled: boolean;
+        verification: {
+          status: 'pending' | 'verified';
+          /** @description Publish it at well_known_url (public by design). */
+          token: string;
+          well_known_url: string;
+          verified_at: string | null;
+          expires_at: string | null;
+        };
+        /** @description Owner-only counts; never public. */
+        counts: {
+          started: number;
+          completed: number;
+        };
+        sharing: {
+          name: string | null;
+          /** @description Off by default. While false, /a/{name} answers 404 and its starts stop. */
+          shared: boolean;
+          description: string | null;
+          attribution: string | null;
+          /** @description Off by default. When on, the completion page of a run started from the card offers “Ask this agent again”: a new start (a new Invocation and a new Session) that carries nothing from the finished one. */
+          ask_again: boolean;
+        };
+        created_at: string;
+      }[];
+    };
+    TargetVerificationDocument: {
+      target_id: string;
+      token: string;
+    } & {
+      [key: string]: unknown;
+    };
+    GrantIssueRequest: {
+      audience: string;
+    };
+    GrantIssueResponse: {
+      grant: {
+        id: string;
+        target_id: string;
+        target_version: number;
+        capability: {
+          name: string;
+          version: string;
+        };
+        audience: string;
+        expires_at: string;
+        revoked_at: string | null;
+      };
+      /** @description Shown once; Sess stores only its hash. Present it as `Authorization: Bearer` on POST /v1/invocations from the grant’s audience origin. Never put it in a URL. */
+      secret: string;
+    };
+    GrantRevokeResponse: {
+      grant: {
+        id: string;
+        target_id: string;
+        target_version: number;
+        capability: {
+          name: string;
+          version: string;
+        };
+        audience: string;
+        expires_at: string;
+        revoked_at: string | null;
+      };
+    };
+    InvocationStartRequest: {
+      /** @description One logical start. The same request_id and body with the same grant returns the same admitted run; a different body → 409 IDEMPOTENCY_CONFLICT. */
+      request_id: string;
+      input: {
+        [key: string]: unknown;
+      };
+    };
+    InvocationStartResponse: {
+      invocation: {
+        id: string;
+        /** @description admitted → dispatching → dispatched → completed | failed; unknown when the dispatch outcome at the target cannot be known (never success, never repeated blindly); cancelled and expired. completed, failed, cancelled and expired are terminal. */
+        status:
+          | 'admitted'
+          | 'dispatching'
+          | 'dispatched'
+          | 'unknown'
+          | 'completed'
+          | 'failed'
+          | 'cancelled'
+          | 'expired';
+        reason: string | null;
+        request_id: string;
+        target_version: number;
+        capability: {
+          name: string;
+          version: string;
+        };
+        created_at: string;
+        expires_at: string;
+        finished_at: string | null;
+        result: {
+          [key: string]: unknown;
+        } | null;
+      };
+      /** @description Status, result and cancel access to this Invocation only (Authorization: Bearer). The same on every replay of the start. */
+      participant_credential: string;
+    };
+    InvocationResponse: {
+      id: string;
+      /** @description admitted → dispatching → dispatched → completed | failed; unknown when the dispatch outcome at the target cannot be known (never success, never repeated blindly); cancelled and expired. completed, failed, cancelled and expired are terminal. */
+      status:
+        | 'admitted'
+        | 'dispatching'
+        | 'dispatched'
+        | 'unknown'
+        | 'completed'
+        | 'failed'
+        | 'cancelled'
+        | 'expired';
+      reason: string | null;
+      request_id: string;
+      target_version: number;
+      capability: {
+        name: string;
+        version: string;
+      };
+      created_at: string;
+      expires_at: string;
+      finished_at: string | null;
+      result: {
+        [key: string]: unknown;
+      } | null;
+    };
+    InvocationResultRequest: {
+      invocation_id: string;
+      target_version: number;
+      status: 'completed' | 'failed';
+      result?: {
+        [key: string]: unknown;
+      };
+    };
+    TargetDispatch: {
+      /** @constant */
+      type: 'sess.invocation';
+      invocation_id: string;
+      request_id: string;
+      target_id: string;
+      target_version: number;
+      capability: {
+        name: string;
+        version: string;
+      };
+      input: {
+        [key: string]: unknown;
+      };
+      limits: {
+        accepted_rounds: number;
+      };
+      expires_at: string;
+      callback: {
+        url: string;
+        /** @description Present as Authorization: Bearer on the callback URL; one dispatch only. */
+        credential: string;
+      };
+    };
+    TargetDispatchAnswer: {
+      invocation_id: string;
+      target_version: number;
+      status: 'accepted' | 'completed' | 'failed';
+      result?: {
+        [key: string]: unknown;
+      };
+    };
+    AccountUsageResponse: {
+      plan: {
+        id: 'free' | 'starter' | 'pro';
+        name: string;
+        /** @description US dollars per month in cents, excluding applicable taxes. */
+        price_usd_cents: number;
+        /** @description Resolved Sessions per period: the plan total. No overage is charged. */
+        resolved_per_period: number;
+        active_sessions: number;
+        /** @description The human-link lifetime a new Session gets (captured at admission). */
+        live_hours: number;
+        /** @description How long a new Session’s payloads and results are kept after it ends (captured at admission). Receipts are kept without automatic expiry on every plan. */
+        retention_hours_after_end: number;
+      };
+      period: {
+        /** @description Resolutions from this instant count against the allowance (the period start, or earlier when a plan change carried usage over). */
+        usage_from: string;
+        /** @description The next reset: monthly from the workspace’s billing anchor (UTC). */
+        resets_at: string;
+      };
+      usage: {
+        /** @description Resolved Sessions in this period. */
+        resolved: number;
+        allowance: number;
+        /** @description Admitted interactive Sessions that can still qualify; each holds one unit of the allowance until it qualifies, its link ends before completion, or its delivery deadline passes without its result reaching the owner. */
+        reserved: number;
+        /** @description New Sessions the allowance still admits: allowance − resolved − reserved. */
+        available: number;
+        active: number;
+        active_limit: number;
+      };
+      /** @description allowance_80 at 80% of the allowance used, allowance_100 at 100%. */
+      warnings: ('allowance_80' | 'allowance_100')[];
+      /** @description Why a new Session would be refused now (429 PLAN_LIMIT_REACHED with this reason); null when it would be admitted. */
+      paused: 'monthly_allowance' | 'active_sessions' | null;
+    };
+    BillingCheckoutRequest: {
+      /** @description The paid plan to upgrade to. */
+      plan: 'starter' | 'pro';
+    };
+    BillingCheckoutResponse: {
+      plan: 'starter' | 'pro';
+      /** @description The payment provider’s hosted Checkout page. Open it in a browser; returning from it grants nothing by itself: the plan changes when the provider’s verified subscription state says it is paid. */
+      checkout_url: string;
+      /** @description When the Checkout page stops accepting payment. */
+      expires_at: string;
+    };
+    BillingEventAck: {
+      /** @constant */
+      received: true;
+    };
+    EvidenceRecordSummary: {
+      event_id: string;
+      session_id: string;
+      /** @description archival (default): records held with a signed archival core, in workspace sequence. exception: receipts held unverified (exception custody), by acceptance time; they never match a target filter or a sequence range. */
+      custody: 'archival' | 'exception';
+      /** @description The committed workspace custody sequence (archival); null for exception. */
+      sequence: number | null;
+      /** @description The receipt’s asserted acceptance time. */
+      accepted_at: string;
+      /** @description When custody began: at acceptance, by the later backfill, or the exception. */
+      preserved_at: string;
+      origin: 'acceptance' | 'backfill' | null;
+      /** @description pending: not yet witnessed by an external timestamp. none: exception custody is never witnessed. */
+      witness: 'pending' | 'none';
+      /** @description The target the archival core binds, or null (no target binding). */
+      target_id: string | null;
+      /** @description null for archival custody. For exception custody: the receipt is kept exactly as issued but is unverified; it is not evidence that the decision happened as stated. */
+      exception: null | {
+        /** @constant */
+        status: 'unverified';
+        reason: 'signature_invalid' | 'event_mismatch' | 'malformed' | 'custody_deferral_expired';
+      };
+      /** @description True while the original Surface and accepted input are still kept (the Session’s retention has not ended). The receipt itself is kept either way. */
+      content_retained: boolean;
+    };
+    EvidenceListResponse: {
+      scope: {
+        /** @constant */
+        label: 'issued records in this defined scope/range';
+        /**
+         * @description Always false: no anchored high-water/count evidence and reconciliation exist yet, so a list or export is never a complete history.
+         * @constant
+         */
+        complete_history: false;
+        /** @description archival (default): records held with a signed archival core, in workspace sequence. exception: receipts held unverified (exception custody), by acceptance time; they never match a target filter or a sequence range. */
+        custody: 'archival' | 'exception';
+        filters: {
+          target_id?: string;
+          accepted_from?: string;
+          accepted_to?: string;
+          from_sequence?: number;
+          to_sequence?: number;
+        };
+      };
+      records: {
+        event_id: string;
+        session_id: string;
+        /** @description archival (default): records held with a signed archival core, in workspace sequence. exception: receipts held unverified (exception custody), by acceptance time; they never match a target filter or a sequence range. */
+        custody: 'archival' | 'exception';
+        /** @description The committed workspace custody sequence (archival); null for exception. */
+        sequence: number | null;
+        /** @description The receipt’s asserted acceptance time. */
+        accepted_at: string;
+        /** @description When custody began: at acceptance, by the later backfill, or the exception. */
+        preserved_at: string;
+        origin: 'acceptance' | 'backfill' | null;
+        /** @description pending: not yet witnessed by an external timestamp. none: exception custody is never witnessed. */
+        witness: 'pending' | 'none';
+        /** @description The target the archival core binds, or null (no target binding). */
+        target_id: string | null;
+        /** @description null for archival custody. For exception custody: the receipt is kept exactly as issued but is unverified; it is not evidence that the decision happened as stated. */
+        exception: null | {
+          /** @constant */
+          status: 'unverified';
+          reason: 'signature_invalid' | 'event_mismatch' | 'malformed' | 'custody_deferral_expired';
+        };
+        /** @description True while the original Surface and accepted input are still kept (the Session’s retention has not ended). The receipt itself is kept either way. */
+        content_retained: boolean;
+      }[];
+      next_cursor: string | null;
+    };
+    /** @description An explicit range is required: both from_sequence and to_sequence (archival only), or both accepted_from and accepted_to. A range beyond the record or size bound is truncated; range.next_cursor continues it. */
+    EvidenceExportRequest: {
+      /** @description archival (default): records held with a signed archival core, in workspace sequence. exception: receipts held unverified (exception custody), by acceptance time; they never match a target filter or a sequence range. */
+      custody?: 'archival' | 'exception';
+      from_sequence?: number;
+      to_sequence?: number;
+      /** @description Accepted at or after (inclusive). UTC, at most millisecond precision (finer is refused). */
+      accepted_from?: string;
+      /** @description Accepted before (exclusive). UTC, at most millisecond precision (finer is refused). */
+      accepted_to?: string;
+      target_id?: string;
+      /** @description At most this many records (default 100). */
+      limit?: number;
+      /** @description Opaque. Pass the next_cursor of the previous answer, with the same filters. */
+      cursor?: string;
+    };
+    EvidenceExport: {
+      /** @constant */
+      type: 'sess.evidence-export';
+      /** @constant */
+      version: 1;
+      /** @constant */
+      disclosure: 'This file contains signed decision receipts and, where still kept, the questions people saw and the answers they gave. Anyone you share it with can read all of it. Sess cannot recall a copy once it leaves your account.';
+      exported_at: string;
+      workspace_id: string;
+      scope: {
+        /** @constant */
+        label: 'issued records in this defined scope/range';
+        /**
+         * @description Always false: no anchored high-water/count evidence and reconciliation exist yet, so a list or export is never a complete history.
+         * @constant
+         */
+        complete_history: false;
+        /** @description archival (default): records held with a signed archival core, in workspace sequence. exception: receipts held unverified (exception custody), by acceptance time; they never match a target filter or a sequence range. */
+        custody: 'archival' | 'exception';
+        filters: {
+          target_id?: string;
+          accepted_from?: string;
+          accepted_to?: string;
+          from_sequence?: number;
+          to_sequence?: number;
+        };
+      };
+      range: {
+        count: number;
+        first_sequence: number | null;
+        last_sequence: number | null;
+        /** @description True when more records match: continue with next_cursor. */
+        truncated: boolean;
+        next_cursor: string | null;
+      };
+      records: {
+        event_id: string;
+        session_id: string;
+        /** @description archival (default): records held with a signed archival core, in workspace sequence. exception: receipts held unverified (exception custody), by acceptance time; they never match a target filter or a sequence range. */
+        custody: 'archival' | 'exception';
+        /** @description The committed workspace custody sequence (archival); null for exception. */
+        sequence: number | null;
+        /** @description The receipt’s asserted acceptance time. */
+        accepted_at: string;
+        /** @description When custody began: at acceptance, by the later backfill, or the exception. */
+        preserved_at: string;
+        origin: 'acceptance' | 'backfill' | null;
+        /** @description pending: not yet witnessed by an external timestamp. none: exception custody is never witnessed. */
+        witness: 'pending' | 'none';
+        /** @description The target the archival core binds, or null (no target binding). */
+        target_id: string | null;
+        /** @description null for archival custody. For exception custody: the receipt is kept exactly as issued but is unverified; it is not evidence that the decision happened as stated. */
+        exception: null | {
+          /** @constant */
+          status: 'unverified';
+          reason: 'signature_invalid' | 'event_mismatch' | 'malformed' | 'custody_deferral_expired';
+        };
+        /** @description The exact original receipt-v1 compact JWS. */
+        receipt: string;
+        receipt_digest: string;
+        /** @description The archival envelope (sess.archival-envelope v1: the exact receipt, its signed archival core and detachable preservation evidence) for the successor verifier; null for exception custody. */
+        archival: {
+          [key: string]: unknown;
+        } | null;
+        /** @description Included only while retained, and only for the authenticated workspace. */
+        content:
+          | {
+              /** @constant */
+              status: 'retained';
+              surface_revision: number;
+              /** @description The exact interaction of that revision (what the receipt hashes). */
+              surface: {
+                [key: string]: unknown;
+              };
+              /** @description The accepted input (what the receipt hashes). */
+              input: unknown;
+            }
+          | {
+              /** @constant */
+              status: 'unavailable';
+              /** @constant */
+              reason: 'purged';
+            };
+      }[];
+    };
+    /** @description The status of one custody record of the owner workspace, never its content. A deletion does not recall copies already exported or kept by people, and public witness commitments (aggregate batch roots) remain. */
+    EvidenceRecordStatus: {
+      event_id: string;
+      /** @description available: listed and exported as usual. restricted: kept and still verifiable for preservation integrity, but excluded from every list, export and receipt-scoped fetch until it is unrestricted. deleted: the receipt, its signed archival core and its preservation evidence are removed; only a minimal tombstone remains. */
+      status: 'available' | 'restricted' | 'deleted';
+      /** @description archival (default): records held with a signed archival core, in workspace sequence. exception: receipts held unverified (exception custody), by acceptance time; they never match a target filter or a sequence range. */
+      custody: 'archival' | 'exception';
+      restriction: null | {
+        reason:
+          'data_subject_request' | 'accuracy_dispute' | 'legal_request' | 'security_review' | 'owner_request';
+        /** @description When the current restriction began (UTC). */
+        since: string;
+      };
+      deletion: null | {
+        reason: 'data_subject_erasure' | 'owner_request' | 'legal_order' | 'issued_in_error';
+        /** @description When the record was deleted (UTC). */
+        deleted_at: string;
+      };
+    };
   };
   responses: never;
   parameters: never;
@@ -1164,6 +3259,946 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  protectedResourceMetadata: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The metadata. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProtectedResourceMetadata'];
+        };
+      };
+    };
+  };
+  protectedResourceMetadataForPath: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The metadata. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProtectedResourceMetadata'];
+        };
+      };
+    };
+  };
+  authorizationServerMetadata: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The metadata. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AuthorizationServerMetadata'];
+        };
+      };
+    };
+  };
+  authorizeAgentHost: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The consent page, or the sign-in-to-continue page. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description A request error, redirected to the agent host (error, state, iss). */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description INVALID_REQUEST, INVALID_CLIENT or INVALID_REDIRECT_URI. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  decideAgentHost: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description To the agent host: code (or error=access_denied), state, iss. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description AUTHORIZATION_REQUEST_INVALID (expired, used or another session’s). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description The sign-in is not recent: sign in again. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: cross-origin or a wrong CSRF token. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  agentHostsPage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The agent hosts page. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description To sign-in. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  removeAgentHost: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description To /app/hosts?removed=1. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description ACTION_NOT_ALLOWED. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description NOT_FOUND: not an authorized agent host of this account. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  oauthToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Form fields: grant_type, client_id and the grant’s fields. Each at most once. */
+    requestBody: {
+      content: {
+        'application/x-www-form-urlencoded': Record<string, never>;
+      };
+    };
+    responses: {
+      /** @description Tokens. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OAuthTokenResponse'];
+        };
+      };
+      /** @description invalid_request, invalid_client, invalid_grant, invalid_scope, invalid_target or unsupported_grant_type. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OAuthErrorResponse'];
+        };
+      };
+      /** @description invalid_client: HTTP client authentication was attempted. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OAuthErrorResponse'];
+        };
+      };
+    };
+  };
+  oauthRegister: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClientRegistrationRequest'];
+      };
+    };
+    responses: {
+      /** @description Registered. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClientRegistrationResponse'];
+        };
+      };
+      /** @description invalid_redirect_uri or invalid_client_metadata. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OAuthErrorResponse'];
+        };
+      };
+      /** @description temporarily_unavailable (with Retry-After). */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OAuthErrorResponse'];
+        };
+      };
+    };
+  };
+  oauthRevoke: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Form fields: token, client_id. Each at most once. */
+    requestBody: {
+      content: {
+        'application/x-www-form-urlencoded': Record<string, never>;
+      };
+    };
+    responses: {
+      /** @description Revoked, or nothing to revoke. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description invalid_request or invalid_client. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OAuthErrorResponse'];
+        };
+      };
+    };
+  };
+  requestPersonalSignIn: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PersonalSignInRequest'];
+      };
+    };
+    responses: {
+      /** @description Handed to the email provider; the challenge cookie is set. */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PersonalSignInAccepted'];
+        };
+      };
+      /** @description INVALID_SCHEMA: not a plausible email address */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVALID_SCHEMA: not application/json. */
+      415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED: a send budget or cooldown is reached */
+      429: {
+        headers: {
+          'Retry-After'?: number;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SIGN_IN_UNAVAILABLE (personal sign-in is not configured) or SERVICE_UNAVAILABLE (the provider did not confirm the send: an email may or may not arrive; earlier links stay valid and the attempt counts) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  redeemPersonalSignInCode: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PersonalCodeRequest'];
+      };
+    };
+    responses: {
+      /** @description Signed in: the host-only __Host-sess_personal cookie (HttpOnly, Secure, SameSite=Strict, Path=/, the session lifetime, absolute) is set and the challenge cookie cleared. Only a personal session: no workspace, developer, API key or billing record is created or changed, and the cookie authenticates no developer route. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PersonalSignedInResponse'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED: every refusal alike (unknown, used, superseded, expired, a developer challenge, a wrong or locked code, a full failure bucket, no challenge cookie). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVALID_SCHEMA: not application/json. */
+      415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  redeemPersonalSignInLink: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PersonalLinkRequest'];
+      };
+    };
+    responses: {
+      /** @description Signed in: the host-only __Host-sess_personal cookie (HttpOnly, Secure, SameSite=Strict, Path=/, the session lifetime, absolute) is set and the challenge cookie cleared. Only a personal session: no workspace, developer, API key or billing record is created or changed, and the cookie authenticates no developer route. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PersonalSignedInResponse'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED: every refusal alike (unknown, used, superseded, expired, a developer challenge, a wrong or locked code, a full failure bucket, no challenge cookie). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVALID_SCHEMA: not application/json. */
+      415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  getPersonalSession: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Signed in. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PersonalSessionResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED: no live personal session. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  personalSignOut: {
+    parameters: {
+      query?: never;
+      header: {
+        'x-sess-csrf': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PersonalEmptyRequest'];
+      };
+    };
+    responses: {
+      /** @description Signed out. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PersonalDone'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED: no live personal session (a developer session never counts). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVALID_SCHEMA: not application/json. */
+      415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  closePersonalAccount: {
+    parameters: {
+      query?: never;
+      header: {
+        'x-sess-csrf': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PersonalEmptyRequest'];
+      };
+    };
+    responses: {
+      /** @description Closed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PersonalDone'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED: no live personal session (a developer session never counts). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVALID_SCHEMA: not application/json. */
+      415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  bindSaveDestination: {
+    parameters: {
+      query?: never;
+      header: {
+        'x-sess-csrf': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveDestinationRequest'];
+      };
+    };
+    responses: {
+      /** @description The binding. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SaveDestinationResponse'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED: no live personal session. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVALID_SCHEMA: not application/json. */
+      415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED (per personal session; Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: the restriction/deletion suppression is not yet re-applied after start. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  redeemSaveClaim: {
+    parameters: {
+      query?: never;
+      header: {
+        'x-sess-csrf': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveRedeemRequest'];
+      };
+    };
+    responses: {
+      /** @description Saved: the kept-conversation file as Keep produces it at this moment is stored under the personal grant (the same rounds saved again write nothing and answer the same saved_at). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SavedResponse'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED: no live personal session. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND: no claim matches (one answer for an unknown secret, another purpose or destination, a wrong verifier or nonce, or another session); with reason claim_expired or claim_aborted for a matching claim that can no longer be redeemed. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description IDEMPOTENCY_CONFLICT: the claim was redeemed by a different request or into another account. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVALID_SCHEMA: not application/json. */
+      415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED (per personal session; Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: the restriction/deletion suppression is not yet re-applied after start. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  saveDirect: {
+    parameters: {
+      query?: never;
+      header: {
+        'x-sess-csrf': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveDirectRequest'];
+      };
+    };
+    responses: {
+      /** @description Saved: the kept-conversation file as Keep produces it at this moment is stored under the personal grant (the same rounds saved again write nothing and answer the same saved_at). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SavedResponse'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED: no live personal session. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND: not on the personal origin, or the link is not live; with reason no_authorized_rounds when no presented grant authorizes a round. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description PAYLOAD_TOO_LARGE */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVALID_SCHEMA: not application/json. */
+      415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED (per personal session; Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: the restriction/deletion suppression is not yet re-applied after start. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
   requestSignInLink: {
     parameters: {
       query?: never;
@@ -1213,6 +4248,33 @@ export interface operations {
         content: {
           'application/json': components['schemas']['Error'];
         };
+      };
+    };
+  };
+  signInPage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The sign-in page (no live account session, or a pending key creation waiting for verification). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description A live account session: to /app/keys. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -1303,6 +4365,365 @@ export interface operations {
       };
     };
   };
+  signInWithCode: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Signed in and the pending key created: the keys page with it, shown once. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description Signed in: to /app/keys (/app/keys?resume=elsewhere for a key creation started in another browser or account), with Set-Cookie. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description SIGN_IN_CODE_INVALID: the same answer for a wrong, expired, used, replaced or locked code, an unknown or missing browser challenge, a full guess limit or a malformed entry. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin form post, or a wrong CSRF token. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  signOutDevice: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Signed out: to /app/keys?device_revoked=1, or to /app/sign-in for this device. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description ACTION_NOT_ALLOWED: cross-origin or a wrong CSRF token. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description NOT_FOUND: not a signed-in device of this account. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  gitHubSignInStart: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/x-www-form-urlencoded': {
+          /** @enum {string} */
+          return?: '/keys' | '/evidence';
+        };
+      };
+    };
+    responses: {
+      /** @description To GitHub’s authorization page, with Set-Cookie (the binding). */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin form post. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description RATE_LIMITED: too many GitHub sign-ins started from this client or in total. */
+      429: {
+        headers: {
+          'Retry-After'?: number;
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description SIGN_IN_UNAVAILABLE: GitHub sign-in is not configured on this deployment. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  gitHubSignInReturn: {
+    parameters: {
+      query?: {
+        code?: string;
+        state?: string;
+        error?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The Continue page. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description GITHUB_SIGN_IN_CANCELLED (the person cancelled on GitHub) or GITHUB_SIGN_IN_FAILED (GitHub’s error, or a malformed code or state). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description SIGN_IN_UNAVAILABLE: GitHub sign-in is not configured. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  gitHubSignInFinish: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/x-www-form-urlencoded': {
+          code: string;
+          state: string;
+        };
+      };
+    };
+    responses: {
+      /** @description GITHUB_EMAIL_UNVERIFIED: GitHub shared no verified, usable primary address; the sign-in page with the email form. Nothing was created. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description Signed in and the pending key created: the keys page with it, shown once. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description Signed in: to the allowlisted return (/app/keys or /app/evidence; /app/keys?resume=elsewhere for a key creation of another account), with Set-Cookie. Linked: to /app/keys?github=linked. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description GITHUB_SIGN_IN_FAILED: the same answer for an unknown, used, expired or altered state, a missing or other browser binding, and a code GitHub refused. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED (not a same-origin form post), or for a link RECENT_SIGN_IN_REQUIRED / GITHUB_SIGN_IN_FAILED (the session is not the one that started it, or its sign-in is more than 12 hours old). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description GITHUB_NOT_LINKED (a sign-in whose address an existing account has), GITHUB_ALREADY_LINKED (a link of a GitHub account another account has) or GITHUB_LINK_EXISTS (this account already has another GitHub account). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: GitHub did not answer usefully (5xx, timeout, connection, an unreadable answer); nothing was changed. SIGN_IN_UNAVAILABLE: not configured. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  gitHubLinkStart: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/x-www-form-urlencoded': {
+          csrf: string;
+        };
+      };
+    };
+    responses: {
+      /** @description To GitHub’s authorization page, with Set-Cookie (the binding). No live account session: to /app/sign-in. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description ACTION_NOT_ALLOWED (cross-origin or a wrong CSRF token) or RECENT_SIGN_IN_REQUIRED (signed in more than 12 hours ago). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description RATE_LIMITED: too many GitHub sign-ins started. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description SIGN_IN_UNAVAILABLE: GitHub sign-in is not configured. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  gitHubUnlink: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/x-www-form-urlencoded': {
+          csrf: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Unlinked: to /app/keys?github=unlinked. No live account session: to /app/sign-in. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description ACTION_NOT_ALLOWED (cross-origin or a wrong CSRF token) or RECENT_SIGN_IN_REQUIRED (signed in more than 12 hours ago). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description NOT_FOUND: no GitHub account is linked to this account. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description GITHUB_UNLINK_REFUSED: it is the account’s only way to sign in. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
   apiKeysPage: {
     parameters: {
       query?: never;
@@ -1348,7 +4769,7 @@ export interface operations {
           'text/html': unknown;
         };
       };
-      /** @description No live account session: to /app/sign-in (with the key-intent cookie for a valid choice). */
+      /** @description No live account session, or a sign-in more than 12 hours old: to /app/sign-in (with the key-intent cookie for a valid choice). */
       303: {
         headers: {
           [name: string]: unknown;
@@ -1375,6 +4796,87 @@ export interface operations {
       };
       /** @description KEY_LIMIT_REACHED, or KEY_ALREADY_CREATED (the same create form again: no second key, and the secret is not shown again). */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  usagePage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The usage page. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description To /app/sign-in. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  changeBillingPlan: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description To the provider’s hosted Checkout page; or to /app/usage?billing=<notice> with notice requested, unchanged, payment_required, reauth, not_changeable, processing, busy, unavailable, subscribed, not_configured or invalid; or, with no live account session, to /app/sign-in. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description ACTION_NOT_ALLOWED: cross-origin or a wrong CSRF token. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  openBillingPortal: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description To the provider’s hosted portal page; or to /app/usage?billing=<notice> with notice reauth, no_customer (no billing details yet), unavailable or not_configured; or, with no live account session, to /app/sign-in. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description ACTION_NOT_ALLOWED: cross-origin or a wrong CSRF token. */
+      403: {
         headers: {
           [name: string]: unknown;
         };
@@ -1429,6 +4931,114 @@ export interface operations {
       };
       /** @description TRIAL_ALREADY_CLAIMED: another account claimed this trial. */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  evidencePage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The Evidence page. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description To /app/sign-in. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description INVALID_SCHEMA: a filter that does not parse. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description INTERNAL: the records could not be read. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: the evidence view is not composed. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  evidenceExportDownload: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The export file. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EvidenceExport'];
+        };
+      };
+      /** @description No live account session: to /app/sign-in. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description INVALID_SCHEMA: no complete date range, or an invalid target ID. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: cross-origin or a wrong CSRF token. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description RATE_LIMITED, with Retry-After. */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -1621,6 +5231,17 @@ export interface operations {
       /** @description PAYLOAD_TOO_LARGE */
       413: {
         headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description PLAN_LIMIT_REACHED (P2-12; developer workspaces): reason monthly_allowance (the resolved Sessions of the period plus the admitted Sessions that can still resolve reach the plan allowance) or active_sessions (the plan’s active Sessions are live). Nothing is created. Sessions already admitted, their responses, completion and result delivery are unaffected. The message names the reason, the reset and where to change the plan; GET /v1/account/usage has the numbers. */
+      429: {
+        headers: {
+          /** @description monthly_allowance only: seconds until the period resets. */
+          'Retry-After'?: number;
           [name: string]: unknown;
         };
         content: {
@@ -1983,7 +5604,8 @@ export interface operations {
         };
         content: {
           'application/json':
-            components['schemas']['SessionResponse'] | components['schemas']['InteractiveSurfaceResponse'];
+            | components['schemas']['DisplaySurfaceResponse']
+            | components['schemas']['InteractiveSurfaceResponse'];
         };
       };
       /** @description INVALID_SCHEMA (revision is not a positive integer) */
@@ -2039,14 +5661,14 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Accepted (with a signed decision receipt stored with its Event, returned by the owner GET and the Event log), or a repeated client_event_id with the same request (original result and the same receipt, never re-signed). */
-      200: {
+      /** @description See Other (Post/Redirect/Get): accepted (with a signed decision receipt stored with its Event, returned by the owner GET and the Event log), or a repeated client_event_id with the same request (the original Event and the same receipt, never re-signed). No body. Location is the same human link path, relative, with no query: never an Event ID, receipt or submitted data. A GET there renders the Session as it is then: waiting for the agent (responded), the next revision’s form (active) or the completion (completed). */
+      303: {
         headers: {
+          /** @description The same /s/{token} path. */
+          Location?: string;
           [name: string]: unknown;
         };
-        content: {
-          'text/html': unknown;
-        };
+        content?: never;
       };
       /** @description INVALID_SCHEMA or ACTION_NOT_FOUND. */
       400: {
@@ -2127,6 +5749,503 @@ export interface operations {
         };
         content: {
           'text/html': unknown;
+        };
+      };
+    };
+  };
+  createKeepChallenge: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['KeepChallengeRequest'];
+      };
+    };
+    responses: {
+      /** @description The snapshot and the challenge. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KeepChallengeResponse'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Unknown, expired or revoked link, or a display Session (the generic not-found page, text/html); or NOT_FOUND (JSON, reason no_authorized_rounds) when none of the presented grants authorizes an accepted round of this Session. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description PAYLOAD_TOO_LARGE */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED (per link; Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE (receipt keys not configured, Keep is off, or the restriction/deletion suppression is not yet re-applied after start) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  keepConversation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['KeepRequest'];
+      };
+    };
+    responses: {
+      /** @description The kept conversation. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KeptConversation'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description The generic not-found page for an unknown, expired or revoked link (text/html); or NOT_FOUND (JSON, reason no_authorized_rounds). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description IDEMPOTENCY_CONFLICT: the challenge was already used by a different request. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description PAYLOAD_TOO_LARGE */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description HOLDER_ENROLLMENT_REFUSED with reason challenge_unknown, challenge_expired, batch_mismatch, not_authorized, proof_invalid, key_reused or already_enrolled: nothing was enrolled; the same grants without `enrollment` still export the file. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED (per link; Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE (receipt keys not configured, Keep is off, or the restriction/deletion suppression is not yet re-applied after start) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  createSaveClaim: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveClaimRequest'];
+      };
+    };
+    responses: {
+      /** @description The claim’s transfer secret and expiry. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SaveClaimResponse'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description The generic not-found page for an unknown, expired or revoked link (text/html); or NOT_FOUND (JSON, reason no_authorized_rounds). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description IDEMPOTENCY_CONFLICT (reason destination_used): this destination binding already has a claim. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description PAYLOAD_TOO_LARGE */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED (per link; Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: the restriction/deletion suppression is not yet re-applied after start. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  getHumanStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description waiting: the response to this revision is recorded and the agent has not continued; active: a revision awaits a response; completed: terminal. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HumanStatusResponse'];
+        };
+      };
+      /** @description Unknown, expired or revoked link, or a display Session (the generic not-found page). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description RATE_LIMITED: more than 60 status reads of this link in one minute (per runtime process). Retry-After gives the seconds to wait. */
+      429: {
+        headers: {
+          'Retry-After'?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  getAccountUsage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The plan and usage. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AccountUsageResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND: this credential’s workspace has no plan */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: billing is not configured */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  createBillingCheckout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BillingCheckoutRequest'];
+      };
+    };
+    responses: {
+      /** @description The hosted Checkout page and when it expires. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BillingCheckoutResponse'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND: this credential’s workspace has no plan */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SUBSCRIPTION_EXISTS (reason: subscribed, checkout_completed): no new Checkout */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE (reason: not_configured, checkout_in_progress, checkout_processing, provider_unavailable, provider_rejected). checkout_processing: a paid Checkout’s subscription is still being confirmed; checkout_in_progress: another Checkout is being created or its expiry is not yet confirmed by the provider. No new Checkout is created in either case. Retry after Retry-After seconds when given; a retry returns the same Checkout. */
+      503: {
+        headers: {
+          'Retry-After'?: number;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  receiveBillingProviderEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': Record<string, never>;
+      };
+    };
+    responses: {
+      /** @description Received (processed, a duplicate, or ignored). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BillingEventAck'];
+        };
+      };
+      /** @description INVALID_SCHEMA: a verified body that is not a provider event */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED: missing, malformed, stale or mismatched signature */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND: no billing provider is configured */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description PAYLOAD_TOO_LARGE */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE (reason: provider_unavailable): not processed; redeliver */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
         };
       };
     };
@@ -2413,6 +6532,1008 @@ export interface operations {
       };
     };
   };
+  exportDecisionBundle: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The bundle. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DecisionBundle'];
+        };
+      };
+      /** @description INVALID_SCHEMA (event_id is not an Event ID) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SESSION_NOT_FOUND, or NOT_FOUND when the Session has no such accepted response with a receipt (or its content was purged) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description EVIDENCE_RESTRICTED: the receipt’s custody record is restricted; nothing is disclosed until it is unrestricted (P2-13 V5) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description EVIDENCE_DELETED: the receipt’s custody record was deleted; only its tombstone remains (P2-13 V5) */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INTERNAL */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE (receipt keys not configured, or restriction/deletion suppression not yet re-applied after start) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  verifyDecisionBundle: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DecisionBundle'];
+      };
+    };
+    responses: {
+      /** @description The verification result (valid or invalid). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DecisionBundleVerification'];
+        };
+      };
+      /** @description INVALID_SCHEMA (not a JSON body) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description PAYLOAD_TOO_LARGE */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE (receipt keys not configured, or the 2-second deadline from arrival passed; Connection: close) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  verifyArchivalEnvelope: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ArchivalEnvelope'];
+      };
+    };
+    responses: {
+      /** @description The archival verification result and its presentation. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ArchivalVerifyResponse'];
+        };
+      };
+      /** @description INVALID_SCHEMA (not a JSON body) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description PAYLOAD_TOO_LARGE */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE (receipt keys not configured, or the 2-second deadline from arrival passed; Connection: close) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  listTargets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The targets. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TargetListResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  registerTarget: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TargetRegisterRequest'];
+      };
+    };
+    responses: {
+      /** @description Registered (verification pending). */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TargetResponse'];
+        };
+      };
+      /** @description TARGET_INVALID_URL (reason: not_https, port, credentials, fragment, non_public_address, malformed, too_long), TARGET_INVALID_CAPABILITY (reason: not_object, unsupported_keyword, too_deep, too_large, does_not_compile, not_a_schema) or INVALID_SCHEMA (an unsupported type or any unknown field) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: the workspace may not hold an outbound target */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  getTarget: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The target. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TargetResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND (also another workspace’s target) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  updateTarget: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TargetUpdateRequest'];
+      };
+    };
+    responses: {
+      /** @description The updated target. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TargetResponse'];
+        };
+      };
+      /** @description TARGET_INVALID_CAPABILITY or INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  updateTargetSharing: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TargetSharingRequest'];
+      };
+    };
+    responses: {
+      /** @description The updated target. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TargetResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED (reason: name_invalid, name_reserved, description_invalid, attribution_invalid) or INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND (also another workspace’s target) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description TARGET_NAME_TAKEN, or ACTION_NOT_ALLOWED (reason: name_required) when sharing without a name */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  verifyTarget: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Verified. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TargetResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description TARGET_VERIFICATION_FAILED (reason: egress_refused, redirect, rejected, bad_answer, timeout, connection, dns) */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  issueTargetGrant: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GrantIssueRequest'];
+      };
+    };
+    responses: {
+      /** @description Issued. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GrantIssueResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED (reason: audience) or INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED (reason: disabled, unverified) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  revokeTargetGrant: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        grant_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revoked. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GrantRevokeResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  startInvocation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InvocationStartRequest'];
+      };
+    };
+    responses: {
+      /** @description Replay: the same admitted run. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['InvocationStartResponse'];
+        };
+      };
+      /** @description Admitted. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['InvocationStartResponse'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND: unknown, expired or revoked grant, wrong Origin, or a disabled or unverified target (one generic answer) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description IDEMPOTENCY_CONFLICT or TARGET_VERSION_CONFLICT */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description PAYLOAD_TOO_LARGE */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description VALIDATION_FAILED: the input does not match the capability schema */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED (reason: grant_active, client_daily, target_daily, target_concurrency, workspace_concurrency, global_concurrency, workspace_paused) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE (reason: admission_disabled, not_configured) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  getInvocation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The Invocation. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['InvocationResponse'];
+        };
+      };
+      /** @description NOT_FOUND (any other credential or Invocation) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  cancelInvocation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cancelled. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['InvocationResponse'];
+        };
+      };
+      /** @description NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVOCATION_TERMINAL: it already completed, failed or expired */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  reportInvocationResult: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InvocationResultRequest'];
+      };
+    };
+    responses: {
+      /** @description Recorded. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['InvocationResponse'];
+        };
+      };
+      /** @description NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVOCATION_TERMINAL */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description PAYLOAD_TOO_LARGE: result over 16 KiB */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description VALIDATION_FAILED (reason: unbound_result) */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  listEvidence: {
+    parameters: {
+      query?: {
+        /** @description archival (default) or exception. */
+        custody?: string;
+        /** @description A target ID (tgt_…). */
+        target_id?: string;
+        /** @description UTC instant (YYYY-MM-DDTHH:MM:SS[.fff]Z, at most millisecond precision; finer is refused), inclusive. */
+        accepted_from?: string;
+        /** @description UTC instant (at most millisecond precision), exclusive. */
+        accepted_to?: string;
+        /** @description 1–100, default 25. */
+        limit?: string;
+        /** @description The previous answer’s next_cursor, with the same filters. */
+        cursor?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One page. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EvidenceListResponse'];
+        };
+      };
+      /** @description INVALID_SCHEMA: a filter, limit or cursor that does not parse */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  exportEvidence: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EvidenceExportRequest'];
+      };
+    };
+    responses: {
+      /** @description The export document (a download). */
+      200: {
+        headers: {
+          /** @description attachment; filename="sess-evidence-<workspace>-<custody>-<range>.json" */
+          'Content-Disposition'?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EvidenceExport'];
+        };
+      };
+      /** @description INVALID_SCHEMA: no explicit range, or a range that does not parse */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED, with Retry-After */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  getEvidenceRecordStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The status. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EvidenceRecordStatus'];
+        };
+      };
+      /** @description INVALID_SCHEMA (event_id is not an Event ID) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE (the evidence view is not composed, or restriction/deletion suppression is not yet re-applied after start) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
   receiptKeys: {
     parameters: {
       query?: never;
@@ -2432,6 +7553,35 @@ export interface operations {
         };
       };
       /** @description SERVICE_UNAVAILABLE */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  witnessKeys: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The witness key set. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WitnessKeysResponse'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: the configured witness key set is unusable */
       503: {
         headers: {
           [name: string]: unknown;
@@ -2572,6 +7722,30 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  targetDispatch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TargetDispatch'];
+      };
+    };
+    responses: {
+      /** @description Bound answer. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TargetDispatchAnswer'];
+        };
       };
     };
   };
