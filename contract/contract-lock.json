@@ -1,8 +1,8 @@
 {
   "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (served at https://api.sess.si/openapi.json)",
-  "source_runtime_commit": "c93d54fbe0ad9c2ed50000b752039cd23f7deff6",
-  "source_git_blob_sha1": "e16ca4b75069c433f28975be3d1a74e695728400",
-  "snapshot_sha256": "da3bcfd9670fb9d2432c8312164f2008232f7dc5cfafeafba61a15f6befed456",
+  "source_runtime_commit": "91ae382e828f14e5b07abbd1fda0e88c2988341b",
+  "source_git_blob_sha1": "176b35bcc413faf30b1c3ab2874a0ecf4104c391",
+  "snapshot_sha256": "fbf395e0081335b7741435ff5565a1c2d3540603f163ea91848b4e898907df18",
   "generator": "openapi-typescript",
   "generator_version": "7.13.0",
   "recorded_at": "2026-10-16",

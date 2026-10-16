@@ -12,7 +12,7 @@ Maintainer document; not packed. Preparing this candidate publishes nothing. The
 - The README opens with `sess.ask()`; the full Surface API is under "Advanced", unchanged.
 - Wording: the README's guide list and closing note, and the `0.1.0-rc.3` changelog entry.
 - **Contract snapshot refreshed** to the OpenAPI document production serves at
-  `c93d54fbe0ad9c2ed50000b752039cd23f7deff6` (`contract/contract-lock.json`). The generated
+  `91ae382e828f14e5b07abbd1fda0e88c2988341b` (`contract/contract-lock.json`). The generated
   `components`, `paths` and `operations` types change with it: they gain the operations that
   document lists, and the Session schemas carry the now-required `action_expires_at`, the stored
   expiry of the Session's human link. The SDK's runtime code is unchanged.
@@ -28,8 +28,8 @@ Recorded in [`sdk-next-candidate.json`](sdk-next-candidate.json) by `node script
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | Filename  | `sess.si-sdk-0.1.0-rc.6.tgz`                                                                      |
-| SHA-256   | `8c9557dcd6c55eb9dbc71e4bfc8596dce351b68905b986575cc4a103e499f476`                                |
-| Integrity | `sha512-qmDHBAumzhrWWIOrpE0NrcCiX5ITzwcLKNh224eSubWMh+59Q/+rGphDYvezz2Ux5hKLT6aYku4IBSY/JWzVLQ==` |
+| SHA-256   | `3cdde5a66fb3136adc9eb4df5e67c7c29ef6ebb81c8d4381ea5615c5b879f211`                                |
+| Integrity | `sha512-pjIPPBdNzn1k0BGinOJNqnHaTI3wi9fMjUkHO5WmeKE/jcYsPlotGKXbHHOVGbmB9H4X6VxV2c6LxsGm+X+G7Q==` |
 
 If another packed change lands before the tag, it re-runs `node scripts/sdk-pin.mjs prepare` and
 updates this table in the same PR.

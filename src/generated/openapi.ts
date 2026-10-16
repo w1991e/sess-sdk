@@ -776,7 +776,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description The read-only status of a human link, for its waiting page (S2): the current revision and the person’s view of the state, nothing else (no owner data, Event IDs, receipts, responses or Surface content). The human link is the capability; never log it. Nothing is written or consumed. The waiting page’s same-origin script calls it about every 4 s while the page waits, and navigates to the same link (a GET) once the revision or the state differs. Headers as every /s/* response: Cache-Control: no-store, Referrer-Policy: no-referrer, X-Robots-Tag: noindex, nofollow, no CORS. */
+    /** @description The read-only status of a human link, for its waiting page (S2): the current revision and the person’s view of the state, nothing else (no owner data, Event IDs, receipts, responses or Surface content). The human link is the capability; never log it. Nothing is written or consumed. The waiting page’s same-origin script calls it about every 4 s while the page waits, and navigates to the same link (a GET) once the revision or the state differs. A page with a form also calls it, about every 25 s while visible, only to keep its connection in use: it ignores the answer. Headers as every /s/* response: Cache-Control: no-store, Referrer-Policy: no-referrer, X-Robots-Tag: noindex, nofollow, no CORS. */
     get: operations['getHumanStatus'];
     put?: never;
     post?: never;
