@@ -102,6 +102,25 @@ result. Nothing is sent anywhere. In code, use `verifyDecisionBundle` from `@ses
 ([Security](docs/security.md#decision-bundles)). Formats: [receipt-v1](docs/spec/receipt-v1.md) and
 [bundle-v1](docs/spec/bundle-v1.md).
 
+## Check an archival envelope (not yet released)
+
+In this repository, not yet in any published or prepared version: an archival envelope is a receipt
+in the issuer's custody, with the issuer's signed archival core and any witness evidence. Check it
+with the receipt keys you trust, and optionally the content, the context you expect and the witness
+anchors you obtained yourself:
+
+```sh
+sess verify --archival envelope.json --keys sess-receipt-keys.json --issuer https://api.sess.si \
+  --witness-root trusted_root.json --witness-keys sess-witness-keys.json
+```
+
+Each dimension is reported separately: signature, contents, context, witness, key trust and live
+expiry. Exit status is 0 verified, 1 not verified, 2 usage error; witness status and live expiry are
+shown beside the result and do not change it. In code, use `verifyArchivalEnvelope` from
+`@sess.si/sdk/archival` ([Security](docs/security.md#archival-envelopes-not-yet-released)). Formats:
+[archival-core-v1](docs/spec/archival-core-v1.md) and
+[witness-evidence-v1](docs/spec/witness-evidence-v1.md).
+
 ## Runtime and imports
 
 Supported: maintained Node 22 releases at or above 22.14, and Node 24 (recommended).
@@ -109,7 +128,8 @@ TypeScript consumer declarations target 5.9 and current stable. JavaScript consu
 The package contains one ESM build. CommonJS applications use `await import('@sess.si/sdk')`, as in the
 [CommonJS example](examples/commonjs.cjs); synchronous `require` is not a supported contract.
 
-Entry points are `@sess.si/sdk`, `@sess.si/sdk/receipts` and `@sess.si/sdk/webhooks`. Importing or constructing
+Entry points are `@sess.si/sdk`, `@sess.si/sdk/receipts` and `@sess.si/sdk/webhooks` (and, not yet released,
+`@sess.si/sdk/archival`). Importing or constructing
 the SDK does not contact a service, start a server, read credential files or log data.
 
 ## Errors and retries

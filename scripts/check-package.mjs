@@ -29,10 +29,11 @@ if (
 )
   throw new Error('Root lockfile identity drift.');
 if (
-  JSON.stringify(Object.keys(manifest.exports).sort()) !== JSON.stringify(['.', './receipts', './webhooks'])
+  JSON.stringify(Object.keys(manifest.exports).sort()) !==
+  JSON.stringify(['.', './archival', './receipts', './webhooks'])
 )
   throw new Error('Unexpected public export.');
-// One executable: the offline `sess verify <file>` command.
+// One executable: the offline `sess verify <file>` command (and `sess verify --archival <file>`).
 if (JSON.stringify(manifest.bin) !== JSON.stringify({ sess: './dist/cli/main.js' }))
   throw new Error('Unexpected package executable.');
 for (const hook of [
@@ -151,6 +152,8 @@ process.stderr.write = () => { throw new Error('Unexpected import/constructor st
 const { Sess, SessError, isInteractiveSession } = await import('@sess.si/sdk');
 const { verifyDecisionReceipt, verifyDecisionBundle } = await import('@sess.si/sdk/receipts');
 assert.equal(typeof verifyDecisionBundle, 'function');
+const { verifyArchivalEnvelope, presentArchivalVerification, parseTrustedRoot, parseWitnessKeySet } = await import('@sess.si/sdk/archival');
+for (const f of [verifyArchivalEnvelope, presentArchivalVerification, parseTrustedRoot, parseWitnessKeySet]) assert.equal(typeof f, 'function');
 const { verifyWebhook } = await import('@sess.si/sdk/webhooks');
 assert.equal(typeof verifyDecisionReceipt, 'function');
 assert.equal(typeof verifyWebhook, 'function');
@@ -211,6 +214,9 @@ import { Sess, type InteractiveInteraction, type Session, isInteractiveSession, 
 import { verifyDecisionReceipt, verifyDecisionBundle, type DecisionBundleVerification, type ReceiptKeySet } from '@sess.si/sdk/receipts';
 const bundleResult: Promise<DecisionBundleVerification> = verifyDecisionBundle({}, { issuer: 'https://api.sess.example', trustedKeys: { keys: [] } });
 void bundleResult;
+import { verifyArchivalEnvelope, type ArchivalVerification } from '@sess.si/sdk/archival';
+const archivalResult: Promise<ArchivalVerification> = verifyArchivalEnvelope({}, { trustedKeys: { keys: [] } });
+void archivalResult;
 import { verifyWebhook } from '@sess.si/sdk/webhooks';
 const interaction = { mode: 'interactive', title: 'Review', source: { kind: 'sess_surface', components: [{ type: 'field', name: 'amount', label: 'Amount', schema: { type: 'number' }, value: 12 }] }, actions: [{ id: 'submit', label: 'Submit' }] } satisfies InteractiveInteraction;
 const sess = new Sess({ apiKey: 'synthetic-owner-key' });
