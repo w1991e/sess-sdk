@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
+import { readmeExamples } from './readme-examples.mjs';
 
 const root = process.cwd();
 function run(command, args, cwd = root) {
@@ -159,6 +160,8 @@ assert.throws(() => new Sess({ apiKey: undefined }), SessError);
 const client = new Sess({ apiKey: 'synthetic-owner-key' });
 assert.equal(typeof client.sessions.waitForResponse, 'function');
 assert.equal(typeof client.webhooks.rotateSecret, 'function');
+assert.equal(typeof client.ask, 'function');
+await assert.rejects(client.ask({ question: 'Q', fields: [] }), (error) => error instanceof SessError && error.code === 'INVALID_QUESTION' && error.outcome === 'not_sent');
 await assert.rejects(import('@sess.si/sdk/transport'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
 // The superseded historical distribution is not provided as an alias.
 await assert.rejects(import('@sess/sdk'), { code: 'ERR_MODULE_NOT_FOUND' });
@@ -179,6 +182,29 @@ await assert.rejects(import('@sess/sdk'), { code: 'ERR_MODULE_NOT_FOUND' });
 `,
   );
   run(process.execPath, ['commonjs.cjs'], consumer);
+  // The first README block, read from the installed package, runs against a synthetic runtime.
+  const installedReadme = await readFile(join(installed, 'README.md'), 'utf8');
+  const { first: firstBlock, ask: askBlock } = readmeExamples(installedReadme);
+  if (!firstBlock || firstBlock !== askBlock)
+    throw new Error('The packed README does not open with the sess.ask() example.');
+  await writeFile(join(consumer, 'readme-first.mjs'), firstBlock);
+  const fakeRuntime = pathToFileURL(join(root, 'tests/fixtures/fake-runtime.mjs')).href;
+  await writeFile(
+    join(consumer, 'readme-run.mjs'),
+    `
+import assert from 'node:assert/strict';
+import { createFakeRuntime, FAKE_LINK } from ${JSON.stringify(fakeRuntime)};
+const runtime = createFakeRuntime({ autoAnswer: { approved: true, amount: 12.5 } });
+globalThis.fetch = runtime.fetch;
+process.env.SESS_API_KEY = 'synthetic-owner-key';
+const lines = [];
+console.log = (text) => lines.push([text, runtime.counts.retrieve]);
+await import('./readme-first.mjs');
+assert.deepEqual(lines, [['Send this private link to the person: ' + FAKE_LINK, 0], ['Refund of 12.50 approved.', 3]]);
+assert.deepEqual([runtime.counts.create, runtime.counts.complete, runtime.session().status], [1, 1, 'completed']);
+`,
+  );
+  run(process.execPath, ['readme-run.mjs'], consumer);
   // The installed `sess` executable: linked by npm, prints help, and exits 2 on a usage error.
   const binLink = join(consumer, 'node_modules', '.bin', process.platform === 'win32' ? 'sess.cmd' : 'sess');
   if (!existsSync(binLink)) throw new Error('npm did not link the sess executable.');
@@ -230,6 +256,18 @@ const badItems: FieldSchema = { type: 'array', items: { type: 'string', enum: ['
 void sess.sessions.cancel;
 // @ts-expect-error business results are not an unchecked generic cast
 void sess.sessions.waitForResponse<{ amount: number }>;
+async function askTypes() {
+  const question = await sess.ask({ question: 'Q', fields: [{ name: 'ok', label: 'OK', type: 'boolean' }, { name: 'size', label: 'Size', type: 'choice', options: ['s', 'm'] }, { name: 'note', label: 'Note', type: 'text', required: false }] });
+  const link: string = question.link;
+  const answer = await question.answer({ timeoutMs: 60_000 });
+  const ok: boolean = answer.ok; const size: 's' | 'm' = answer.size; const note: string | undefined = answer.note;
+  // @ts-expect-error an optional field may be absent
+  const required: string = answer.note;
+  void link; void ok; void size; void note; void required;
+}
+void askTypes;
+// @ts-expect-error unsupported field types are refused
+void sess.ask({ question: 'Q', fields: [{ name: 'a', label: 'A', type: 'date' }] });
 void verifyDecisionReceipt; void verifyWebhook; void (null as ReceiptKeySet | null); void bad; void badItems;
 `,
   );
@@ -309,6 +347,7 @@ if (typeof verifyDecisionReceipt !== 'function' || typeof verifyWebhook !== 'fun
       'included source maps',
       'no import/constructor network/timers/output',
       'sess executable linked, usage and exit status',
+      'README first block (sess.ask) from the packed README against a synthetic runtime',
     ],
   };
   if (result.integrity !== packed.integrity) throw new Error('Pack integrity differs from tested bytes.');

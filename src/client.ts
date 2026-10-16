@@ -3,6 +3,7 @@ import { Transport } from './transport.js';
 import { Sessions } from './sessions.js';
 import { WebhookResource } from './webhook-resource.js';
 import { createReceiptResource } from './receipts/resource.js';
+import { ask, type AskAnswer, type AskField, type AskHandle, type AskInput, type AskOptions } from './ask.js';
 
 /** Server-side client. Construction has no network or installation side effects. */
 export class Sess {
@@ -37,5 +38,18 @@ export class Sess {
         ),
     });
     Object.freeze(this);
+  }
+
+  /**
+   * Asks one question with simple typed fields. Invalid input fails before credential lookup or
+   * network access. The Session is created once with the whole interaction, and the returned
+   * handle carries the private link before any wait. `answer()` verifies the answer, checks that it
+   * is still current, completes the Session and returns the typed values.
+   */
+  ask<const F extends readonly AskField[]>(
+    input: AskInput<F>,
+    options?: AskOptions,
+  ): Promise<AskHandle<AskAnswer<F>>> {
+    return ask<AskAnswer<F>>(this.sessions, this.receipts, input, options);
   }
 }
