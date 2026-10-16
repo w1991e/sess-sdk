@@ -18,7 +18,7 @@
     "node": "24.21.0 (full qualification incl. isolated-runtime round); 24.16.0 (declared floor: unit, packed artifact, real host install and setup)",
     "npm": "11.19.0 (with Node 24.21.0); 11.13.0 bundled with Node 24.16.0",
     "engines": ">=24.16.0 <25",
-    "qualifiedPlatforms": ["darwin-arm64 (local)", "linux-x64 (openclaw-ci, Node 24.21.0)"],
+    "qualifiedPlatforms": ["darwin-arm64 (local)", "linux-x64 (openclaw-ci, Node 24.21.0 and 24.16.0)"],
     "notQualified": [
       "Node 22.x: the qualified host requires Node >=24.16.0, so the plugin cannot run there",
       "Node 26",
