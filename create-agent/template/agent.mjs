@@ -29,7 +29,7 @@ try {
     ifMatch: first.etag,
     idempotencyKey: randomUUID(),
   });
-  console.log('Question 2 is on the same link. Refresh the page if it has not changed.');
+  console.log('Question 2 is on the same link.');
 
   const second = await answer(id, published.data.revision);
   const plan = w.readPlan(second.data, options, weather.slots, trip);
