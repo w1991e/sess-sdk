@@ -23,11 +23,12 @@ steps in [release/rc1-packet.md](release/rc1-packet.md). Each candidate gets suc
 2. **Create the npm package** (not created yet; `@sess.si/create-agent` does not exist on npm). A
    trusted publisher can only be configured for a package that exists.
    Stage a never-approved bootstrap version locally (`npm stage publish` of a placeholder from a
-   maintainer account). If npm publishes a public `0.0.0-stage` placeholder and `latest` lands on it,
-   deprecate it with a pointer to `@next`.
+   maintainer account). Only once a public `0.0.0-stage` placeholder exists (npm publishes one with
+   the bootstrap stage), and if `latest` lands on it, deprecate it with a pointer to `@next`.
 3. **Stage-only npm trusted publisher** for `@sess.si/create-agent`, bound to repository
    `w1991e/sess-sdk`, workflow `create-agent-release.yml` and environment `npm-create-agent-release`,
-   with direct publishing not permitted. Reject the bootstrap stage.
+   with direct publishing not permitted. Do not reject the bootstrap stage yet (see "Each release",
+   step 5).
 
 ## Each release
 
@@ -39,5 +40,9 @@ steps in [release/rc1-packet.md](release/rc1-packet.md). Each candidate gets suc
 4. `npm stage list @sess.si/create-agent --json`, `npm stage download <stage-id>`, check the SHA-256,
    `npm stage view <stage-id>` (tag `next` for a release candidate), then `npm stage approve <stage-id>`
    with 2FA.
-5. The readback job verifies the registry integrity, dist-tag and provenance. Then
+5. First release only: after its stage is approved, reject the never-approved bootstrap stage
+   (`npm stage list @sess.si/create-agent --json`, then reject it). Never reject it before: rejecting
+   the bootstrap stage before the first release is approved deletes the npm package and its trusted
+   publisher.
+6. The readback job verifies the registry integrity, dist-tag and provenance. Then
    `npm create @sess.si/agent@next my-agent` installs it.
