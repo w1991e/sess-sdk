@@ -1,4 +1,4 @@
-# Your first SESS agent
+# Your first Sess agent
 
 This agent asks you two questions on your phone, plans your weekend on the real forecast. Each answer
 comes with a signed receipt.
@@ -16,7 +16,7 @@ prints here, ending with `verified ✓`.
 
 | Variable            | What it is                                                                                                            |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `SESS_API_KEY`      | Your SESS API key, from [app.sess.si](https://app.sess.si). Keep it on your machine or server.                        |
+| `SESS_API_KEY`      | Your Sess API key, from [app.sess.si](https://app.sess.si). Keep it on your machine or server.                        |
 | `SESS_DEMO_CONTACT` | A project URL or team email. It goes in the `User-Agent` the weather services ask for. Do not use a personal address. |
 
 Set the key without echoing it or saving it in your shell history:
@@ -34,7 +34,7 @@ disk. [.env.example](.env.example) lists them; the agent does not read that file
 The flow is in [agent.mjs](agent.mjs); the weather, the plan rule and their attribution are in
 [weather.mjs](weather.mjs).
 
-1. Creates a SESS Session asking where (a city from a short list) and which day (Saturday or Sunday).
+1. Creates a Sess Session asking where (a city from a short list) and which day (Saturday or Sunday).
 2. Prints the private link. Anyone holding it can answer, so keep it to yourself.
 3. Waits for your answer and verifies its signed receipt.
 4. Reads the forecast for that city from MET Norway and, for US cities, active alerts from the US
@@ -42,8 +42,6 @@ The flow is in [agent.mjs](agent.mjs); the weather, the plan rule and their attr
 5. Publishes question 2 on the same link: three plans that fit the forecast. Pick one, or change its
    time. The plans come from a fixed rule, not an AI model. Nothing is booked.
 6. Verifies that answer, completes the Session and prints your plan and the receipt summary.
-
-If your page does not change after question 1, refresh it.
 
 ### Weather data
 
@@ -59,7 +57,7 @@ cannot be reached, the agent says so and plans without a forecast. It never make
 
 ### Receipts
 
-Each answer comes with a receipt signed by SESS. The agent checks it with
+Each answer comes with a receipt signed by Sess. The agent checks it with
 [`@sess.si/sdk`](https://www.npmjs.com/package/@sess.si/sdk) before it continues. To learn how to
 check a receipt yourself, visit [sess.si/verify](https://sess.si/verify).
 

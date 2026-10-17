@@ -1,7 +1,7 @@
 # The agent reads these from its environment. It never reads this file and never stores a key.
 # Set them in your shell or secret manager, not on a command line.
 
-# Your SESS API key, from https://app.sess.si
+# Your Sess API key, from https://app.sess.si
 SESS_API_KEY=
 
 # A project URL or team email that the weather services can contact. Not a personal address.
