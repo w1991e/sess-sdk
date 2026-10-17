@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// `npm create @sess.si/agent <dir>`: writes the starter agent into a new or empty directory inside
+// `npm create @sess.si/agent@next <dir>`: writes the starter agent into a new or empty directory inside
 // the current one. It never overwrites a file, follows a symlink, asks for a secret or runs npm.
 import { lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
@@ -10,7 +10,7 @@ const TEMPLATE = join(dirname(fileURLToPath(import.meta.url)), 'template');
 const FILES = readdirSync(TEMPLATE)
   .sort()
   .map((name) => [name, name.startsWith('_') ? `.${name.slice(1)}` : name]);
-const USAGE = 'Usage: npm create @sess.si/agent <directory>';
+const USAGE = 'Usage: npm create @sess.si/agent@next <directory>';
 
 function refuse(message) {
   console.error(`${message}\nNothing was written.`);

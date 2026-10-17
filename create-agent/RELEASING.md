@@ -7,13 +7,21 @@ version with npm 2FA. Release candidates (`-rc.N`) go to `next`, never to `lates
 `create-agent/scripts/release-guard.mjs`, self-tested by
 `node --test create-agent/scripts/test-release-guard.mjs`.
 
-**Do not push a release tag before steps 1–3 exist.**
+**Do not push a release tag before steps 1–3 exist.** A job that references a missing environment
+makes GitHub create it automatically, without protection rules, and the publish job would then run
+without maintainer approval.
+
+The current candidate, `0.1.0-rc.1`, has its contents, expected tarball digests and exact maintainer
+steps in [release/rc1-packet.md](release/rc1-packet.md). Each candidate gets such a packet,
+`release/rc<N>-packet.md`, updated in the same PR as any packed change.
 
 ## One-time maintainer setup
 
-1. **GitHub environment `npm-create-agent-release`** in this repository: add a required reviewer, and
-   restrict its deployment refs to tags matching `create-agent-v*`.
-2. **Create the npm package.** A trusted publisher can only be configured for a package that exists.
+1. **GitHub environment `npm-create-agent-release`** in this repository (not created yet): add a
+   required reviewer, and restrict its deployment refs to tags matching `create-agent-v*`. No secrets:
+   publishing uses npm trusted publishing (OIDC), not a token.
+2. **Create the npm package** (not created yet; `@sess.si/create-agent` does not exist on npm). A
+   trusted publisher can only be configured for a package that exists.
    Stage a never-approved bootstrap version locally (`npm stage publish` of a placeholder from a
    maintainer account). If npm publishes a public `0.0.0-stage` placeholder and `latest` lands on it,
    deprecate it with a pointer to `@next`.
