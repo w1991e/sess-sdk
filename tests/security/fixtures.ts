@@ -110,6 +110,8 @@ export function fixture(acceptedMillis = now - 1000) {
     id: sessionId,
     revision: 1,
     status: 'responded',
+    // The served contract requires every Session to carry its human link's stored expiry.
+    action_expires_at: new Date(acceptedMillis + 7 * 24 * 60 * 60 * 1000).toISOString(),
     interaction,
     response_schema: { type: 'object' },
     responses: [response],
