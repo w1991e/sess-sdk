@@ -11,8 +11,8 @@
 - Owner-private single-profile boundary: handles are bound to profile, API origin and a local
   credential-generation digest; the API key is never stored.
 - Durable per-handle records (write-temp, fsync, rename, directory fsync).
-- Depends on the pinned `@sess.si/sdk@0.1.0-rc.4` (published on npm, dist-tag `next`) and
-  `@modelcontextprotocol/sdk@1.32.1`.
+- Depends on the pinned `@sess.si/sdk@0.1.0-rc.5` (published on npm, dist-tag `next`),
+  `@modelcontextprotocol/server@2.3.1` and `@modelcontextprotocol/node@2.1.1`.
 - Local records use format version 2. A confirmed publish/complete is remembered per answer
   event with its expected revision and publish body digest; only an identical replay is answered
   from it. Records of another format version stop before any request.
@@ -123,3 +123,12 @@
   for Anthropic's connector form. Tool names, titles and annotations come from `src/tools.ts`.
   `npm run check` validates them against vendored, SHA-256-pinned schemas and documented rules and
   rejects stale files, forbidden words and overclaims. Nothing is submitted; see `LISTINGS.md`.
+- Release preparation for `mcp-v0.1.0-rc.1`: the publication path is a stage-only npm trusted
+  publisher. The release workflow stages the tested tarball on the dist-tag `next` (every `-rc.N`;
+  never `latest`), and nothing is installable until a maintainer approves the staged version with
+  npm 2FA. The `0.0.0-stage` placeholder is deprecated with a pointer to `@next` before the first
+  release. Preparing the candidate publishes nothing.
+- Person-facing text says "Sess": README prose, the package description, tool titles, the
+  server instructions and tool messages, and the generated listing artifacts. Environment
+  variables, error codes and tool names are unchanged. The README no longer says the browser may
+  need a manual refresh between rounds.
