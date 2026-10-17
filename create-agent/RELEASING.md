@@ -17,11 +17,9 @@ steps in [release/rc1-packet.md](release/rc1-packet.md). Each candidate gets suc
 
 ## One-time maintainer setup
 
-1. **GitHub environment `npm-create-agent-release`** in this repository (not created yet): add a
-   required reviewer, and restrict its deployment refs to tags matching `create-agent-v*`. No secrets:
-   publishing uses npm trusted publishing (OIDC), not a token.
-2. **Create the npm package** (not created yet; `@sess.si/create-agent` does not exist on npm). A
-   trusted publisher can only be configured for a package that exists.
+1. **GitHub environment `npm-create-agent-release`** in this repository: add a required reviewer, and
+   restrict its deployment refs to tags matching `create-agent-v*`.
+2. **Create the npm package.** A trusted publisher can only be configured for a package that exists.
    Stage a never-approved bootstrap version locally (`npm stage publish` of a placeholder from a
    maintainer account). Only once a public `0.0.0-stage` placeholder exists (npm publishes one with
    the bootstrap stage), and if `latest` lands on it, deprecate it with a pointer to `@next`.
