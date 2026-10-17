@@ -27,20 +27,20 @@ export const CONFIG_JSON_SCHEMA = {
     baseUrl: {
       type: 'string',
       maxLength: 2048,
-      description: 'SESS API origin. Defaults to https://api.sess.si. HTTPS only.',
+      description: 'Sess API origin. Defaults to https://api.sess.si. HTTPS only.',
     },
     apiKeyEnv: {
       type: 'string',
       pattern: '^[A-Z][A-Z0-9_]{0,63}$',
       description:
-        'Name of the Gateway environment variable that holds the SESS API key (default SESS_API_KEY). Never put the key itself in config or chat.',
+        'Name of the Gateway environment variable that holds the Sess API key (default SESS_API_KEY). Never put the key itself in config or chat.',
     },
     receiptIssuer: { type: 'string', minLength: 1, maxLength: 2048 },
     expectedWorkspaceId: { type: 'string', minLength: 1, maxLength: 256 },
     waitBudgetMs: { type: 'integer', minimum: 1000, maximum: MAX_WAIT_BUDGET_MS },
     allowInsecureLocalhost: {
       type: 'boolean',
-      description: 'Test-only. Allows an http://localhost origin for an isolated local SESS runtime.',
+      description: 'Test-only. Allows an http://localhost origin for an isolated local Sess runtime.',
     },
   },
 } as const;
@@ -144,7 +144,7 @@ export function resolveCredential(
   if (typeof apiKey !== 'string' || !/^[\x21-\x7e]{1,4096}$/.test(apiKey))
     fail(
       'CREDENTIAL_MISSING',
-      `The SESS API key is not available to the Gateway process (environment variable ${config.apiKeyEnv}).`,
+      `The Sess API key is not available to the Gateway process (environment variable ${config.apiKeyEnv}).`,
     );
   const generation = createHash('sha256')
     .update(`sess-openclaw-credential-v1\n${config.baseUrl}\n${apiKey}`)
