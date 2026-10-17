@@ -7,6 +7,9 @@ tarball only after a maintainer approves the protected environment, and nothing 
 until a maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`) go to
 `next`, never to `latest`.
 
+The current candidate, `0.1.0-rc.1`, has its contents, expected tarball digests and exact
+maintainer steps in [release/rc1-packet.md](release/rc1-packet.md).
+
 ## Prerequisites (owner actions)
 
 > **Do not push an `mcp-v*` tag until the stage-only npm trusted publisher for `@sess.si/mcp`
@@ -55,6 +58,10 @@ until a maintainer approves the staged version with npm 2FA. Release candidates 
 4. `npm stage list @sess.si/mcp --json`, `npm stage download <stage-id>`, check the SHA-256,
    `npm stage view <stage-id>` (tag `next` for a release candidate), then
    `npm stage approve <stage-id>` with 2FA. The readback job then verifies the registry.
+
+Each candidate gets a release packet, `release/rc<N>-packet.md`, recording its contents, the
+expected tarball filename, SHA-256 and integrity from `npm run check` (`.artifacts/package-result.json`)
+and these steps; update it in the same PR as any packed change.
 
 ## What the workflow verifies
 

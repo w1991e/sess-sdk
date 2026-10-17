@@ -4,11 +4,13 @@ A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent a
 a hosted SESS form and receive a receipt-verified answer. The agent gets the private link
 immediately, the person answers on any device, and the agent continues on the same Session.
 
-**Candidate status:** `@sess.si/mcp@0.1.0-rc.1` is **not published yet**, so
-`npm install @sess.si/mcp` and `npx @sess.si/mcp` do **not** work yet. Its SDK dependency,
-`@sess.si/sdk@0.1.0-rc.5`, is published on npm (dist-tag `next`) and installs from the registry. Everything below marked
-_tested_ was run from a packed, installed tarball; everything marked _untested_ is the intended
-form after publication. See [compatibility.json](compatibility.json) for the exact tuple.
+**Candidate status:** `@sess.si/mcp@0.1.0-rc.1` is a release candidate. Release candidates are
+published only under the npm dist-tag `next`, after a maintainer approves the publication with npm
+2FA. Do not install the bare name: its `latest` dist-tag points at a `0.0.0-stage` placeholder,
+not at a release. Its SDK dependency, `@sess.si/sdk@0.1.0-rc.5`, is published on npm (dist-tag
+`next`) and installs from the registry. Everything below marked _tested_ was run from a packed,
+installed tarball; everything marked _untested_ is the intended registry form. See
+[compatibility.json](compatibility.json) for the exact tuple.
 
 ## Set up with Claude Code (connection tested) or Cursor (untested)
 
@@ -19,9 +21,9 @@ a chat or a tool argument, and never commit it.
 ### Claude Code
 
 Tested with Claude Code 2.1.299 on Linux (Node 24.21.0), using `claude mcp add --scope local`
-and `claude mcp list`, which showed `✔ Connected`. No model call was made. Because the package is
-not on the registry yet, the tests ran from a project directory where the packed tarballs were
-installed, so `npx --no-install sess-mcp` resolved the installed bin.
+and `claude mcp list`, which showed `✔ Connected`. No model call was made. Because the package was
+not on the registry when tested, the tests ran from a project directory where the packed tarballs
+were installed, so `npx --no-install sess-mcp` resolved the installed bin.
 
 **Preferred: keep the key in your environment.** Export it in the shell that starts Claude Code.
 In the test, a key exported this way reached the server process and was not written to Claude
@@ -48,7 +50,7 @@ After publication, the intended form is _untested_:
 claude mcp add --scope local sess -- npx -y @sess.si/mcp@<version>
 ```
 
-Not yet tested: the registry `npx -y @sess.si/mcp@<version>` form (the package is unpublished),
+Not yet tested: the registry `npx -y @sess.si/mcp@<version>` form,
 environment inheritance when an interactive Claude Code session starts the server (it was observed
 for the `claude mcp list` health check), and a model-driven round through Claude Code.
 Enterprise-managed Claude Code installations may forbid adding MCP servers
