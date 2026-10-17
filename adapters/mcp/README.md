@@ -72,12 +72,58 @@ _Untested._ Cursor reads `.cursor/mcp.json` (project) or `~/.cursor/mcp.json`:
 }
 ```
 
-### First interaction
+### First interaction: approve before acting
 
-Ask your agent something like: "Use Sess to ask me what I want to do this afternoon." It calls
-`sess_request`, shows you a private link, then calls `sess_response`. Open the link, submit the
-form, and the agent receives your verified answer. If you are slower than its 45-second wait, it
-tells you the form is still open; submit it and ask the agent to continue.
+Have your agent check with you before it commits a change or sends a reply. Ask it something like:
+
+> "Before you commit, use Sess to show me what changed and the commit message. Wait for my
+> approval and commit with the message I approve."
+
+The agent calls `sess_request` and shows you a private link at once. Open it on your phone. You
+see what changed, and the proposed message in a field you can edit. Change a line if you like, then
+approve, or stop. The agent waits with `sess_response` and continues only on the verified answer:
+it commits with the message you approved, or does nothing if you stopped. If you are slower than
+its 45-second wait, it tells you the form is still open; answer it and ask the agent to continue.
+
+The same works for a reply: "Before you send this reply, use Sess to show me the draft so I can
+edit and approve it."
+
+A synthetic sample of what the agent sends (sample content, not from a real repository):
+
+```json
+{
+  "mode": "interactive",
+  "title": "Approve this commit?",
+  "source": {
+    "kind": "sess_surface",
+    "components": [
+      {
+        "type": "record",
+        "label": "What changed (sample)",
+        "fields": {
+          "src/greeting.js": "Greeting now uses the user's first name",
+          "test/greeting.test.js": "One new test for the first-name greeting"
+        }
+      },
+      {
+        "type": "field",
+        "name": "message",
+        "label": "Commit message",
+        "multiline": true,
+        "schema": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "value": "Greet users by first name\n\nAdds a test for the new greeting."
+      }
+    ]
+  },
+  "actions": [
+    { "id": "approve", "label": "Approve and commit", "intent": "approve" },
+    { "id": "stop", "label": "Stop", "intent": "reject" }
+  ]
+}
+```
+
+Text blocks are shown as plain paragraphs, so send a summary of the change rather than a raw diff;
+line breaks are kept in multiline fields.
 
 ## Tools (`sess-mcp-tools/2`)
 
