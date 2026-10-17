@@ -129,7 +129,7 @@ export function verifyWebhook(
         Buffer.from(secret.slice(6), 'base64').toString('base64') !== secret.slice(6),
     )
   ) {
-    throw new SessError('configuration', 'Use the workspace webhook signing secret returned by SESS.');
+    throw new SessError('configuration', 'Use the webhook signing secret Sess returned for your workspace.');
   }
   let bytes: Buffer;
   if (typeof rawBody === 'string') {

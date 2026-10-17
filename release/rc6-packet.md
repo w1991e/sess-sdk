@@ -11,6 +11,9 @@ Maintainer document; not packed. Preparing this candidate publishes nothing. The
   and `AskAnswerOptions`.
 - The README opens with `sess.ask()`; the full Surface API is under "Advanced", unchanged.
 - Wording: the README's guide list and closing note, and the `0.1.0-rc.3` changelog entry.
+- Wording sweep (sess-sdk #55): the README, the package `description` and four error messages say
+  "Sess" in plain sentences; the stale manual-refresh caveat is dropped and the workspace audience
+  note says Sess supplies it. Error `kind`, `code` and every other field are unchanged.
 - **Contract snapshot refreshed** to the OpenAPI document production serves at
   `91ae382e828f14e5b07abbd1fda0e88c2988341b` (`contract/contract-lock.json`). The generated
   `components`, `paths` and `operations` types change with it: they gain the operations that
@@ -28,8 +31,8 @@ Recorded in [`sdk-next-candidate.json`](sdk-next-candidate.json) by `node script
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | Filename  | `sess.si-sdk-0.1.0-rc.6.tgz`                                                                      |
-| SHA-256   | `3cdde5a66fb3136adc9eb4df5e67c7c29ef6ebb81c8d4381ea5615c5b879f211`                                |
-| Integrity | `sha512-pjIPPBdNzn1k0BGinOJNqnHaTI3wi9fMjUkHO5WmeKE/jcYsPlotGKXbHHOVGbmB9H4X6VxV2c6LxsGm+X+G7Q==` |
+| SHA-256   | `aa3309c62c1f016eb9ca4b6b434478b5ba2191c8d5b5bd3653347bb3c5dedc01`                                |
+| Integrity | `sha512-VJhpf9v9d2NCwWUt2CCh9oyijW+PTehb52rLhiqkxE37X6qDE0vcv9xdIB2qJS7A3sOqfsBZvwWnuplvLhRpsA==` |
 
 If another packed change lands before the tag, it re-runs `node scripts/sdk-pin.mjs prepare` and
 updates this table in the same PR.
