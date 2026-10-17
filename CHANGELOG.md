@@ -12,6 +12,10 @@
 - The README opens with `sess.ask()`; the full Surface API is under "Advanced", unchanged.
 - Wording only: the README's guide list and closing note, and the `0.1.0-rc.3` entry below, no
   longer refer to internal processes or unreleased work.
+- Wording only: the README, the package description and four error messages say "Sess" in plain
+  sentences. The README drops the stale manual-refresh caveat (the hosted page now advances between
+  rounds by itself) and notes that Sess supplies the trusted workspace for verification. Error
+  `kind`, `code` and every other field are unchanged.
 
 ## 0.1.0-rc.5 — 2026-10-15
 

@@ -20,7 +20,7 @@ const eventPattern = new RegExp(`^evt_${ulid}$`);
 const actionPattern = /^[a-z][a-z0-9_]{0,31}$/;
 const receiptPattern = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 export function protocol(): never {
-  throw new SessError('protocol', 'Response does not match the supported SESS contract.', {
+  throw new SessError('protocol', 'The response does not match the Sess API this SDK supports.', {
     code: 'INVALID_RESPONSE',
   });
 }

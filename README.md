@@ -1,8 +1,8 @@
-# SESS SDK
+# Sess SDK
 
 Ask a person a question from your server and continue with their verified answer. `@sess.si/sdk`
-creates a hosted SESS page, waits for the answer on the exact Surface revision, verifies its signed
-receipt, and continues the same Session.
+creates a hosted Sess page, waits for the answer, checks its signed receipt and continues the same
+Session.
 
 **Install** from npm:
 
@@ -16,16 +16,11 @@ needs only `SESS_API_KEY`.
 **What you'll see:** a private human link, printed before the program starts waiting. Open it on any
 device and answer; the program prints the verified answer and completes the Session.
 
-**Release status:** every SDK release so far is a `0.1.0` release candidate, served under the `next`
-dist-tag. There is no stable release yet: do not install the bare name, whose `latest` tag points at a
-deprecated `0.0.0-stage` placeholder. The [changelog](CHANGELOG.md) describes each version;
-`npm view @sess.si/sdk dist-tags` shows what the registry serves now.
-
 ## Ask a person
 
-Use a developer API key from [the SESS developer portal](https://app.sess.si). Keep it on the server.
+Use a developer API key from [the Sess developer portal](https://app.sess.si). Keep it on the server.
 The [hosted no-signup demo](https://sess.si) is a separate trial flow; a human link or trial credential
-is not an owner API key. No LLM, agent framework, Docker or SESS source checkout is needed by consumers.
+is not an owner API key. You need no LLM, agent framework, Docker or Sess source checkout.
 
 <!-- example:ask -->
 
@@ -59,6 +54,11 @@ call `answer()` again on the same handle. An error with `outcome: "unknown"` mea
 confirmed; calling `answer()` again replays the same completion. The handle lives in memory only. To
 resume after a restart, persist `sessionId` and `revision` and continue with the API below
 ([Integration](docs/integration.md#one-question-with-sessask)).
+
+**Release status:** every SDK release so far is a `0.1.0` release candidate, served under the `next`
+dist-tag. There is no stable release yet: do not install the bare name, whose `latest` tag points at a
+deprecated `0.0.0-stage` placeholder. The [changelog](CHANGELOG.md) describes each version;
+`npm view @sess.si/sdk dist-tags` shows what the registry serves now.
 
 ## Advanced: the full Surface API
 
@@ -107,11 +107,10 @@ if (typeof amount !== 'number' || !Number.isFinite(amount)) {
 
 <!-- /example:quickstart -->
 
-Full verification needs a trusted workspace audience. A runtime supporting the authenticated
-`Sess-Workspace-Id` header supplies it. On an older runtime, configure `expectedWorkspaceId` from
-trusted deployment settings. Otherwise verification fails with `VERIFICATION_CONTEXT_MISSING`;
-the SDK never learns a trusted audience from the unverified receipt. The runtime companion change
-is under review and is not a claim about the currently deployed service.
+Verification checks that the receipt was issued for your workspace. Sess names your workspace on
+authenticated responses (the `Sess-Workspace-Id` header), so you set nothing. If a runtime does not
+send it, set `expectedWorkspaceId` from trusted deployment settings; otherwise verification fails
+with `VERIFICATION_CONTEXT_MISSING`. The SDK never takes the workspace from the unverified receipt.
 
 The [quickstart function](examples/quickstart.ts) includes a private delivery callback.
 [Three-round continuation](examples/multi-round.ts) persists mutation intent and checks that an
@@ -184,7 +183,6 @@ contract is served at [OpenAPI](https://api.sess.si/openapi.json).
 - [Compatibility](docs/compatibility.md), [migrating to the registry package](docs/migration.md) and [release runbook](docs/releasing.md).
 - [Plain-Node quickstart](examples/quickstart-node/README.md): a complete program, from the first call to the verified answer.
 
-The present runtime can require manual browser refresh between rounds. Owner polling in this
-SDK does not change that browser behavior. Appearance configuration is not part of this SDK.
+Sess renders the page the person sees; this SDK has no appearance settings.
 
 [Contribute](CONTRIBUTING.md) · [Security reporting](SECURITY.md) · [Apache-2.0](LICENSE)
