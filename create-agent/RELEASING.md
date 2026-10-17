@@ -7,7 +7,13 @@ version with npm 2FA. Release candidates (`-rc.N`) go to `next`, never to `lates
 `create-agent/scripts/release-guard.mjs`, self-tested by
 `node --test create-agent/scripts/test-release-guard.mjs`.
 
-**Do not push a release tag before steps 1–3 exist.**
+**Do not push a release tag before steps 1–3 exist.** A job that references a missing environment
+makes GitHub create it automatically, without protection rules, and the publish job would then run
+without maintainer approval.
+
+The current candidate, `0.1.0-rc.1`, has its contents, expected tarball digests and exact maintainer
+steps in [release/rc1-packet.md](release/rc1-packet.md). Each candidate gets such a packet,
+`release/rc<N>-packet.md`, updated in the same PR as any packed change.
 
 ## One-time maintainer setup
 

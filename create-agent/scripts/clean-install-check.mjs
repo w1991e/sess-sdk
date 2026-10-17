@@ -9,7 +9,7 @@
 //    by release-guard.mjs) into the temporary directory and exercises it, and --record-exercised
 //    writes the SHA-256 of the bytes it exercised, so the release binds the tested tarball to the
 //    published one.
-// 2. Starts the clock and runs the packed initializer the way `npm create @sess.si/agent my-agent`
+// 2. Starts the clock and runs the packed initializer the way `npm create @sess.si/agent@next my-agent`
 //    does (`npm create` is `npm exec @sess.si/create-agent`; a local tarball has to be named with
 //    `npm exec --package=<tarball>`), then the README's `npm install --ignore-scripts` and
 //    `npm start`. The clock stops when the agent prints "Agent running.".
