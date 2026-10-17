@@ -20,6 +20,9 @@ Maintainer document; not packed. Preparing this candidate publishes nothing. The
   with the pinned integrity; `npm run sdk:verify` (`verify --require-registry`) re-reads the
   registry tarball and compares both digests with the pin.
 
+- Person-facing text says "Sess" (README, package description, tool titles, server instructions,
+  tool messages, listing artifacts); environment variables, error codes and tool names are unchanged.
+
 The full list of changes is in [CHANGELOG.md](../CHANGELOG.md).
 
 ## Expected tarball
@@ -31,8 +34,8 @@ Node 24.21.0 and npm 11.19.0, the versions the workflow pins.
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | Filename  | `sess.si-mcp-0.1.0-rc.1.tgz`                                                                      |
-| SHA-256   | `9e3f32230fa7f94e36c4987148b02af01eb2348f765d9d7161bea2410957e369`                                |
-| Integrity | `sha512-Hsb6kxX+QRU1kul0uZYVyZtHorEHNh0a+Wn0MR/kZQxvCBRoO434ulWXjwWYCgTNI9p8JWu6M1melByNE6mxbw==` |
+| SHA-256   | `189907304cf1275892e9be8ba93bf80517b14f92303c8a33a9f7684306123180`                                |
+| Integrity | `sha512-X6i8Ws44XlL2Ki9RupQd57e7yGuSh0z94GboziPKFUzKahLEVWi/7phWoudzQ1hto1Qb9tT5U6a4DRAvd0aNCw==` |
 
 The release workflow does not read this table; the prepare job's run summary is the record of the
 bytes it tested. If another packed change (`dist/` sources, `README.md`, `CHANGELOG.md`, `LICENSE`,
