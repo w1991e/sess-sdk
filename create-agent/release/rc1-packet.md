@@ -38,22 +38,25 @@ table in the same PR.
 
 ## One-time setup (before the first tag)
 
-None of these exist yet. On 2026-10-16, `gh api repos/w1991e/sess-sdk/environments/npm-create-agent-release`
-returned 404, and `npm view @sess.si/create-agent` returned 404.
+State on 2026-10-17 (read-only): the environment `npm-create-agent-release` exists with required
+reviewer `w1991e` and the `create-agent-v*` tag rule, and `npm view @sess.si/create-agent` shows a
+`0.0.0-stage` placeholder on `latest`. The trusted publisher cannot be read without npm credentials.
 
 1. **GitHub environment** `npm-create-agent-release` in `w1991e/sess-sdk`. It needs a required
    reviewer (the maintainer) and deployment refs restricted to tags matching `create-agent-v*`. It
    has no secrets.
-2. **Bootstrap the npm package.** From a maintainer account, stage a never-approved bootstrap version
-   (`npm stage publish` of a placeholder) so that `@sess.si/create-agent` exists. If npm publishes a
-   public `0.0.0-stage` placeholder and `latest` lands on it, deprecate it:
+2. **The npm package must exist.** Check with `npm view @sess.si/create-agent dist-tags --json`. If
+   it does not exist, a maintainer stages a never-approved bootstrap version locally
+   (`npm stage publish` of a placeholder) so that a trusted publisher can be configured. **Do not
+   reject this bootstrap stage now** (see maintainer step 6).
+3. Only once a public `0.0.0-stage` placeholder exists (npm publishes one with the bootstrap stage),
+   and if `latest` lands on it, deprecate it with a pointer to `@next`:
    `npm deprecate @sess.si/create-agent@0.0.0-stage "Placeholder, not a release. Run npm create @sess.si/agent@next."`
-3. **Stage-only trusted publisher** on npmjs.com for `@sess.si/create-agent`:
+4. **Stage-only trusted publisher** on npmjs.com for `@sess.si/create-agent`:
    - repository `w1991e/sess-sdk`;
    - workflow `create-agent-release.yml`;
    - environment `npm-create-agent-release`;
    - direct publishing not permitted.
-4. Reject the bootstrap stage (`npm stage list @sess.si/create-agent --json`, then reject it).
 
 Do not push a `create-agent-v*` tag before steps 1 to 4 are done. A tag pushed without the
 environment would make GitHub create it automatically, without protection rules.
@@ -94,9 +97,13 @@ environment would make GitHub create it automatically, without protection rules.
    npm stage approve <stage-id>                        # npm 2FA
    ```
 
-6. The readback job waits up to 60 minutes for the approval, then checks registry integrity,
+6. **First release only: now reject the bootstrap stage.** After this release's stage is approved,
+   run `npm stage list @sess.si/create-agent --json` and reject the never-approved bootstrap stage.
+   Never reject it before: rejecting the bootstrap stage before the first release is approved
+   deletes the npm package and its trusted publisher.
+7. The readback job waits up to 60 minutes for the approval, then checks registry integrity,
    dist-tag, dependencies and provenance. If it timed out, re-run the failed jobs after approving.
-7. Read back yourself, then run the initializer from the registry in an empty directory:
+8. Read back yourself, then run the initializer from the registry in an empty directory:
 
    ```sh
    npm view @sess.si/create-agent@0.1.0-rc.1 version dist.integrity dist.attestations --json
