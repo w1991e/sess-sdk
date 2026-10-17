@@ -20,11 +20,11 @@
         "developerName": "Sess",
         "category": "Productivity",
         "capabilities": [
-          "Ask a person through SESS",
-          "Read the person’s SESS answer",
-          "Show the next SESS step",
-          "Finish the SESS interaction",
-          "Ask a short question through SESS"
+          "Ask a person through Sess",
+          "Read the person’s Sess answer",
+          "Show the next Sess step",
+          "Finish the Sess interaction",
+          "Ask a short question through Sess"
         ],
         "websiteURL": "https://sess.si",
         "supportURL": "https://docs.sess.si/support/",

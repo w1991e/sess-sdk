@@ -121,7 +121,7 @@ export function assertBindingAccess(record: Binding, expected: Binding): void {
     )
       throw new AdapterError(
         'BINDING_MISMATCH',
-        'This interaction belongs to a different SESS profile, API origin or credential. It was not accessed.',
+        'This interaction belongs to a different Sess profile, API origin or credential. It was not accessed.',
       );
     return;
   }
@@ -440,7 +440,7 @@ export class ProfileHandleStore implements HandleStore {
     } catch (error) {
       if (error instanceof AdapterError) throw error;
       if ((error as NodeJS.ErrnoException).code === 'ENOENT')
-        throw new AdapterError('HANDLE_NOT_FOUND', 'Unknown interaction handle for this SESS MCP profile.');
+        throw new AdapterError('HANDLE_NOT_FOUND', 'Unknown interaction handle for this Sess MCP profile.');
       throw new AdapterError('STATE_STORE_ERROR', 'The saved interaction could not be read.', true);
     }
     let parsed: unknown;
