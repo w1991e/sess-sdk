@@ -18,7 +18,7 @@
   "tools": [
     {
       "name": "sess_request",
-      "title": "Ask a person through SESS",
+      "title": "Ask a person through Sess",
       "readOnlyHint": false,
       "destructiveHint": false,
       "idempotentHint": false,
@@ -26,7 +26,7 @@
     },
     {
       "name": "sess_response",
-      "title": "Read the person’s SESS answer",
+      "title": "Read the person’s Sess answer",
       "readOnlyHint": true,
       "destructiveHint": false,
       "idempotentHint": true,
@@ -34,7 +34,7 @@
     },
     {
       "name": "sess_publish",
-      "title": "Show the next SESS step",
+      "title": "Show the next Sess step",
       "readOnlyHint": false,
       "destructiveHint": false,
       "idempotentHint": true,
@@ -42,7 +42,7 @@
     },
     {
       "name": "sess_complete",
-      "title": "Finish the SESS interaction",
+      "title": "Finish the Sess interaction",
       "readOnlyHint": false,
       "destructiveHint": true,
       "idempotentHint": true,
@@ -50,7 +50,7 @@
     },
     {
       "name": "sess_ask",
-      "title": "Ask a short question through SESS",
+      "title": "Ask a short question through Sess",
       "readOnlyHint": false,
       "destructiveHint": false,
       "idempotentHint": false,

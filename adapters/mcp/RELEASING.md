@@ -7,6 +7,9 @@ tarball only after a maintainer approves the protected environment, and nothing 
 until a maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`) go to
 `next`, never to `latest`.
 
+The current candidate, `0.1.0-rc.1`, has its contents, expected tarball digests and exact
+maintainer steps in [release/rc1-packet.md](release/rc1-packet.md).
+
 ## Prerequisites (owner actions)
 
 > **Do not push an `mcp-v*` tag until the stage-only npm trusted publisher for `@sess.si/mcp`
@@ -29,13 +32,14 @@ until a maintainer approves the staged version with npm 2FA. Release candidates 
    - deployment rule restricted to tags matching `mcp-v*`;
    - no secrets: publishing uses npm trusted publishing (OIDC), not a token.
 3. **npm package — exists; no release version is published.** A never-approved bootstrap stage
-   created `@sess.si/mcp` so that a trusted publisher can be configured. npm also published the
-   public `0.0.0-stage` placeholder, and `latest` points at it: deprecate it with a pointer to
-   `@next` (`latest` never points at a prerelease). The package's presence on npm is not a release.
+   created `@sess.si/mcp` so that a trusted publisher can be configured. Only once a public
+   `0.0.0-stage` placeholder exists (npm publishes one with the bootstrap stage), and if `latest`
+   lands on it, deprecate it with a pointer to `@next` (`latest` never points at a prerelease). The
+   package's presence on npm is not a release.
 4. **Stage-only npm trusted publisher for `@sess.si/mcp`**, bound to repository `w1991e/sess-sdk`,
    workflow `mcp-release.yml` and environment `npm-mcp-release`, with direct publishing not
-   permitted. Reject the bootstrap stage. Consult the current
-   [npm trusted-publisher guide](https://docs.npmjs.com/trusted-publishers/) when configuring it and
+   permitted. Do not reject the bootstrap stage yet (see "Cutting a release", step 5).
+   Consult the current [npm trusted-publisher guide](https://docs.npmjs.com/trusted-publishers/) when configuring it and
    match every OIDC identity field exactly. Do not install an automation token as a workaround.
 5. **MCP registry namespace — approved.** The owner approved `io.github.w1991e/sess` on
    2026-10-14. `server.json` `name` and `package.json` `mcpName` both use it (a test keeps them
@@ -55,6 +59,14 @@ until a maintainer approves the staged version with npm 2FA. Release candidates 
 4. `npm stage list @sess.si/mcp --json`, `npm stage download <stage-id>`, check the SHA-256,
    `npm stage view <stage-id>` (tag `next` for a release candidate), then
    `npm stage approve <stage-id>` with 2FA. The readback job then verifies the registry.
+5. First release only: after its stage is approved, reject the never-approved bootstrap stage
+   (`npm stage list @sess.si/mcp --json`, then reject it). Never reject it before: rejecting the
+   bootstrap stage before the first release is approved deletes the npm package and its trusted
+   publisher.
+
+Each candidate gets a release packet, `release/rc<N>-packet.md`, recording its contents, the
+expected tarball filename, SHA-256 and integrity from `npm run check` (`.artifacts/package-result.json`)
+and these steps; update it in the same PR as any packed change.
 
 ## What the workflow verifies
 

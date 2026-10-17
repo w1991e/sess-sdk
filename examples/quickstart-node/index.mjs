@@ -87,7 +87,7 @@ try {
     allowInsecureLocalhost: process.env.SESS_ALLOW_INSECURE_LOCALHOST === '1',
   });
 } catch (error) {
-  fail(error instanceof SessError ? error.message : 'Invalid SESS client configuration.', 2);
+  fail(error instanceof SessError ? error.message : 'Invalid Sess client configuration.', 2);
 }
 
 let sessionId = resumeId;

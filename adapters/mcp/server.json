@@ -22,13 +22,13 @@
       "environmentVariables": [
         {
           "name": "SESS_API_KEY",
-          "description": "SESS developer API key (owner credential; never a tool argument).",
+          "description": "Sess developer API key (owner credential; never a tool argument).",
           "isRequired": true,
           "isSecret": true
         },
         {
           "name": "SESS_API_ORIGIN",
-          "description": "SESS API origin. HTTPS only; default https://api.sess.si.",
+          "description": "Sess API origin. HTTPS only; default https://api.sess.si.",
           "isRequired": false,
           "isSecret": false,
           "default": "https://api.sess.si"
