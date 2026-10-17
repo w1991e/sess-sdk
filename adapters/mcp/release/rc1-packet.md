@@ -19,7 +19,6 @@ Maintainer document; not packed. Preparing this candidate publishes nothing. The
   `package-lock.json` resolves the SDK from `https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.0-rc.5.tgz`
   with the pinned integrity; `npm run sdk:verify` (`verify --require-registry`) re-reads the
   registry tarball and compares both digests with the pin.
-
 - Person-facing text says "Sess" (README, package description, tool titles, server instructions,
   tool messages, listing artifacts); environment variables, error codes and tool names are unchanged.
 
