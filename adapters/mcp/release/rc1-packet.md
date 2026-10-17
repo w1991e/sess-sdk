@@ -43,13 +43,17 @@ update this table in the same PR.
 
 ## One-time setup (before the first tag)
 
-1. Deprecate the public placeholder:
+1. **The npm package must exist.** Check with `npm view @sess.si/mcp dist-tags --json`. If it does not
+   exist, a maintainer stages a never-approved bootstrap version locally (`npm stage publish` of a
+   placeholder) so that a trusted publisher can be configured. **Do not reject this bootstrap
+   stage now** (see maintainer step 6).
+2. Only once a public `0.0.0-stage` placeholder exists (npm publishes one with the bootstrap stage),
+   and if `latest` lands on it, deprecate it with a pointer to `@next`:
    `npm deprecate @sess.si/mcp@0.0.0-stage "Placeholder, not a release. Install @sess.si/mcp@next."`
-2. On npmjs.com, add a **stage-only** GitHub Actions trusted publisher for `@sess.si/mcp`:
+3. On npmjs.com, add a **stage-only** GitHub Actions trusted publisher for `@sess.si/mcp`:
    repository `w1991e/sess-sdk`, workflow `mcp-release.yml`, environment `npm-mcp-release`,
    direct publishing not permitted.
-3. Reject the never-approved bootstrap stage (`npm stage list @sess.si/mcp --json`, then reject it).
-4. Check that the GitHub environment `npm-mcp-release` still has its required reviewer and the
+4. Check that the GitHub environment `npm-mcp-release` has its required reviewer and the
    `mcp-v*` tag rule. Do not push an `mcp-v*` tag before steps 1 to 4 are done.
 
 ## Maintainer steps
@@ -80,10 +84,14 @@ update this table in the same PR.
    npm stage approve <stage-id>               # npm 2FA
    ```
 
-6. The readback job waits up to 60 minutes for the approval, then checks version, repository and
+6. **First release only: now reject the bootstrap stage.** After this release's stage is approved,
+   run `npm stage list @sess.si/mcp --json` and reject the never-approved bootstrap stage. Never reject
+   it before: rejecting the bootstrap stage before the first release is approved deletes the npm
+   package and its trusted publisher.
+7. The readback job waits up to 60 minutes for the approval, then checks version, repository and
    directory, registry integrity, dist-tag, dependencies and provenance. If it timed out, re-run
    the failed jobs after approving.
-7. Read back yourself:
+8. Read back yourself:
 
    ```sh
    npm view @sess.si/mcp@0.1.0-rc.1 version dist.integrity dist.attestations --json
