@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- README "First interaction" now shows approving before acting: the agent asks you, on any device,
+  to approve a commit (or a reply) before it acts, with the proposed message in a field you can
+  edit, and continues only on the verified answer. It includes a synthetic, labelled sample
+  interaction. The README ships with the next release candidate.
+- `compatibility.json` records the publication of `0.1.0-rc.1` on the npm dist-tag `next`
+  (2026-10-17): registry SHA-256 and integrity, SLSA provenance and release run 38990432638.
+
 ## 0.1.0-rc.1 (candidate, unpublished)
 
 - First candidate of the local stdio MCP server for SESS.
