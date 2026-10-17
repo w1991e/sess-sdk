@@ -31,13 +31,13 @@ packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
    the staged version. No secrets: publishing uses npm trusted publishing (OIDC), not a token.
 3. **npm package — exists; no release version is published.** A never-approved bootstrap stage
    created `@sess.si/openclaw` in the `sess.si` scope so that a trusted publisher can be configured.
-   npm also published the public `0.0.0-stage` placeholder, and `latest` points at it: deprecate it
-   with a pointer to `@next` (`latest` never points at a prerelease). The package's presence on npm
-   is not a release.
+   Only once a public `0.0.0-stage` placeholder exists (npm publishes one with the bootstrap stage),
+   and if `latest` lands on it, deprecate it with a pointer to `@next` (`latest` never points at a
+   prerelease). The package's presence on npm is not a release.
 4. **Stage-only npm trusted publisher.** On npmjs.com, for package `@sess.si/openclaw`, add a GitHub
    Actions trusted publisher bound to repository `w1991e/sess-sdk`, workflow `openclaw-release.yml`
-   and environment `npm-openclaw-release`, with direct publishing not permitted. Reject the
-   bootstrap stage. Consult the current
+   and environment `npm-openclaw-release`, with direct publishing not permitted. Do not reject the
+   bootstrap stage yet (see "Release steps", step 6). Consult the current
    [npm trusted-publisher guide](https://docs.npmjs.com/trusted-publishers/) when configuring it and
    match every OIDC identity field exactly. Do not install an automation token as a workaround.
 
@@ -58,9 +58,13 @@ packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
 5. A maintainer runs `npm stage list @sess.si/openclaw --json`, `npm stage download <stage-id>`,
    checks the SHA-256, confirms with `npm stage view <stage-id>` that the tag is `next`, then runs
    `npm stage approve <stage-id>` with npm 2FA.
-6. A read-only `readback` job waits for that approval, then reads the registry back: version, integrity, `next` dist-tag (never `latest`),
+6. First release only: after its stage is approved, reject the never-approved bootstrap stage
+   (`npm stage list @sess.si/openclaw --json`, then reject it). Never reject it before: rejecting
+   the bootstrap stage before the first release is approved deletes the npm package and its trusted
+   publisher.
+7. A read-only `readback` job waits for that approval, then reads the registry back: version, integrity, `next` dist-tag (never `latest`),
    repository and directory, dependencies and peer dependencies, and provenance attestations.
-7. After publication, run a clean native install from the registry
+8. After publication, run a clean native install from the registry
    (`openclaw plugins install npm:@sess.si/openclaw@<version>`) on the qualified host and record it.
 
 Root SDK tags are `v*`; this workflow only reacts to `openclaw-v*`, so neither can publish the
