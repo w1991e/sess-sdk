@@ -91,23 +91,29 @@ loads, and it has no programmatic API.
 **Qualification status.** See [Support status](#support-status): the whole flow is qualified for
 direct invoke. In model-driven turns in a dashboard (Control UI) conversation, only steps 1 and 2
 are qualified (request, a live wait, and continuation in a later turn); the link was observed via
-`chat.history` while the same turn was still waiting. Steps 3 (`sess_publish`, `sess_complete`)
-were not exercised in a model-driven turn, and reset isolation fails. It is not qualified
-on messaging channels.
+`chat.history` while the same turn was still waiting. Step 3 (`sess_complete`) was not exercised
+in a model-driven turn, and reset isolation fails. It is not qualified on messaging channels.
 
-Ask: _"Use Sess to ask me which afternoon activity I prefer and how much time I have. Then
-propose a plan from my answer. Use illustrative conditions, not a live forecast."_
+Paste or forward a real message of your own that needs a reply into your dashboard conversation,
+then ask: _"Draft a reply to this message. Before it goes anywhere, use Sess to show me the draft
+so I can edit it, approve it or stop."_
 
-1. `sess_request` returns a handle, revision 1 and a private `humanUrl` **immediately**. The
-   agent presents the link. It should start a bounded wait only when the link has visibly
-   reached you; otherwise it ends its turn and you ask it to continue after submitting.
-2. `sess_response` reads, or waits up to the configured budget for, your answer to that
-   revision. Once you have submitted, it returns `answered` with `verified: true` and
-   `actorAssurance: "link_holder"`.
-3. `sess_publish` puts the proposed plan on the same link as revision 2 (reload the link to see
-   it), and `sess_complete` closes the interaction once you confirm.
+1. `sess_request` returns a handle, revision 1 and a private `humanUrl` **immediately**. The form
+   shows your message and the drafted reply in a field you can edit, with approve and stop. The
+   agent presents the link. It should start a bounded wait only when the link has visibly reached
+   you; otherwise it ends its turn and you ask it to continue after answering.
+2. `sess_response` reads, or waits up to the configured budget for, your answer to that revision.
+   Once you have approved (with or without edits) or stopped, it returns `answered` with
+   `verified: true` and `actorAssurance: "link_holder"`. The agent continues only on that verified
+   answer: it uses the reply exactly as you approved it, or goes no further if you stopped.
+3. `sess_complete` closes the interaction.
 
-If the wait ends first the result is `needs_resume`: the form stays open. Submit it, then ask the
+The plugin ships no sample message; the message is always yours. It and the draft become part of
+that Sess interaction. For illustration only, a synthetic sample: the message _"Hi! Can we move
+Thursday's call to Friday at 10?"_ and the draft _"Friday at 10 works for me. I'll send an updated
+invite."_
+
+If the wait ends first the result is `needs_resume`: the form stays open. Answer it, then ask the
 agent to continue the same Sess interaction. The agent is not woken up automatically.
 
 ## What you can rely on
