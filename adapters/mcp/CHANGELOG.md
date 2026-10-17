@@ -128,3 +128,7 @@
   never `latest`), and nothing is installable until a maintainer approves the staged version with
   npm 2FA. The `0.0.0-stage` placeholder is deprecated with a pointer to `@next` before the first
   release. Preparing the candidate publishes nothing.
+- Person-facing text says "Sess": README prose, the package description, tool titles, the
+  server instructions and tool messages, and the generated listing artifacts. Environment
+  variables, error codes and tool names are unchanged. The README no longer says the browser may
+  need a manual refresh between rounds.

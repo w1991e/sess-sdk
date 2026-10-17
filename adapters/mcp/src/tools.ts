@@ -188,9 +188,9 @@ const meta = { 'si.sess/toolSchema': TOOL_SCHEMA_VERSION };
 export const TOOLS = [
   {
     name: 'sess_request',
-    title: 'Ask a person through SESS',
+    title: 'Ask a person through Sess',
     description:
-      'Create a hosted SESS form for a person and return immediately with a private link (interaction.humanUrl) and a handle. ' +
+      'Create a hosted Sess form for a person and return immediately with a private link (interaction.humanUrl) and a handle. ' +
       'Give the link only to the intended person in this private conversation; anyone holding it can answer. ' +
       'Then call sess_response with the handle and revision. Do not call sess_request again for the same question.',
     inputSchema: {
@@ -205,10 +205,10 @@ export const TOOLS = [
   },
   {
     name: 'sess_response',
-    title: 'Read the person’s SESS answer',
+    title: 'Read the person’s Sess answer',
     description:
       'Wait a bounded time (default and maximum 45 s; wait_ms 0 reads once) for the answer to exactly this revision. ' +
-      'state "answered" means the answer passed full SESS receipt verification. ' +
+      'state "answered" means the answer passed full Sess receipt verification. ' +
       'state "needs_resume" or "waiting" means no answer yet: the form stays open; tell the person to submit it and ask you to continue, then call again. ' +
       'Do not poll in a loop.',
     inputSchema: {
@@ -227,7 +227,7 @@ export const TOOLS = [
   },
   {
     name: 'sess_publish',
-    title: 'Show the next SESS step',
+    title: 'Show the next Sess step',
     description:
       'Replace the form with the next interaction after a verified answer, keeping the same private link. ' +
       'Requires the verified answer for expected_revision. If the outcome is unknown, repeat the identical call.',
@@ -248,7 +248,7 @@ export const TOOLS = [
   },
   {
     name: 'sess_complete',
-    title: 'Finish the SESS interaction',
+    title: 'Finish the Sess interaction',
     description:
       'Close the interaction after its verified answer and confirm the completed state. ' +
       'If the outcome is unknown, repeat the identical call.',
@@ -266,7 +266,7 @@ export const TOOLS = [
   },
   {
     name: 'sess_ask',
-    title: 'Ask a short question through SESS',
+    title: 'Ask a short question through Sess',
     description:
       'Shortcut for sess_request: give a question and up to 12 simple fields; it creates the same hosted form and returns ' +
       'immediately with a private link (interaction.humanUrl) and a handle, in state "waiting". It never waits and never returns an answer. ' +

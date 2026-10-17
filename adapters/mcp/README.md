@@ -1,7 +1,7 @@
-# SESS MCP server (`@sess.si/mcp`)
+# Sess MCP server (`@sess.si/mcp`)
 
 A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent ask a person through
-a hosted SESS form and receive a receipt-verified answer. The agent gets the private link
+a hosted Sess form and receive a receipt-verified answer. The agent gets the private link
 immediately, the person answers on any device, and the agent continues on the same Session.
 
 **Candidate status:** `@sess.si/mcp@0.1.0-rc.1` is a release candidate. Release candidates are
@@ -14,8 +14,8 @@ installed tarball; everything marked _untested_ is the intended registry form. S
 
 ## Set up with Claude Code (connection tested) or Cursor (untested)
 
-You need Node 22.14 or later on 22.x, or Node 24 (qualified on 22.14.0 and 24.21.0), and a SESS
-developer API key from [the SESS developer portal](https://app.sess.si). Never paste the key into
+You need Node 22.14 or later on 22.x, or Node 24 (qualified on 22.14.0 and 24.21.0), and a Sess
+developer API key from [the Sess developer portal](https://app.sess.si). Never paste the key into
 a chat or a tool argument, and never commit it.
 
 ### Claude Code
@@ -74,7 +74,7 @@ _Untested._ Cursor reads `.cursor/mcp.json` (project) or `~/.cursor/mcp.json`:
 
 ### First interaction
 
-Ask your agent something like: "Use SESS to ask me what I want to do this afternoon." It calls
+Ask your agent something like: "Use Sess to ask me what I want to do this afternoon." It calls
 `sess_request`, shows you a private link, then calls `sess_response`. Open the link, submit the
 form, and the agent receives your verified answer. If you are slower than its 45-second wait, it
 tells you the form is still open; submit it and ask the agent to continue.
@@ -97,7 +97,7 @@ with `sess_response`, `sess_publish` and `sess_complete` as usual.
 
 Input schemas are closed: unknown properties, unsafe keys (`__proto__`, `constructor`,
 `prototype`), more than 8 levels of nesting, an interaction over 32 KiB, more than 24 fields or 5
-actions are rejected, never truncated. `interaction` is the SESS interactive Surface used by
+actions are rejected, never truncated. `interaction` is the Sess interactive Surface used by
 `@sess.si/sdk` (`heading`, `text`, `record` and `field` components). Tools never accept an API
 origin, key, workspace, Session ID or callback URL.
 
@@ -197,9 +197,9 @@ blocks like a definitive rejection.
   elicitation, resources or prompts (the HTTP composition below is a library for a hosting
   runtime, not a runnable server). One server process per profile is supported; concurrent processes on the
   same profile are not coordinated. Rotating the key makes earlier handles unusable
-  (`BINDING_MISMATCH`). The browser may still need a manual refresh between rounds.
+  (`BINDING_MISMATCH`).
 - **Receipt-key rotation window.** The SDK refreshes its cached receipt key set at most once per
-  10 seconds. If SESS starts signing with a new key and an answer signed with it is verified
+  10 seconds. If Sess starts signing with a new key and an answer signed with it is verified
   within 10 seconds of this server's previous key-set fetch, the SDK reports `UNKNOWN_KEY_ID`, and
   the interaction is blocked (`VERIFICATION_FAILED`) even though the answer may be valid. Use the
   owner procedure below; fixing this needs an SDK change.
@@ -217,10 +217,10 @@ The hosting runtime supplies the authority; this package never decides it:
 
 - `authenticate(request)` (required) sees the method, URL and headers, verifies the request's
   credentials and returns a principal context: `workspaceId`, `principalId`, `clientId`,
-  `grantId`, `grantGeneration`, `scopes` and a `credential()` provider for SESS API calls. If it
+  `grantId`, `grantGeneration`, `scopes` and a `credential()` provider for Sess API calls. If it
   returns nothing, the answer is `401` with `WWW-Authenticate: Bearer resource_metadata="…"`; a
   principal without every `requiredScopes` entry gets `403 insufficient_scope`. The handler
-  never derives `authInfo` from headers and never sends the MCP bearer token to SESS or to a tool.
+  never derives `authInfo` from headers and never sends the MCP bearer token to Sess or to a tool.
 - `handleStore(binding, principal)` (required) returns a handle store bound to that authority.
   Handles are bound to origin, workspace, principal, client, grant and grant generation: another
   principal, host or workspace gets `HANDLE_NOT_FOUND`; a revoked or re-issued grant (new
@@ -253,10 +253,10 @@ The tool error names the state (`RECOVERY_BLOCKED` with a reason, `CREATE_OUTCOM
 
 1. Find the record: `<state dir>/profiles/<profile>/handles/<handle>.json`. It can contain the
    private human link and answer data; do not paste it into chats or issues.
-2. Check the Session in SESS (developer portal or an owner API read using `sessionId` from the
+2. Check the Session in Sess (developer portal or an owner API read using `sessionId` from the
    record, when present). For `create_intent`/`create_unknown`/`CREATED_NOT_SAVED`, look for a
    Session created at that time before asking the agent to create another one.
-3. Decide in SESS what should happen to the Session, then remove the local record file to retire
+3. Decide in Sess what should happen to the Session, then remove the local record file to retire
    the handle. Keep a private copy if you need the evidence. There is no command that resumes a
    blocked handle in this version; start a new interaction with `sess_request` if needed.
 
@@ -302,7 +302,7 @@ published tarball again and compares its SHA-256 with the pin, and records the p
 `compatibility.json`. It refuses any other bytes. Review and commit the lockfile change.
 
 `npm run runtime-round` (opt-in, `SESS_MCP_RUNTIME_ROUND=1`) drives the packed, installed server
-through one request → answer → complete round against a local isolated SESS runtime. It is not run
+through one request → answer → complete round against a local isolated Sess runtime. It is not run
 in public CI because the runtime is private. `npm run qualify:claude-code` checks that Claude Code
 connects and lists the tools without any model call, using a temporary config directory.
 
