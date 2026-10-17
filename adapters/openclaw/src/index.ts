@@ -66,7 +66,7 @@ async function readAuthoredConfig(): Promise<unknown> {
 
 const DESCRIPTIONS: Record<ToolName, string> = {
   sess_request:
-    'Ask a person for a structured decision through a private SESS link. Returns a handle, revision and humanUrl immediately. Present the link privately; wait with sess_response only once the person can see it.',
+    'Ask a person for a structured decision through a private Sess link. Returns a handle, revision and humanUrl immediately. Present the link privately; wait with sess_response only once the person can see it.',
   sess_response:
     'Read, or wait a bounded time for, the verified answer to one exact revision. A needs_resume result is normal: the form stays available; ask the person to submit, then call again. Never loop.',
   sess_publish:
@@ -132,9 +132,9 @@ function createTool(
 
 export default definePluginEntry({
   id: PLUGIN_ID,
-  name: 'SESS',
+  name: 'Sess',
   description:
-    'Agents request structured human decisions through hosted SESS interfaces and receive verified answers.',
+    'Agents request structured human decisions through hosted Sess interfaces and receive verified answers.',
   configSchema: buildJsonPluginConfigSchema(CONFIG_JSON_SCHEMA as never),
   register(api) {
     let opened: HostStores | undefined;
@@ -154,13 +154,13 @@ export default definePluginEntry({
       ({ program, config }) => {
         const root = program
           .command('sess')
-          .description('SESS plugin setup and diagnostics (no network, no secrets printed)');
+          .description('Sess plugin setup and diagnostics (no network, no secrets printed)');
         root
           .command('setup')
           .description(
             'Preview (default) or apply with --yes: enable the plugin, add the four tools to tools.alsoAllow and set plugin config. Never stores the API key and never restarts the Gateway',
           )
-          .option('--base-url <origin>', 'SESS API origin (HTTPS)')
+          .option('--base-url <origin>', 'Sess API origin (HTTPS)')
           .option('--api-key-env <NAME>', 'name of the Gateway environment variable holding the API key')
           .option('--wait-budget-ms <ms>', 'longest single bounded wait')
           .option('--yes', 'apply the previewed change (explicit consent)')
@@ -203,7 +203,7 @@ export default definePluginEntry({
           );
         root
           .command('doctor')
-          .description('Check SESS plugin configuration and host capabilities without contacting SESS')
+          .description('Check Sess plugin configuration and host capabilities without contacting Sess')
           .action(async () => {
             console.log(
               doctorReport(api.pluginConfig, api.runtime?.state, process.env, api.runtime?.version),
@@ -245,7 +245,7 @@ export default definePluginEntry({
             );
           });
       },
-      { descriptors: [{ name: 'sess', description: 'SESS plugin diagnostics', hasSubcommands: true }] },
+      { descriptors: [{ name: 'sess', description: 'Sess plugin diagnostics', hasSubcommands: true }] },
     );
   },
 });

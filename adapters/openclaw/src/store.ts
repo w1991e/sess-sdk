@@ -205,7 +205,7 @@ function storeError(error: unknown): never {
   if (typeof code === 'string' && /LIMIT|FULL|QUOTA|CAPACITY/i.test(code))
     fail(
       'STORE_FULL',
-      'The SESS plugin has reached its active-interaction limit; no interaction was dropped.',
+      'The Sess plugin has reached its active-interaction limit; no interaction was dropped.',
     );
   fail(
     'STORE_UNAVAILABLE',
@@ -298,21 +298,21 @@ async function upgradeLegacy(views: { legacy: BoundStore; active: BoundStore; ar
     if (existing === undefined || canonicalJson(existing) !== canonicalJson(value))
       fail(
         'STORE_UNAVAILABLE',
-        'The SESS state upgrade stopped at a destination collision; nothing was overwritten. Operator resolution is required.',
+        'The Sess state upgrade stopped at a destination collision; nothing was overwritten. Operator resolution is required.',
       );
   };
   const mark = async (key: string, original: Stored) => {
     const observed = await legacy.observe(key);
     if (observed.value === undefined || isLegacyOnly(observed.value)) return;
     if (canonicalJson(observed.value) !== canonicalJson(original))
-      fail('STATE_CONFLICT', 'A legacy SESS record changed during the upgrade; retry.');
+      fail('STATE_CONFLICT', 'A legacy Sess record changed during the upgrade; retry.');
     const result = await legacy.compareAndApply(key, observed.comparison, {
       operation: 'update',
       action: 'set',
       value: { kind: 'migrated', schema: 2 },
     });
     if (result.status === 'conflict')
-      fail('STATE_CONFLICT', 'A legacy SESS record changed during the upgrade; retry.');
+      fail('STATE_CONFLICT', 'A legacy Sess record changed during the upgrade; retry.');
   };
   for (const { key, value } of records) {
     const upgraded: RecoveryRecord = {
@@ -422,7 +422,7 @@ export class LayoutGate {
       try {
         return await this.#running;
       } catch {
-        fail('STATE_CONFLICT', 'The SESS state upgrade was interrupted by another call; retry.');
+        fail('STATE_CONFLICT', 'The Sess state upgrade was interrupted by another call; retry.');
       }
     }
     this.#running = store.upgrade().then(
@@ -676,7 +676,7 @@ export async function pruneTerminal(stores: HostStores, apply: boolean): Promise
   if (legacyPending)
     fail(
       'CONFIGURATION',
-      'The SESS state upgrade has not completed (legacy schema-1 data remains); make one SESS tool call to finish it, then prune.',
+      'The Sess state upgrade has not completed (legacy schema-1 data remains); make one Sess tool call to finish it, then prune.',
     );
   let eligible = 0;
   let compacted = 0;

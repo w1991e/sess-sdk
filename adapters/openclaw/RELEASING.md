@@ -6,6 +6,10 @@ after a maintainer approves the protected environment, and nothing is installabl
 maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`) go to `next`,
 never to `latest`.
 
+The current candidate, `0.1.0-rc.1`, has its contents, expected tarball digests and exact
+maintainer steps in [release/rc1-packet.md](release/rc1-packet.md). Each candidate gets such a
+packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
+
 ## Prerequisites (owner actions, in order)
 
 > **Do not push an `openclaw-v*` tag until the stage-only npm trusted publisher for
