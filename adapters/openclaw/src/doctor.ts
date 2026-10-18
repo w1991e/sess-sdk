@@ -2,7 +2,7 @@ import { parseConfig } from './config.js';
 import { SessAdapterError } from './errors.js';
 import type { PruneReport, RetireReport, StateCounts } from './store.js';
 
-export const PLUGIN_VERSION = '0.1.0-rc.1';
+export const PLUGIN_VERSION = '0.1.0-rc.2';
 export const QUALIFIED_HOST = '2026.10.3';
 
 /**

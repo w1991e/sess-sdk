@@ -76,7 +76,7 @@ assert(packedList.length === 1, `npm pack reported ${packedList.length} packages
 const [packed] = packedList;
 const tarball = join(artifacts, packed.filename);
 assert(
-  packed.filename === 'sess.si-openclaw-0.1.0-rc.1.tgz' && existsSync(tarball),
+  packed.filename === 'sess.si-openclaw-0.1.0-rc.2.tgz' && existsSync(tarball),
   'unexpected tarball name',
 );
 const bytes = readFileSync(tarball);

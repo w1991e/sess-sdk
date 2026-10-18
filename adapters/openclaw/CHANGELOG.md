@@ -1,14 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.2 (candidate, unpublished)
 
-- Depends on `@sess.si/sdk` 0.1.0-rc.7 (was 0.1.0-rc.5). The adapter's own code is unchanged; the
-  next release candidate ships with it.
+- Depends on `@sess.si/sdk` 0.1.0-rc.7 (was 0.1.0-rc.5).
+- Prose and printed strings say "Sess", not "SESS": tool descriptions, errors, notes, setup and
+  doctor output. The link the person opens is the "Sess link" in tool notes and doctor output.
+  Tool names, schemas (version 1) and environment variable names are unchanged.
+- README and package description say "Sess" in prose and "Sess link"; package keywords and the
+  Sess homepage.
 - README "First interaction" now starts from a real message of your own: paste or forward it into
   your dashboard conversation, the agent drafts a reply, and you edit, approve or stop it through
   Sess before it goes anywhere. The plugin ships no sample message; a synthetic sample is shown for
-  illustration only. The reset-isolation limitation is disclosed as before. The README ships with
-  the next release candidate.
+  illustration only. The reset-isolation limitation is disclosed as before.
 - `compatibility.json` records the publication of `0.1.0-rc.1` on the npm dist-tag `next`
   (2026-10-17): registry SHA-256 and integrity, SLSA provenance and release run 38990667691.
 
