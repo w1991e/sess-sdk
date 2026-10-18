@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "sess",
-  "version": "0.1.0-rc.1",
-  "description": "Your agent asks a person through a private link and gets back a typed, receipt-verified answer.",
+  "version": "0.1.0-rc.2",
+  "description": "Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.",
   "author": {
     "name": "Sess",
     "url": "https://sess.si"
@@ -16,15 +16,15 @@
       "interface": {
         "displayName": "Sess",
         "shortDescription": "Ask a person, get the answer",
-        "longDescription": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a private link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
+        "longDescription": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
         "developerName": "Sess",
         "category": "Productivity",
         "capabilities": [
-          "Ask a person through SESS",
-          "Read the person’s SESS answer",
-          "Show the next SESS step",
-          "Finish the SESS interaction",
-          "Ask a short question through SESS"
+          "Ask a person through Sess",
+          "Read the person’s Sess answer",
+          "Show the next Sess step",
+          "Finish the Sess interaction",
+          "Ask a short question through Sess"
         ],
         "websiteURL": "https://sess.si",
         "supportURL": "https://docs.sess.si/support/",
@@ -41,7 +41,7 @@
               "description": "Ask a short question and read the answer",
               "prompt": "Ask me on my phone which time works for a call tomorrow.",
               "tools_triggered": "sess_ask, sess_response",
-              "expected_behavior": "Shares a private link at once. After the reviewer submits the form, reports the chosen time."
+              "expected_behavior": "Shares a Sess link at once. After the reviewer submits the form, reports the chosen time."
             },
             {
               "description": "Ask for an approval before acting",
@@ -86,7 +86,7 @@
         "commerce": false
       },
       "publication": {
-        "release_notes": "First release: ask a person through a private link and continue with their receipt-checked answer."
+        "release_notes": "First release: ask a person through a Sess link and continue with their receipt-checked answer."
       }
     }
   }

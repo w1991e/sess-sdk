@@ -76,11 +76,11 @@ const fieldValueSchema = {
   additionalProperties: false,
 } as const;
 
-/** Closed JSON Schema for the existing SESS InteractiveInteraction contract (no new UI language). */
+/** Closed JSON Schema for the existing Sess InteractiveInteraction contract (no new UI language). */
 export const INTERACTION_SCHEMA = {
   type: 'object',
   description:
-    'A SESS interactive Surface: plain-text components, typed fields and 1-5 actions. No HTML, scripts or styles.',
+    'A Sess interactive Surface: plain-text components, typed fields and 1-5 actions. No HTML, scripts or styles.',
   properties: {
     mode: { type: 'string', enum: ['interactive'] },
     title: plainText(200),

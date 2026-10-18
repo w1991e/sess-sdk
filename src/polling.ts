@@ -1,7 +1,32 @@
 import { SessError } from './errors.js';
 import { abortError, boundedNumber, deadline, delay } from './internal/time.js';
 import { isInteractiveSession } from './types.js';
-import type { RequestOptions, Session, VersionedResult, WaitOptions, WaitResult } from './types.js';
+import type {
+  InteractiveSession,
+  RequestOptions,
+  Session,
+  VersionedResult,
+  WaitOptions,
+  WaitResult,
+} from './types.js';
+
+/**
+ * Once a Session's link has expired (`action_expires_at`), the wait reads it once more when the
+ * runtime clock is this far past the expiry, then ends: an answer accepted before the expiry is
+ * returned; otherwise the wait ends with `LINK_EXPIRED`. Two seconds covers the one-second
+ * resolution of the HTTP `Date` header plus an answer accepted just before the expiry whose write
+ * is still landing, and keeps the end prompt.
+ */
+export const LINK_EXPIRY_GRACE_MS = 2000;
+
+/** The Session's link expiry in milliseconds since the epoch, when it carries a valid one. */
+function linkExpiry(session: InteractiveSession): number | undefined {
+  const value: unknown = (session as { action_expires_at?: unknown }).action_expires_at;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value))
+    return undefined;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : undefined;
+}
 
 export async function waitForResponse(
   retrieve: (options: RequestOptions) => Promise<VersionedResult<Session>>,
@@ -54,9 +79,28 @@ export async function waitForResponse(
         );
       if (session.revision > revision)
         throw ended('REVISION_SUPERSEDED', 'The requested unanswered revision was superseded.');
+      // The link's expiry (Decision 0009 Amendment 7): the runtime accepts no answer after
+      // action_expires_at, and an answer accepted before it is in every later read. A read made
+      // when the runtime clock was at least LINK_EXPIRY_GRACE_MS past the expiry, with no answer,
+      // is final. The runtime clock is the response's HTTP Date (at or before the read), else
+      // this machine's. Nothing is completed here.
+      let untilFinalReadMs = Number.POSITIVE_INFINITY;
+      const cutoff = linkExpiry(session);
+      if (cutoff !== undefined) {
+        const observedAt = current.meta.serverDate ?? Date.now();
+        const finalAt = cutoff + LINK_EXPIRY_GRACE_MS;
+        if (observedAt >= finalAt)
+          throw ended(
+            'LINK_EXPIRED',
+            'The Sess link expired with no accepted response for this revision. Nothing was completed.',
+          );
+        // A Date header has whole seconds: one more second puts the next read past finalAt.
+        untilFinalReadMs = finalAt - observedAt + (current.meta.serverDate === undefined ? 0 : 1000);
+      }
       await delay(
         Math.min(
           intervalMs + Math.floor(Math.random() * 150),
+          untilFinalReadMs,
           Math.max(1, Math.ceil(expires - performance.now())),
         ),
         budget.signal,

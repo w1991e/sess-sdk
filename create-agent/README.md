@@ -3,12 +3,12 @@
 Creates a small agent that asks you two questions on your phone and plans your weekend on the real
 forecast.
 
-**Install and create:** `npm create @sess.si/agent my-agent`
+**Install and create:** `npm create @sess.si/agent@next my-agent`
 
 **Run:** `cd my-agent && npm install --ignore-scripts && npm start` (with `SESS_API_KEY` and
 `SESS_DEMO_CONTACT` set in your environment)
 
-**What you'll see:** a private link. Answer two questions on your phone and your plan prints in the
+**What you'll see:** a Sess link. Answer two questions on your phone and your plan prints in the
 terminal with a verified receipt.
 
 ## Details

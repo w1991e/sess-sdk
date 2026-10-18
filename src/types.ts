@@ -55,7 +55,15 @@ export type SurfaceComponent =
 export type InteractiveInteraction = Omit<RawPublishSessionRequest['interaction'], 'source'> & {
   source: { kind: 'sess_surface'; components: SurfaceComponent[] };
 };
-export type CreateSessionRequest = { interaction: DisplayInteraction | InteractiveInteraction };
+export type CreateSessionRequest = {
+  interaction: DisplayInteraction | InteractiveInteraction;
+  /**
+   * Advanced: how long the human link stays open, in whole seconds from creation: from 30 up to
+   * the plan's link lifetime (the runtime checks the ceiling). Absent: the plan's lifetime. The
+   * create response's `action_expires_at` says when the link ends; nothing moves it later.
+   */
+  expires_in?: number;
+};
 export type PublishSessionRequest = { interaction: InteractiveInteraction };
 
 export interface ResponseMeta {
@@ -66,6 +74,11 @@ export interface ResponseMeta {
   workspaceId?: string;
   attempts: number;
   idempotencyKey?: string;
+  /**
+   * The response's HTTP `Date` in milliseconds since the epoch (whole seconds), when the runtime
+   * sent one: the runtime clock at or before the response. Used to observe link expiry.
+   */
+  serverDate?: number;
 }
 export interface ApiResult<T> {
   data: T;

@@ -60,3 +60,31 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
+
+  # The official MCP Registry's own validator on the checked-in server.json (validation only:
+  # nothing is logged in to or published). `npm run check` above already validates it against the
+  # vendored, SHA-256-pinned 2025-12-11 schema; this adds the registry's semantic checks. The
+  # publisher binary is pinned by release and SHA-256 (v1.8.1, linux_amd64).
+  registry:
+    name: MCP adapter / registry server.json
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      MCP_PUBLISHER_VERSION: v1.8.1
+      MCP_PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install the pinned mcp-publisher
+        run: |
+          set -euo pipefail
+          curl -fsSL -o mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/mcp-publisher"
+          tar -xzf mcp-publisher.tar.gz -C "$RUNNER_TEMP/mcp-publisher" mcp-publisher
+      - name: Validate server.json (no login, no publish)
+        working-directory: adapters/mcp
+        run: '"$RUNNER_TEMP/mcp-publisher/mcp-publisher" validate server.json'

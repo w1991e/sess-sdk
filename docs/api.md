@@ -72,6 +72,73 @@ behavior. `receipts.verifyResponse({sessionId, response, expectedWorkspaceId?}, 
 returns deeply readonly, runtime-protected `{claims, response, surface}` after full verification.
 See [Security](security.md) for offline verifier inputs and trust requirements.
 
+## Ask one question
+
+`sess.ask({ question, fields, details?, submit_label? }, options?)` takes the question-plus-fields
+shape of the MCP `sess_ask` tool and resolves to a handle `{ link, sessionId, revision, answer() }`.
+It is a convenience over the operations below for one question; it adds no endpoint.
+
+| Field `type`   | Answer value                                   | Extra properties                 |
+| -------------- | ---------------------------------------------- | -------------------------------- |
+| `text`         | String, up to 4,000 characters                 | `multiline`                      |
+| `number`       | Finite number                                  | `minimum`, `maximum` (inclusive) |
+| `integer`      | Integer                                        | `minimum`, `maximum` (inclusive) |
+| `boolean`      | Boolean, always present (unchecked is `false`) | none                             |
+| `choice`       | One of `options`                               | `options`: 1–100 unique strings  |
+| `multi_choice` | Unique list of `options`, always present       | `options`: 1–100 unique strings  |
+
+Every field has a unique `name` (`^[a-z][a-z0-9_]{0,63}$`, the key in the answer), a `label`
+(1–200 characters), optional `required` (default `true`, `false` for `boolean`) and optional `default`,
+a proposal that must itself be a valid value. A question has 1–12 fields, a 1–200 character `question`
+(the page title), optional `details` (1–4,000 characters of plain text above the fields) and an
+optional `submit_label` (default `Send`). It compiles to one interactive Surface: a text component
+for `details`, one field component per field with its runtime schema, and one `submit` action.
+Invalid input fails with `SessError` kind `configuration`, code `INVALID_QUESTION`, outcome
+`not_sent`, before credential lookup or network access; messages name the path, never your values.
+
+The answer type is inferred from literal field definitions: required fields are properties,
+optional ones may be absent, `choice` values are the option literals. The values are checked against
+the definitions at runtime before they are returned; the type is never an unchecked cast.
+
+`options` accepts the request options of the single create plus `expectedWorkspaceId`, the trusted
+receipt audience for this question. Creation is attempted once; an uncertain create fails with
+`unknown_outcome` and is never retried (see [Errors and retries](../README.md#errors-and-retries)).
+
+`answer({ timeoutMs?, intervalMs?, signal? })`, in order:
+
+1. waits for the accepted response to exactly `revision`, as `sessions.waitForResponse` does;
+2. verifies it with `receipts.verifyResponse` (trusted workspace context; exact Session, revision,
+   event, action and input) and requires the verified immutable Surface to be the compiled question;
+3. checks the values against the fields (`protocol`, code `INVALID_RESPONSE`, if they do not match);
+4. reads the Session again and continues only if it is still at that revision, retains that event
+   and is `responded`, or already `completed` there;
+5. completes the Session with the If-Match from that read and a generated Idempotency-Key, both kept
+   by the handle and replayed after any uncertain outcome. Success requires the completed Session
+   at that revision with that event; a `409 SESSION_COMPLETED` is confirmed only by reading it back;
+6. returns frozen typed values. Later calls return the same result without network access.
+
+| Error                                                         | Meaning                                    |
+| ------------------------------------------------------------- | ------------------------------------------ |
+| `wait_ended` `WAIT_TIMEOUT`, or `aborted`                     | Local wait ended; call `answer()` again    |
+| `wait_ended` `REVISION_SUPERSEDED`, `CLOSED_WITHOUT_RESPONSE` | The question is no longer the current step |
+| `wait_ended` `LINK_EXPIRED`                                   | The link closed with no answer; final      |
+| `receipt_verification`                                        | Not accepted; nothing was completed        |
+| `api` 401, 403 or 404                                         | Access revoked, or the Session is gone     |
+| `api` with `outcome: "rejected"`                              | The completion was refused                 |
+| Any error with `outcome: "unknown"`                           | Completion not confirmed; call again       |
+
+**Advanced: link lifetime.** `sess.ask()` and `sessions.create()` take an optional `expires_in`, in
+whole seconds from creation: from 30 up to your plan's link lifetime (Sess checks the ceiling;
+below 30 or not whole is refused before sending). The create response's `action_expires_at` (the
+handle's `expiresAt`) is when the link stops taking answers; nothing moves it. Every wait observes
+it: once the runtime clock (the response's HTTP `Date`, else this machine's) is two seconds past the
+expiry, one final read decides. An answer accepted before the expiry is returned; otherwise the wait
+ends with `wait_ended` `LINK_EXPIRED`. Nothing is completed for you.
+
+Concurrent calls on one handle share one verification and one completion. A timeout or abort ends
+only that caller’s local wait; it never cancels the Session or the shared completion. The handle is
+in memory only; see [Integration](integration.md#one-question-with-sessask) for recovery.
+
 ## Safe retries and errors
 
 Authorized/public-key GETs and keyed publish/complete can retry transport failures and HTTP

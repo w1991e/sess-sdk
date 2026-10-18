@@ -40,6 +40,13 @@ paths = ['''(?:^|/)\.github/gitleaks\.toml$''']
 regexTarget = "line"
 regexes = ['''^\s*regexes = \['{3}\^\\s\*const idempotencyKey = 'Original\\[.]Key[:]with_Bytes-128';\\s\*\$'{3}\]\s*$''']
 
+[[rules.allowlists]]
+description = "S-07 QR parity vector: the exact synthetic link token of the Sess renderer's QR test vectors, no credential"
+condition = "AND"
+paths = ['''(?:^|/)tests/unit/qr\.test\.ts$''']
+regexTarget = "line"
+regexes = ['''^[\r\n]*const TOKEN = 'Ab[C]dEfGhIjKlMnOpQrStUvWxYz0123456789_-abcde';\s*$''']
+
 [[rules]]
 id = "aws-amazon-bedrock-api-key-short-lived"
 

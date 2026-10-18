@@ -1,6 +1,6 @@
 # Installed-package quickstart (Node)
 
-This program asks a person one question through a hosted SESS page and continues with their
+This program asks a person one question through a hosted Sess page and continues with their
 verified answer.
 
 **Install** (in a copy of this directory; installs the published `@sess.si/sdk@0.1.0-rc.5` from npm):
@@ -9,18 +9,18 @@ verified answer.
 npm install --ignore-scripts
 ```
 
-**Run** (paste your SESS API key when prompted; it is not echoed):
+**Run** (paste your Sess API key when prompted; it is not echoed):
 
 ```sh
 read -rs SESS_API_KEY && export SESS_API_KEY && npm start
 ```
 
-**What you'll see:** a private human link, then — after you open it and submit the amount — the
+**What you'll see:** a Sess link, then — after you open it and submit the amount — the
 verified amount and `status: completed`.
 
 ## Details
 
-The program creates one interactive Session, prints its private human link, waits a bounded time
+The program creates one interactive Session, prints its Sess link, waits a bounded time
 for the person's answer, verifies the decision receipt, validates the business data, and completes
 the Session. It is plain Node ESM JavaScript ([index.mjs](index.mjs)); there is no build step. This
 directory itself is not published.
@@ -28,7 +28,7 @@ directory itself is not published.
 ### Prerequisites
 
 - Node.js 22.14.0 or later (checked on 22.14.0 and 24.21.0).
-- A SESS API key for the workspace you want to use. That is the only setting the ordinary path
+- A Sess API key for the workspace you want to use. That is the only setting the ordinary path
   needs: the workspace is taken from the API's authenticated responses. Use synthetic data; this
   example pays and sends nothing.
 
@@ -77,9 +77,9 @@ Optional environment (not needed for the ordinary path):
 
 ## What the person sees
 
-A hosted SESS page titled "Confirm a synthetic amount" with a short instruction, a labeled amount
+A hosted Sess page titled "Confirm a synthetic amount" with a short instruction, a labeled amount
 field prefilled with 120, and a "Submit amount" button. After submitting, the page confirms the
-response. SESS renders the page; the example sends only typed data.
+response. Sess renders the page; the example sends only typed data.
 
 ## What the program prints
 
@@ -101,12 +101,12 @@ plain `npm install --ignore-scripts` documented above, against the public npm re
 tarball and no registry override (it refuses to run if npm is configured for another registry). It
 accepts the install only if `@sess.si/sdk` is the pinned name and version, was resolved from
 `https://registry.npmjs.org/`, and npm's recorded integrity equals the pin in
-`release/sdk-candidate.json`. It then runs `index.mjs` against a deterministic fake SESS API on
+`release/sdk-candidate.json`. It then runs `index.mjs` against a deterministic fake Sess API on
 loopback. The fake serves create, retrieve, the immutable Surface, complete, and a genuinely
 Ed25519-signed receipt with its key set. The program's environment holds only `SESS_API_KEY` plus
 the loopback API URL and opt-in, so the check proves the key alone suffices, the human URL is
 printed before waiting, the response verifies and the Session completes. The registry install is
-the only network access; no SESS traffic leaves loopback. Run it from the SDK repository:
+the only network access; no Sess traffic leaves loopback. Run it from the SDK repository:
 
 ```sh
 node examples/quickstart-node/scripts/clean-install-check.mjs
@@ -116,6 +116,6 @@ CI runs it on Node 22.14.0 and 24.21.0 (`.github/workflows/quickstart-ci.yml`).
 
 ## Local smoke (maintainers)
 
-[scripts/smoke.mjs](scripts/smoke.mjs) drives this program against an isolated loopback SESS runtime
+[scripts/smoke.mjs](scripts/smoke.mjs) drives this program against an isolated loopback Sess runtime
 with synthetic credentials, submitting the human form with plain HTTP. It is opt-in
 (`SESS_QUICKSTART_SMOKE=1`), refuses non-loopback origins and is not run by public CI.

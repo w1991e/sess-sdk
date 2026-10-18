@@ -1,7 +1,7 @@
 {
   "name": "@sess.si/create-agent",
-  "version": "0.1.0-rc.1",
-  "description": "Create your first SESS agent: npm create @sess.si/agent",
+  "version": "0.1.0-rc.2",
+  "description": "Create your first Sess agent: npm create @sess.si/agent@next",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -12,7 +12,16 @@
   "bugs": {
     "url": "https://github.com/w1991e/sess-sdk/issues"
   },
-  "homepage": "https://github.com/w1991e/sess-sdk/tree/master/create-agent#readme",
+  "homepage": "https://sess.si",
+  "keywords": [
+    "sess",
+    "create",
+    "starter",
+    "template",
+    "ai-agents",
+    "human-in-the-loop",
+    "signed-receipts"
+  ],
   "engines": {
     "node": ">=22.14.0"
   },

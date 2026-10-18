@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Not part of any published or prepared version. `0.1.0-rc.5` as prepared does not contain it.
+Not part of any published or prepared version. `0.1.0-rc.7` as prepared does not contain it.
 
 - `@sess.si/sdk/archival`, a new subpath with the successor archival verifier: `verifyArchivalEnvelope`
   checks an archival envelope (the exact original receipt, the issuer's signed archival core and any
@@ -18,6 +18,48 @@ Not part of any published or prepared version. `0.1.0-rc.5` as prepared does not
 - Verbatim archival-core-v1 and witness-evidence-v1 specifications, the archival-v1 corpus, the
   witness renewal vector and the recorded Sigstore staging run in the source repository, pinned by
   SHA-256 to one Sess commit and checked by `npm run check:spec`.
+
+## 0.1.0-rc.7 — 2026-10-18 (prepared, unpublished)
+
+Includes everything in the unpublished 0.1.0-rc.6 below, which is not published on its own.
+
+- Advanced: a link lifetime. `sessions.create()` and `sess.ask()` take an optional `expires_in`, in
+  whole seconds from creation: from 30 up to your plan's link lifetime (Sess checks the ceiling).
+  Values below 30 or not whole are refused before anything is sent. Absent: the plan's lifetime,
+  as before.
+- The create response carries the link's expiry as `action_expires_at`; `sess.ask()` handles expose
+  it as `expiresAt`. Nothing moves it later: not reading, not completing.
+- `waitForResponse()` (and `answer()`) observe the expiry. Once the runtime clock (the response's
+  HTTP `Date`, else this machine's) is two seconds past `action_expires_at`, one final read decides:
+  an answer accepted before the expiry is returned as the result; otherwise the wait ends with
+  `wait_ended`, code `LINK_EXPIRED`. The SDK never completes a Session on its own.
+- `ResponseMeta.serverDate`: the response's HTTP `Date`, when the runtime sends one.
+- Contract snapshot from Sess runtime commit `b48e8e7` (see `contract/contract-lock.json`), with
+  `expires_in`, `action_expires_at` on create and the target's `default_expires_in`.
+- `@sess.si/sdk/qr` (S-07): `qr(url, { format: 'svg' | 'png' | 'terminal' })` draws a Sess link as a
+  QR code locally (error correction level M, 4-module quiet zone, deterministic, no network call), and
+  `printQr(url)` prints "Scan to answer on your phone" and the code on an interactive terminal only:
+  never without a TTY, in CI or with `NODE_ENV=production`; `--no-qr` or `{ qr: false }` turn it off
+  and `NO_COLOR` draws it without colour. The SVG is one exact tree with the accessible title "QR code
+  for this Sess link". The encoder is the Sess renderer's, after Project Nayuki's QR Code generator
+  (MIT; see NOTICE). No new dependency; every existing export is unchanged.
+
+## 0.1.0-rc.6 — 2026-10-15
+
+- `sess.ask({ question, fields })`: one question with simple typed fields (the MCP `sess_ask`
+  shape). It validates locally, creates the Session once and returns its private link before
+  waiting. `answer()` verifies the receipt and exact Surface, checks that the answer is still
+  current, completes the Session and returns values typed from the field definitions and checked at
+  runtime. New types `AskInput`, `AskField`, `AskAnswer`, `AskHandle`, `AskOptions` and
+  `AskAnswerOptions`. Every existing export, `verifyDecisionReceipt` and the advanced API are
+  unchanged.
+- The README opens with `sess.ask()`; the full Surface API is under "Advanced", unchanged.
+- Wording only: the README's guide list and closing note, and the `0.1.0-rc.3` entry below, no
+  longer refer to internal processes or unreleased work.
+- Wording only: the README, the package description and four error messages say "Sess" in plain
+  sentences. The README drops the stale manual-refresh caveat (the hosted page now advances between
+  rounds by itself) and notes that Sess supplies the trusted workspace for verification. Error
+  `kind`, `code` and every other field are unchanged.
 
 ## 0.1.0-rc.5 — 2026-10-15
 
@@ -40,7 +82,7 @@ printed before waiting) and points to this changelog and the registry's dist-tag
 
 ## 0.1.0-rc.3 — 2026-10-13
 
-Unpublished R2 corrective candidate, now named `@sess.si/sdk` by the owner's superseding distribution decision. Earlier candidates and their recorded hashes retain their historical `@sess/sdk` identity; no alias is created. Inherit and validate polling operation budgets, dispose cancelled polling/backoff listeners, and match the runtime replay-key alphabet in transport and durable examples. Extend tracked-source and retained-history scanning with pinned tooling and synthetic controls.
+Unpublished corrective candidate, the first named `@sess.si/sdk`. Earlier candidates and their recorded hashes keep their historical `@sess/sdk` name; no alias is created. Inherit and validate polling operation budgets, dispose cancelled polling/backoff listeners, and match the runtime replay-key alphabet in transport and durable examples. Extend tracked-source and retained-history scanning with pinned tooling and synthetic controls.
 
 ## 0.1.0-rc.2 — 2026-10-13
 

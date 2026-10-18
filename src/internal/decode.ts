@@ -20,7 +20,7 @@ const eventPattern = new RegExp(`^evt_${ulid}$`);
 const actionPattern = /^[a-z][a-z0-9_]{0,31}$/;
 const receiptPattern = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 export function protocol(): never {
-  throw new SessError('protocol', 'Response does not match the supported SESS contract.', {
+  throw new SessError('protocol', 'The response does not match the Sess API this SDK supports.', {
     code: 'INVALID_RESPONSE',
   });
 }
@@ -114,6 +114,8 @@ export function decodeCreate(value: unknown, allowInsecureLocalhost = false): Cr
   const v = object(value);
   string(v.id, sessionPattern);
   integer(v.revision);
+  // The link's expiry; checked when present (a runtime before the link-lifetime slice omits it).
+  if (v.action_expires_at !== undefined) date(v.action_expires_at);
   const text = string(v.human_url, /^[^\s\u0000-\u001f\u007f]+$/, 4096);
   let url: URL;
   try {

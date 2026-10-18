@@ -12,7 +12,7 @@ business authorization, durable workflow state, or external side effects.
 | Developer/owner API key | Authorized access to the supported owner API                                       |
 | Human capability URL    | Access to the linked human interaction; possession conveys `link_holder` assurance |
 | Webhook signing secret  | Authentication of delivery to a particular workspace receiver                      |
-| Decision receipt        | Signed evidence of SESS's accepted semantic record and its bindings                |
+| Decision receipt        | Signed evidence of Sess's accepted semantic record and its bindings                |
 
 A person's account sign-in, link possession, receipt verification, and permission to
 execute a consequential business operation are separate decisions. A valid receipt
@@ -55,6 +55,11 @@ public verification keys through the same configured transport. It verifies:
 Unknown receipt versions and security-critical semantics fail explicitly. Retrieval
 alone leaves data unverified. A legacy `receipt: null` produces
 `LEGACY_RECEIPT_UNAVAILABLE`; another key fetch cannot repair a missing receipt.
+
+`sess.ask()` uses this verifier unchanged. Before returning data, `answer()` also requires the
+verified Surface to be exactly the compiled question, checks the values against its fields, and
+reads the Session again so that a historically valid but superseded answer is never used to
+progress. It completes only with the replay identity it saved before the first attempt.
 
 ### Establish trusted audience context
 
@@ -195,7 +200,7 @@ non-JSON values, nesting beyond 128 levels, and excessive node counts. Keys are 
 for five minutes. An unknown key may cause one shared refresh after a ten-second
 cooldown. A cold miss performs one initial fetch; it does not immediately fetch again.
 Failures also respect the cooldown. Each shared key fetch has a five-second deadline.
-SESS must retain the public key for an unexpired receipt; the client cannot invent or
+Sess must retain the public key for an unexpired receipt; the client cannot invent or
 recover retired key material.
 
 A high-level verification has one overall operation deadline (30 seconds by default).

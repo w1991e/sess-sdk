@@ -51,19 +51,19 @@ returned human capability, and inspect the actual hosted renderer. Existing rete
 there is no SDK delete operation or unlimited preview sandbox. The authoring example is tested for
 the same wire envelope through SDK and direct HTTP; it does not claim a new hosted browser preview.
 
-The application supplies its business text. SESS supplies renderer system messages. Localization
+The application supplies its business text. Sess supplies renderer system messages. Localization
 is a future contract: there is no `locale` option or promised automatic translation. Format currency
 for display in semantic text or records while keeping submitted numeric values unchanged; never
 round or rewrite accepted input before checking its receipt hash.
 
-The SDK sends semantic content. SESS owns rendering, CSS, accessibility, waiting pages and defaults.
+The SDK sends semantic content. Sess owns rendering, CSS, accessibility, waiting pages and defaults.
 Appearance is a separately authorized future runtime feature. No appearance parameter, arbitrary
 CSS, renderer, theme global, form-builder DSL or frontend dependency is exported here. Omission
 uses the deployed renderer's default; no hidden configuration is injected into creation.
 
 ## Validate, verify, then continue
 
-Raw `AcceptedResponse.data` contains unknown business values. Receipt verification checks SESS's
+Raw `AcceptedResponse.data` contains unknown business values. Receipt verification checks Sess's
 accepted record; your application must still validate and authorize the business operation.
 There is no `waitForResponse<MyType>()` that claims network input is a trusted application type.
 
@@ -77,6 +77,31 @@ ETag always belongs to the current Session snapshot. Before deriving a new mutat
 saved expected step, matching Session/revision, `status === 'responded'`, and the unprocessed event.
 The tested [multi-round example](../examples/multi-round.ts) performs those checks before domain
 calculation. A later receipt-context read never supplies a replacement write ETag.
+
+## One question with sess.ask()
+
+For a single question with simple fields, `sess.ask()` creates the Session with the whole
+interaction, returns its private link before waiting, and `answer()` verifies, checks currentness,
+completes and returns typed values ([API reference](api.md#ask-one-question)). Completing closes the
+Session: a later step needs the advanced API instead (create, publish, complete), as in the
+[multi-round example](../examples/multi-round.ts).
+
+The handle is an in-memory convenience, not durable state. Its completion identity (If-Match and
+Idempotency-Key) is kept only in the process, and nothing survives a restart. Business workflow,
+checkpoints and side effects stay in your application. To make a question recoverable:
+
+- persist `sessionId` and `revision` as soon as `ask()` resolves (and the link only if you must
+  deliver it again; it is a bearer capability, so protect it like a credential);
+- after a restart, call `sessions.waitForResponse(sessionId, { revision })`, then
+  `receipts.verifyResponse`, then check your own expected step and the current Session
+  (`status === "responded"` at that revision, retaining that event) as described above;
+- if the Session already reads back as `completed` at that revision and retains that event, the
+  answer was completed; otherwise persist a completion intent and call `sessions.complete` with it,
+  following the durable workflow rules below;
+- record the accepted `event_id` with any side effect so a replay cannot apply it twice.
+
+An `ask()` that fails with `unknown_outcome` may have created a Session whose link was lost; do not
+ask again automatically. Inspect `error.getRecoveryResult()` as described below.
 
 ## Durable workflow integration
 
@@ -130,7 +155,7 @@ Write outcomes distinguish local `not_sent`, authoritative `rejected`, and conse
 ## Hosting and adapters
 
 The runtime manages lifecycle, state, routing and authorization. An integration adapter translates
-a specific external framework or protocol where needed. The SDK exposes supported SESS operations;
+a specific external framework or protocol where needed. The SDK exposes supported Sess operations;
 it is not a universal conversion engine or an agent framework. The publisher owns execution and
 durable storage.
 

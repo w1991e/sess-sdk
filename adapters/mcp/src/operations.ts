@@ -32,7 +32,26 @@ export interface SessClient {
   receipts: Pick<Sess['receipts'], 'verifyResponse'>;
 }
 
-export type InteractionState = 'waiting' | 'answered' | 'completed' | 'needs_resume';
+export type InteractionState = 'waiting' | 'answered' | 'completed' | 'needs_resume' | 'expired';
+
+/** Reason saved on a record whose link expired with no answer (state `blocked`, reported as `expired`). */
+const LINK_EXPIRED = 'LINK_EXPIRED';
+/**
+ * A read made when the runtime clock was this far past the link's expiry, with no answer, is final
+ * (the same grace as the SDK wait).
+ */
+const LINK_EXPIRY_GRACE_MS = 2000;
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
+
+/** Whether a read with no answer for the revision shows the link has expired for good. */
+function expiredAt(session: object, meta: object): boolean {
+  const value: unknown = (session as { action_expires_at?: unknown }).action_expires_at;
+  if (typeof value !== 'string' || !ISO_INSTANT.test(value)) return false;
+  const cutoff = Date.parse(value);
+  const serverDate: unknown = (meta as { serverDate?: unknown }).serverDate;
+  const observedAt = typeof serverDate === 'number' && Number.isFinite(serverDate) ? serverDate : Date.now();
+  return Number.isFinite(cutoff) && observedAt >= cutoff + LINK_EXPIRY_GRACE_MS;
+}
 export interface VerifiedResponseResult {
   eventId: string;
   actionId: string;
@@ -46,6 +65,8 @@ export interface AdapterResult {
     revision: number;
     state: InteractionState;
     humanUrl?: string;
+    /** When the link stops taking answers (`action_expires_at`), on create. */
+    expiresAt?: string;
     response?: VerifiedResponseResult;
   };
 }
@@ -123,7 +144,7 @@ function sessCode(error: unknown): string {
 function createdNotSaved(): AdapterError {
   return new AdapterError(
     'CREATED_NOT_SAVED',
-    'SESS created the interaction, but it could not be saved locally. Do not call sess_request again for this question; ask the owner to check the local state directory and SESS.',
+    'Sess created the interaction, but it could not be saved locally. Do not call sess_request again for this question; ask the owner to check the local state directory and Sess.',
   );
 }
 
@@ -139,16 +160,16 @@ function unavailable(error: unknown): AdapterError {
   if (error instanceof SessError && error.kind === 'configuration')
     return new AdapterError(
       'NOT_CONFIGURED',
-      `The SESS client rejected the request before sending it${detail}. Check the MCP server configuration. Nothing was changed.`,
+      `The Sess client rejected the request before sending it${detail}. Check the MCP server configuration. Nothing was changed.`,
     );
   if (error instanceof SessError && error.kind === 'protocol')
     return new AdapterError(
       'SESS_PROTOCOL_ERROR',
-      `SESS returned a response this client cannot accept${detail}. Check that SESS_API_ORIGIN is a compatible SESS API. Nothing was changed.`,
+      `Sess returned a response this client cannot accept${detail}. Check that SESS_API_ORIGIN is a compatible Sess API. Nothing was changed.`,
     );
   return new AdapterError(
     'SESS_UNAVAILABLE',
-    `SESS could not be reached or returned an error${detail}. Nothing was changed locally; the same call can be repeated.`,
+    `Sess could not be reached or returned an error${detail}. Nothing was changed locally; the same call can be repeated.`,
     true,
   );
 }
@@ -230,7 +251,10 @@ export class SessMcpAdapter {
   async request(args: RequestArgs): Promise<AdapterResult> {
     const { store, client } = await this.#ctx();
     await store.assertCapacity();
-    const body = { interaction: args.interaction };
+    const body = {
+      interaction: args.interaction,
+      ...(args.expiresIn !== undefined ? { expires_in: args.expiresIn } : {}),
+    };
     const now = this.#now();
     const record: HandleRecord = {
       schema: RECORD_SCHEMA,
@@ -254,7 +278,7 @@ export class SessMcpAdapter {
         this.#options.diagnostics('create_rejected', { code: sessCode(error) });
         const code = safeCode(error);
         const detail = code ? ` (${code})` : '';
-        throw new AdapterError('CREATE_REJECTED', `SESS did not create the interaction${detail}.`);
+        throw new AdapterError('CREATE_REJECTED', `Sess did not create the interaction${detail}.`);
       }
       const recovered = error instanceof SessError ? error.getRecoveryResult() : undefined;
       if (recovered) {
@@ -280,13 +304,13 @@ export class SessMcpAdapter {
       await store.save(record).catch(() => {
         throw new AdapterError(
           'CREATE_OUTCOME_UNKNOWN',
-          'The create outcome is unknown and could not be saved locally; a Session may exist. Do not call sess_request again for this question; ask the owner to check SESS and the local state directory.',
+          'The create outcome is unknown and could not be saved locally; a Session may exist. Do not call sess_request again for this question; ask the owner to check Sess and the local state directory.',
         );
       });
       this.#options.diagnostics('create_unknown', { code: sessCode(error) });
       throw new AdapterError(
         'CREATE_OUTCOME_UNKNOWN',
-        'The create outcome is unknown; a Session may exist. It was not retried automatically. Ask the owner to check SESS before creating another interaction.',
+        'The create outcome is unknown; a Session may exist. It was not retried automatically. Ask the owner to check Sess before creating another interaction.',
       );
     }
     this.#secrets.push(created.data.human_url);
@@ -303,7 +327,11 @@ export class SessMcpAdapter {
       throw createdNotSaved();
     });
     this.#options.diagnostics('created', { revision: record.revision });
-    return this.#result(record, 'waiting', { humanUrl: created.data.human_url });
+    const expiresAt: unknown = (created.data as { action_expires_at?: unknown }).action_expires_at;
+    return this.#result(record, 'waiting', {
+      humanUrl: created.data.human_url,
+      ...(typeof expiresAt === 'string' ? { expiresAt } : {}),
+    });
   }
 
   /** response: authorize, then read or perform one bounded wait for the exact revision; verify fully. */
@@ -325,6 +353,7 @@ export class SessMcpAdapter {
         if (response) found = { response, etag: current.meta.etag, currentRevision: session.revision };
         else if (session.status === 'completed') return await this.#block(record, 'CLOSED_WITHOUT_RESPONSE');
         else if (session.revision > args.revision) return await this.#block(record, 'REVISION_SUPERSEDED');
+        else if (expiredAt(session, current.meta)) return await this.#expire(record);
         else return await this.#transition(record, 'waiting');
       } else {
         const result = await client.sessions.waitForResponse(sessionId, {
@@ -342,6 +371,7 @@ export class SessMcpAdapter {
       if (error instanceof AdapterError) throw error;
       if (error instanceof SessError && error.kind === 'wait_ended') {
         if (error.code === 'WAIT_TIMEOUT') return await this.#transition(record, 'needs_resume');
+        if (error.code === LINK_EXPIRED) return await this.#expire(record);
         return await this.#block(record, error.code ?? 'WAIT_ENDED');
       }
       if (error instanceof SessError && error.kind === 'aborted') {
@@ -366,7 +396,7 @@ export class SessMcpAdapter {
         this.#options.diagnostics('verification_deferred', { code: sessCode(error) });
         throw new AdapterError(
           'SESS_UNAVAILABLE',
-          'An answer arrived, but SESS receipt keys could not be loaded right now. Nothing was accepted or changed; call sess_response again shortly.',
+          'An answer arrived, but Sess receipt keys could not be loaded right now. Nothing was accepted or changed; call sess_response again shortly.',
           true,
         );
       }
@@ -376,7 +406,7 @@ export class SessMcpAdapter {
         this.#options.diagnostics('verification_not_configured', { code: sessCode(error) });
         throw new AdapterError(
           'NOT_CONFIGURED',
-          'The answer cannot be verified because no trusted workspace is known. This SESS runtime does not return Sess-Workspace-Id; set SESS_EXPECTED_WORKSPACE_ID in the MCP server environment and call sess_response again. Nothing was accepted or changed.',
+          'The answer cannot be verified because no trusted workspace is known. This Sess runtime does not return Sess-Workspace-Id; set SESS_EXPECTED_WORKSPACE_ID in the MCP server environment and call sess_response again. Nothing was accepted or changed.',
         );
       }
       if (verification === 'genuine') {
@@ -384,7 +414,7 @@ export class SessMcpAdapter {
         await this.#block(record, 'VERIFICATION_FAILED', false);
         throw new AdapterError(
           'VERIFICATION_FAILED',
-          'An answer arrived but its SESS receipt did not verify. It was not accepted; the interaction is blocked for owner review.',
+          'An answer arrived but its Sess receipt did not verify. It was not accepted; the interaction is blocked for owner review.',
         );
       }
       if (error instanceof SessError && error.kind === 'aborted')
@@ -453,6 +483,10 @@ export class SessMcpAdapter {
           'This interaction was never confirmed as created. It needs owner resolution and is not retried.',
         );
       case 'blocked':
+        if (record.blockedReason === LINK_EXPIRED) {
+          if (revision !== record.revision) throw this.#revisionMismatch(record);
+          return this.#result(record, 'expired');
+        }
         throw new AdapterError(
           'RECOVERY_BLOCKED',
           `This interaction is blocked (${record.blockedReason ?? 'unknown'}) and needs owner review.`,
@@ -557,6 +591,17 @@ export class SessMcpAdapter {
       }
       return this.#answered(current);
     });
+  }
+
+  /**
+   * The link expired with no answer for this revision: an expected end, not an error. The record
+   * is kept as blocked with reason LINK_EXPIRED (no new state on disk) and reported as `expired`.
+   * Nothing is completed or written on Sess.
+   */
+  async #expire(record: HandleRecord): Promise<AdapterResult> {
+    await this.#block(record, LINK_EXPIRED, false);
+    this.#options.diagnostics('expired', { revision: record.revision });
+    return this.#result(record, 'expired');
   }
 
   #revisionMismatch(record: HandleRecord): AdapterError {
@@ -728,7 +773,7 @@ export class SessMcpAdapter {
       await this.#block(record, reason, false);
       throw new AdapterError(
         'MUTATION_REJECTED',
-        `The SESS client refused to send the saved ${operation} (${reason}). The interaction is blocked for owner review.`,
+        `The Sess client refused to send the saved ${operation} (${reason}). The interaction is blocked for owner review.`,
       );
     }
     if (error instanceof SessError && error.outcome === 'rejected') {
@@ -736,7 +781,7 @@ export class SessMcpAdapter {
       await this.#block(record, reason, false);
       throw new AdapterError(
         'MUTATION_REJECTED',
-        `SESS rejected the ${operation} (${reason}). The interaction is blocked for owner review.`,
+        `Sess rejected the ${operation} (${reason}). The interaction is blocked for owner review.`,
       );
     }
     throw new AdapterError(
@@ -775,7 +820,7 @@ export class SessMcpAdapter {
           this.#options.diagnostics('complete_readback_failed', { code: sessCode(readError) });
           throw new AdapterError(
             'OUTCOME_UNKNOWN',
-            'SESS reports the interaction completed, but it could not be read back to confirm. Repeat the same sess_complete call later.',
+            'Sess reports the interaction completed, but it could not be read back to confirm. Repeat the same sess_complete call later.',
             true,
           );
         }

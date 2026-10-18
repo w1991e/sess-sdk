@@ -11,7 +11,7 @@ durable inbox storage, worker scheduling, business authorization, and side effec
 | -------------------------------------------------- | ------------------------------------------------ |
 | `sess.webhooks.register({ url })`                  | Register or replace the workspace endpoint       |
 | `sess.webhooks.retrieve()`                         | Inspect endpoint and signing-secret metadata     |
-| `sess.webhooks.verifyEndpoint()`                   | Ask SESS to send a signed verification challenge |
+| `sess.webhooks.verifyEndpoint()`                   | Ask Sess to send a signed verification challenge |
 | `sess.webhooks.rotateSecret()`                     | Rotate the workspace signing secret              |
 | `sess.sessions.listDeliveries(sessionId)`          | Inspect delivery state and attempts              |
 | `sess.sessions.redeliverEvent(sessionId, eventId)` | Explicitly request another delivery              |

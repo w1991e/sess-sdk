@@ -35,8 +35,8 @@ const edit = (files: Map<string, string>, path: string, change: (value: any) => 
 };
 
 describe('tool annotation audit', () => {
-  it('matches each tool’s behaviour; schemas stay sess-mcp-tools/2', () => {
-    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/2');
+  it('matches each tool’s behaviour; schemas are sess-mcp-tools/3', () => {
+    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/3');
     const table = Object.fromEntries(TOOLS.map((t) => [t.name, t.annotations]));
     // Creates a Session and a human link: writes, additive, a repeat creates another one.
     expect(table.sess_request).toEqual({
@@ -102,6 +102,45 @@ describe('listing.json artifacts', () => {
     expect(server.name).toBe('io.github.w1991e/sess');
     expect(server.packages[0]).toMatchObject({ identifier: '@sess.si/mcp', transport: { type: 'stdio' } });
     expect(server.remotes).toEqual([{ type: 'streamable-http', url: 'https://mcp.sess.si/mcp' }]);
+  });
+
+  it('server.json names the planned stable release for the server and the npm package, never a prerelease or a tag', () => {
+    const i = inputs();
+    const server = JSON.parse(generate(i).get('server.json')!);
+    expect(i.listing.providers.mcpRegistry.version).toBe('0.1.0');
+    expect(server.version).toBe('0.1.0');
+    expect(server.packages[0].version).toBe('0.1.0');
+    expect(server.description).toBe(
+      'Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.',
+    );
+    // While package.json is a candidate, the stable package is an owner blocker, not an error.
+    expect(check(i).blockers).toContain(
+      'MCP Registry: server.json names @sess.si/mcp@0.1.0; package.json is 0.1.0-rc.2 (publish the stable release first)',
+    );
+    for (const version of ['0.1.0-rc.1', 'next', 'latest', '^0.1.0', '0.1', '']) {
+      const bad = inputs();
+      bad.listing.providers.mcpRegistry.version = version;
+      expect(check(bad).errors, version).toContain(
+        'providers.mcpRegistry.version must be a stable x.y.z version (no prerelease or tag)',
+      );
+    }
+    const other = inputs();
+    other.listing.providers.mcpRegistry.version = '0.2.0';
+    expect(check(other).errors).toContain(
+      'providers.mcpRegistry.version must be the release package.json is (a candidate of)',
+    );
+    const stableManifest = inputs();
+    stableManifest.manifest.version = '0.1.0';
+    expect(check(stableManifest).errors).toEqual([]);
+    expect(check(stableManifest).blockers.some((b) => b.startsWith('MCP Registry: server.json names'))).toBe(
+      false,
+    );
+    const drift = edit(generate(i), 'server.json', (s) => {
+      s.packages[0].version = '0.1.0-rc.1';
+    });
+    expect(check(i, drift).errors).toContain(
+      'server.json and its npm package must name providers.mcpRegistry.version',
+    );
   });
 
   it('a changed tool title or annotation changes the artifacts, so the up-to-date check fails', () => {

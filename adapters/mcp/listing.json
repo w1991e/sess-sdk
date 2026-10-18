@@ -7,15 +7,15 @@
   "copy": {
     "status": "proposed",
     "short": "Ask a person, get the answer",
-    "registry": "Your agent asks a person through a private link and gets back a typed, receipt-verified answer.",
-    "long": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a private link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
+    "registry": "Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.",
+    "long": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
     "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp"],
     "defaultPrompts": [
       "Ask me on my phone which time works for a call tomorrow.",
       "Before you send the report, ask me to approve it.",
       "Ask me three quick questions to plan my weekend."
     ],
-    "releaseNotes": "First release: ask a person through a private link and continue with their receipt-checked answer."
+    "releaseNotes": "First release: ask a person through a Sess link and continue with their receipt-checked answer."
   },
   "publisher": {
     "name": "Sess",
@@ -56,18 +56,18 @@
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
     "status": "unpublished",
-    "note": "@sess.si/mcp is not on npm yet; the stdio entries work only after publication.",
+    "note": "Only the release candidate 0.1.0-rc.1 is on npm (dist-tag next); the stable 0.1.0 that server.json names is not published yet, and the stdio entries work only after it is.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {
         "name": "SESS_API_KEY",
-        "description": "SESS developer API key (owner credential; never a tool argument).",
+        "description": "Sess developer API key (owner credential; never a tool argument).",
         "isRequired": true,
         "isSecret": true
       },
       {
         "name": "SESS_API_ORIGIN",
-        "description": "SESS API origin. HTTPS only; default https://api.sess.si.",
+        "description": "Sess API origin. HTTPS only; default https://api.sess.si.",
         "isRequired": false,
         "isSecret": false,
         "default": "https://api.sess.si"
@@ -123,6 +123,8 @@
     "mcpRegistry": {
       "mapping": 1,
       "output": "server.json",
+      "version": "0.1.0",
+      "versionNote": "The planned stable release. server.json names this version for the server and for the npm package, never a prerelease or a dist-tag; it is published only after @sess.si/mcp 0.1.0 is on npm (dist-tag latest) and https://mcp.sess.si/mcp is read back.",
       "schema": {
         "id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
         "vendored": "listings/schemas/mcp-registry-server-2025-12-11.schema.json",
@@ -167,7 +169,7 @@
             "description": "Ask a short question and read the answer",
             "prompt": "Ask me on my phone which time works for a call tomorrow.",
             "tools": ["sess_ask", "sess_response"],
-            "expected_behavior": "Shares a private link at once. After the reviewer submits the form, reports the chosen time."
+            "expected_behavior": "Shares a Sess link at once. After the reviewer submits the form, reports the chosen time."
           },
           {
             "description": "Ask for an approval before acting",

@@ -1,19 +1,22 @@
-# SESS for OpenClaw
+# Sess for OpenClaw
 
-SESS for OpenClaw, maintained by SESS. It is not an official OpenClaw plugin.
+Sess for OpenClaw, maintained by Sess. It is not an official OpenClaw plugin.
 
-An OpenClaw agent asks a person for a structured decision. SESS hosts the form behind a private
+An OpenClaw agent asks a person for a structured decision. Sess hosts the form behind a private
 link, the person answers on any device, and the agent receives the answer only after the SDK has
 verified its signed receipt for that exact revision.
 
-> **Status: release candidate in qualification.** `0.1.0-rc.1` is not published yet. It depends on
-> `@sess.si/sdk@0.1.0-rc.5`, published on npm under the `next` dist-tag. Qualified host: OpenClaw
-> `2026.10.3` on Node 24. See [compatibility.json](compatibility.json) for exactly what was tested.
+> **Status: release candidate in qualification.** Release candidates such as `0.1.0-rc.1` are
+> published only under the npm dist-tag `next`, after a maintainer approves the publication with
+> npm 2FA. Do not install the bare name: its `latest` dist-tag points at a `0.0.0-stage`
+> placeholder, not at a release. The candidate depends on `@sess.si/sdk@0.1.0-rc.5`, published
+> on npm under the `next` dist-tag. Qualified host: OpenClaw `2026.10.3` on Node 24. See
+> [compatibility.json](compatibility.json) for exactly what was tested.
 
 ## Prerequisites
 
 - A running OpenClaw `2026.10.3` Gateway with configured model access.
-- A SESS API key, made available to the **Gateway process** as an environment variable (for
+- A Sess API key, made available to the **Gateway process** as an environment variable (for
   example in `$OPENCLAW_STATE_DIR/.env`). A key exported only in your interactive shell does not
   reach a running daemon. Never paste the key into chat or into plugin config.
 
@@ -46,14 +49,14 @@ Configuration (`plugins.entries.sess.config`), all owner-controlled and never ta
 
 | Key                   | Default               | Meaning                                                  |
 | --------------------- | --------------------- | -------------------------------------------------------- |
-| `baseUrl`             | `https://api.sess.si` | SESS API origin (HTTPS only)                             |
+| `baseUrl`             | `https://api.sess.si` | Sess API origin (HTTPS only)                             |
 | `apiKeyEnv`           | `SESS_API_KEY`        | Name of the Gateway environment variable holding the key |
 | `waitBudgetMs`        | `45000`               | Longest single bounded wait (1000 to 120000)             |
 | `receiptIssuer`       | API origin            | Expected receipt issuer                                  |
 | `expectedWorkspaceId` | from the API          | Trusted workspace for receipt verification               |
 
 `openclaw sess doctor` checks configuration, the host version and host capability without
-contacting SESS and without printing secrets.
+contacting Sess and without printing secrets.
 
 ## Support status
 
@@ -65,14 +68,14 @@ contacting SESS and without printing secrets.
 | Shared or group conversations                               | Not supported                                               |
 
 Agent-turn qualification (OpenClaw 2026.10.3, `anthropic/claude-sonnet-5-5`, Code Mode,
-2026-10-14): the private link was observed in the conversation (via `chat.history`) while the wait
+2026-10-14): the Sess link was observed in the conversation (via `chat.history`) while the wait
 was still blocking, a verified answer came back both during a live wait and in a later normal chat
 turn, `openclaw sess setup` exposed the tools to the model through `tools.alsoAllow`, and two
 simultaneous conversations stayed isolated. These turns used `sess_request` and `sess_response`
 only; `sess_publish` and `sess_complete` are qualified on direct invoke, not in a model-driven turn.
 **Limitation:** on this host `/new` keeps the conversation's session ID, so a reset does **not**
-make an earlier SESS handle unusable in that conversation (reset isolation fails). Treat a reset as the same
-conversation for SESS purposes. In Code Mode the model awaits a long `sess_response` with the host
+make an earlier Sess handle unusable in that conversation (reset isolation fails). Treat a reset as the same
+conversation for Sess purposes. In Code Mode the model awaits a long `sess_response` with the host
 `wait` tool, which adds small model calls during a wait; the plugin itself never polls. Full record
 in [compatibility.json](compatibility.json).
 
@@ -88,24 +91,30 @@ loads, and it has no programmatic API.
 **Qualification status.** See [Support status](#support-status): the whole flow is qualified for
 direct invoke. In model-driven turns in a dashboard (Control UI) conversation, only steps 1 and 2
 are qualified (request, a live wait, and continuation in a later turn); the link was observed via
-`chat.history` while the same turn was still waiting. Steps 3 (`sess_publish`, `sess_complete`)
-were not exercised in a model-driven turn, and reset isolation fails. It is not qualified
-on messaging channels.
+`chat.history` while the same turn was still waiting. Step 3 (`sess_complete`) was not exercised
+in a model-driven turn, and reset isolation fails. It is not qualified on messaging channels.
 
-Ask: _"Use SESS to ask me which afternoon activity I prefer and how much time I have. Then
-propose a plan from my answer. Use illustrative conditions, not a live forecast."_
+Paste or forward a real message of your own that needs a reply into your dashboard conversation,
+then ask: _"Draft a reply to this message. Before it goes anywhere, use Sess to show me the draft
+so I can edit it, approve it or stop."_
 
-1. `sess_request` returns a handle, revision 1 and a private `humanUrl` **immediately**. The
-   agent presents the link. It should start a bounded wait only when the link has visibly
-   reached you; otherwise it ends its turn and you ask it to continue after submitting.
-2. `sess_response` reads, or waits up to the configured budget for, your answer to that
-   revision. Once you have submitted, it returns `answered` with `verified: true` and
-   `actorAssurance: "link_holder"`.
-3. `sess_publish` puts the proposed plan on the same link as revision 2 (reload the link to see
-   it), and `sess_complete` closes the interaction once you confirm.
+1. `sess_request` returns a handle, revision 1 and a private `humanUrl` **immediately**. The form
+   shows your message and the drafted reply in a field you can edit, with approve and stop. The
+   agent presents the link. It should start a bounded wait only when the link has visibly reached
+   you; otherwise it ends its turn and you ask it to continue after answering.
+2. `sess_response` reads, or waits up to the configured budget for, your answer to that revision.
+   Once you have approved (with or without edits) or stopped, it returns `answered` with
+   `verified: true` and `actorAssurance: "link_holder"`. The agent continues only on that verified
+   answer: it uses the reply exactly as you approved it, or goes no further if you stopped.
+3. `sess_complete` closes the interaction.
 
-If the wait ends first the result is `needs_resume`: the form stays open. Submit it, then ask the
-agent to continue the same SESS interaction. The agent is not woken up automatically.
+The plugin ships no sample message; the message is always yours. It and the draft become part of
+that Sess interaction. For illustration only, a synthetic sample: the message _"Hi! Can we move
+Thursday's call to Friday at 10?"_ and the draft _"Friday at 10 works for me. I'll send an updated
+invite."_
+
+If the wait ends first the result is `needs_resume`: the form stays open. Answer it, then ask the
+agent to continue the same Sess interaction. The agent is not woken up automatically.
 
 ## What you can rely on
 
@@ -116,12 +125,12 @@ agent to continue the same SESS interaction. The agent is not woken up automatic
   IDs. Rejection after a session reset **fails** on OpenClaw 2026.10.3: `/new` and
   `sessions.reset` keep the session ID even for a conversation with a transcript (only a
   lifecycle revision that tools cannot see changes), and the old handle was still accepted after
-  `/new`. A reset does not isolate pending SESS work; treat it as the same conversation.
+  `/new`. A reset does not isolate pending Sess work; treat it as the same conversation.
 - Every request re-checks the host's live invocation authority before it is sent, including
   retries. Interaction state is kept in OpenClaw's durable plugin state before any write.
 - A lost create is never retried automatically; a lost publish/complete is replayed only with
   its saved request, `If-Match` and idempotency key.
-- The private link is a bearer capability: anyone holding it can answer. It is not logged.
+- The Sess link is a bearer capability: anyone holding it can answer. It is not logged.
   Do not use these tools in shared or group conversations.
 
 ## Errors
@@ -138,13 +147,13 @@ one class of the shared adapter contract:
 | `CREATE_OUTCOME_UNKNOWN`   | `create_unknown`      | A Session may exist; never created again automatically                 |
 | `CREATED_NOT_SAVED`        | `created_not_saved`   | A Session was created but not saved locally; do not repeat the request |
 | `MUTATION_OUTCOME_UNKNOWN` | `outcome_unknown`     | Retryable: repeat the same call to replay the saved request            |
-| `MUTATION_REJECTED`        | `mutation_rejected`   | SESS rejected the saved publish/complete; the interaction is blocked   |
+| `MUTATION_REJECTED`        | `mutation_rejected`   | Sess rejected the saved publish/complete; the interaction is blocked   |
 | `VERIFICATION_FAILED`      | `verification_failed` | The answer failed receipt verification; the interaction is blocked     |
 | `RECOVERY_BLOCKED`         | `blocked`             | Needs explicit operator resolution                                     |
-| `UNAVAILABLE`              | `unavailable`         | Retryable: SESS or receipt keys unreachable; nothing changed           |
-| `CANCELLED`                | `unavailable`         | The local wait was cancelled; nothing was cancelled in SESS            |
+| `UNAVAILABLE`              | `unavailable`         | Retryable: Sess or receipt keys unreachable; nothing changed           |
+| `CANCELLED`                | `unavailable`         | The local wait was cancelled; nothing was cancelled in Sess            |
 | `AUTHORITY_REVOKED`        | `unavailable`         | The host revoked this invocation; see the note below                   |
-| `PROTOCOL_ERROR`           | `configuration`       | SESS returned an invalid response; not retryable, nothing changed      |
+| `PROTOCOL_ERROR`           | `configuration`       | Sess returned an invalid response; not retryable, nothing changed      |
 | `CONFIGURATION`            | `configuration`       | Plugin configuration is invalid or incomplete                          |
 | `CREDENTIAL_MISSING`       | `configuration`       | The API key variable is not set in the Gateway process                 |
 | `HOST_CAPABILITY_MISSING`  | `configuration`       | The OpenClaw host lacks a required capability                          |
@@ -174,7 +183,7 @@ Interaction state lives in OpenClaw's plugin state, in three namespaces:
 
 `openclaw sess doctor` prints redacted counts per namespace and state. `openclaw sess prune` refuses
 to run until the upgrade has finished. `openclaw sess prune` is a
-dry run by default; `openclaw sess prune --apply` removes only the retained human link from
+dry run by default; `openclaw sess prune --apply` removes only the retained Sess link from
 completed or blocked records. Claims, identities and every non-terminal record are never changed,
 and a redelivered terminal call still reports its terminal result.
 

@@ -6,15 +6,22 @@ import { ENV } from '../src/config.js';
 const read = (name: string) => JSON.parse(readFileSync(join(import.meta.dirname, '..', name), 'utf8'));
 const manifest = read('package.json');
 const server = read('server.json');
+const listing = read('listing.json');
+/** The planned stable release the registry entry names (never a prerelease or a dist-tag). */
+const stable = listing.providers.mcpRegistry.version as string;
 
 describe('MCP registry metadata (server.json, schema 2025-12-11)', () => {
-  it('names the published package and version, and proves ownership through mcpName', () => {
+  it('names the package at its stable release, and proves ownership through mcpName', () => {
     expect(server.$schema).toBe(
       'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json',
     );
     expect(server.name).toMatch(/^[a-zA-Z0-9.-]+\/[a-zA-Z0-9._-]+$/);
     expect(manifest.mcpName).toBe(server.name);
-    expect(server.version).toBe(manifest.version);
+    expect(stable).toMatch(/^\d+\.\d+\.\d+$/);
+    // package.json is that release or a candidate of it (0.1.0-rc.1 -> 0.1.0).
+    expect(manifest.version.split('-')[0]).toBe(stable);
+    expect(server.version).toBe(stable);
+    expect(JSON.stringify(server)).not.toMatch(/-rc\.|"next"|@next/);
     expect(server.description.length).toBeGreaterThan(0);
     expect(server.description.length).toBeLessThanOrEqual(100);
     expect(server.repository).toEqual({
@@ -27,7 +34,7 @@ describe('MCP registry metadata (server.json, schema 2025-12-11)', () => {
       registryType: 'npm',
       registryBaseUrl: 'https://registry.npmjs.org',
       identifier: manifest.name,
-      version: manifest.version,
+      version: stable,
       runtimeHint: 'npx',
       transport: { type: 'stdio' },
     });

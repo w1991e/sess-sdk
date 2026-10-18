@@ -1,8 +1,8 @@
-# SESS SDK
+# Sess SDK
 
 Ask a person a question from your server and continue with their verified answer. `@sess.si/sdk`
-creates a hosted SESS page, waits for the answer on the exact Surface revision, verifies its signed
-receipt, and continues the same Session.
+creates a hosted Sess page, waits for the answer, checks its signed receipt and continues the same
+Session.
 
 **Install** from npm:
 
@@ -13,19 +13,54 @@ npm install --save-exact @sess.si/sdk@next
 **Run** the [plain-Node quickstart](examples/quickstart-node/README.md), a complete program that
 needs only `SESS_API_KEY`.
 
-**What you'll see:** a private human link, printed before the program starts waiting. Open it on any
+**What you'll see:** a Sess link, printed before the program starts waiting. Open it on any
 device and answer; the program prints the verified answer and completes the Session.
+
+## Ask a person
+
+Use a developer API key from [the Sess developer portal](https://app.sess.si). Keep it on the server.
+The [hosted no-signup demo](https://sess.si) is a separate trial flow; a Sess link or trial credential
+is not an owner API key. You need no LLM, agent framework, Docker or Sess source checkout.
+
+<!-- example:ask -->
+
+```ts
+import { Sess } from '@sess.si/sdk';
+const sess = new Sess({ apiKey: process.env.SESS_API_KEY });
+const question = await sess.ask({
+  question: 'Approve the synthetic refund?',
+  fields: [
+    { name: 'approved', label: 'Approve it', type: 'boolean' },
+    { name: 'amount', label: 'Refund amount', type: 'number', minimum: 0 },
+  ],
+});
+console.log(`Send this Sess link to the person: ${question.link}`);
+const { approved, amount } = await question.answer(); // verified; the Session is now complete
+if (approved) console.log(`Refund of ${amount.toFixed(2)} approved.`);
+```
+
+<!-- /example:ask -->
+
+`sess.ask()` checks the question locally, creates the Session once and returns its Sess link
+before anything waits. The link is a bearer capability: deliver it only to the person, never to
+logs or analytics. `answer()` waits for the person (ten minutes by default), verifies the signed
+receipt against the exact question, checks that the answer is still the current step, completes the
+Session and returns the values typed from your fields. Completion closes the Session: the link no
+longer accepts answers. Field types are `text`, `number`, `integer`, `boolean`, `choice` and
+`multi_choice` ([API reference](docs/api.md#ask-one-question)).
+
+If the wait times out (`wait_ended`, code `WAIT_TIMEOUT`) or you abort it, nothing changes remotely:
+call `answer()` again on the same handle. An error with `outcome: "unknown"` means completion is not
+confirmed; calling `answer()` again replays the same completion. The handle lives in memory only. To
+resume after a restart, persist `sessionId` and `revision` and continue with the API below
+([Integration](docs/integration.md#one-question-with-sessask)).
 
 **Release status:** every SDK release so far is a `0.1.0` release candidate, served under the `next`
 dist-tag. There is no stable release yet: do not install the bare name, whose `latest` tag points at a
 deprecated `0.0.0-stage` placeholder. The [changelog](CHANGELOG.md) describes each version;
 `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
 
-## Create and verify an interaction
-
-Use a developer API key from [the SESS developer portal](https://app.sess.si). Keep it on the server.
-The [hosted no-signup demo](https://sess.si) is a separate trial flow; a human link or trial credential
-is not an owner API key. No LLM, agent framework, Docker or SESS source checkout is needed by consumers.
+## Advanced: the full Surface API
 
 <!-- example:quickstart -->
 
@@ -72,11 +107,10 @@ if (typeof amount !== 'number' || !Number.isFinite(amount)) {
 
 <!-- /example:quickstart -->
 
-Full verification needs a trusted workspace audience. A runtime supporting the authenticated
-`Sess-Workspace-Id` header supplies it. On an older runtime, configure `expectedWorkspaceId` from
-trusted deployment settings. Otherwise verification fails with `VERIFICATION_CONTEXT_MISSING`;
-the SDK never learns a trusted audience from the unverified receipt. The runtime companion change
-is under review and is not a claim about the currently deployed service.
+Verification checks that the receipt was issued for your workspace. Sess names your workspace on
+authenticated responses (the `Sess-Workspace-Id` header), so you set nothing. If a runtime does not
+send it, set `expectedWorkspaceId` from trusted deployment settings; otherwise verification fails
+with `VERIFICATION_CONTEXT_MISSING`. The SDK never takes the workspace from the unverified receipt.
 
 The [quickstart function](examples/quickstart.ts) includes a private delivery callback.
 [Three-round continuation](examples/multi-round.ts) persists mutation intent and checks that an
@@ -101,6 +135,27 @@ and the first reason. Exit status is 0 valid, 1 invalid, 2 usage error; add `--j
 result. Nothing is sent anywhere. In code, use `verifyDecisionBundle` from `@sess.si/sdk/receipts`
 ([Security](docs/security.md#decision-bundles)). Formats: [receipt-v1](docs/spec/receipt-v1.md) and
 [bundle-v1](docs/spec/bundle-v1.md).
+
+## Show the link as a QR code
+
+When the person is at a laptop and would answer on their phone, draw the link as a QR code, locally,
+with no network call:
+
+```ts
+import { printQr, qr } from '@sess.si/sdk/qr';
+
+const link = 'https://sess.si/s/synthetic-link'; // the link sess.ask() returned
+console.log(link);
+printQr(link); // prints "Scan to answer on your phone" and the code, on an interactive terminal only
+const svg = qr(link, { format: 'svg' }); // also 'png' (bytes) and 'terminal' (text)
+```
+
+Use it where a person sees a screen but not their phone: a desktop chat window, a dashboard, a kiosk,
+print. Skip it in SMS, or when the person is already on their phone. Sess never shows or sends the
+code; your agent chooses. `printQr` prints nothing without a TTY, in CI (`CI` set), in production
+(`NODE_ENV=production`), with `--no-qr` or with `{ qr: false }`, and draws without colour under
+`NO_COLOR`. The code is the private link in another form: keep it wherever you keep the link, and
+never in logs, analytics or a URL.
 
 ## Check an archival envelope (not yet released)
 
@@ -128,7 +183,7 @@ TypeScript consumer declarations target 5.9 and current stable. JavaScript consu
 The package contains one ESM build. CommonJS applications use `await import('@sess.si/sdk')`, as in the
 [CommonJS example](examples/commonjs.cjs); synchronous `require` is not a supported contract.
 
-Entry points are `@sess.si/sdk`, `@sess.si/sdk/receipts` and `@sess.si/sdk/webhooks` (and, not yet released,
+Entry points are `@sess.si/sdk`, `@sess.si/sdk/receipts`, `@sess.si/sdk/webhooks` and `@sess.si/sdk/qr` (and, not yet released,
 `@sess.si/sdk/archival`). Importing or constructing
 the SDK does not contact a service, start a server, read credential files or log data.
 
@@ -166,11 +221,9 @@ contract is served at [OpenAPI](https://api.sess.si/openapi.json).
 - [Integration](docs/integration.md): authoring, lifecycle, validation, durability and future boundaries.
 - [Security](docs/security.md) and [receipt example](examples/receipt-verification.ts).
 - [Webhooks](docs/webhooks.md) and [Node receiver with a durable-inbox boundary](examples/webhook-receiver.ts).
-- [Compatibility](docs/compatibility.md), [testbed migration](docs/migration.md) and [release runbook](docs/releasing.md).
+- [Compatibility](docs/compatibility.md), [migrating to the registry package](docs/migration.md) and [release runbook](docs/releasing.md).
 - [Plain-Node quickstart](examples/quickstart-node/README.md): a complete program, from the first call to the verified answer.
 
-The present runtime can require manual browser refresh between rounds. Owner polling in this
-SDK does not change that browser behavior. Appearance configuration and front-door invocation
-helpers remain conditional future work, with no placeholder exports.
+Sess renders the page the person sees; this SDK has no appearance settings.
 
 [Contribute](CONTRIBUTING.md) · [Security reporting](SECURITY.md) · [Apache-2.0](LICENSE)

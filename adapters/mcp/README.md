@@ -1,27 +1,29 @@
-# SESS MCP server (`@sess.si/mcp`)
+# Sess MCP server (`@sess.si/mcp`)
 
 A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent ask a person through
-a hosted SESS form and receive a receipt-verified answer. The agent gets the private link
+a hosted Sess form and receive a receipt-verified answer. The agent gets the Sess link
 immediately, the person answers on any device, and the agent continues on the same Session.
 
-**Candidate status:** `@sess.si/mcp@0.1.0-rc.1` is **not published yet**, so
-`npm install @sess.si/mcp` and `npx @sess.si/mcp` do **not** work yet. Its SDK dependency,
-`@sess.si/sdk@0.1.0-rc.5`, is published on npm (dist-tag `next`) and installs from the registry. Everything below marked
-_tested_ was run from a packed, installed tarball; everything marked _untested_ is the intended
-form after publication. See [compatibility.json](compatibility.json) for the exact tuple.
+**Candidate status:** `@sess.si/mcp@0.1.0-rc.2` is a release candidate. Release candidates are
+published only under the npm dist-tag `next`, after a maintainer approves the publication with npm
+2FA. Do not install the bare name: its `latest` dist-tag points at a `0.0.0-stage` placeholder,
+not at a release. Its SDK dependency, `@sess.si/sdk@0.1.0-rc.5`, is published on npm (dist-tag
+`next`) and installs from the registry. Everything below marked _tested_ was run from a packed,
+installed tarball; everything marked _untested_ is the intended registry form. See
+[compatibility.json](compatibility.json) for the exact tuple.
 
 ## Set up with Claude Code (connection tested) or Cursor (untested)
 
-You need Node 22.14 or later on 22.x, or Node 24 (qualified on 22.14.0 and 24.21.0), and a SESS
-developer API key from [the SESS developer portal](https://app.sess.si). Never paste the key into
+You need Node 22.14 or later on 22.x, or Node 24 (qualified on 22.14.0 and 24.21.0), and a Sess
+developer API key from [the Sess developer portal](https://app.sess.si). Never paste the key into
 a chat or a tool argument, and never commit it.
 
 ### Claude Code
 
 Tested with Claude Code 2.1.299 on Linux (Node 24.21.0), using `claude mcp add --scope local`
-and `claude mcp list`, which showed `✔ Connected`. No model call was made. Because the package is
-not on the registry yet, the tests ran from a project directory where the packed tarballs were
-installed, so `npx --no-install sess-mcp` resolved the installed bin.
+and `claude mcp list`, which showed `✔ Connected`. No model call was made. Because the package was
+not on the registry when tested, the tests ran from a project directory where the packed tarballs
+were installed, so `npx --no-install sess-mcp` resolved the installed bin.
 
 **Preferred: keep the key in your environment.** Export it in the shell that starts Claude Code.
 In the test, a key exported this way reached the server process and was not written to Claude
@@ -48,7 +50,7 @@ After publication, the intended form is _untested_:
 claude mcp add --scope local sess -- npx -y @sess.si/mcp@<version>
 ```
 
-Not yet tested: the registry `npx -y @sess.si/mcp@<version>` form (the package is unpublished),
+Not yet tested: the registry `npx -y @sess.si/mcp@<version>` form,
 environment inheritance when an interactive Claude Code session starts the server (it was observed
 for the `claude mcp list` health check), and a model-driven round through Claude Code.
 Enterprise-managed Claude Code installations may forbid adding MCP servers
@@ -70,22 +72,68 @@ _Untested._ Cursor reads `.cursor/mcp.json` (project) or `~/.cursor/mcp.json`:
 }
 ```
 
-### First interaction
+### First interaction: approve before acting
 
-Ask your agent something like: "Use SESS to ask me what I want to do this afternoon." It calls
-`sess_request`, shows you a private link, then calls `sess_response`. Open the link, submit the
-form, and the agent receives your verified answer. If you are slower than its 45-second wait, it
-tells you the form is still open; submit it and ask the agent to continue.
+Have your agent check with you before it commits a change or sends a reply. Ask it something like:
 
-## Tools (`sess-mcp-tools/2`)
+> "Before you commit, use Sess to show me what changed and the commit message. Wait for my
+> approval and commit with the message I approve."
 
-| Tool            | Input                                                             | Result `interaction.state`                         |
-| --------------- | ----------------------------------------------------------------- | -------------------------------------------------- |
-| `sess_request`  | `interaction`                                                     | `waiting`, with `humanUrl`                         |
-| `sess_response` | `handle`, `revision`, optional `wait_ms` (0–45000)                | `waiting`, `needs_resume`, `answered`, `completed` |
-| `sess_publish`  | `handle`, `expected_revision`, `response_event_id`, `interaction` | `waiting` at the next revision                     |
-| `sess_complete` | `handle`, `expected_revision`, `response_event_id`                | `completed`                                        |
-| `sess_ask`      | `question`, `fields` (1–12), optional `details`, `submit_label`   | `waiting`, with `humanUrl`                         |
+The agent calls `sess_request` and shows you a Sess link at once. Open it on your phone. You
+see what changed, and the proposed message in a field you can edit. Change a line if you like, then
+approve, or stop. The agent waits with `sess_response` and continues only on the verified answer:
+it commits with the message you approved, or does nothing if you stopped. If you are slower than
+its 45-second wait, it tells you the form is still open; answer it and ask the agent to continue.
+
+The same works for a reply: "Before you send this reply, use Sess to show me the draft so I can
+edit and approve it."
+
+A synthetic sample of what the agent sends (sample content, not from a real repository):
+
+```json
+{
+  "mode": "interactive",
+  "title": "Approve this commit?",
+  "source": {
+    "kind": "sess_surface",
+    "components": [
+      {
+        "type": "record",
+        "label": "What changed (sample)",
+        "fields": {
+          "src/greeting.js": "Greeting now uses the user's first name",
+          "test/greeting.test.js": "One new test for the first-name greeting"
+        }
+      },
+      {
+        "type": "field",
+        "name": "message",
+        "label": "Commit message",
+        "multiline": true,
+        "schema": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "value": "Greet users by first name\n\nAdds a test for the new greeting."
+      }
+    ]
+  },
+  "actions": [
+    { "id": "approve", "label": "Approve and commit", "intent": "approve" },
+    { "id": "stop", "label": "Stop", "intent": "reject" }
+  ]
+}
+```
+
+Text blocks are shown as plain paragraphs, so send a summary of the change rather than a raw diff;
+line breaks are kept in multiline fields.
+
+## Tools (`sess-mcp-tools/3`)
+
+| Tool            | Input                                                                         | Result `interaction.state`                                    |
+| --------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `sess_request`  | `interaction`, optional `expires_in`                                          | `waiting`, with `humanUrl` and `expiresAt`                    |
+| `sess_response` | `handle`, `revision`, optional `wait_ms` (0–45000)                            | `waiting`, `needs_resume`, `answered`, `completed`, `expired` |
+| `sess_publish`  | `handle`, `expected_revision`, `response_event_id`, `interaction`             | `waiting` at the next revision                                |
+| `sess_complete` | `handle`, `expected_revision`, `response_event_id`                            | `completed`                                                   |
+| `sess_ask`      | `question`, `fields` (1–12), optional `details`, `submit_label`, `expires_in` | `waiting`, with `humanUrl` and `expiresAt`                    |
 
 `sess_ask` is a shortcut for `sess_request`: it turns a question and up to 12 simple fields
 (`text`, `number`, `integer`, `boolean`, `choice`, `multi_choice`) into an ordinary interaction,
@@ -93,9 +141,15 @@ checks it with the same rules and limits, and runs the same request operation. I
 one Session, returns the link and handle at once, never waits and never returns an answer. Continue
 with `sess_response`, `sess_publish` and `sess_complete` as usual.
 
+Advanced: `expires_in` sets how long the link stays open, in whole seconds from creation: from 30
+up to your plan's link lifetime (Sess checks the ceiling). The result's `expiresAt` is when the link
+stops taking answers; nothing moves it. `sess_response` reports `expired` once the link has closed
+with no answer: it is final, and nothing was completed. An answer accepted before the expiry is
+still returned as `answered`.
+
 Input schemas are closed: unknown properties, unsafe keys (`__proto__`, `constructor`,
 `prototype`), more than 8 levels of nesting, an interaction over 32 KiB, more than 24 fields or 5
-actions are rejected, never truncated. `interaction` is the SESS interactive Surface used by
+actions are rejected, never truncated. `interaction` is the Sess interactive Surface used by
 `@sess.si/sdk` (`heading`, `text`, `record` and `field` components). Tools never accept an API
 origin, key, workspace, Session ID or callback URL.
 
@@ -173,7 +227,7 @@ blocks like a definitive rejection.
   for your own private client. Handles are bound to the profile, API origin and a credential
   generation (a keyed digest stored per profile; the key itself is never written). A handle from
   another profile, origin or key is rejected.
-- **The human link is a bearer capability.** It is returned only by `sess_request` (or its shortcut `sess_ask`), to your private
+- **The Sess link is a bearer capability.** It is returned only by `sess_request` (or its shortcut `sess_ask`), to your private
   client. It is never written to stderr diagnostics, which carry only fixed event names and codes.
   Anyone with the link can answer as `link_holder`.
 - **Durable local records.** Each handle has a file (mode 0600) written by temp file, fsync, rename
@@ -195,9 +249,9 @@ blocks like a definitive rejection.
   elicitation, resources or prompts (the HTTP composition below is a library for a hosting
   runtime, not a runnable server). One server process per profile is supported; concurrent processes on the
   same profile are not coordinated. Rotating the key makes earlier handles unusable
-  (`BINDING_MISMATCH`). The browser may still need a manual refresh between rounds.
+  (`BINDING_MISMATCH`).
 - **Receipt-key rotation window.** The SDK refreshes its cached receipt key set at most once per
-  10 seconds. If SESS starts signing with a new key and an answer signed with it is verified
+  10 seconds. If Sess starts signing with a new key and an answer signed with it is verified
   within 10 seconds of this server's previous key-set fetch, the SDK reports `UNKNOWN_KEY_ID`, and
   the interaction is blocked (`VERIFICATION_FAILED`) even though the answer may be valid. Use the
   owner procedure below; fixing this needs an SDK change.
@@ -215,10 +269,10 @@ The hosting runtime supplies the authority; this package never decides it:
 
 - `authenticate(request)` (required) sees the method, URL and headers, verifies the request's
   credentials and returns a principal context: `workspaceId`, `principalId`, `clientId`,
-  `grantId`, `grantGeneration`, `scopes` and a `credential()` provider for SESS API calls. If it
+  `grantId`, `grantGeneration`, `scopes` and a `credential()` provider for Sess API calls. If it
   returns nothing, the answer is `401` with `WWW-Authenticate: Bearer resource_metadata="…"`; a
   principal without every `requiredScopes` entry gets `403 insufficient_scope`. The handler
-  never derives `authInfo` from headers and never sends the MCP bearer token to SESS or to a tool.
+  never derives `authInfo` from headers and never sends the MCP bearer token to Sess or to a tool.
 - `handleStore(binding, principal)` (required) returns a handle store bound to that authority.
   Handles are bound to origin, workspace, principal, client, grant and grant generation: another
   principal, host or workspace gets `HANDLE_NOT_FOUND`; a revoked or re-issued grant (new
@@ -241,7 +295,7 @@ the handler. A body that has not arrived by then gets `408` and reading stops (t
 closes the connection); an `authenticate` hook that has not answered gets `503`. During tool
 execution the same deadline ends an in-flight `sess_response` wait as `needs_resume`; a create,
 publish or complete already sent is never abandoned mid-flight. The timer is cleared when the
-response completes or fails, or when the client disconnects. The human link is returned to the
+response completes or fails, or when the client disconnects. The Sess link is returned to the
 agent in the tool result exactly as over stdio and never appears in diagnostics.
 
 ## Resolving a blocked or unconfirmed interaction (owner procedure)
@@ -250,11 +304,11 @@ The tool error names the state (`RECOVERY_BLOCKED` with a reason, `CREATE_OUTCOM
 `CREATED_NOT_SAVED`). The server never repairs these records itself.
 
 1. Find the record: `<state dir>/profiles/<profile>/handles/<handle>.json`. It can contain the
-   private human link and answer data; do not paste it into chats or issues.
-2. Check the Session in SESS (developer portal or an owner API read using `sessionId` from the
+   Sess link and answer data; do not paste it into chats or issues.
+2. Check the Session in Sess (developer portal or an owner API read using `sessionId` from the
    record, when present). For `create_intent`/`create_unknown`/`CREATED_NOT_SAVED`, look for a
    Session created at that time before asking the agent to create another one.
-3. Decide in SESS what should happen to the Session, then remove the local record file to retire
+3. Decide in Sess what should happen to the Session, then remove the local record file to retire
    the handle. Keep a private copy if you need the evidence. There is no command that resumes a
    blocked handle in this version; start a new interaction with `sess_request` if needed.
 
@@ -300,7 +354,7 @@ published tarball again and compares its SHA-256 with the pin, and records the p
 `compatibility.json`. It refuses any other bytes. Review and commit the lockfile change.
 
 `npm run runtime-round` (opt-in, `SESS_MCP_RUNTIME_ROUND=1`) drives the packed, installed server
-through one request → answer → complete round against a local isolated SESS runtime. It is not run
+through one request → answer → complete round against a local isolated Sess runtime. It is not run
 in public CI because the runtime is private. `npm run qualify:claude-code` checks that Claude Code
 connects and lists the tools without any model call, using a temporary config directory.
 

@@ -1,8 +1,8 @@
 {
   "name": "@sess.si/mcp",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0-rc.2",
   "mcpName": "io.github.w1991e/sess",
-  "description": "Local stdio MCP server that lets an agent ask a person through a hosted SESS form and receive a receipt-verified answer.",
+  "description": "Local stdio MCP server that lets an agent ask a person through a hosted Sess form and receive a receipt-verified answer.",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -13,7 +13,18 @@
   "bugs": {
     "url": "https://github.com/w1991e/sess-sdk/issues"
   },
-  "homepage": "https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp#readme",
+  "homepage": "https://sess.si",
+  "keywords": [
+    "sess",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "ai-agents",
+    "human-in-the-loop",
+    "approval",
+    "signed-receipts",
+    "agent-tools"
+  ],
   "engines": {
     "node": ">=22.14.0 <25"
   },

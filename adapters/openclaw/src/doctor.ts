@@ -15,7 +15,7 @@ export function doctorReport(
   env: Readonly<Record<string, string | undefined>>,
   hostVersion?: string,
 ): string {
-  const lines = [`SESS for OpenClaw ${PLUGIN_VERSION} (qualified host: OpenClaw ${QUALIFIED_HOST})`];
+  const lines = [`Sess for OpenClaw ${PLUGIN_VERSION} (qualified host: OpenClaw ${QUALIFIED_HOST})`];
   if (typeof hostVersion === 'string')
     lines.push(
       hostVersion === QUALIFIED_HOST
@@ -24,7 +24,7 @@ export function doctorReport(
     );
   try {
     const config = parseConfig(rawConfig);
-    lines.push(`config: valid; SESS origin ${config.baseUrl}; wait budget ${config.waitBudgetMs} ms`);
+    lines.push(`config: valid; Sess origin ${config.baseUrl}; wait budget ${config.waitBudgetMs} ms`);
     if (config.allowInsecureLocalhost) lines.push('warning: allowInsecureLocalhost is a test-only setting');
     const present = typeof env[config.apiKeyEnv] === 'string' && env[config.apiKeyEnv]!.length > 0;
     lines.push(
@@ -61,8 +61,8 @@ export function formatCounts(counts: StateCounts): string {
 
 export function formatPrune(report: PruneReport, applied: boolean): string {
   return applied
-    ? `prune: compacted ${report.compacted} of ${report.eligible} terminal records (removed retained human links); conflicts ${report.conflicts}; replay tombstones untouched`
-    : `prune (dry run): ${report.eligible} terminal records hold a retained human link; rerun with --apply to remove only those links`;
+    ? `prune: compacted ${report.compacted} of ${report.eligible} terminal records (removed retained Sess links); conflicts ${report.conflicts}; replay tombstones untouched`
+    : `prune (dry run): ${report.eligible} terminal records hold a retained Sess link; rerun with --apply to remove only those links`;
 }
 
 export function formatRetire(report: RetireReport, days: number, applied: boolean): string {

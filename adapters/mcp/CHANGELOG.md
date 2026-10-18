@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.0-rc.2 (candidate, unpublished)
+
+- Tool schemas `sess-mcp-tools/3`. Advanced: `sess_request` and `sess_ask` take an optional
+  `expires_in` (whole seconds from creation, from 30 up to the plan's link lifetime; the same name
+  and range as the Sess API). Their result carries `expiresAt`, when the link stops taking answers.
+- `sess_response` reports the final state `expired` when the link closed with no answer for the
+  revision: from the SDK wait's `LINK_EXPIRED`, or from a read made two seconds past the expiry. An
+  answer accepted before the expiry is still released as `answered`. Nothing is completed or
+  written on Sess; the local record is kept as blocked with reason `LINK_EXPIRED` (the record
+  schema is unchanged).
+- Requires `@sess.si/sdk` 0.1.0-rc.7 for the wait's `LINK_EXPIRED`; the dependency moves to it when
+  rc.7 is published.
+- README "First interaction" now shows approving before acting: the agent asks you, on any device,
+  to approve a commit (or a reply) before it acts, with the proposed message in a field you can
+  edit, and continues only on the verified answer. It includes a synthetic, labelled sample
+  interaction. The README ships with the next release candidate.
+- `compatibility.json` records the publication of `0.1.0-rc.1` on the npm dist-tag `next`
+  (2026-10-17): registry SHA-256 and integrity, SLSA provenance and release run 38990432638.
+
 ## 0.1.0-rc.1 (candidate, unpublished)
 
 - First candidate of the local stdio MCP server for SESS.
@@ -11,8 +30,8 @@
 - Owner-private single-profile boundary: handles are bound to profile, API origin and a local
   credential-generation digest; the API key is never stored.
 - Durable per-handle records (write-temp, fsync, rename, directory fsync).
-- Depends on the pinned `@sess.si/sdk@0.1.0-rc.4` (published on npm, dist-tag `next`) and
-  `@modelcontextprotocol/sdk@1.32.1`.
+- Depends on the pinned `@sess.si/sdk@0.1.0-rc.5` (published on npm, dist-tag `next`),
+  `@modelcontextprotocol/server@2.3.1` and `@modelcontextprotocol/node@2.1.1`.
 - Local records use format version 2. A confirmed publish/complete is remembered per answer
   event with its expected revision and publish body digest; only an identical replay is answered
   from it. Records of another format version stop before any request.
@@ -123,3 +142,12 @@
   for Anthropic's connector form. Tool names, titles and annotations come from `src/tools.ts`.
   `npm run check` validates them against vendored, SHA-256-pinned schemas and documented rules and
   rejects stale files, forbidden words and overclaims. Nothing is submitted; see `LISTINGS.md`.
+- Release preparation for `mcp-v0.1.0-rc.1`: the publication path is a stage-only npm trusted
+  publisher. The release workflow stages the tested tarball on the dist-tag `next` (every `-rc.N`;
+  never `latest`), and nothing is installable until a maintainer approves the staged version with
+  npm 2FA. The `0.0.0-stage` placeholder is deprecated with a pointer to `@next` before the first
+  release. Preparing the candidate publishes nothing.
+- Person-facing text says "Sess": README prose, the package description, tool titles, the
+  server instructions and tool messages, and the generated listing artifacts. Environment
+  variables, error codes and tool names are unchanged. The README no longer says the browser may
+  need a manual refresh between rounds.

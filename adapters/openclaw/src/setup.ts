@@ -77,7 +77,7 @@ export function planSetup(current: unknown, options: SetupOptions): SetupPlan {
   const warnings: string[] = [];
   if (Array.isArray(tools.allow) && TOOL_NAMES.some((name) => !(tools.allow as unknown[]).includes(name)))
     warnings.push(
-      'tools.allow is a restrictive allowlist and does not list all SESS tools; setup leaves it unchanged. Add them there yourself only if you intend to keep that restrictive mode.',
+      'tools.allow is a restrictive allowlist and does not list all Sess tools; setup leaves it unchanged. Add them there yourself only if you intend to keep that restrictive mode.',
     );
   const pluginsAllow = isObject(root.plugins) ? (root.plugins as Json).allow : undefined;
   if (Array.isArray(pluginsAllow) && !pluginsAllow.includes(PLUGIN_KEY))
@@ -114,7 +114,7 @@ export function formatPlan(
   applied: boolean,
 ): string {
   const lines = [
-    applied ? 'SESS setup applied:' : 'SESS setup preview (nothing written; rerun with --yes to apply):',
+    applied ? 'Sess setup applied:' : 'Sess setup preview (nothing written; rerun with --yes to apply):',
   ];
   if (!plan.changes.length) lines.push('  no changes needed (already configured)');
   for (const change of plan.changes)
