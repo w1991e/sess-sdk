@@ -15,12 +15,12 @@ npm install --ignore-scripts
 read -rs SESS_API_KEY && export SESS_API_KEY && npm start
 ```
 
-**What you'll see:** a private human link, then — after you open it and submit the amount — the
+**What you'll see:** a Sess link, then — after you open it and submit the amount — the
 verified amount and `status: completed`.
 
 ## Details
 
-The program creates one interactive Session, prints its private human link, waits a bounded time
+The program creates one interactive Session, prints its Sess link, waits a bounded time
 for the person's answer, verifies the decision receipt, validates the business data, and completes
 the Session. It is plain Node ESM JavaScript ([index.mjs](index.mjs)); there is no build step. This
 directory itself is not published.

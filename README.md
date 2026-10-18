@@ -13,13 +13,13 @@ npm install --save-exact @sess.si/sdk@next
 **Run** the [plain-Node quickstart](examples/quickstart-node/README.md), a complete program that
 needs only `SESS_API_KEY`.
 
-**What you'll see:** a private human link, printed before the program starts waiting. Open it on any
+**What you'll see:** a Sess link, printed before the program starts waiting. Open it on any
 device and answer; the program prints the verified answer and completes the Session.
 
 ## Ask a person
 
 Use a developer API key from [the Sess developer portal](https://app.sess.si). Keep it on the server.
-The [hosted no-signup demo](https://sess.si) is a separate trial flow; a human link or trial credential
+The [hosted no-signup demo](https://sess.si) is a separate trial flow; a Sess link or trial credential
 is not an owner API key. You need no LLM, agent framework, Docker or Sess source checkout.
 
 <!-- example:ask -->
@@ -34,14 +34,14 @@ const question = await sess.ask({
     { name: 'amount', label: 'Refund amount', type: 'number', minimum: 0 },
   ],
 });
-console.log(`Send this private link to the person: ${question.link}`);
+console.log(`Send this Sess link to the person: ${question.link}`);
 const { approved, amount } = await question.answer(); // verified; the Session is now complete
 if (approved) console.log(`Refund of ${amount.toFixed(2)} approved.`);
 ```
 
 <!-- /example:ask -->
 
-`sess.ask()` checks the question locally, creates the Session once and returns its private link
+`sess.ask()` checks the question locally, creates the Session once and returns its Sess link
 before anything waits. The link is a bearer capability: deliver it only to the person, never to
 logs or analytics. `answer()` waits for the person (ten minutes by default), verifies the signed
 receipt against the exact question, checks that the answer is still the current step, completes the

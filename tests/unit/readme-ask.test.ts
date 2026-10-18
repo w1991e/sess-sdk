@@ -55,7 +55,7 @@ describe('README first code block', () => {
     ) => Promise<void>;
     await execute(ExampleSess, { env: { SESS_API_KEY: API_KEY } }, output);
     expect(lines).toEqual([
-      { text: `Send this private link to the person: ${FAKE_LINK}`, reads: 0 },
+      { text: `Send this Sess link to the person: ${FAKE_LINK}`, reads: 0 },
       { text: 'Refund of 12.50 approved.', reads: 3 },
     ]);
     expect(runtime.counts).toMatchObject({ create: 1, complete: 1 });

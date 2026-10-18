@@ -200,7 +200,7 @@ process.env.SESS_API_KEY = 'synthetic-owner-key';
 const lines = [];
 console.log = (text) => lines.push([text, runtime.counts.retrieve]);
 await import('./readme-first.mjs');
-assert.deepEqual(lines, [['Send this private link to the person: ' + FAKE_LINK, 0], ['Refund of 12.50 approved.', 3]]);
+assert.deepEqual(lines, [['Send this Sess link to the person: ' + FAKE_LINK, 0], ['Refund of 12.50 approved.', 3]]);
 assert.deepEqual([runtime.counts.create, runtime.counts.complete, runtime.session().status], [1, 1, 'completed']);
 `,
   );

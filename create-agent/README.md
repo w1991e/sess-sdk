@@ -8,7 +8,7 @@ forecast.
 **Run:** `cd my-agent && npm install --ignore-scripts && npm start` (with `SESS_API_KEY` and
 `SESS_DEMO_CONTACT` set in your environment)
 
-**What you'll see:** a private link. Answer two questions on your phone and your plan prints in the
+**What you'll see:** a Sess link. Answer two questions on your phone and your plan prints in the
 terminal with a verified receipt.
 
 ## Details

@@ -1,7 +1,7 @@
 # Sess MCP server (`@sess.si/mcp`)
 
 A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent ask a person through
-a hosted Sess form and receive a receipt-verified answer. The agent gets the private link
+a hosted Sess form and receive a receipt-verified answer. The agent gets the Sess link
 immediately, the person answers on any device, and the agent continues on the same Session.
 
 **Candidate status:** `@sess.si/mcp@0.1.0-rc.1` is a release candidate. Release candidates are
@@ -79,7 +79,7 @@ Have your agent check with you before it commits a change or sends a reply. Ask 
 > "Before you commit, use Sess to show me what changed and the commit message. Wait for my
 > approval and commit with the message I approve."
 
-The agent calls `sess_request` and shows you a private link at once. Open it on your phone. You
+The agent calls `sess_request` and shows you a Sess link at once. Open it on your phone. You
 see what changed, and the proposed message in a field you can edit. Change a line if you like, then
 approve, or stop. The agent waits with `sess_response` and continues only on the verified answer:
 it commits with the message you approved, or does nothing if you stopped. If you are slower than
@@ -221,7 +221,7 @@ blocks like a definitive rejection.
   for your own private client. Handles are bound to the profile, API origin and a credential
   generation (a keyed digest stored per profile; the key itself is never written). A handle from
   another profile, origin or key is rejected.
-- **The human link is a bearer capability.** It is returned only by `sess_request` (or its shortcut `sess_ask`), to your private
+- **The Sess link is a bearer capability.** It is returned only by `sess_request` (or its shortcut `sess_ask`), to your private
   client. It is never written to stderr diagnostics, which carry only fixed event names and codes.
   Anyone with the link can answer as `link_holder`.
 - **Durable local records.** Each handle has a file (mode 0600) written by temp file, fsync, rename
@@ -289,7 +289,7 @@ the handler. A body that has not arrived by then gets `408` and reading stops (t
 closes the connection); an `authenticate` hook that has not answered gets `503`. During tool
 execution the same deadline ends an in-flight `sess_response` wait as `needs_resume`; a create,
 publish or complete already sent is never abandoned mid-flight. The timer is cleared when the
-response completes or fails, or when the client disconnects. The human link is returned to the
+response completes or fails, or when the client disconnects. The Sess link is returned to the
 agent in the tool result exactly as over stdio and never appears in diagnostics.
 
 ## Resolving a blocked or unconfirmed interaction (owner procedure)
@@ -298,7 +298,7 @@ The tool error names the state (`RECOVERY_BLOCKED` with a reason, `CREATE_OUTCOM
 `CREATED_NOT_SAVED`). The server never repairs these records itself.
 
 1. Find the record: `<state dir>/profiles/<profile>/handles/<handle>.json`. It can contain the
-   private human link and answer data; do not paste it into chats or issues.
+   Sess link and answer data; do not paste it into chats or issues.
 2. Check the Session in Sess (developer portal or an owner API read using `sessionId` from the
    record, when present). For `create_intent`/`create_unknown`/`CREATED_NOT_SAVED`, look for a
    Session created at that time before asking the agent to create another one.

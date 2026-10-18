@@ -68,7 +68,7 @@ contacting Sess and without printing secrets.
 | Shared or group conversations                               | Not supported                                               |
 
 Agent-turn qualification (OpenClaw 2026.10.3, `anthropic/claude-sonnet-5-5`, Code Mode,
-2026-10-14): the private link was observed in the conversation (via `chat.history`) while the wait
+2026-10-14): the Sess link was observed in the conversation (via `chat.history`) while the wait
 was still blocking, a verified answer came back both during a live wait and in a later normal chat
 turn, `openclaw sess setup` exposed the tools to the model through `tools.alsoAllow`, and two
 simultaneous conversations stayed isolated. These turns used `sess_request` and `sess_response`
@@ -130,7 +130,7 @@ agent to continue the same Sess interaction. The agent is not woken up automatic
   retries. Interaction state is kept in OpenClaw's durable plugin state before any write.
 - A lost create is never retried automatically; a lost publish/complete is replayed only with
   its saved request, `If-Match` and idempotency key.
-- The private link is a bearer capability: anyone holding it can answer. It is not logged.
+- The Sess link is a bearer capability: anyone holding it can answer. It is not logged.
   Do not use these tools in shared or group conversations.
 
 ## Errors
@@ -183,7 +183,7 @@ Interaction state lives in OpenClaw's plugin state, in three namespaces:
 
 `openclaw sess doctor` prints redacted counts per namespace and state. `openclaw sess prune` refuses
 to run until the upgrade has finished. `openclaw sess prune` is a
-dry run by default; `openclaw sess prune --apply` removes only the retained human link from
+dry run by default; `openclaw sess prune --apply` removes only the retained Sess link from
 completed or blocked records. Claims, identities and every non-terminal record are never changed,
 and a redelivered terminal call still reports its terminal result.
 
