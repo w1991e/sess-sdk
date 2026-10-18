@@ -187,6 +187,11 @@ export class FakeSess {
       if (this.createFailure === 'reject')
         return this.#json(400, { error: { code: 'INVALID_SCHEMA', request_id: 'req_1', message: 'x' } });
       const body = JSON.parse(String(init.body)) as Json;
+      // A Session created with expires_in carries its link's expiry, as the runtime does.
+      const expiry =
+        typeof body.expires_in === 'number'
+          ? { action_expires_at: new Date(Date.now() + body.expires_in * 1000).toISOString() }
+          : {};
       this.session = {
         id: SESSION_ID,
         revision: 1,
@@ -194,10 +199,11 @@ export class FakeSess {
         interaction: { ...body.interaction, response_policy: 'first' },
         response_schema: { type: 'object' },
         responses: [],
+        ...expiry,
       };
       return this.#json(
         201,
-        { id: SESSION_ID, revision: 1, human_url: this.humanUrl },
+        { id: SESSION_ID, revision: 1, human_url: this.humanUrl, ...expiry },
         { etag: this.etag() },
       );
     }

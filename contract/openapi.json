@@ -247,13 +247,22 @@
                 }
               }
             ]
+          },
+          "expires_in": {
+            "description": "Advanced. How long the human link stays open, in seconds from creation: at least 30 and at most the plan’s live-link lifetime (Free 604800, Starter and Pro 2592000; the deployment owner key 2592000). Absent: the plan’s lifetime. Out of range → 400 INVALID_SCHEMA, whose message names both bounds. Completion never moves the expiry.",
+            "type": "integer"
+          },
+          "invocation_id": {
+            "pattern": "^inv_[0-9A-HJKMNP-TV-Z]{26}$",
+            "description": "Advanced. The invocation_id of the run your registered agent received, when this Session serves that run. Sess then records the agent and its version with every receipt it keeps for this Session. The run must be in your workspace and still open: an unknown run → 422 VALIDATION_FAILED (reason unknown_invocation); a run that has ended → 409 INVOCATION_TERMINAL. Absent: the Session is not tied to a run.",
+            "type": "string"
           }
         }
       },
       "CreateSessionResponse": {
         "additionalProperties": false,
         "type": "object",
-        "required": ["id", "revision", "human_url"],
+        "required": ["id", "revision", "human_url", "action_expires_at"],
         "properties": {
           "id": {
             "pattern": "^ses_[0-9A-HJKMNP-TV-Z]{26}$",
@@ -264,6 +273,10 @@
             "type": "integer"
           },
           "human_url": {
+            "type": "string"
+          },
+          "action_expires_at": {
+            "description": "When the Session’s human link expires: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Fixed when the Session is created and never extended by a read; never null. A link revoked by the operator stops earlier; this field does not report revocation.",
             "type": "string"
           }
         }
@@ -5182,6 +5195,159 @@
           }
         }
       },
+      "PersonalCopyRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["item"],
+        "properties": {
+          "item": {
+            "pattern": "^psn_[0-9a-f]{32}$",
+            "description": "A saved copy of this personal account, as GET /personal/copies lists it.",
+            "type": "string"
+          }
+        }
+      },
+      "PersonalCopiesResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["copies"],
+        "properties": {
+          "copies": {
+            "maxItems": 100,
+            "description": "The newest saved copies first, at most 100.",
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": ["item", "saved_at", "status", "title", "rounds"],
+              "properties": {
+                "item": {
+                  "pattern": "^psn_[0-9a-f]{32}$",
+                  "type": "string"
+                },
+                "saved_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "status": {
+                  "description": "`partly_unavailable` or `unavailable` when an operator restriction or deletion whose scope reaches personal copies withholds rounds or holder proofs of it: that content is never served, and the status never says why.",
+                  "anyOf": [
+                    {
+                      "const": "available",
+                      "type": "string"
+                    },
+                    {
+                      "const": "partly_unavailable",
+                      "type": "string"
+                    },
+                    {
+                      "const": "unavailable",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "title": {
+                  "description": "The first served round’s Surface title, from the copy itself.",
+                  "anyOf": [
+                    {
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rounds": {
+                  "maxItems": 64,
+                  "type": "array",
+                  "items": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": ["accepted_at", "signature", "contents", "holder"],
+                    "properties": {
+                      "accepted_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "signature": {
+                        "description": "The archival verifier’s signature outcome for this round’s kept record with the service’s receipt keys: `not_checked` when the round was not preserved or its key is not trusted here.",
+                        "anyOf": [
+                          {
+                            "const": "verified",
+                            "type": "string"
+                          },
+                          {
+                            "const": "not_valid",
+                            "type": "string"
+                          },
+                          {
+                            "const": "not_checked",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "contents": {
+                        "description": "Whether the round’s questions and answers in the copy match the receipt: `unavailable` when the copy does not hold them (they were purged before the Save), `not_checked` when the signature was not verified first. Never folded into the signature outcome.",
+                        "anyOf": [
+                          {
+                            "const": "verified",
+                            "type": "string"
+                          },
+                          {
+                            "const": "not_valid",
+                            "type": "string"
+                          },
+                          {
+                            "const": "unavailable",
+                            "type": "string"
+                          },
+                          {
+                            "const": "not_checked",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "holder": {
+                        "description": "The holder status as recorded at Save; `withheld` when its signed batch names a round an operator order now withholds.",
+                        "anyOf": [
+                          {
+                            "const": "enrolled",
+                            "type": "string"
+                          },
+                          {
+                            "const": "revoked",
+                            "type": "string"
+                          },
+                          {
+                            "const": "not_enrolled",
+                            "type": "string"
+                          },
+                          {
+                            "const": "withheld",
+                            "type": "string"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "PersonalCopyRemoved": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "const": "removed",
+            "type": "string"
+          }
+        }
+      },
       "ProtectedResourceMetadata": {
         "additionalProperties": false,
         "type": "object",
@@ -5591,6 +5757,10 @@
           "enabled": {
             "description": "Default true.",
             "type": "boolean"
+          },
+          "default_expires_in": {
+            "description": "Advanced. The human link lifetime, in seconds, the target’s agent is asked to give each Session it creates for a run: at least 30 and at most the workspace plan’s live-link lifetime (Free 604800, Starter and Pro 2592000; the deployment owner key 2592000); out of range → 400 INVALID_SCHEMA, whose message names both bounds. Advisory: Sess does not create the target’s Sessions. It is copied into each admitted run and sent in the dispatch message as limits.expires_in; an agent that sets its own expires_in, calls the API directly or uses an SDK that does not apply it is not governed by it, and the Session’s create checks the value against the creating key’s plan again. Not part of the versioned binding: changing it changes no version and leaves grants and admitted runs as they are.",
+            "type": "integer"
           }
         }
       },
@@ -5664,6 +5834,18 @@
                 "type": "integer"
               }
             }
+          },
+          "default_expires_in": {
+            "anyOf": [
+              {
+                "description": "Advanced. The human link lifetime, in seconds, the target’s agent is asked to give each Session it creates for a run: at least 30 and at most the workspace plan’s live-link lifetime (Free 604800, Starter and Pro 2592000; the deployment owner key 2592000); out of range → 400 INVALID_SCHEMA, whose message names both bounds. Advisory: Sess does not create the target’s Sessions. It is copied into each admitted run and sent in the dispatch message as limits.expires_in; an agent that sets its own expires_in, calls the API directly or uses an SDK that does not apply it is not governed by it, and the Session’s create checks the value against the creating key’s plan again. Not part of the versioned binding: changing it changes no version and leaves grants and admitted runs as they are.",
+                "type": "integer"
+              },
+              {
+                "description": "Clears it: the plan’s lifetime.",
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -5733,6 +5915,7 @@
           "verification",
           "counts",
           "sharing",
+          "default_expires_in",
           "created_at"
         ],
         "properties": {
@@ -5749,7 +5932,7 @@
           },
           "version": {
             "minimum": 1,
-            "description": "Incremented by every change of capability, grant policy or budget. Grants are bound to one version; a start with an older grant → 409 TARGET_VERSION_CONFLICT, and admitted runs not yet dispatched fail as stale_binding.",
+            "description": "Incremented by every change of capability, grant policy or budget (not by sharing or default_expires_in). Grants are bound to one version; a start with an older grant → 409 TARGET_VERSION_CONFLICT, and admitted runs not yet dispatched fail as stale_binding.",
             "type": "integer"
           },
           "capability": {
@@ -5931,6 +6114,18 @@
               }
             }
           },
+          "default_expires_in": {
+            "description": "The advisory link lifetime in seconds; null: none (the plan’s lifetime).",
+            "anyOf": [
+              {
+                "description": "Advanced. The human link lifetime, in seconds, the target’s agent is asked to give each Session it creates for a run: at least 30 and at most the workspace plan’s live-link lifetime (Free 604800, Starter and Pro 2592000; the deployment owner key 2592000); out of range → 400 INVALID_SCHEMA, whose message names both bounds. Advisory: Sess does not create the target’s Sessions. It is copied into each admitted run and sent in the dispatch message as limits.expires_in; an agent that sets its own expires_in, calls the API directly or uses an SDK that does not apply it is not governed by it, and the Session’s create checks the value against the creating key’s plan again. Not part of the versioned binding: changing it changes no version and leaves grants and admitted runs as they are.",
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "created_at": {
             "type": "string"
           }
@@ -5958,6 +6153,7 @@
                 "verification",
                 "counts",
                 "sharing",
+                "default_expires_in",
                 "created_at"
               ],
               "properties": {
@@ -5974,7 +6170,7 @@
                 },
                 "version": {
                   "minimum": 1,
-                  "description": "Incremented by every change of capability, grant policy or budget. Grants are bound to one version; a start with an older grant → 409 TARGET_VERSION_CONFLICT, and admitted runs not yet dispatched fail as stale_binding.",
+                  "description": "Incremented by every change of capability, grant policy or budget (not by sharing or default_expires_in). Grants are bound to one version; a start with an older grant → 409 TARGET_VERSION_CONFLICT, and admitted runs not yet dispatched fail as stale_binding.",
                   "type": "integer"
                 },
                 "capability": {
@@ -6155,6 +6351,18 @@
                       "type": "boolean"
                     }
                   }
+                },
+                "default_expires_in": {
+                  "description": "The advisory link lifetime in seconds; null: none (the plan’s lifetime).",
+                  "anyOf": [
+                    {
+                      "description": "Advanced. The human link lifetime, in seconds, the target’s agent is asked to give each Session it creates for a run: at least 30 and at most the workspace plan’s live-link lifetime (Free 604800, Starter and Pro 2592000; the deployment owner key 2592000); out of range → 400 INVALID_SCHEMA, whose message names both bounds. Advisory: Sess does not create the target’s Sessions. It is copied into each admitted run and sent in the dispatch message as limits.expires_in; an agent that sets its own expires_in, calls the API directly or uses an SDK that does not apply it is not governed by it, and the Session’s create checks the value against the creating key’s plan again. Not part of the versioned binding: changing it changes no version and leaves grants and admitted runs as they are.",
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "created_at": {
                   "type": "string"
@@ -6677,6 +6885,11 @@
             "properties": {
               "accepted_rounds": {
                 "minimum": 1,
+                "type": "integer"
+              },
+              "expires_in": {
+                "minimum": 30,
+                "description": "Decision 0009 Amendment 7: the target’s default_expires_in when this run was admitted (absent when it had none). Advisory: the agent passes it as expires_in on POST /v1/sessions for the Sessions of this run unless it sets its own; that create checks it against the agent key’s plan.",
                 "type": "integer"
               }
             }
@@ -8502,7 +8715,7 @@
     "/personal/close": {
       "post": {
         "operationId": "closePersonalAccount",
-        "description": "Personal closure: deletes every personal session of this identity, every claim redeemed into its personal grant and every saved copy under it, and the grant itself; leaves an opaque tombstone (no address), and deletes the identity record unless a developer membership still uses the address. A developer membership, its sessions, keys and workspace are untouched.",
+        "description": "Personal closure (Delete my account): deletes every personal session of this identity, every claim redeemed into its personal grant and every saved copy under it, and the grant itself; leaves an opaque tombstone (no address), also in the personal restore ledger, and deletes the identity record unless a developer membership still uses the address. A developer membership, its sessions, keys and workspace are untouched.",
         "parameters": [
           {
             "name": "x-sess-csrf",
@@ -8564,8 +8777,28 @@
               }
             }
           },
+          "409": {
+            "description": "ACTION_NOT_ALLOWED (reason removal_delayed): a justified hold whose scope reaches personal copies names a round of a saved copy; nothing was changed. The hold is never named.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "415": {
             "description": "INVALID_SCHEMA: not application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: the restore suppression has not yet run after start.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8900,6 +9133,286 @@
           },
           "503": {
             "description": "SERVICE_UNAVAILABLE: the restriction/deletion suppression is not yet re-applied after start.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/personal/copies": {
+      "get": {
+        "operationId": "listPersonalCopies",
+        "description": "Your receipts: the saved copies of this personal account, newest first (at most 100), each with its title and rounds as served now: per round the archival verifier’s signature outcome and, separately, whether the questions and answers match, and the holder status as recorded at Save. A round an operator restriction or deletion whose scope reaches personal copies withholds is left out, and holder proofs whose batch names it are withheld; the status then says partly_unavailable or unavailable, never why. Reads only.",
+        "responses": {
+          "200": {
+            "description": "The saved copies.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalCopiesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: no live personal session (a developer session, owner key or human link never counts).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (per personal session; Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: the restore suppression has not yet run after start.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/personal/copies/download": {
+      "post": {
+        "operationId": "downloadPersonalCopy",
+        "description": "One saved copy’s sess.kept-conversation file (an attachment): its stored bytes exactly when nothing of it is withheld, otherwise the file as Keep would serve it under the same suppression (withheld rounds left out, holder proofs naming them withheld).",
+        "parameters": [
+          {
+            "name": "x-sess-csrf",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalCopyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The file (Content-Disposition: attachment).",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "INVALID_SCHEMA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: no live personal session (a developer session, owner key or human link never counts).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND: no such saved copy in this account (another account’s copy answers the same).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "ACTION_NOT_ALLOWED (reason copy_unavailable): nothing of this copy can be served now.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "INVALID_SCHEMA: not application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (per personal session; Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: the restore suppression has not yet run after start.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/personal/copies/remove": {
+      "post": {
+        "operationId": "removePersonalCopy",
+        "description": "Remove from Sess: deletes this saved copy and the claims that wrote it, and records the removal in the personal restore ledger, in one transaction. Never touches custody, a receipt, a Session or the developer’s records.",
+        "parameters": [
+          {
+            "name": "x-sess-csrf",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalCopyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Removed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalCopyRemoved"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_SCHEMA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: no live personal session (a developer session, owner key or human link never counts).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND: no such saved copy in this account (another account’s copy answers the same).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "ACTION_NOT_ALLOWED (reason removal_delayed): a justified hold whose scope reaches personal copies names one of its rounds; nothing was changed. The hold is never named.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "INVALID_SCHEMA: not application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (per personal session; Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: the restore suppression has not yet run after start.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9466,7 +9979,7 @@
         "description": "P2-12 B3: changes the signed-in developer workspace’s paid plan. Form fields: csrf (the page’s token) and plan (starter or pro; the server selects the approved price, nothing else comes from the browser). Same-origin requests with the session’s CSRF token only. Without a subscription: a hosted Checkout (the same one as POST /v1/account/billing/checkout), answered 303 to the provider’s Checkout page. With a subscription: its one subscription changes in place (never a second subscription or a new Checkout), which needs a sign-in within the last 12 hours; the plan changes only when the provider’s verified subscription state shows it (a signed event or reconciliation), never from this request. An uncertain provider outcome is never success: the change stays pending and the next request replays it under the same idempotency key before anything else is sent.",
         "responses": {
           "303": {
-            "description": "To the provider’s hosted Checkout page; or to /app/usage?billing=<notice> with notice requested, unchanged, payment_required, reauth, not_changeable, processing, busy, unavailable, subscribed, not_configured or invalid; or, with no live account session, to /app/sign-in."
+            "description": "To the provider’s hosted Checkout page; or to /app/usage?billing=<notice> with notice requested, unchanged, payment_required, reauth, not_changeable, ending, processing, busy, unavailable, subscribed, not_configured or invalid; or, with no live account session, to /app/sign-in."
           },
           "403": {
             "description": "ACTION_NOT_ALLOWED: cross-origin or a wrong CSRF token.",
@@ -10011,7 +10524,7 @@
             "ownerKey": []
           }
         ],
-        "description": "Creates a display Session (mode display, source.kind data) or an interactive one (mode interactive, source.kind sess_surface; components: SurfaceComponent). An unrecognized component type → 400 UNKNOWN_COMPONENT; a field-schema keyword outside the supported subset → 400 INVALID_SCHEMA. An Idempotency-Key header is refused (400 INVALID_SCHEMA): the human link cannot be replayed (it is stored only as a hash). Retention: the human link expires 720 hours after creation with the deployment owner key and 168 hours with a developer API key (free plan). The Session’s content, accepted results and receipts are purged 720 hours (owner key) or 168 hours (developer API key) after the earlier of its completion and its link’s expiry, and outstanding webhook deliveries are cancelled; afterwards every owner route answers 404 SESSION_NOT_FOUND. A webhook already delivered is not recalled.",
+        "description": "Creates a display Session (mode display, source.kind data) or an interactive one (mode interactive, source.kind sess_surface; components: SurfaceComponent). An unrecognized component type → 400 UNKNOWN_COMPONENT; a field-schema keyword outside the supported subset → 400 INVALID_SCHEMA. An Idempotency-Key header is refused (400 INVALID_SCHEMA): the human link cannot be replayed (it is stored only as a hash). Retention: the human link expires 720 hours after creation with the deployment owner key and 168 hours with a developer API key (free plan). The Session’s content, accepted results and receipts are purged 720 hours (owner key) or 168 hours (developer API key) after the earlier of its completion and its link’s expiry, and outstanding webhook deliveries are cancelled; afterwards every owner route answers 404 SESSION_NOT_FOUND. A webhook already delivered is not recalled. Advanced: expires_in (seconds from creation, at least 30, at most the plan’s live-link lifetime) sets a shorter human link; the Session’s retention then also ends sooner, because it counts from the earlier of completion and the link’s expiry. The response’s action_expires_at is the stored expiry, the same value GET /v1/sessions/{id} returns. Advanced: invocation_id ties the Session to the run of your registered agent that it serves; the archival core of each receipt it issues then binds that agent (target) and its version.",
         "requestBody": {
           "required": true,
           "content": {
@@ -10122,6 +10635,81 @@
                       ]
                     }
                   }
+                },
+                "interactive, link open 10 minutes (Advanced)": {
+                  "value": {
+                    "interaction": {
+                      "mode": "interactive",
+                      "title": "Review three synthetic invoices",
+                      "description": "Synthetic data. Correct the amount if needed and select the invoices to approve.",
+                      "source": {
+                        "kind": "sess_surface",
+                        "components": [
+                          {
+                            "type": "record",
+                            "label": "INV-1",
+                            "fields": {
+                              "id": "INV-1",
+                              "vendor": "Acme",
+                              "amount": 120
+                            }
+                          },
+                          {
+                            "type": "record",
+                            "label": "INV-2",
+                            "fields": {
+                              "id": "INV-2",
+                              "vendor": "Globex",
+                              "amount": 75.5
+                            }
+                          },
+                          {
+                            "type": "record",
+                            "label": "INV-3",
+                            "fields": {
+                              "id": "INV-3",
+                              "vendor": "Initech",
+                              "amount": 990
+                            }
+                          },
+                          {
+                            "type": "field",
+                            "name": "inv_3_amount",
+                            "label": "INV-3 amount",
+                            "required": true,
+                            "schema": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "value": 990
+                          },
+                          {
+                            "type": "field",
+                            "name": "approved",
+                            "label": "Invoices to approve",
+                            "schema": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": ["INV-1", "INV-2", "INV-3"]
+                              },
+                              "maxItems": 3
+                            },
+                            "value": []
+                          }
+                        ]
+                      },
+                      "actions": [
+                        {
+                          "id": "submit",
+                          "label": "Submit review",
+                          "intent": "submit"
+                        }
+                      ]
+                    },
+                    "expires_in": 600
+                  }
                 }
               }
             }
@@ -10160,7 +10748,7 @@
             }
           },
           "400": {
-            "description": "INVALID_SCHEMA or UNKNOWN_COMPONENT",
+            "description": "INVALID_SCHEMA (including expires_in out of range: the message names the floor and the ceiling in seconds) or UNKNOWN_COMPONENT",
             "content": {
               "application/json": {
                 "schema": {
@@ -10179,8 +10767,28 @@
               }
             }
           },
+          "409": {
+            "description": "INVOCATION_TERMINAL: the invocation_id names a run of this workspace that has ended or passed its expiry. Nothing is created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "413": {
             "description": "PAYLOAD_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED, reason unknown_invocation: the invocation_id names no run of this workspace (a run of another workspace is answered the same way). Nothing is created.",
             "content": {
               "application/json": {
                 "schema": {
@@ -12263,7 +12871,19 @@
             "ownerKey": []
           }
         ],
-        "description": "Registers an HTTP Agent Target in the owner workspace (from the credential only). Requires the explicit type http, an https endpoint on port 443 (no user info or fragment; an IP literal must be public), a versioned capability with a bounded input schema, a grant policy (audience origins and lifetime), a budget and an optional enabled switch. Starts are possible only after domain verification. Human, trial and probe credentials cannot register or modify targets.",
+        "description": "Registers an HTTP Agent Target in the owner workspace (from the credential only). Requires the explicit type http, an https endpoint on port 443 (no user info or fragment; an IP literal must be public), a versioned capability with a bounded input schema, a grant policy (audience origins and lifetime), a budget and an optional enabled switch. Starts are possible only after domain verification. Human, trial and probe credentials cannot register or modify targets. An optional Idempotency-Key makes a retry safe: the same request returns the original target.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "description": "Optional. Scoped to the owner credential and the operation. The same canonical request body returns the original 201 (status, Location and body: the target as first registered) and registers nothing more, even after the target or the plan changed; a different body with the same key → 409 IDEMPOTENCY_CONFLICT; concurrent requests with one key register one target. Only successful registrations are recorded. Without the header every request registers.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -12317,7 +12937,7 @@
             }
           },
           "400": {
-            "description": "TARGET_INVALID_URL (reason: not_https, port, credentials, fragment, non_public_address, malformed, too_long), TARGET_INVALID_CAPABILITY (reason: not_object, unsupported_keyword, too_deep, too_large, does_not_compile, not_a_schema) or INVALID_SCHEMA (an unsupported type or any unknown field)",
+            "description": "TARGET_INVALID_URL (reason: not_https, port, credentials, fragment, non_public_address, malformed, too_long), TARGET_INVALID_CAPABILITY (reason: not_object, unsupported_keyword, too_deep, too_large, does_not_compile, not_a_schema) or INVALID_SCHEMA (an unsupported type, any unknown field or a malformed Idempotency-Key)",
             "content": {
               "application/json": {
                 "schema": {
@@ -12338,6 +12958,16 @@
           },
           "403": {
             "description": "ACTION_NOT_ALLOWED: the workspace may not hold an outbound target",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "IDEMPOTENCY_CONFLICT: the key was used for a different request",
             "content": {
               "application/json": {
                 "schema": {

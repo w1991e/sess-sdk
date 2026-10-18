@@ -59,6 +59,11 @@ export interface AskInput<F extends readonly AskField[] = readonly AskField[]> {
   readonly submit_label?: string;
   /** One to twelve fields with unique names. */
   readonly fields: F;
+  /**
+   * Advanced: how long the link stays open, in whole seconds from creation: from 30 up to your
+   * plan's link lifetime (Sess checks the ceiling). Absent: the plan's lifetime.
+   */
+  readonly expires_in?: number;
 }
 
 type AskValue<T> = T extends { type: 'text' }
@@ -112,6 +117,12 @@ export interface AskHandle<T> {
   /** The Surface revision of the question, for recovery through the advanced API. */
   readonly revision: number;
   /**
+   * When the link stops taking answers (`action_expires_at`, ISO 8601). Nothing moves it. An
+   * answer accepted before it is still returned after it; with none, `answer()` ends with
+   * `wait_ended` code `LINK_EXPIRED`. Null only from a runtime that does not report it.
+   */
+  readonly expiresAt: string | null;
+  /**
    * Waits for the answer, verifies its signed receipt and exact bindings, checks that it is still
    * the current step, completes (closes) the Session, then returns the typed answer.
    */
@@ -140,7 +151,12 @@ interface CompiledField {
 export interface CompiledAsk {
   interaction: InteractiveInteraction;
   fields: readonly CompiledField[];
+  /** The link lifetime in seconds, when the question set one. */
+  expiresIn?: number;
 }
+
+/** The shortest link lifetime Sess accepts, in seconds (the ceiling is the plan's). */
+export const LINK_LIFETIME_FLOOR_SECONDS = 30;
 
 type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 type JsonObject = { [key: string]: Json };
@@ -330,7 +346,15 @@ function compileField(raw: Json, path: string, names: Set<string>) {
  */
 export function compileAsk(input: unknown): CompiledAsk {
   const a = object(plain(input, ''), 'input');
-  closed(a, 'input', ['question', 'details', 'fields', 'submit_label'], ['question', 'fields']);
+  closed(a, 'input', ['question', 'details', 'fields', 'submit_label', 'expires_in'], ['question', 'fields']);
+  const expiresIn = a.expires_in;
+  if (
+    expiresIn !== undefined &&
+    (typeof expiresIn !== 'number' ||
+      !Number.isSafeInteger(expiresIn) ||
+      expiresIn < LINK_LIFETIME_FLOOR_SECONDS)
+  )
+    invalid('expires_in', `must be a whole number of seconds, at least ${LINK_LIFETIME_FLOOR_SECONDS}`);
   const title = text(a.question, 'question', 200);
   const details = a.details === undefined ? undefined : text(a.details, 'details', 4000);
   const submit = a.submit_label === undefined ? 'Send' : text(a.submit_label, 'submit_label', 200);
@@ -354,7 +378,11 @@ export function compileAsk(input: unknown): CompiledAsk {
   };
   if (Buffer.byteLength(JSON.stringify(interaction), 'utf8') > SURFACE_LIMIT_BYTES)
     invalid('input', `exceeds the ${SURFACE_LIMIT_BYTES}-byte Surface limit`);
-  return { interaction, fields: Object.freeze(compiled) };
+  return {
+    interaction,
+    fields: Object.freeze(compiled),
+    ...(expiresIn !== undefined ? { expiresIn: expiresIn as number } : {}),
+  };
 }
 
 /**
@@ -398,6 +426,7 @@ interface Completion {
 class Handle<T> implements AskHandle<T> {
   readonly sessionId: string;
   readonly revision: number;
+  readonly expiresAt: string | null;
   #link: string;
   #sessions: Sessions;
   #receipts: ReceiptResource;
@@ -411,6 +440,7 @@ class Handle<T> implements AskHandle<T> {
   constructor(context: {
     sessionId: string;
     revision: number;
+    expiresAt: string | null;
     link: string;
     sessions: Sessions;
     receipts: ReceiptResource;
@@ -419,6 +449,7 @@ class Handle<T> implements AskHandle<T> {
   }) {
     this.sessionId = context.sessionId;
     this.revision = context.revision;
+    this.expiresAt = context.expiresAt;
     this.#link = context.link;
     this.#sessions = context.sessions;
     this.#receipts = context.receipts;
@@ -585,10 +616,17 @@ export async function ask<T>(
     });
   // Creation carries the whole interaction and is attempted once. An uncertain outcome surfaces as
   // the unknown_outcome error of the client and is never retried here.
-  const created = await sessions.create({ interaction: compiled.interaction }, requestOptions);
+  const created = await sessions.create(
+    {
+      interaction: compiled.interaction,
+      ...(compiled.expiresIn !== undefined ? { expires_in: compiled.expiresIn } : {}),
+    },
+    requestOptions,
+  );
   return new Handle<T>({
     sessionId: created.data.id,
     revision: created.data.revision,
+    expiresAt: typeof created.data.action_expires_at === 'string' ? created.data.action_expires_at : null,
     link: created.data.human_url,
     sessions,
     receipts,

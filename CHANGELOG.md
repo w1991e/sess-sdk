@@ -1,7 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.7 — 2026-10-18 (prepared, unpublished)
 
+Includes everything in the unpublished 0.1.0-rc.6 below, which is not published on its own.
+
+- Advanced: a link lifetime. `sessions.create()` and `sess.ask()` take an optional `expires_in`, in
+  whole seconds from creation: from 30 up to your plan's link lifetime (Sess checks the ceiling).
+  Values below 30 or not whole are refused before anything is sent. Absent: the plan's lifetime,
+  as before.
+- The create response carries the link's expiry as `action_expires_at`; `sess.ask()` handles expose
+  it as `expiresAt`. Nothing moves it later: not reading, not completing.
+- `waitForResponse()` (and `answer()`) observe the expiry. Once the runtime clock (the response's
+  HTTP `Date`, else this machine's) is two seconds past `action_expires_at`, one final read decides:
+  an answer accepted before the expiry is returned as the result; otherwise the wait ends with
+  `wait_ended`, code `LINK_EXPIRED`. The SDK never completes a Session on its own.
+- `ResponseMeta.serverDate`: the response's HTTP `Date`, when the runtime sends one.
+- Contract snapshot from Sess runtime commit `b48e8e7` (see `contract/contract-lock.json`), with
+  `expires_in`, `action_expires_at` on create and the target's `default_expires_in`.
 - `@sess.si/sdk/qr` (S-07): `qr(url, { format: 'svg' | 'png' | 'terminal' })` draws a Sess link as a
   QR code locally (error correction level M, 4-module quiet zone, deterministic, no network call), and
   `printQr(url)` prints "Scan to answer on your phone" and the code on an interactive terminal only:

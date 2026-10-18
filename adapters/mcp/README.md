@@ -4,7 +4,7 @@ A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent a
 a hosted Sess form and receive a receipt-verified answer. The agent gets the Sess link
 immediately, the person answers on any device, and the agent continues on the same Session.
 
-**Candidate status:** `@sess.si/mcp@0.1.0-rc.1` is a release candidate. Release candidates are
+**Candidate status:** `@sess.si/mcp@0.1.0-rc.2` is a release candidate. Release candidates are
 published only under the npm dist-tag `next`, after a maintainer approves the publication with npm
 2FA. Do not install the bare name: its `latest` dist-tag points at a `0.0.0-stage` placeholder,
 not at a release. Its SDK dependency, `@sess.si/sdk@0.1.0-rc.5`, is published on npm (dist-tag
@@ -125,21 +125,27 @@ A synthetic sample of what the agent sends (sample content, not from a real repo
 Text blocks are shown as plain paragraphs, so send a summary of the change rather than a raw diff;
 line breaks are kept in multiline fields.
 
-## Tools (`sess-mcp-tools/2`)
+## Tools (`sess-mcp-tools/3`)
 
-| Tool            | Input                                                             | Result `interaction.state`                         |
-| --------------- | ----------------------------------------------------------------- | -------------------------------------------------- |
-| `sess_request`  | `interaction`                                                     | `waiting`, with `humanUrl`                         |
-| `sess_response` | `handle`, `revision`, optional `wait_ms` (0–45000)                | `waiting`, `needs_resume`, `answered`, `completed` |
-| `sess_publish`  | `handle`, `expected_revision`, `response_event_id`, `interaction` | `waiting` at the next revision                     |
-| `sess_complete` | `handle`, `expected_revision`, `response_event_id`                | `completed`                                        |
-| `sess_ask`      | `question`, `fields` (1–12), optional `details`, `submit_label`   | `waiting`, with `humanUrl`                         |
+| Tool            | Input                                                                         | Result `interaction.state`                                    |
+| --------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `sess_request`  | `interaction`, optional `expires_in`                                          | `waiting`, with `humanUrl` and `expiresAt`                    |
+| `sess_response` | `handle`, `revision`, optional `wait_ms` (0–45000)                            | `waiting`, `needs_resume`, `answered`, `completed`, `expired` |
+| `sess_publish`  | `handle`, `expected_revision`, `response_event_id`, `interaction`             | `waiting` at the next revision                                |
+| `sess_complete` | `handle`, `expected_revision`, `response_event_id`                            | `completed`                                                   |
+| `sess_ask`      | `question`, `fields` (1–12), optional `details`, `submit_label`, `expires_in` | `waiting`, with `humanUrl` and `expiresAt`                    |
 
 `sess_ask` is a shortcut for `sess_request`: it turns a question and up to 12 simple fields
 (`text`, `number`, `integer`, `boolean`, `choice`, `multi_choice`) into an ordinary interaction,
 checks it with the same rules and limits, and runs the same request operation. It creates exactly
 one Session, returns the link and handle at once, never waits and never returns an answer. Continue
 with `sess_response`, `sess_publish` and `sess_complete` as usual.
+
+Advanced: `expires_in` sets how long the link stays open, in whole seconds from creation: from 30
+up to your plan's link lifetime (Sess checks the ceiling). The result's `expiresAt` is when the link
+stops taking answers; nothing moves it. `sess_response` reports `expired` once the link has closed
+with no answer: it is final, and nothing was completed. An answer accepted before the expiry is
+still returned as `answered`.
 
 Input schemas are closed: unknown properties, unsafe keys (`__proto__`, `constructor`,
 `prototype`), more than 8 levels of nesting, an interaction over 32 KiB, more than 24 fields or 5

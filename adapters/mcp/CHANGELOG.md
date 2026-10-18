@@ -1,7 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.2 (candidate, unpublished)
 
+- Tool schemas `sess-mcp-tools/3`. Advanced: `sess_request` and `sess_ask` take an optional
+  `expires_in` (whole seconds from creation, from 30 up to the plan's link lifetime; the same name
+  and range as the Sess API). Their result carries `expiresAt`, when the link stops taking answers.
+- `sess_response` reports the final state `expired` when the link closed with no answer for the
+  revision: from the SDK wait's `LINK_EXPIRED`, or from a read made two seconds past the expiry. An
+  answer accepted before the expiry is still released as `answered`. Nothing is completed or
+  written on Sess; the local record is kept as blocked with reason `LINK_EXPIRED` (the record
+  schema is unchanged).
+- Requires `@sess.si/sdk` 0.1.0-rc.7 for the wait's `LINK_EXPIRED`; the dependency moves to it when
+  rc.7 is published.
 - README "First interaction" now shows approving before acting: the agent asks you, on any device,
   to approve a commit (or a reply) before it acts, with the proposed message in a field you can
   edit, and continues only on the verified answer. It includes a synthetic, labelled sample

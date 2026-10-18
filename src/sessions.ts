@@ -72,6 +72,17 @@ export class Sessions {
           outcome: 'not_sent',
         }),
       );
+    // The floor is fixed; the ceiling is the plan's, checked by the runtime.
+    const expiresIn = (body as { expires_in?: unknown } | null)?.expires_in;
+    if (
+      expiresIn !== undefined &&
+      (typeof expiresIn !== 'number' || !Number.isSafeInteger(expiresIn) || expiresIn < 30)
+    )
+      return Promise.reject(
+        new SessError('configuration', 'expires_in must be a whole number of seconds, at least 30.', {
+          outcome: 'not_sent',
+        }),
+      );
     return this.#transport.request(
       {
         name: 'sessions.create',

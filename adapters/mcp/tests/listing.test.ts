@@ -35,8 +35,8 @@ const edit = (files: Map<string, string>, path: string, change: (value: any) => 
 };
 
 describe('tool annotation audit', () => {
-  it('matches each tool’s behaviour; schemas stay sess-mcp-tools/2', () => {
-    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/2');
+  it('matches each tool’s behaviour; schemas are sess-mcp-tools/3', () => {
+    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/3');
     const table = Object.fromEntries(TOOLS.map((t) => [t.name, t.annotations]));
     // Creates a Session and a human link: writes, additive, a repeat creates another one.
     expect(table.sess_request).toEqual({
@@ -115,7 +115,7 @@ describe('listing.json artifacts', () => {
     );
     // While package.json is a candidate, the stable package is an owner blocker, not an error.
     expect(check(i).blockers).toContain(
-      'MCP Registry: server.json names @sess.si/mcp@0.1.0; package.json is 0.1.0-rc.1 (publish the stable release first)',
+      'MCP Registry: server.json names @sess.si/mcp@0.1.0; package.json is 0.1.0-rc.2 (publish the stable release first)',
     );
     for (const version of ['0.1.0-rc.1', 'next', 'latest', '^0.1.0', '0.1', '']) {
       const bad = inputs();

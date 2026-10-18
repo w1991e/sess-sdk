@@ -4,7 +4,7 @@ import { ASK_LIMITS, LIMITS } from './validate.js';
  * Versioned tool contract. Changing any input or output schema requires a new version. Titles and
  * annotations are host hints, not part of the versioned schemas; listing.json artifacts copy them.
  */
-export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/2';
+export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/3';
 export const TOOL_NAMES = [
   'sess_request',
   'sess_response',
@@ -27,6 +27,14 @@ const eventId = {
   description: 'interaction.response.eventId from the verified answer.',
 };
 const primitive = { type: ['string', 'number', 'boolean', 'null'] };
+/** Optional on create, the same name and range as the Sess API (Decision 0009 Amendment 7). */
+const expiresIn = {
+  type: 'integer',
+  minimum: 30,
+  description:
+    'Advanced: how long the link stays open, in whole seconds from creation: from 30 up to the plan’s link lifetime. ' +
+    'Leave it out to use the plan’s lifetime.',
+};
 
 const fieldSchema = {
   type: 'object',
@@ -161,10 +169,14 @@ export const resultSchema = {
       properties: {
         handle: { type: 'string' },
         revision: { type: 'integer', minimum: 1 },
-        state: { enum: ['waiting', 'answered', 'completed', 'needs_resume'] },
+        state: { enum: ['waiting', 'answered', 'completed', 'needs_resume', 'expired'] },
         humanUrl: {
           type: 'string',
           description: 'Private bearer link for the person. Only from sess_request or sess_ask.',
+        },
+        expiresAt: {
+          type: 'string',
+          description: 'When the link stops taking answers (ISO 8601). Only from sess_request or sess_ask.',
         },
         response: {
           type: 'object',
@@ -197,7 +209,7 @@ export const TOOLS = [
       type: 'object',
       additionalProperties: false,
       required: ['interaction'],
-      properties: { interaction: interactionSchema },
+      properties: { interaction: interactionSchema, expires_in: expiresIn },
     },
     outputSchema: resultSchema,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
@@ -210,6 +222,7 @@ export const TOOLS = [
       'Wait a bounded time (default and maximum 45 s; wait_ms 0 reads once) for the answer to exactly this revision. ' +
       'state "answered" means the answer passed full Sess receipt verification. ' +
       'state "needs_resume" or "waiting" means no answer yet: the form stays open; tell the person to submit it and ask you to continue, then call again. ' +
+      'state "expired" means the link closed with no answer: it is final; create a new form if you still need one. ' +
       'Do not poll in a loop.',
     inputSchema: {
       type: 'object',
@@ -307,6 +320,7 @@ export const TOOLS = [
             },
           },
         },
+        expires_in: expiresIn,
       },
     },
     outputSchema: resultSchema,

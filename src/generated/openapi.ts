@@ -247,7 +247,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description Personal closure: deletes every personal session of this identity, every claim redeemed into its personal grant and every saved copy under it, and the grant itself; leaves an opaque tombstone (no address), and deletes the identity record unless a developer membership still uses the address. A developer membership, its sessions, keys and workspace are untouched. */
+    /** @description Personal closure (Delete my account): deletes every personal session of this identity, every claim redeemed into its personal grant and every saved copy under it, and the grant itself; leaves an opaque tombstone (no address), also in the personal restore ledger, and deletes the identity record unless a developer membership still uses the address. A developer membership, its sessions, keys and workspace are untouched. */
     post: operations['closePersonalAccount'];
     delete?: never;
     options?: never;
@@ -300,6 +300,57 @@ export interface paths {
     put?: never;
     /** @description Apex-native Save: the human page is on this same origin, so it saves without a claim. The link token and Keep grants are in the body (never a URL); the rounds the grants authorize now are saved as Keep would export them. Not available on any other origin. */
     post: operations['saveDirect'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/copies': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Your receipts: the saved copies of this personal account, newest first (at most 100), each with its title and rounds as served now: per round the archival verifier’s signature outcome and, separately, whether the questions and answers match, and the holder status as recorded at Save. A round an operator restriction or deletion whose scope reaches personal copies withholds is left out, and holder proofs whose batch names it are withheld; the status then says partly_unavailable or unavailable, never why. Reads only. */
+    get: operations['listPersonalCopies'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/copies/download': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description One saved copy’s sess.kept-conversation file (an attachment): its stored bytes exactly when nothing of it is withheld, otherwise the file as Keep would serve it under the same suppression (withheld rounds left out, holder proofs naming them withheld). */
+    post: operations['downloadPersonalCopy'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/personal/copies/remove': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Remove from Sess: deletes this saved copy and the claims that wrote it, and records the removal in the personal restore ledger, in one transaction. Never touches custody, a receipt, a Session or the developer’s records. */
+    post: operations['removePersonalCopy'];
     delete?: never;
     options?: never;
     head?: never;
@@ -624,7 +675,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description Creates a display Session (mode display, source.kind data) or an interactive one (mode interactive, source.kind sess_surface; components: SurfaceComponent). An unrecognized component type → 400 UNKNOWN_COMPONENT; a field-schema keyword outside the supported subset → 400 INVALID_SCHEMA. An Idempotency-Key header is refused (400 INVALID_SCHEMA): the human link cannot be replayed (it is stored only as a hash). Retention: the human link expires 720 hours after creation with the deployment owner key and 168 hours with a developer API key (free plan). The Session’s content, accepted results and receipts are purged 720 hours (owner key) or 168 hours (developer API key) after the earlier of its completion and its link’s expiry, and outstanding webhook deliveries are cancelled; afterwards every owner route answers 404 SESSION_NOT_FOUND. A webhook already delivered is not recalled. */
+    /** @description Creates a display Session (mode display, source.kind data) or an interactive one (mode interactive, source.kind sess_surface; components: SurfaceComponent). An unrecognized component type → 400 UNKNOWN_COMPONENT; a field-schema keyword outside the supported subset → 400 INVALID_SCHEMA. An Idempotency-Key header is refused (400 INVALID_SCHEMA): the human link cannot be replayed (it is stored only as a hash). Retention: the human link expires 720 hours after creation with the deployment owner key and 168 hours with a developer API key (free plan). The Session’s content, accepted results and receipts are purged 720 hours (owner key) or 168 hours (developer API key) after the earlier of its completion and its link’s expiry, and outstanding webhook deliveries are cancelled; afterwards every owner route answers 404 SESSION_NOT_FOUND. A webhook already delivered is not recalled. Advanced: expires_in (seconds from creation, at least 30, at most the plan’s live-link lifetime) sets a shorter human link; the Session’s retention then also ends sooner, because it counts from the earlier of completion and the link’s expiry. The response’s action_expires_at is the stored expiry, the same value GET /v1/sessions/{id} returns. Advanced: invocation_id ties the Session to the run of your registered agent that it serves; the archival core of each receipt it issues then binds that agent (target) and its version. */
     post: operations['createSession'];
     delete?: never;
     options?: never;
@@ -984,7 +1035,7 @@ export interface paths {
     /** @description The owner workspace’s targets with owner-only start and completion counts. */
     get: operations['listTargets'];
     put?: never;
-    /** @description Registers an HTTP Agent Target in the owner workspace (from the credential only). Requires the explicit type http, an https endpoint on port 443 (no user info or fragment; an IP literal must be public), a versioned capability with a bounded input schema, a grant policy (audience origins and lifetime), a budget and an optional enabled switch. Starts are possible only after domain verification. Human, trial and probe credentials cannot register or modify targets. */
+    /** @description Registers an HTTP Agent Target in the owner workspace (from the credential only). Requires the explicit type http, an https endpoint on port 443 (no user info or fragment; an IP literal must be public), a versioned capability with a bounded input schema, a grant policy (audience origins and lifetime), a budget and an optional enabled switch. Starts are possible only after domain verification. Human, trial and probe credentials cannot register or modify targets. An optional Idempotency-Key makes a retry safe: the same request returns the original target. */
     post: operations['registerTarget'];
     delete?: never;
     options?: never;
@@ -1401,11 +1452,17 @@ export interface components {
              */
             response_policy?: 'first';
           };
+      /** @description Advanced. How long the human link stays open, in seconds from creation: at least 30 and at most the plan’s live-link lifetime (Free 604800, Starter and Pro 2592000; the deployment owner key 2592000). Absent: the plan’s lifetime. Out of range → 400 INVALID_SCHEMA, whose message names both bounds. Completion never moves the expiry. */
+      expires_in?: number;
+      /** @description Advanced. The invocation_id of the run your registered agent received, when this Session serves that run. Sess then records the agent and its version with every receipt it keeps for this Session. The run must be in your workspace and still open: an unknown run → 422 VALIDATION_FAILED (reason unknown_invocation); a run that has ended → 409 INVOCATION_TERMINAL. Absent: the Session is not tied to a run. */
+      invocation_id?: string;
     };
     CreateSessionResponse: {
       id: string;
       revision: number;
       human_url: string;
+      /** @description When the Session’s human link expires: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Fixed when the Session is created and never extended by a read; never null. A link revoked by the operator stops earlier; this field does not report revocation. */
+      action_expires_at: string;
     };
     SessionResponse: {
       id: string;
@@ -2638,6 +2695,36 @@ export interface components {
        */
       saved_at: string;
     };
+    PersonalCopyRequest: {
+      /** @description A saved copy of this personal account, as GET /personal/copies lists it. */
+      item: string;
+    };
+    PersonalCopiesResponse: {
+      /** @description The newest saved copies first, at most 100. */
+      copies: {
+        item: string;
+        /** Format: date-time */
+        saved_at: string;
+        /** @description `partly_unavailable` or `unavailable` when an operator restriction or deletion whose scope reaches personal copies withholds rounds or holder proofs of it: that content is never served, and the status never says why. */
+        status: 'available' | 'partly_unavailable' | 'unavailable';
+        /** @description The first served round’s Surface title, from the copy itself. */
+        title: string | null;
+        rounds: {
+          /** Format: date-time */
+          accepted_at: string;
+          /** @description The archival verifier’s signature outcome for this round’s kept record with the service’s receipt keys: `not_checked` when the round was not preserved or its key is not trusted here. */
+          signature: 'verified' | 'not_valid' | 'not_checked';
+          /** @description Whether the round’s questions and answers in the copy match the receipt: `unavailable` when the copy does not hold them (they were purged before the Save), `not_checked` when the signature was not verified first. Never folded into the signature outcome. */
+          contents: 'verified' | 'not_valid' | 'unavailable' | 'not_checked';
+          /** @description The holder status as recorded at Save; `withheld` when its signed batch names a round an operator order now withholds. */
+          holder: 'enrolled' | 'revoked' | 'not_enrolled' | 'withheld';
+        }[];
+      }[];
+    };
+    PersonalCopyRemoved: {
+      /** @constant */
+      status: 'removed';
+    };
     ProtectedResourceMetadata: {
       /** @description The MCP resource (RFC 8707), e.g. https://mcp.sess.si/mcp. */
       resource: string;
@@ -2735,6 +2822,8 @@ export interface components {
       };
       /** @description Default true. */
       enabled?: boolean;
+      /** @description Advanced. The human link lifetime, in seconds, the target’s agent is asked to give each Session it creates for a run: at least 30 and at most the workspace plan’s live-link lifetime (Free 604800, Starter and Pro 2592000; the deployment owner key 2592000); out of range → 400 INVALID_SCHEMA, whose message names both bounds. Advisory: Sess does not create the target’s Sessions. It is copied into each admitted run and sent in the dispatch message as limits.expires_in; an agent that sets its own expires_in, calls the API directly or uses an SDK that does not apply it is not governed by it, and the Session’s create checks the value against the creating key’s plan again. Not part of the versioned binding: changing it changes no version and leaves grants and admitted runs as they are. */
+      default_expires_in?: number;
     };
     TargetUpdateRequest: {
       enabled?: boolean;
@@ -2756,6 +2845,7 @@ export interface components {
         max_concurrent: number;
         max_starts_per_day: number;
       };
+      default_expires_in?: number | null;
     };
     TargetSharingRequest: {
       name?: string | null;
@@ -2769,7 +2859,7 @@ export interface components {
       /** @constant */
       type: 'http';
       endpoint: string;
-      /** @description Incremented by every change of capability, grant policy or budget. Grants are bound to one version; a start with an older grant → 409 TARGET_VERSION_CONFLICT, and admitted runs not yet dispatched fail as stale_binding. */
+      /** @description Incremented by every change of capability, grant policy or budget (not by sharing or default_expires_in). Grants are bound to one version; a start with an older grant → 409 TARGET_VERSION_CONFLICT, and admitted runs not yet dispatched fail as stale_binding. */
       version: number;
       capability: {
         name: string;
@@ -2812,6 +2902,8 @@ export interface components {
         /** @description Off by default. When on, the completion page of a run started from the card offers “Ask this agent again”: a new start (a new Invocation and a new Session) that carries nothing from the finished one. */
         ask_again: boolean;
       };
+      /** @description The advisory link lifetime in seconds; null: none (the plan’s lifetime). */
+      default_expires_in: number | null;
       created_at: string;
     };
     TargetListResponse: {
@@ -2820,7 +2912,7 @@ export interface components {
         /** @constant */
         type: 'http';
         endpoint: string;
-        /** @description Incremented by every change of capability, grant policy or budget. Grants are bound to one version; a start with an older grant → 409 TARGET_VERSION_CONFLICT, and admitted runs not yet dispatched fail as stale_binding. */
+        /** @description Incremented by every change of capability, grant policy or budget (not by sharing or default_expires_in). Grants are bound to one version; a start with an older grant → 409 TARGET_VERSION_CONFLICT, and admitted runs not yet dispatched fail as stale_binding. */
         version: number;
         capability: {
           name: string;
@@ -2863,6 +2955,8 @@ export interface components {
           /** @description Off by default. When on, the completion page of a run started from the card offers “Ask this agent again”: a new start (a new Invocation and a new Session) that carries nothing from the finished one. */
           ask_again: boolean;
         };
+        /** @description The advisory link lifetime in seconds; null: none (the plan’s lifetime). */
+        default_expires_in: number | null;
         created_at: string;
       }[];
     };
@@ -2992,6 +3086,8 @@ export interface components {
       };
       limits: {
         accepted_rounds: number;
+        /** @description Decision 0009 Amendment 7: the target’s default_expires_in when this run was admitted (absent when it had none). Advisory: the agent passes it as expires_in on POST /v1/sessions for the Sessions of this run unless it sets its own; that create checks it against the agent key’s plan. */
+        expires_in?: number;
       };
       expires_at: string;
       callback: {
@@ -3912,8 +4008,26 @@ export interface operations {
           'application/json': components['schemas']['Error'];
         };
       };
+      /** @description ACTION_NOT_ALLOWED (reason removal_delayed): a justified hold whose scope reaches personal copies names a round of a saved copy; nothing was changed. The hold is never named. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
       /** @description INVALID_SCHEMA: not application/json. */
       415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: the restore suppression has not yet run after start. */
+      503: {
         headers: {
           [name: string]: unknown;
         };
@@ -4189,6 +4303,249 @@ export interface operations {
         };
       };
       /** @description SERVICE_UNAVAILABLE: the restriction/deletion suppression is not yet re-applied after start. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  listPersonalCopies: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The saved copies. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PersonalCopiesResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED: no live personal session (a developer session, owner key or human link never counts). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED (per personal session; Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: the restore suppression has not yet run after start. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  downloadPersonalCopy: {
+    parameters: {
+      query?: never;
+      header: {
+        'x-sess-csrf': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PersonalCopyRequest'];
+      };
+    };
+    responses: {
+      /** @description The file (Content-Disposition: attachment). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED: no live personal session (a developer session, owner key or human link never counts). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND: no such saved copy in this account (another account’s copy answers the same). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED (reason copy_unavailable): nothing of this copy can be served now. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVALID_SCHEMA: not application/json. */
+      415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED (per personal session; Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: the restore suppression has not yet run after start. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  removePersonalCopy: {
+    parameters: {
+      query?: never;
+      header: {
+        'x-sess-csrf': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PersonalCopyRequest'];
+      };
+    };
+    responses: {
+      /** @description Removed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PersonalCopyRemoved'];
+        };
+      };
+      /** @description INVALID_SCHEMA */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description UNAUTHORIZED: no live personal session (a developer session, owner key or human link never counts). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request (or, with a session, no CSRF token). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description NOT_FOUND: no such saved copy in this account (another account’s copy answers the same). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED (reason removal_delayed): a justified hold whose scope reaches personal copies names one of its rounds; nothing was changed. The hold is never named. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description INVALID_SCHEMA: not application/json. */
+      415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description RATE_LIMITED (per personal session; Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE: the restore suppression has not yet run after start. */
       503: {
         headers: {
           [name: string]: unknown;
@@ -4841,7 +5198,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description To the provider’s hosted Checkout page; or to /app/usage?billing=<notice> with notice requested, unchanged, payment_required, reauth, not_changeable, processing, busy, unavailable, subscribed, not_configured or invalid; or, with no live account session, to /app/sign-in. */
+      /** @description To the provider’s hosted Checkout page; or to /app/usage?billing=<notice> with notice requested, unchanged, payment_required, reauth, not_changeable, ending, processing, busy, unavailable, subscribed, not_configured or invalid; or, with no live account session, to /app/sign-in. */
       303: {
         headers: {
           [name: string]: unknown;
@@ -5210,7 +5567,7 @@ export interface operations {
           'application/json': components['schemas']['CreateSessionResponse'];
         };
       };
-      /** @description INVALID_SCHEMA or UNKNOWN_COMPONENT */
+      /** @description INVALID_SCHEMA (including expires_in out of range: the message names the floor and the ceiling in seconds) or UNKNOWN_COMPONENT */
       400: {
         headers: {
           [name: string]: unknown;
@@ -5228,8 +5585,26 @@ export interface operations {
           'application/json': components['schemas']['Error'];
         };
       };
+      /** @description INVOCATION_TERMINAL: the invocation_id names a run of this workspace that has ended or passed its expiry. Nothing is created. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
       /** @description PAYLOAD_TOO_LARGE */
       413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description VALIDATION_FAILED, reason unknown_invocation: the invocation_id names no run of this workspace (a run of another workspace is answered the same way). Nothing is created. */
+      422: {
         headers: {
           [name: string]: unknown;
         };
@@ -6770,7 +7145,10 @@ export interface operations {
   registerTarget: {
     parameters: {
       query?: never;
-      header?: never;
+      header?: {
+        /** @description Optional. Scoped to the owner credential and the operation. The same canonical request body returns the original 201 (status, Location and body: the target as first registered) and registers nothing more, even after the target or the plan changed; a different body with the same key → 409 IDEMPOTENCY_CONFLICT; concurrent requests with one key register one target. Only successful registrations are recorded. Without the header every request registers. */
+        'Idempotency-Key'?: string;
+      };
       path?: never;
       cookie?: never;
     };
@@ -6789,7 +7167,7 @@ export interface operations {
           'application/json': components['schemas']['TargetResponse'];
         };
       };
-      /** @description TARGET_INVALID_URL (reason: not_https, port, credentials, fragment, non_public_address, malformed, too_long), TARGET_INVALID_CAPABILITY (reason: not_object, unsupported_keyword, too_deep, too_large, does_not_compile, not_a_schema) or INVALID_SCHEMA (an unsupported type or any unknown field) */
+      /** @description TARGET_INVALID_URL (reason: not_https, port, credentials, fragment, non_public_address, malformed, too_long), TARGET_INVALID_CAPABILITY (reason: not_object, unsupported_keyword, too_deep, too_large, does_not_compile, not_a_schema) or INVALID_SCHEMA (an unsupported type, any unknown field or a malformed Idempotency-Key) */
       400: {
         headers: {
           [name: string]: unknown;
@@ -6809,6 +7187,15 @@ export interface operations {
       };
       /** @description ACTION_NOT_ALLOWED: the workspace may not hold an outbound target */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description IDEMPOTENCY_CONFLICT: the key was used for a different request */
+      409: {
         headers: {
           [name: string]: unknown;
         };

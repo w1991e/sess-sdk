@@ -121,10 +121,19 @@ receipt audience for this question. Creation is attempted once; an uncertain cre
 | ------------------------------------------------------------- | ------------------------------------------ |
 | `wait_ended` `WAIT_TIMEOUT`, or `aborted`                     | Local wait ended; call `answer()` again    |
 | `wait_ended` `REVISION_SUPERSEDED`, `CLOSED_WITHOUT_RESPONSE` | The question is no longer the current step |
+| `wait_ended` `LINK_EXPIRED`                                   | The link closed with no answer; final      |
 | `receipt_verification`                                        | Not accepted; nothing was completed        |
 | `api` 401, 403 or 404                                         | Access revoked, or the Session is gone     |
 | `api` with `outcome: "rejected"`                              | The completion was refused                 |
 | Any error with `outcome: "unknown"`                           | Completion not confirmed; call again       |
+
+**Advanced: link lifetime.** `sess.ask()` and `sessions.create()` take an optional `expires_in`, in
+whole seconds from creation: from 30 up to your plan's link lifetime (Sess checks the ceiling;
+below 30 or not whole is refused before sending). The create response's `action_expires_at` (the
+handle's `expiresAt`) is when the link stops taking answers; nothing moves it. Every wait observes
+it: once the runtime clock (the response's HTTP `Date`, else this machine's) is two seconds past the
+expiry, one final read decides. An answer accepted before the expiry is returned; otherwise the wait
+ends with `wait_ended` `LINK_EXPIRED`. Nothing is completed for you.
 
 Concurrent calls on one handle share one verification and one completion. A timeout or abort ends
 only that caller’s local wait; it never cancels the Session or the shared completion. The handle is

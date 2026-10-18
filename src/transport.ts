@@ -125,6 +125,13 @@ export function retryAfter(header: string | null): number | undefined {
   const date = Date.parse(header);
   return Number.isFinite(date) ? Math.max(0, date - Date.now()) : undefined;
 }
+/** An IMF-fixdate HTTP `Date` header in milliseconds since the epoch, or undefined. */
+export function httpDate(header: string | null): number | undefined {
+  if (header === null || !/^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(header))
+    return undefined;
+  const date = Date.parse(header);
+  return Number.isFinite(date) ? date : undefined;
+}
 async function readBody(response: Response, maxBytes: number, signal: AbortSignal): Promise<string> {
   if (!response.body) return '';
   const reader = response.body.getReader();
@@ -417,9 +424,11 @@ export class Transport {
             throw new SessError('protocol', 'API response has an invalid workspace context.', {
               code: 'INVALID_WORKSPACE_CONTEXT',
             });
+          const serverDate = httpDate(response.headers.get('date'));
           const meta: ResponseMeta = {
             status: response.status,
             attempts,
+            ...(serverDate !== undefined ? { serverDate } : {}),
             ...(etag ? { etag } : {}),
             ...(requestId ? { requestId } : {}),
             ...(workspaceHeader ? { workspaceId: workspaceHeader } : {}),

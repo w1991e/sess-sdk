@@ -114,6 +114,8 @@ export function decodeCreate(value: unknown, allowInsecureLocalhost = false): Cr
   const v = object(value);
   string(v.id, sessionPattern);
   integer(v.revision);
+  // The link's expiry; checked when present (a runtime before the link-lifetime slice omits it).
+  if (v.action_expires_at !== undefined) date(v.action_expires_at);
   const text = string(v.human_url, /^[^\s\u0000-\u001f\u007f]+$/, 4096);
   let url: URL;
   try {

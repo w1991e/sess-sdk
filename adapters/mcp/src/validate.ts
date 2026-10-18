@@ -286,6 +286,18 @@ function args(raw: unknown, allowed: readonly string[], required: readonly strin
 
 export interface RequestArgs {
   interaction: JsonObject;
+  /** Advanced: the link lifetime in seconds (from 30; the plan's ceiling is checked by Sess). */
+  expiresIn?: number;
+}
+
+/** The shortest link lifetime Sess accepts, in seconds (Decision 0009 Amendment 7). */
+export const LINK_LIFETIME_FLOOR_SECONDS = 30;
+
+function linkLifetime(value: JsonValue | undefined): { expiresIn?: number } {
+  if (value === undefined) return {};
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < LINK_LIFETIME_FLOOR_SECONDS)
+    invalid('expires_in', `must be a whole number of seconds, at least ${LINK_LIFETIME_FLOOR_SECONDS}`);
+  return { expiresIn: value };
 }
 export interface ResponseArgs {
   handle: string;
@@ -305,8 +317,8 @@ export interface CompleteArgs {
 }
 
 export function parseRequestArgs(raw: unknown): RequestArgs {
-  const a = args(raw, ['interaction'], ['interaction']);
-  return { interaction: validateInteraction(a.interaction) };
+  const a = args(raw, ['interaction', 'expires_in'], ['interaction']);
+  return { interaction: validateInteraction(a.interaction), ...linkLifetime(a.expires_in) };
 }
 export function parseResponseArgs(raw: unknown): ResponseArgs {
   const a = args(raw, ['handle', 'revision', 'wait_ms'], ['handle', 'revision']);
@@ -410,7 +422,11 @@ function askField(value: JsonValue | undefined, path: string): JsonObject {
  * sess_request. The result goes through the ordinary request operation.
  */
 export function parseAskArgs(raw: unknown): RequestArgs {
-  const a = args(raw, ['question', 'details', 'fields', 'submit_label'], ['question', 'fields']);
+  const a = args(
+    raw,
+    ['question', 'details', 'fields', 'submit_label', 'expires_in'],
+    ['question', 'fields'],
+  );
   const fields = a.fields;
   if (!Array.isArray(fields) || fields.length < 1 || fields.length > ASK_LIMITS.fields)
     invalid('fields', `must contain 1..${ASK_LIMITS.fields} fields`);
@@ -429,5 +445,5 @@ export function parseAskArgs(raw: unknown): RequestArgs {
       },
     ],
   };
-  return { interaction: validateInteraction(interaction) };
+  return { interaction: validateInteraction(interaction), ...linkLifetime(a.expires_in) };
 }
