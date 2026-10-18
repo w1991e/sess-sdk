@@ -1,13 +1,13 @@
 # Your first Sess agent
 
-This agent asks you two questions on your phone, plans your weekend on the real forecast. Each answer
-comes with a signed receipt.
+This agent asks you two questions on your phone and plans your weekend on the real forecast, with a
+signed receipt for each answer.
 
 **Install:** `npm install --ignore-scripts`
 
 **Run** (with `SESS_API_KEY` and `SESS_DEMO_CONTACT` set in your environment): `npm start`
 
-**What you'll see:** a Sess link. Open it on your phone, answer two questions, and your plan
+**What you'll see:** a Sess link to open on your phone; answer its two questions and your plan
 prints here, ending with `verified ✓`.
 
 ## Details
