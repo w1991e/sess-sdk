@@ -254,6 +254,11 @@ describe('sess verify --archival <file>', () => {
     await writeFile(otherKeysFile, witnessKeySetJson('https://other.example', [batch.key.trusted]));
     const notRoot = join(dir, 'not-root.json');
     await writeFile(notRoot, JSON.stringify({ mediaType: 'text/plain' }));
+    // A trusted root whose log base URL is not https: an unusable trust anchor (checkWitnessAnchors).
+    const httpRoot = JSON.parse(trustedRootJson(batch.trustedRoot)) as { tlogs: { baseUrl: string }[] };
+    for (const l of httpRoot.tlogs) l.baseUrl = l.baseUrl.replace(/^https:/, 'http:');
+    const unusableRoot = join(dir, 'unusable-root.json');
+    await writeFile(unusableRoot, JSON.stringify(httpRoot));
     const badContent = join(dir, 'bad-content.json');
     await writeFile(badContent, JSON.stringify({ surface: {} }));
     const args = ['verify', '--archival', envelopeFile, '--keys', keysFile, '--issuer', issuer];
@@ -301,6 +306,10 @@ describe('sess verify --archival <file>', () => {
       ['keys without root', [...args, '--witness-keys', witnessKeysFile]],
       ['key set of another issuer', [...args, '--witness-root', rootFile, '--witness-keys', otherKeysFile]],
       ['not a trusted root', [...args, '--witness-root', notRoot, '--witness-keys', witnessKeysFile]],
+      [
+        'an unusable trust anchor',
+        [...args, '--witness-root', unusableRoot, '--witness-keys', witnessKeysFile],
+      ],
       ['content is not {surface, input}', [...args, '--content', badContent]],
       ['no keys', ['verify', '--archival', envelopeFile]],
       ['two envelopes', ['verify', '--archival', envelopeFile, envelopeFile, '--keys', keysFile]],

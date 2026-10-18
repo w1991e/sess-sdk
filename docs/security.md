@@ -182,7 +182,11 @@ if (shown.verified && result.witness.status === 'witnessed') {
   example through Sigstore's TUF repository) and the witness key set is yours.
 - **What a verified result means.** The issuer held these exact receipt bytes. It is not execution
   authority, not a named or verified person, and a witness time is an upper bound on existence, not
-  the acceptance time. Only invalid options throw a `TypeError`.
+  the acceptance time. Only invalid options throw a `TypeError`. Witness anchors are options: an
+  unusable one (a TSA certificate that is not DER, a log base URL that is not https, a witness key
+  that is not ECDSA P-256 SPKI, a window that is not a date) is refused up front with a
+  `TypeError` whose message starts `witness anchors are not valid`, never reported as a property of
+  the evidence. `checkWitnessAnchors` runs the same check when you load anchors.
 - **Parity.** The archival-v1 corpus and the witness vectors are verbatim, digest-pinned copies of the
   Sess files (`docs/spec/source.json`); the library and the `sess verify --archival` command reach the
   same results on every vector as the Sess core.

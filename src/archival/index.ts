@@ -24,6 +24,7 @@ export type {
 export { ARCHIVAL_ENVELOPE_MAX_BYTES } from './envelope.js';
 export type { ArchivalEnvelope } from './envelope.js';
 export type { ArchivalCore, SignedArchivalCore, VersionRef } from './core.js';
+export { checkWitnessAnchors, WITNESS_ANCHORS_INVALID } from './witness/anchors.js';
 export { parseWitnessKeySet, WitnessKeySetError } from './witness/key-set.js';
 export { parseTrustedRoot, TrustedRootError } from './witness/trusted-root.js';
 export type { TrustedLog, TrustedRoot } from './witness/trusted-root.js';

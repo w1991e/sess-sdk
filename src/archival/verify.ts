@@ -36,6 +36,7 @@ import {
   type SignedArchivalCore,
 } from './core.js';
 import { readArchivalEnvelope } from './envelope.js';
+import { checkWitnessAnchors } from './witness/anchors.js';
 import { verifyWitnessEvidence, WITNESS_EVIDENCE_TYPE } from './witness/evidence.js';
 import type { WitnessAnchors } from './witness/parts.js';
 
@@ -132,7 +133,8 @@ export interface VerifyArchivalEnvelopeOptions {
   /**
    * Witness trust anchors you supplied: an independently distributed trusted root (TSAs, logs)
    * and the issuer's witness key set. Never taken from the envelope. Absent: attached witness
-   * evidence is indeterminate (witness_trust_unavailable).
+   * evidence is indeterminate (witness_trust_unavailable). Unusable anchors throw a TypeError
+   * (checkWitnessAnchors), like any other invalid option.
    */
   witnessAnchors?: WitnessAnchors;
 }
@@ -214,17 +216,11 @@ function checkOptions(options: VerifyArchivalEnvelopeOptions): ReceiptKeySet {
     if (!isObject(x) || !Object.hasOwn(x, 'surface') || !Object.hasOwn(x, 'input'))
       throw new TypeError('content must be {surface, input}');
   }
-  if (options.witnessAnchors !== undefined) {
-    const w = options.witnessAnchors as unknown;
-    if (
-      !isObject(w) ||
-      !isObject(w.trustedRoot) ||
-      !Array.isArray(w.trustedRoot.tlogs) ||
-      !Array.isArray(w.trustedRoot.tsas) ||
-      !Array.isArray(w.witnessKeys)
-    )
-      throw new TypeError('witnessAnchors must be {trustedRoot: {tlogs, tsas}, witnessKeys}');
-  }
+  // Witness anchors are the caller's configuration: an unusable one (a certificate that is not
+  // DER, a log base URL that is not https, a key that is not SPKI, a window that is not a date) is
+  // refused here with a stable TypeError, never reported as a property of the evidence and never
+  // thrown later from inside the token or log verifier (witness/anchors.ts; as the Sess core).
+  if (options.witnessAnchors !== undefined) checkWitnessAnchors(options.witnessAnchors);
   return keys;
 }
 

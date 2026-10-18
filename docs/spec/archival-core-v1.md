@@ -1,7 +1,6 @@
 # Sess archival core v1
 
-**Status:** implemented in `packages/evidence` (P2-13 slice R-V1). Not yet published in the SDK. The successor interface is selected through the existing release discipline.
-**Build contract:** Decision 0009 Amendment 2; ASTRA #200 §2 C1/C5/C6 and §3 V1, V2, V4, V5.
+**Status:** implemented in `packages/evidence`. Not yet published in the SDK. The successor interface is selected through the existing release discipline.
 
 The archival core is the issuer's immutable, signed statement that it holds one issued **receipt-v1** compact JWS in custody. It records the receipt's exact bytes, its acceptance bindings and the committed workspace sequence of its custody record. It does not change receipt-v1. Existing clients keep receiving the original JWS string, and `verifyDecisionReceipt` and the in-repository `verifyReceipt` keep their contract, including current-time expiry.
 
@@ -20,7 +19,7 @@ A JSON object with exactly these members. Unknown, missing or mistyped members a
 | `receipt` | `{"typ": "sess-receipt+jwt", "version": 1, "digest": "sha256:<hex>", "byte_length": n}`. `digest` is the SHA-256 of the exact compact-JWS ASCII bytes. `byte_length` is their length, at most 32,768. |
 | `accepted_at` | the receipt's `accepted_at`: the issuer's asserted acceptance time, RFC 3339 UTC with milliseconds |
 | `workspace_sequence` | positive integer; the committed per-workspace custody sequence (§4) |
-| `bindings` | `{"target": R, "capability": R, "owner": R}`, where each `R` is `null` or `{"id": string, "version": positive integer}`. Each value is an immutable version that the server bound at admission. `null` states explicitly that the acceptance had no such binding. In this release no versioned target, capability or owner record exists, so all three are `null`. |
+| `bindings` | `{"target": R, "capability": R, "owner": R}`, where each `R` is `null` or `{"id": string, "version": positive integer}`. Each value is an immutable version that the server bound at admission. `null` states explicitly that the acceptance had no such binding. `target` and `capability` are set when the receipt's Session was created for an Invocation (`POST /v1/sessions` with `invocation_id`, which the server accepts only for an Invocation of the creating credential's own workspace that has not ended, and records immutably with the Session, §4b): `target` is `{"id": <target id>, "version": <target version frozen at that Invocation's admission>}`, and `capability` is `{"id": <capability name>, "version": <that same target version>}`, because a capability has no record of its own and is versioned only as part of its target's version (which pins its name, declared version and input schema). A Session created without `invocation_id` binds both as `null`. `owner` is always `null`: no versioned owner record exists. A verifier accepts any of the three as `{id, version}`. |
 
 Identifiers are 1–200 characters with no whitespace or control characters. The canonical core is at most 4,096 bytes.
 
@@ -37,7 +36,7 @@ The core contains **no** witness or preservation evidence, holder or claim mappi
 
 `{"type": "sess.archival-envelope", "version": 1, "receipt": <exact original JWS>, "signed_core": <signed core>, "evidence": [...]}`, at most 65,536 bytes.
 
-`evidence` holds detachable preservation evidence, each entry bound to the core from outside it. The defined type is witness evidence version 1 (`sess.witness-evidence`, [`witness-evidence-v1.md`](witness-evidence-v1.md), R-V2b), which custody attaches once a receipt is witnessed. An empty array means the witness is **pending** (the receipt is unanchored). A non-object or malformed entry is **invalid**. An entry of any other type or version is **unsupported**. A supplied proof is never treated as an ordinary pending state. Removing the evidence changes only the witness dimension.
+`evidence` holds detachable preservation evidence, each entry bound to the core from outside it. The defined type is witness evidence version 1 (`sess.witness-evidence`, [`witness-evidence-v1.md`](witness-evidence-v1.md)), which custody attaches once a receipt is witnessed. An empty array means the witness is **pending** (the receipt is unanchored). A non-object or malformed entry is **invalid**. An entry of any other type or version is **unsupported**. A supplied proof is never treated as an ordinary pending state. Removing the evidence changes only the witness dimension.
 
 The envelope is not signed as a whole. Each part carries its own proof.
 
@@ -47,8 +46,8 @@ One row per issued receipt holds the exact JWS, the core text, its digest and si
 
 - **Atomic write:** at acceptance the row is written in the transaction of the accepted Event and its outbox job, together with a pending witness job. If custody fails, the acceptance rolls back. Witness execution comes later and can never roll an acceptance back.
 - **Identity:** the identity is the issuer plus the event ID. An event ID is also unique on its own.
-- **Workspace sequence:** a counter row advanced in the same transaction, so a rollback allocates nothing and committed numbers have no gaps. It orders issued records in this custody scope only. Alone it is not evidence of a complete history (C7).
-- **Purge independence:** Session/Event purge and retention purge never delete or change a custody row. Purge defers a Session that still holds a receipt not yet in custody. Only the isolated synthetic probe's fixture cleanup deletes its own workspace's rows.
+- **Workspace sequence:** a counter row advanced in the same transaction, so a rollback allocates nothing and numbers are committed without gaps. A later controlled deletion (`custody-restriction-deletion-v1.md` §4) removes the record and leaves a gap; the deletion's tombstone keeps that `workspace_sequence` to explain it. It orders issued records in this custody scope only. Alone it is not evidence of a complete history.
+- **Purge independence:** Session/Event purge and retention purge never delete or change a custody row. Purge defers a Session that still holds a receipt not yet in custody. Only the isolated synthetic probe's fixture cleanup deletes its own workspace's rows, and only a controlled operator deletion that leaves a tombstone removes any other record.
 - **Backfill:** receipts issued before custody are preserved later, never re-signed. The asserted acceptance time stays as issued, and `preserved_at` records the actual, later preservation time. A receipt whose signature fails under a key the issuer holds, or whose claims do not match its Event, is not preserved. A receipt under a rotated-out key is preserved as it is, and verifiers report its key as untrusted.
 
 ### 4a. Exception custody (`receipt_custody_quarantine`)
@@ -61,13 +60,17 @@ A receipt that can never be preserved as verified evidence is kept in exception 
 
 The bounded deferral is `CUSTODY_DEFERRAL_MAX_MS`, 7 days past the Session's purge deadline.
 
-Exception custody gets no archival core, no signature, no witness job, and no verified result from any verifier. Like custody, it is immutable, except for synthetic-fixture cleanup.
+Exception custody gets no archival core, no signature, no witness job, and no verified result from any verifier. Like custody, it is immutable, except for synthetic-fixture cleanup and controlled deletion with a tombstone.
 
-Once a receipt is in custody or exception custody, its Session's ordinary payload follows its existing retention. A refused or delayed receipt never becomes an indefinite hold on unrelated payload (ASTRA #221 V-01).
+Once a receipt is in custody or exception custody, its Session's ordinary payload follows its existing retention. A refused or delayed receipt never becomes an indefinite hold on unrelated payload.
+
+### 4b. Session Invocation binding (`session_invocation_bindings`)
+
+At most one row per Session, written in the Session's create transaction when the create names `invocation_id` (migration `1760001060000_session-invocation-binding`). The server reads and share-locks the Invocation in the Session's own workspace only, and refuses one that is unknown or belongs to another workspace (`422 VALIDATION_FAILED`, reason `unknown_invocation`, the same answer for both) or that has ended or passed its expiry (`409 INVOCATION_TERMINAL`); nothing is created then. The row holds the Invocation id, its target id, the target version frozen at its admission and its capability name, all copied from the Invocation row, never from the request. Composite keys hold the Session and the target to one workspace. The row is immutable: an update is refused, and a deletion is refused while its Session row exists unpurged. Custody (§4, at acceptance and in the backfill) reads it in its transaction and checks that the signed core binds exactly what it read.
 
 ## 5. Successor archival verifier
 
-`verifyArchivalEnvelope(envelope, trustedKeys, {now, content, context, keySetObservedAt, witness})` runs offline. It never trusts keys, witness anchors or context from the envelope. It reports independent dimensions, each as `{status, reason}`:
+`verifyArchivalEnvelope(envelope, trustedKeys, {now, content, context, keySetObservedAt, witness})` runs offline. It never trusts keys, witness anchors or context from the envelope. It never throws for the envelope; invalid options throw a `TypeError`, and witness anchors are options: an unusable anchor (a TSA certificate that is not DER, a log base URL that is not https, a witness key that is not ECDSA P-256 SPKI, a window that is not a date) is refused up front with a `TypeError` whose message starts `witness anchors are not valid` (`checkWitnessAnchors`), never reported as a property of the evidence. It reports independent dimensions, each as `{status, reason}`:
 
 | Dimension | Statuses and reasons |
 |---|---|

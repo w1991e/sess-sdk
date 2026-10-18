@@ -161,7 +161,9 @@ describe('archival verifier: the shared archival-v1 corpus', () => {
       'ARCHIVAL_CONTENT_MAX_BYTES',
       'ARCHIVAL_ENVELOPE_MAX_BYTES',
       'TrustedRootError',
+      'WITNESS_ANCHORS_INVALID',
       'WitnessKeySetError',
+      'checkWitnessAnchors',
       'parseTrustedRoot',
       'parseWitnessKeySet',
       'presentArchivalVerification',
@@ -352,5 +354,46 @@ describe('archival verifier: result object and trust', () => {
       await expect(
         verifyArchivalEnvelope(envelope, options as Parameters<typeof verifyArchivalEnvelope>[1]),
       ).rejects.toThrow(TypeError);
+  });
+});
+
+// archival-core-v1 §2: a Session created for an Invocation binds its target and capability (at the
+// admission target version); owner stays null. Ported from the Sess core's verifier tests.
+describe('archival verifier: non-null bindings', () => {
+  it('a core carrying the target and capability bindings of an Invocation verifies on every dimension and keeps them; changing a bound version breaks the core signature', async () => {
+    const v = await vectors();
+    const original = v.cases[0]?.input as { receipt: string };
+    const key = derivedKey(CORPUS_KEY_LABEL, 'corpus-2026-01');
+    const now = new Date('2026-01-20T00:00:00.000Z');
+    for (const bindings of [
+      { target: { id: 'tgt_01JABCDEFGHJKMNPQRSTVWXYZ0', version: 2 }, capability: null, owner: null },
+      {
+        target: { id: 'tgt_01JABCDEFGHJKMNPQRSTVWXYZ0', version: 4 },
+        capability: { id: 'weekend.plan', version: 4 },
+        owner: null,
+      },
+    ]) {
+      const core = buildArchivalCore(original.receipt, 1, bindings);
+      const envelope = archivalEnvelope(original.receipt, signArchivalCore(core, key));
+      const r = await verifyArchivalEnvelope(JSON.stringify(envelope), {
+        trustedKeys: trustedKeys(),
+        now,
+        content: frozen.content.disclosed,
+        expectedContext: { issuer: 'https://api.sess.example', audience: 'wks_corpus' },
+      });
+      expect([r.signature, r.contents, r.context, r.key_trust].map((d) => `${d.status}:${d.reason}`)).toEqual(
+        ['valid:verified', 'valid:verified', 'valid:verified', 'valid:trusted'],
+      );
+      expect(r.core?.bindings).toEqual(bindings);
+      // The bindings are signed: a changed version breaks the core signature.
+      const altered = JSON.parse(JSON.stringify(envelope)) as {
+        signed_core: { core: { bindings: Record<string, { version: number } | null> } };
+      };
+      const bound = altered.signed_core.core.bindings[bindings.capability ? 'capability' : 'target'];
+      if (!bound) throw new Error('no bound version to alter');
+      bound.version += 1;
+      const t = await verifyArchivalEnvelope(altered, { trustedKeys: trustedKeys(), now });
+      expect([t.signature.status, t.signature.reason]).toEqual(['invalid', 'core_signature']);
+    }
   });
 });

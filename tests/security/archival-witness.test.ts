@@ -11,15 +11,17 @@
 //     envelope, with anchors from the caller only, including their published JSON forms.
 //
 // No network: every anchor is in memory or a pinned file.
-import { createHash } from 'node:crypto';
+import { createHash, generateKeyPairSync } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  checkWitnessAnchors,
   parseTrustedRoot,
   parseWitnessKeySet,
   presentArchivalVerification,
   type TrustedTsa,
   verifyArchivalEnvelope,
+  WITNESS_ANCHORS_INVALID,
   type WitnessAnchors,
   WitnessKeySetError,
 } from '../../src/archival/index.js';
@@ -613,5 +615,115 @@ describe('the pinned Sigstore staging run (real TSA and Rekor data)', () => {
     );
     expect(r.signature.status).toBe('valid');
     expect(r.witness).toEqual({ status: 'unsupported', reason: 'unsupported_evidence' });
+  });
+});
+
+// Caller-supplied witness anchors are configuration, so an unusable anchor is refused up front with
+// a stable TypeError (archival-core-v1 §5; ported with the Sess core's checkWitnessAnchors and its
+// regression cases). Before, a bad certificate DER or log base URL escaped from inside the token or
+// log verifier as a parser exception that was not a TypeError.
+describe('witness anchors are validated up front', () => {
+  let w: Witnessed;
+  beforeAll(async () => {
+    w = await witnessed(1);
+  });
+
+  type Editable = Record<string, unknown>;
+  /** The anchors with one part replaced (a shallow edit of the caller's configuration). */
+  function edited(
+    a: WitnessAnchors,
+    edit: (root: { tlogs: Editable[]; tsas: Editable[] }, keys: Editable[]) => void,
+  ): WitnessAnchors {
+    const root = {
+      tlogs: a.trustedRoot.tlogs.map((l) => ({ ...l })),
+      tsas: a.trustedRoot.tsas.map((t) => ({ ...t, certChain: [...t.certChain] })),
+    };
+    const keys = a.witnessKeys.map((k) => ({ ...k }));
+    edit(root as unknown as { tlogs: Editable[]; tsas: Editable[] }, keys as unknown as Editable[]);
+    return { trustedRoot: root, witnessKeys: keys };
+  }
+  const withEvidence = () => ({ ...copy(w.envelopes[0] as object), evidence: [w.evidence[0]] });
+  const withoutEvidence = () => ({ ...copy(w.envelopes[0] as object), evidence: [] });
+
+  it('malformed caller witness anchors (certificate DER, log base URL, witness or log key, window) are refused with a stable TypeError before any evidence is read, never a parser exception or a result', async () => {
+    const garbage = new Uint8Array([0x30, 0x03, 0x02, 0x01, 0x01]);
+    const ed25519 = new Uint8Array(
+      generateKeyPairSync('ed25519').publicKey.export({ format: 'der', type: 'spki' }),
+    );
+    const chain = (t: Editable) => t.certChain as Uint8Array[];
+    const cases: [string, WitnessAnchors][] = [
+      [
+        'a TSA chain certificate that is not DER',
+        edited(w.anchors, (r) => void chain(r.tsas[0] as Editable).push(garbage)),
+      ],
+      [
+        'a TSA leaf that is not DER',
+        edited(w.anchors, (r) => void (chain(r.tsas[0] as Editable)[0] = garbage)),
+      ],
+      ['an empty TSA chain', edited(w.anchors, (r) => void ((r.tsas[0] as Editable).certChain = []))],
+      [
+        'a log base URL that is not a URL',
+        edited(w.anchors, (r) => void ((r.tlogs[0] as Editable).baseUrl = 'log.synthetic.test')),
+      ],
+      [
+        'a log base URL that is not https',
+        edited(w.anchors, (r) => void ((r.tlogs[0] as Editable).baseUrl = 'http://log.synthetic.test')),
+      ],
+      [
+        'a log key that is not SPKI',
+        edited(w.anchors, (r) => void ((r.tlogs[0] as Editable).publicKey = garbage)),
+      ],
+      [
+        'a witness key that is not SPKI',
+        edited(w.anchors, (_r, k) => void ((k[0] as Editable).publicKey = garbage)),
+      ],
+      [
+        'a witness key that is not ECDSA P-256',
+        edited(w.anchors, (_r, k) => void ((k[0] as Editable).publicKey = ed25519)),
+      ],
+      [
+        'a window start that is not a date',
+        edited(w.anchors, (r) => void ((r.tsas[0] as Editable).validFrom = new Date(Number.NaN))),
+      ],
+      [
+        'a window end that is neither a date nor null',
+        edited(w.anchors, (_r, k) => void ((k[0] as Editable).validTo = '2030-01-01T00:00:00Z')),
+      ],
+    ];
+    for (const [label, anchors] of cases) {
+      expect(() => checkWitnessAnchors(anchors), label).toThrow(TypeError);
+      expect(() => checkWitnessAnchors(anchors), label).toThrow(new RegExp(`^${WITNESS_ANCHORS_INVALID}: `));
+      // The same refusal whether or not the envelope carries evidence: it is the options' error.
+      for (const envelope of [withEvidence(), withoutEvidence()]) {
+        const err = await verifyArchivalEnvelope(envelope, {
+          ...trusted(),
+          witnessAnchors: anchors,
+        }).then(
+          () => null,
+          (e: unknown) => e,
+        );
+        expect(err, label).toBeInstanceOf(TypeError);
+        expect((err as TypeError).message.startsWith(`${WITNESS_ANCHORS_INVALID}: `), label).toBe(true);
+      }
+    }
+  });
+
+  it('usable anchors pass validation and still verify: the synthetic anchors witness their envelope, and the recorded Sigstore staging trusted root is accepted as is', async () => {
+    expect(() => checkWitnessAnchors(w.anchors)).not.toThrow();
+    const r = await verifyArchivalEnvelope(withEvidence(), { ...trusted(), witnessAnchors: w.anchors });
+    expect([r.witness.status, r.witness.reason]).toEqual(['witnessed', 'verified']);
+    expect(r.witness.witnessed_at).toBe(w.witnessedAt.toISOString());
+    expect(presentArchivalVerification(r).witness).toBe('witnessed');
+    const run = JSON.parse(
+      readFileSync(new URL('../fixtures/archival/sigstage-run.json', import.meta.url), 'utf8'),
+    ) as { exchanges: { url: string; status: number | null; response_body: string | null }[] };
+    const root = run.exchanges.find((x) => x.url.endsWith('trusted_root.json') && x.status === 200);
+    const staging = parseTrustedRoot(new Uint8Array(Buffer.from(root?.response_body ?? '', 'base64')));
+    expect(staging.tsas.length).toBeGreaterThan(0);
+    expect(() => checkWitnessAnchors({ trustedRoot: staging, witnessKeys: [] })).not.toThrow();
+    // Anchors without the witness key are usable but leave the evidence indeterminate.
+    const keyless = { trustedRoot: w.anchors.trustedRoot, witnessKeys: [] };
+    const k = await verifyArchivalEnvelope(withEvidence(), { ...trusted(), witnessAnchors: keyless });
+    expect([k.witness.status, k.witness.reason]).toEqual(['indeterminate', 'untrusted_witness_key']);
   });
 });

@@ -128,7 +128,11 @@ export function signReceipt(claims: Record<string, unknown>, key: TestKey): Prom
 }
 
 /** The archival core of an issued receipt, read from its own claims (Sess's buildArchivalCore). */
-export function buildArchivalCore(receipt: string, workspaceSequence: number): ArchivalCore {
+export function buildArchivalCore(
+  receipt: string,
+  workspaceSequence: number,
+  bindings: Partial<ArchivalCore['bindings']> = {},
+): ArchivalCore {
   const claims = JSON.parse(
     Buffer.from(receipt.split('.')[1] as string, 'base64url').toString('utf8'),
   ) as Record<string, unknown>;
@@ -147,7 +151,11 @@ export function buildArchivalCore(receipt: string, workspaceSequence: number): A
     },
     accepted_at: claims.accepted_at,
     workspace_sequence: workspaceSequence,
-    bindings: { target: null, capability: null, owner: null },
+    bindings: {
+      target: bindings.target ?? null,
+      capability: bindings.capability ?? null,
+      owner: bindings.owner ?? null,
+    },
   });
 }
 

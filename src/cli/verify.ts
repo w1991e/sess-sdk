@@ -12,6 +12,7 @@ import {
   type ArchivalVerification,
   type ExpectedArchivalContext,
 } from '../archival/verify.js';
+import { checkWitnessAnchors } from '../archival/witness/anchors.js';
 import { parseWitnessKeySet } from '../archival/witness/key-set.js';
 import type { WitnessAnchors } from '../archival/witness/parts.js';
 import { parseTrustedRoot } from '../archival/witness/trusted-root.js';
@@ -446,6 +447,11 @@ async function runArchival(
           ? 'the --witness-keys file must be a Sess witness key set (version 1)'
           : 'the --witness-keys file must be a Sess witness key set (version 1) of the --issuer',
       );
+    }
+    try {
+      checkWitnessAnchors(witnessAnchors);
+    } catch {
+      throw new UsageError('the --witness-root or --witness-keys file holds an unusable trust anchor');
     }
   }
   // The exact file bytes: the envelope bound applies to them before they are parsed.

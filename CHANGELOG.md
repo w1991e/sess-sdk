@@ -10,7 +10,9 @@ Not part of any published or prepared version. `0.1.0-rc.7` as prepared does not
   independent dimensions (signature, contents, context, witness, key trust, live expiry) with the
   Sess core's reason codes. `presentArchivalVerification` maps them to the user-facing messages.
   `parseTrustedRoot` and `parseWitnessKeySet` read a Sigstore `trusted_root.json` and the issuer's
-  witness key set into anchors. `verifyDecisionReceipt`, `verifyDecisionBundle` and receipt-v1
+  witness key set into anchors. `checkWitnessAnchors` refuses an unusable anchor (a TSA certificate that
+  is not DER, a log base URL that is not https, a witness key that is not ECDSA P-256 SPKI, a
+  window that is not a date) with a `TypeError`; the verifier runs it on its `witnessAnchors`. `verifyDecisionReceipt`, `verifyDecisionBundle` and receipt-v1
   behaviour are unchanged.
 - `sess verify --archival <envelope.json> --keys <jwks.json>` with optional `--issuer`, context,
   `--content`, `--witness-root` and `--witness-keys`; exits 0 verified, 1 not verified, 2 usage error,

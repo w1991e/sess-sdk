@@ -1,7 +1,7 @@
 # Sess witness evidence v1
 
-**Status:** implemented in `packages/evidence/src/witness/` (P2-13 slice R-V2b), the runtime witness worker in `apps/api/src/witness.ts` and the witness outbox in `packages/db` (migration `1760000920000_witness-attach.sql`); the published witness key set (§5.1) and the renewal worker (§6.1) in slice R-V2c (`apps/api/src/witness-renewal.ts`, migration `1760000960000_witness-renewal.sql`). Not yet published in the SDK. **Production witness writes are not configured:** they begin only after the production qualification and the recorded privacy assessment (Decision 0009 Amendment 2), with the production hosts pinned by a reviewed change to the P2 assignment's witness egress allowlist (§7).
-**Build contract:** P2 assignment §7.2 vault slice 3 (R-V2b); ASTRA #200 §2 C3 and §3 V2; the R-V2a result in [`witness-spike-result.md`](witness-spike-result.md), whose format family and algorithm this version pins.
+**Status:** implemented in `packages/evidence/src/witness/`, the runtime witness worker in `apps/api/src/witness.ts` and the witness outbox in `packages/db` (migration `1760000920000_witness-attach.sql`); the published witness key set (§5.1) in `packages/evidence/src/witness/key-set.ts`, and the renewal worker (§6.1) in `apps/api/src/witness-renewal.ts` (migration `1760000960000_witness-renewal.sql`). Not yet published in the SDK. **Production witness writes are not configured:** they begin only after the production qualification and a recorded privacy assessment, with the production hosts pinned by a reviewed change to the witness egress allowlist (§7).
+**Basis:** the recorded staging spike (version 0, §9), whose format family and algorithm this version pins.
 
 Witness evidence is the detachable preservation evidence of one receipt's signed archival core ([`archival-core-v1.md`](archival-core-v1.md)). It shows that the exact signed core existed no later than a time stated by an independent time-stamping authority, and that a commitment to it was publicly logged, without disclosing the core or anything about its tenant.
 
@@ -49,7 +49,7 @@ All members of one batch share the checkpoint, token and log entry; only the ope
 
 `verifyWitnessEvidence(entry, signedCore, anchors, now)` runs offline. Its anchors come from the trusted caller only: an independently distributed trusted root (the TSAs and logs, e.g. the TUF-distributed Sigstore `trusted_root.json` checked against a pinned root) and the issuer's published witness key set with validity windows. Nothing in the entry is trusted on its own.
 
-It checks, in order: the opening opens these exact signed-core bytes to a root; the checkpoint is version 1, states that root, size and issuer, and is signed by a trusted witness key; the token covers SHA-256 of that signature and chains to a trusted TSA (imprint, CMS signed attributes, ESS certificate binding, signature, chain, critical timeStamping EKU, genTime within the certificates' and the authority's validity); the log entry is exactly this checkpoint's `hashedrekord`, included under a trusted log's signed checkpoint; the witness and log keys were valid at genTime; the renewal chain (§6); and that the last link's validity has not lapsed at `now`.
+It checks, in order: the opening opens these exact signed-core bytes to a root; the checkpoint is version 1, states that root, size and issuer, and is signed by a trusted witness key; the token covers SHA-256 of that signature and chains to a trusted TSA (imprint, CMS signed attributes, ESS certificate binding, signature, chain, critical timeStamping EKU, genTime within the certificates' and the authority's validity); the log entry is exactly this checkpoint's `hashedrekord`, included under a trusted log's signed checkpoint; the witness and log keys were valid at genTime; the renewal chain (§6); and that the last link's validity has not lapsed at `now`. Window ends are compared as written: a TSA authority's trusted window and each TSA certificate's validity include their end (a genTime equal to `validFor.end` or `notAfter` is inside), while witness key and log key windows exclude theirs (a key whose `valid_to` or `validFor.end` equals genTime did not sign at that time).
 
 | Outcome | Meaning |
 |---|---|
@@ -79,7 +79,7 @@ A token is relied on only while its TSA chain is valid. Before that chain's notA
 
 The executable approach is `renewalTarget`, `renewWitnessEvidence` and `verifyRenewalChain`, with a committed binary test vector (`packages/evidence/test/fixtures/witness/renewal-vector.der`, SHA-256 pinned in `witness-renewal.test.ts`): a chain renewed in time, an unrenewed chain past its TSA's lapse, a late renewal and a renewal over other bytes. Hash-tree renewal (a new hash algorithm over the data and the previous chain, RFC 4998 §5.2) is not defined in version 1; it is the planned path should SHA-256 weaken, as a new evidence version.
 
-### 6.1 Renewal worker (R-V2c)
+### 6.1 Renewal worker
 
 - **Schedule:** every witnessed batch (also one an older artifact completed) gets one renewal schedule, holding its token chain's validity end, verified against the worker's TUF-verified trusted root. A token that does not verify there is recorded `unverifiable` and never renewed.
 - **Due:** a configured, bounded lead time before the validity end (`SESS_WITNESS_RENEWAL_LEAD_MS`, default 30 days, 1 hour to 180 days). Per batch: one renewal request renews every member.
@@ -114,8 +114,8 @@ The executable approach is `renewalTarget`, `renewWitnessEvidence` and `verifyRe
 - one renewal token (200, 188 ms), and the renewed evidence verified as `witnessed` with the same witness time;
 - 23 exchanges, all to the four staging origins; each evidence entry was 5,245 bytes.
 
-This qualifies the format and the runtime egress against staging only. Production hosts, roots, quotas and the privacy assessment remain prerequisites (Decision 0009 Amendment 2).
+This qualifies the format and the runtime egress against staging only. Production hosts, roots, quotas and the privacy assessment remain prerequisites.
 
 ## 9. Versioning
 
-Any change to the domains, members, algorithms or renewal rules is a new version with new domain tags. Version 0 (the R-V2a spike formats, `sess.witness-spike.*`) stays readable for the recorded staging run but is never produced by the worker, and a version 0 part never verifies inside version 1 evidence.
+Any change to the domains, members, algorithms or renewal rules is a new version with new domain tags. Version 0 (the spike formats, `sess.witness-spike.*`) stays readable for the recorded staging run but is never produced by the worker, and a version 0 part never verifies inside version 1 evidence.

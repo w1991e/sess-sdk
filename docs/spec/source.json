@@ -1,7 +1,7 @@
 {
   "$comment": "Verbatim public copies of the Sess receipt-v1, bundle-v1, archival-core-v1 and witness-evidence-v1 specifications and of the shared conformance corpora: the bundle-v1 corpus, the archival-v1 compatibility/state corpus, the witness renewal vector and the recorded Sigstore staging witness run. scripts/check-spec.mjs fails if a copy’s SHA-256 differs from the Sess copy recorded here. Update only by copying the files again from the recorded Sess commit and recording the new commit and digests.",
   "repository": "Sess runtime",
-  "commit": "80d6d0d2fff80999ab445451ac66d5caa5478e12",
+  "commit": "f0f4303719e8525fa7f6beee35fc75569f0634a5",
   "files": [
     {
       "path": "docs/spec/receipt-v1.md",
@@ -21,12 +21,12 @@
     {
       "path": "docs/spec/archival-core-v1.md",
       "source": "DOCS/spec/archival-core-v1.md",
-      "sha256": "066edded16ebb41a91d3e74b272b71f7f711c03c4de853217602f932ebbd859b"
+      "sha256": "81acf41d292bc919093adf40aa11c4932de1b45e308efebfd626553a582a7e66"
     },
     {
       "path": "docs/spec/witness-evidence-v1.md",
       "source": "DOCS/spec/witness-evidence-v1.md",
-      "sha256": "05f551638c2ad6f6ce0d5f8bbae5497abf831ed3ec16bd07053ad5b3ce674bf2"
+      "sha256": "446d56ed79dda6fe6b8b088ad2d21a266d6f1a9b34afd87106bcfbdcdcfa4477"
     },
     {
       "path": "tests/fixtures/archival/archival-v1-corpus.json",
