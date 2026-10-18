@@ -30,7 +30,8 @@ if (
 )
   throw new Error('Root lockfile identity drift.');
 if (
-  JSON.stringify(Object.keys(manifest.exports).sort()) !== JSON.stringify(['.', './receipts', './webhooks'])
+  JSON.stringify(Object.keys(manifest.exports).sort()) !==
+  JSON.stringify(['.', './qr', './receipts', './webhooks'])
 )
   throw new Error('Unexpected public export.');
 // One executable: the offline `sess verify <file>` command.
@@ -153,6 +154,10 @@ const { Sess, SessError, isInteractiveSession } = await import('@sess.si/sdk');
 const { verifyDecisionReceipt, verifyDecisionBundle } = await import('@sess.si/sdk/receipts');
 assert.equal(typeof verifyDecisionBundle, 'function');
 const { verifyWebhook } = await import('@sess.si/sdk/webhooks');
+// The QR helper draws locally: no network, timer or output on import or when drawing.
+const { qr, QR_TITLE } = await import('@sess.si/sdk/qr');
+assert.ok(qr('https://sess.si/s/synthetic', { format: 'svg' }).includes('<title>' + QR_TITLE + '</title>'));
+assert.ok(qr('https://sess.si/s/synthetic', { format: 'png' }) instanceof Uint8Array);
 assert.equal(typeof verifyDecisionReceipt, 'function');
 assert.equal(typeof verifyWebhook, 'function');
 assert.equal(typeof isInteractiveSession, 'function');

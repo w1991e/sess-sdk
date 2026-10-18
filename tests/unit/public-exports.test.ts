@@ -4,6 +4,7 @@ import * as ts from 'typescript';
 import * as root from '../../src/index.js';
 import * as receipts from '../../src/receipts/index.js';
 import * as webhooks from '../../src/webhooks/index.js';
+import * as qrHelper from '../../src/qr/index.js';
 import { Sess } from '../../src/index.js';
 import { API_KEY } from '../fixtures/api.js';
 
@@ -90,16 +91,31 @@ const BEFORE = {
     'WebhookHeaders',
     'verifyWebhook',
   ],
+  './qr': [],
 };
 const ADDED = {
   '.': ['AskAnswer', 'AskAnswerOptions', 'AskField', 'AskHandle', 'AskInput', 'AskOptions'],
   './receipts': [],
   './webhooks': [],
+  // S-07: the new optional QR entry point.
+  './qr': [
+    'PrintQrOptions',
+    'QR_HEADING',
+    'QR_TITLE',
+    'QrFormat',
+    'QrOptions',
+    'QrPngOptions',
+    'QrSvgOptions',
+    'QrTerminalOptions',
+    'printQr',
+    'qr',
+  ],
 };
 const ENTRIES = {
   '.': 'index.ts',
   './receipts': 'receipts/index.ts',
   './webhooks': 'webhooks/index.ts',
+  './qr': 'qr/index.ts',
 } as const;
 
 function declaredExports(): Record<keyof typeof ENTRIES, string[]> {
@@ -151,6 +167,10 @@ describe('public exports', () => {
       'verifyDecisionReceipt',
     ]);
     expect(Object.keys(webhooks).sort()).toEqual(['verifyWebhook']);
+  });
+
+  it('add the QR entry point with only its helpers', () => {
+    expect(Object.keys(qrHelper).sort()).toEqual(['QR_HEADING', 'QR_TITLE', 'printQr', 'qr']);
   });
 
   it('keep every existing client resource and add only the ask method', () => {

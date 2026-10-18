@@ -136,6 +136,27 @@ result. Nothing is sent anywhere. In code, use `verifyDecisionBundle` from `@ses
 ([Security](docs/security.md#decision-bundles)). Formats: [receipt-v1](docs/spec/receipt-v1.md) and
 [bundle-v1](docs/spec/bundle-v1.md).
 
+## Show the link as a QR code
+
+When the person is at a laptop and would answer on their phone, draw the link as a QR code, locally,
+with no network call:
+
+```ts
+import { printQr, qr } from '@sess.si/sdk/qr';
+
+const link = 'https://sess.si/s/synthetic-link'; // the link sess.ask() returned
+console.log(link);
+printQr(link); // prints "Scan to answer on your phone" and the code, on an interactive terminal only
+const svg = qr(link, { format: 'svg' }); // also 'png' (bytes) and 'terminal' (text)
+```
+
+Use it where a person sees a screen but not their phone: a desktop chat window, a dashboard, a kiosk,
+print. Skip it in SMS, or when the person is already on their phone. Sess never shows or sends the
+code; your agent chooses. `printQr` prints nothing without a TTY, in CI (`CI` set), in production
+(`NODE_ENV=production`), with `--no-qr` or with `{ qr: false }`, and draws without colour under
+`NO_COLOR`. The code is the private link in another form: keep it wherever you keep the link, and
+never in logs, analytics or a URL.
+
 ## Runtime and imports
 
 Supported: maintained Node 22 releases at or above 22.14, and Node 24 (recommended).
@@ -143,7 +164,7 @@ TypeScript consumer declarations target 5.9 and current stable. JavaScript consu
 The package contains one ESM build. CommonJS applications use `await import('@sess.si/sdk')`, as in the
 [CommonJS example](examples/commonjs.cjs); synchronous `require` is not a supported contract.
 
-Entry points are `@sess.si/sdk`, `@sess.si/sdk/receipts` and `@sess.si/sdk/webhooks`. Importing or constructing
+Entry points are `@sess.si/sdk`, `@sess.si/sdk/receipts`, `@sess.si/sdk/webhooks` and `@sess.si/sdk/qr`. Importing or constructing
 the SDK does not contact a service, start a server, read credential files or log data.
 
 ## Errors and retries

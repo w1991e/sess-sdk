@@ -31,8 +31,8 @@ Recorded in [`sdk-next-candidate.json`](sdk-next-candidate.json) by `node script
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | Filename  | `sess.si-sdk-0.1.0-rc.6.tgz`                                                                      |
-| SHA-256   | `1f8759a45ce41e3e271c5796529d3b2933b8bc85594976b9ab64fc62b3b06616`                                |
-| Integrity | `sha512-biLpEa1iPZia1Swse1n6gxiV+V4+Ftp7syVERl/rkLJwIcR6/veWWQknUK+ofJ9MrFp8tO7AerwgE3Cc9Qv+gQ==` |
+| SHA-256   | `370e22dd589ec9478637e94c7d00a1d36539345cc8e6138ab092fa7853627d23`                                |
+| Integrity | `sha512-/6VGjpFA55Xm+xY7tUMZm0viywWwPfH7xyougLEETObe2IgcvTK4tlX13qW2QieCS4lnATaUzz/d40INZvNlbA==` |
 
 If another packed change lands before the tag, it re-runs `node scripts/sdk-pin.mjs prepare` and
 updates this table in the same PR.

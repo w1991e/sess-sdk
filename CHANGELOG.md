@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- `@sess.si/sdk/qr` (S-07): `qr(url, { format: 'svg' | 'png' | 'terminal' })` draws a Sess link as a
+  QR code locally (error correction level M, 4-module quiet zone, deterministic, no network call), and
+  `printQr(url)` prints "Scan to answer on your phone" and the code on an interactive terminal only:
+  never without a TTY, in CI or with `NODE_ENV=production`; `--no-qr` or `{ qr: false }` turn it off
+  and `NO_COLOR` draws it without colour. The SVG is one exact tree with the accessible title "QR code
+  for this Sess link". The encoder is the Sess renderer's, after Project Nayuki's QR Code generator
+  (MIT; see NOTICE). No new dependency; every existing export is unchanged.
+
 ## 0.1.0-rc.6 — 2026-10-15
 
 - `sess.ask({ question, fields })`: one question with simple typed fields (the MCP `sess_ask`
