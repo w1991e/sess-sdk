@@ -14,7 +14,11 @@
 - README "First interaction" now shows approving before acting: the agent asks you, on any device,
   to approve a commit (or a reply) before it acts, with the proposed message in a field you can
   edit, and continues only on the verified answer. It includes a synthetic, labelled sample
-  interaction. The README ships with the next release candidate.
+  interaction.
+- README, package description and generated listing artifacts say "Sess" in prose and "Sess
+  link"; package keywords and the Sess homepage.
+- MCP Registry: `server.json` names the stable `0.1.0` release (not this candidate), and the
+  official validator runs in CI. Nothing is submitted.
 - `compatibility.json` records the publication of `0.1.0-rc.1` on the npm dist-tag `next`
   (2026-10-17): registry SHA-256 and integrity, SLSA provenance and release run 38990432638.
 
