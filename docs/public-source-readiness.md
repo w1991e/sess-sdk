@@ -2,7 +2,7 @@
 
 The `Source/history scan` CI job scans the current tracked content and the complete reachable Git
 history of every retained branch and tag with a pinned, SHA-verified gitleaks release and the
-upstream default rules plus SESS-specific rules. A shallow checkout is rejected; there is no
+upstream default rules plus Sess-specific rules. A shallow checkout is rejected; there is no
 ignored-findings baseline. `check:secrets` and `check:package` run alongside it and are not
 replaced by it. A pattern scanner cannot prove the absence of every secret.
 

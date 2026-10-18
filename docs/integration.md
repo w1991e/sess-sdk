@@ -51,19 +51,19 @@ returned human capability, and inspect the actual hosted renderer. Existing rete
 there is no SDK delete operation or unlimited preview sandbox. The authoring example is tested for
 the same wire envelope through SDK and direct HTTP; it does not claim a new hosted browser preview.
 
-The application supplies its business text. SESS supplies renderer system messages. Localization
+The application supplies its business text. Sess supplies renderer system messages. Localization
 is a future contract: there is no `locale` option or promised automatic translation. Format currency
 for display in semantic text or records while keeping submitted numeric values unchanged; never
 round or rewrite accepted input before checking its receipt hash.
 
-The SDK sends semantic content. SESS owns rendering, CSS, accessibility, waiting pages and defaults.
+The SDK sends semantic content. Sess owns rendering, CSS, accessibility, waiting pages and defaults.
 Appearance is a separately authorized future runtime feature. No appearance parameter, arbitrary
 CSS, renderer, theme global, form-builder DSL or frontend dependency is exported here. Omission
 uses the deployed renderer's default; no hidden configuration is injected into creation.
 
 ## Validate, verify, then continue
 
-Raw `AcceptedResponse.data` contains unknown business values. Receipt verification checks SESS's
+Raw `AcceptedResponse.data` contains unknown business values. Receipt verification checks Sess's
 accepted record; your application must still validate and authorize the business operation.
 There is no `waitForResponse<MyType>()` that claims network input is a trusted application type.
 
@@ -155,7 +155,7 @@ Write outcomes distinguish local `not_sent`, authoritative `rejected`, and conse
 ## Hosting and adapters
 
 The runtime manages lifecycle, state, routing and authorization. An integration adapter translates
-a specific external framework or protocol where needed. The SDK exposes supported SESS operations;
+a specific external framework or protocol where needed. The SDK exposes supported Sess operations;
 it is not a universal conversion engine or an agent framework. The publisher owns execution and
 durable storage.
 

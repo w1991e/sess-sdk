@@ -56,7 +56,7 @@ export function captureInvocation(context: HostToolContext, signal?: AbortSignal
   if (!agentId || !sessionKey || !sessionId)
     fail(
       'HOST_BINDING_UNAVAILABLE',
-      'SESS tools need an admitted agent conversation with host-provided agent, session and incarnation identity.',
+      'Sess tools need an admitted agent conversation with host-provided agent, session and incarnation identity.',
     );
   const binding = Object.freeze({ agentId, sessionKey, sessionId });
   const assertCurrent = () => {

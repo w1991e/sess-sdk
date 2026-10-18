@@ -56,11 +56,11 @@ async function owned(deps: InvocationDeps, handle: string): Promise<RecoveryReco
   const record = await deps.store.read(handle);
   // Another agent, conversation, or reset incarnation sees the same answer as a missing handle.
   if (!record || !sameBinding(record.binding, deps.lease.binding))
-    fail('NOT_FOUND', 'No SESS interaction with this handle belongs to this conversation.');
+    fail('NOT_FOUND', 'No Sess interaction with this handle belongs to this conversation.');
   if (record.origin !== deps.config.baseUrl || record.credentialGeneration !== deps.credential.generation)
     fail(
       'RECOVERY_BLOCKED',
-      'The SESS origin or credential changed since this interaction began; it was not replayed.',
+      'The Sess origin or credential changed since this interaction began; it was not replayed.',
     );
   if (record.state === 'blocked' && record.blockedReason === 'create_not_created')
     fail('CREATE_REJECTED', 'No Session was created for this request; it is closed and nothing was sent.');
@@ -101,10 +101,10 @@ function waitingResult(record: RecoveryRecord, includeUrl: boolean): AdapterResu
 
 /** AUTHORITY_REVOKED wording once a Session is created and saved (redelivery is the only safe path). */
 export const REVOKED_AFTER_SAVE =
-  'A SESS Session was created and saved, but this invocation was revoked before its result could be returned. Redeliver the original host call to read it; a new sess_request would create a second Session.';
+  'A Sess Session was created and saved, but this invocation was revoked before its result could be returned. Redeliver the original host call to read it; a new sess_request would create a second Session.';
 
 const LINK_NOTE =
-  'Present the humanUrl privately to the intended person. Anyone with the link can answer as its holder; form contents are hosted by SESS. Call sess_response to wait only if the link has visibly reached the person; otherwise end your turn and call sess_response with this handle and revision when asked to continue.';
+  'Present the humanUrl privately to the intended person. Anyone with the Sess link can answer as its holder; form contents are hosted by Sess. Call sess_response to wait only if the link has visibly reached the person; otherwise end your turn and call sess_response with this handle and revision when asked to continue.';
 
 function asSessError(error: unknown): SessError | undefined {
   return error instanceof SessError ? error : undefined;
@@ -119,10 +119,10 @@ function sdkReadFailure(error: unknown, what: string): never {
   if (error instanceof SessAdapterError) throw error;
   const kind = asSessError(error)?.kind;
   if (kind === 'configuration')
-    fail('CONFIGURATION', `The SESS client rejected its configuration while ${what}; nothing was changed.`);
+    fail('CONFIGURATION', `The Sess client rejected its configuration while ${what}; nothing was changed.`);
   if (kind === 'protocol')
-    fail('PROTOCOL_ERROR', `SESS returned an invalid response while ${what}; nothing was changed.`);
-  fail('UNAVAILABLE', `SESS was unavailable while ${what}; nothing was changed. Try again later.`);
+    fail('PROTOCOL_ERROR', `Sess returned an invalid response while ${what}; nothing was changed.`);
+  fail('UNAVAILABLE', `Sess was unavailable while ${what}; nothing was changed. Try again later.`);
 }
 
 async function cancelled(deps: InvocationDeps, record: RecoveryRecord): Promise<never> {
@@ -131,7 +131,7 @@ async function cancelled(deps: InvocationDeps, record: RecoveryRecord): Promise<
     await deps.store.replace(record, { ...strip(record), state: 'needs_resume' }).catch(() => undefined);
   fail(
     'CANCELLED',
-    'The wait was cancelled locally. The form is still available; nothing was cancelled in SESS.',
+    'The wait was cancelled locally. The form is still available; nothing was cancelled in Sess.',
   );
 }
 
@@ -231,7 +231,7 @@ export async function sessRequest(deps: InvocationDeps, args: RequestArgs): Prom
         );
       fail(
         'CREATE_REJECTED',
-        `SESS did not create the Session (${sessError?.code ?? sessError?.kind ?? 'error'}). Correct the request; nothing else was sent.`,
+        `Sess did not create the Session (${sessError?.code ?? sessError?.kind ?? 'error'}). Correct the request; nothing else was sent.`,
       );
     }
     const recovered = sessError?.getRecoveryResult();
@@ -258,7 +258,7 @@ export async function sessRequest(deps: InvocationDeps, args: RequestArgs): Prom
     // Contract "Create outcomes": a confirmed create that cannot be saved must not be repeated.
     fail(
       'CREATED_NOT_SAVED',
-      'A SESS Session was created but could not be saved locally. Do not repeat this request; ask the operator to resolve it.',
+      'A Sess Session was created but could not be saved locally. Do not repeat this request; ask the operator to resolve it.',
     );
   }
   try {
@@ -269,7 +269,7 @@ export async function sessRequest(deps: InvocationDeps, args: RequestArgs): Prom
   return {
     result: waitingResult(waiting, true),
     note: defect
-      ? `${LINK_NOTE} Note: SESS returned a defective create response (protocol error); this Session was recovered from its validated body and was not created twice.`
+      ? `${LINK_NOTE} Note: Sess returned a defective create response (protocol error); this Session was recovered from its validated body and was not created twice.`
       : LINK_NOTE,
   };
 }
@@ -559,7 +559,7 @@ async function dispatchMutation(
       await block(deps, record, 'complete_rejected_SESSION_COMPLETED');
       fail(
         'MUTATION_REJECTED',
-        'SESS reports the Session completed differently; operator resolution is required.',
+        'Sess reports the Session completed differently; operator resolution is required.',
       );
     }
     if (sessError?.outcome === 'not_sent' && sessError.kind === 'configuration') {
@@ -575,7 +575,7 @@ async function dispatchMutation(
       await block(deps, record, `${p.operation}_rejected_${sessError.code ?? sessError.status ?? 'error'}`);
       fail(
         'MUTATION_REJECTED',
-        `SESS rejected the saved ${p.operation} (${sessError.code ?? 'error'}); operator resolution is required.`,
+        `Sess rejected the saved ${p.operation} (${sessError.code ?? 'error'}); operator resolution is required.`,
       );
     }
     // Unknown, not sent, cancelled or revoked: the saved identity stays pending for exact replay.
@@ -645,7 +645,7 @@ export async function sessPublish(deps: InvocationDeps, args: PublishArgs): Prom
   const result = await dispatchMutation(deps, pending);
   if (result.data.revision !== args.expected_revision + 1) {
     await block(deps, pending, 'publish_unexpected_revision');
-    fail('RECOVERY_BLOCKED', 'SESS confirmed an unexpected revision; operator resolution is required.');
+    fail('RECOVERY_BLOCKED', 'Sess confirmed an unexpected revision; operator resolution is required.');
   }
   const { answered: _a, pending: _p, ...rest } = strip(pending);
   const waiting = await deps.store.replace(pending, {
@@ -658,7 +658,7 @@ export async function sessPublish(deps: InvocationDeps, args: PublishArgs): Prom
   return {
     // The human URL is released only by request (contract "Human URL release").
     result: waitingResult(waiting, false),
-    note: 'Next revision published on the same link. The person may need to reload the same link to see it. Then call sess_response with the new revision.',
+    note: 'Next revision published on the same Sess link. The person may need to reload it to see it. Then call sess_response with the new revision.',
   };
 }
 
@@ -688,7 +688,7 @@ export async function sessComplete(deps: InvocationDeps, args: CompleteArgs): Pr
     await block(deps, pending, 'complete_unexpected_state');
     fail(
       'RECOVERY_BLOCKED',
-      'SESS did not confirm the intended completion; operator resolution is required.',
+      'Sess did not confirm the intended completion; operator resolution is required.',
     );
   }
   const { pending: _p, humanUrl: _h, ...rest } = strip(pending);
@@ -702,6 +702,6 @@ export async function sessComplete(deps: InvocationDeps, args: CompleteArgs): Pr
     result: {
       interaction: { handle: completed.handle, revision: completed.revision as number, state: 'completed' },
     },
-    note: 'Completed and confirmed by SESS.',
+    note: 'Completed and confirmed by Sess.',
   };
 }

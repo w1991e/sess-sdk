@@ -12,7 +12,7 @@ business authorization, durable workflow state, or external side effects.
 | Developer/owner API key | Authorized access to the supported owner API                                       |
 | Human capability URL    | Access to the linked human interaction; possession conveys `link_holder` assurance |
 | Webhook signing secret  | Authentication of delivery to a particular workspace receiver                      |
-| Decision receipt        | Signed evidence of SESS's accepted semantic record and its bindings                |
+| Decision receipt        | Signed evidence of Sess's accepted semantic record and its bindings                |
 
 A person's account sign-in, link possession, receipt verification, and permission to
 execute a consequential business operation are separate decisions. A valid receipt
@@ -145,7 +145,7 @@ non-JSON values, nesting beyond 128 levels, and excessive node counts. Keys are 
 for five minutes. An unknown key may cause one shared refresh after a ten-second
 cooldown. A cold miss performs one initial fetch; it does not immediately fetch again.
 Failures also respect the cooldown. Each shared key fetch has a five-second deadline.
-SESS must retain the public key for an unexpired receipt; the client cannot invent or
+Sess must retain the public key for an unexpired receipt; the client cannot invent or
 recover retired key material.
 
 A high-level verification has one overall operation deadline (30 seconds by default).

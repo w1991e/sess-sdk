@@ -49,7 +49,7 @@ them, and the schema versions, before each submission.
 | Tool            | read-only | destructive | idempotent | open world | Why                                                                                                  |
 | --------------- | --------- | ----------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------------- |
 | `sess_request`  | no        | no          | no         | yes        | Creates a Session and a human link (additive); a repeat creates another one.                         |
-| `sess_response` | yes       | no          | yes        | yes        | Reads or waits for the answer; changes nothing on SESS.                                              |
+| `sess_response` | yes       | no          | yes        | yes        | Reads or waits for the answer; changes nothing on Sess.                                              |
 | `sess_publish`  | no        | no          | yes        | yes        | Appends the next immutable revision; the answered one stays. An identical replay is answered as one. |
 | `sess_complete` | no        | **yes**     | yes        | yes        | Terminal: the link stops accepting answers and never reopens. Changed from `false`.                  |
 | `sess_ask`      | no        | no          | no         | yes        | The same create as `sess_request`.                                                                   |

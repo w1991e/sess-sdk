@@ -70,7 +70,7 @@ const DESCRIPTIONS: Record<ToolName, string> = {
   sess_response:
     'Read, or wait a bounded time for, the verified answer to one exact revision. A needs_resume result is normal: the form stays available; ask the person to submit, then call again. Never loop.',
   sess_publish:
-    'Publish the next revision on the same link after a verified answer (same handle). Requires the answer eventId and its revision.',
+    'Publish the next revision on the same Sess link after a verified answer (same handle). Requires the answer eventId and its revision.',
   sess_complete: 'Complete the interaction after its final verified answer and confirm the terminal state.',
 };
 
@@ -236,7 +236,7 @@ export default definePluginEntry({
         root
           .command('prune')
           .description(
-            'Dry-run by default: count terminal records holding a retained human link. With --apply, remove only that link; replay tombstones and non-terminal records are never touched',
+            'Dry-run by default: count terminal records holding a retained Sess link. With --apply, remove only that link; replay tombstones and non-terminal records are never touched',
           )
           .option('--apply', 'compact terminal secret payload (requires this explicit flag)')
           .action(async (options: { apply?: boolean }) => {
