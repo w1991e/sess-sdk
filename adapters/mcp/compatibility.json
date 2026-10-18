@@ -5,7 +5,7 @@
     "version": "0.1.0-rc.1",
     "toolSchema": "sess-mcp-tools/2"
   },
-  "status": "candidate",
+  "status": "published (next)",
   "recordedAt": "2026-10-14",
   "node": {
     "engines": ">=22.14.0 <25",
@@ -167,6 +167,18 @@
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "not run; @sess.si/mcp is unpublished. The SDK dependency is in registry mode."
+    "status": "@sess.si/mcp@0.1.0-rc.1 published on npm dist-tag next on 2026-10-17 (staged by the release workflow, approved by a maintainer with npm 2FA); latest stays on the deprecated 0.0.0-stage placeholder. The SDK dependency is in registry mode.",
+    "published": {
+      "version": "0.1.0-rc.1",
+      "distTag": "next",
+      "publishedAt": "2026-10-17",
+      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0-rc.1.tgz",
+      "sha256": "189907304cf1275892e9be8ba93bf80517b14f92303c8a33a9f7684306123180",
+      "integrity": "sha512-X6i8Ws44XlL2Ki9RupQd57e7yGuSh0z94GboziPKFUzKahLEVWi/7phWoudzQ1hto1Qb9tT5U6a4DRAvd0aNCw==",
+      "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
+      "sourceCommit": "7eebb0e8e8a5b22c56f93ae79d82f392eb5f65d6",
+      "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/38990432638",
+      "registryInstall": "not yet qualified: npx -y @sess.si/mcp@0.1.0-rc.1 has not been run as a recorded test"
+    }
   }
 }
