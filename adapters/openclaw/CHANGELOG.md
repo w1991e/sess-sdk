@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- README "First interaction" now starts from a real message of your own: paste or forward it into
+  your dashboard conversation, the agent drafts a reply, and you edit, approve or stop it through
+  Sess before it goes anywhere. The plugin ships no sample message; a synthetic sample is shown for
+  illustration only. The reset-isolation limitation is disclosed as before. The README ships with
+  the next release candidate.
+- `compatibility.json` records the publication of `0.1.0-rc.1` on the npm dist-tag `next`
+  (2026-10-17): registry SHA-256 and integrity, SLSA provenance and release run 38990667691.
+
 ## 0.1.0-rc.1 (unreleased)
 
 - Native OpenClaw plugin `sess` with four optional tools: `sess_request`, `sess_response`,
