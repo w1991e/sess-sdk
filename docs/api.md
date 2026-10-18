@@ -130,10 +130,16 @@ receipt audience for this question. Creation is attempted once; an uncertain cre
 **Advanced: link lifetime.** `sess.ask()` and `sessions.create()` take an optional `expires_in`, in
 whole seconds from creation: from 30 up to your plan's link lifetime (Sess checks the ceiling;
 below 30 or not whole is refused before sending). The create response's `action_expires_at` (the
-handle's `expiresAt`) is when the link stops taking answers; nothing moves it. Every wait observes
-it: once the runtime clock (the response's HTTP `Date`, else this machine's) is two seconds past the
-expiry, one final read decides. An answer accepted before the expiry is returned; otherwise the wait
-ends with `wait_ended` `LINK_EXPIRED`. Nothing is completed for you.
+handle's `expiresAt`) is the link's deadline for answers. On an interactive link of 20 hours or less
+the person may ask for more time, up to ten times, never past a fixed horizon. Every Session read
+reports `link_state`: `live` (takes answers), `lapsed` (past the deadline but still extendable: the
+Session is still open) or `expired` (never takes an answer), with `action_expires_horizon`,
+`extensions_used` and the `extensions` history; the Session log lists the same records as
+`link_extensions`. Every wait keeps waiting while the link is live or lapsed. It ends with
+`wait_ended` `LINK_EXPIRED` only once a read shows the link expired: one made two seconds past the
+link's end on the runtime clock (the response's HTTP `Date`, else this machine's), or a second read
+after that grace. An answer accepted before the end is returned. A runtime without link timing
+reports no `link_state`; its deadline is then final, as before. Nothing is completed for you.
 
 Concurrent calls on one handle share one verification and one completion. A timeout or abort ends
 only that caller’s local wait; it never cancels the Session or the shared completion. The handle is

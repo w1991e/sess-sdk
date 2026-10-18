@@ -149,3 +149,105 @@ describe('expires_in in the operations', () => {
     expect(result.interaction.state).toBe('expired');
   });
 });
+
+/** A client whose wait always ends with LINK_EXPIRED, as an SDK before link timing does at the deadline. */
+function linkExpiredWait(fake: FakeSess): SessMcpAdapter {
+  const base = clientFor(fake, acceptingVerifier(fake));
+  return new SessMcpAdapter({
+    env: env(dir.path),
+    diagnostics: () => undefined,
+    createClient: (config) => {
+      const client = base(config);
+      return {
+        ...client,
+        sessions: {
+          ...client.sessions,
+          create: client.sessions.create.bind(client.sessions),
+          retrieve: client.sessions.retrieve.bind(client.sessions),
+          publish: client.sessions.publish.bind(client.sessions),
+          complete: client.sessions.complete.bind(client.sessions),
+          waitForResponse: async (sessionId: string, options: { revision: number }) => {
+            throw new SessError('wait_ended', 'The Sess link expired.', {
+              code: 'LINK_EXPIRED',
+              sessionId,
+              revision: options.revision,
+            });
+          },
+        },
+      } as ReturnType<typeof base>;
+    },
+  });
+}
+
+// Decision 0009 Amendment 10: a link of 20 hours or less can be extended by the person up to a
+// fixed horizon. A lapsed link (past its deadline, still extendable) takes no answer but is still
+// open: sess_response (and so sess_ask) reports "waiting", never "expired", until a read shows the
+// link expired.
+describe('link timing: lapsed is still open', () => {
+  const lapsed = (fake: FakeSess, deadlineAgoMs: number, horizonInMs: number) =>
+    Object.assign(fake.session!, {
+      action_expires_at: new Date(Date.now() - deadlineAgoMs).toISOString(),
+      action_expires_horizon: new Date(Date.now() + horizonInMs).toISOString(),
+      extensions_used: 0,
+      link_state: 'lapsed',
+      extensions: [],
+    });
+
+  it('a read of a lapsed link, a minute past its deadline, reports "waiting"; once a read shows it expired past its horizon, "expired"', async () => {
+    const fake = new FakeSess();
+    const adapter = adapterWith(dir.path, fake, { verify: acceptingVerifier(fake) });
+    const created = await adapter.request(parseRequestArgs({ interaction: ROUND_1, expires_in: 30 }));
+    const handle = created.interaction.handle;
+    lapsed(fake, 60_000, 300_000);
+    expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('waiting');
+    expect(records()[0].state).not.toBe('blocked');
+    // The horizon passed three seconds ago with no extension: expired.
+    Object.assign(fake.session!, {
+      action_expires_horizon: new Date(Date.now() - 3000).toISOString(),
+      link_state: 'expired',
+    });
+    expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('expired');
+    expect(records()[0]).toMatchObject({ state: 'blocked', blockedReason: 'LINK_EXPIRED' });
+  });
+
+  it('a live read is never expired, even an hour past its deadline by the clocks; a link read as expired before its end (revoked) is "expired" at once', async () => {
+    const fake = new FakeSess();
+    const adapter = adapterWith(dir.path, fake, { verify: acceptingVerifier(fake) });
+    const created = await adapter.request(parseRequestArgs({ interaction: ROUND_1, expires_in: 30 }));
+    const handle = created.interaction.handle;
+    Object.assign(fake.session!, {
+      action_expires_at: new Date(Date.now() - 3_600_000).toISOString(),
+      action_expires_horizon: null,
+      extensions_used: 0,
+      link_state: 'live',
+      extensions: [],
+    });
+    expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('waiting');
+    Object.assign(fake.session!, {
+      action_expires_at: new Date(Date.now() + 600_000).toISOString(),
+      link_state: 'expired',
+    });
+    expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('expired');
+  });
+
+  it('a wait that ends with LINK_EXPIRED while a read shows the link lapsed reports "waiting", not "expired"; nothing is written on Sess', async () => {
+    const fake = new FakeSess();
+    const adapter = linkExpiredWait(fake);
+    const created = await adapter.request(parseRequestArgs({ interaction: ROUND_1, expires_in: 30 }));
+    lapsed(fake, 60_000, 300_000);
+    const result = await adapter.response({ handle: created.interaction.handle, revision: 1, waitMs: 1000 });
+    expect(result.interaction.state).toBe('waiting');
+    expect(records()[0].state).not.toBe('blocked');
+    expect(fake.calls.filter((c) => c.method !== 'GET')).toHaveLength(1); // the create only
+  });
+
+  it('a wait that ends with LINK_EXPIRED while a read shows the link expired reports "expired"', async () => {
+    const fake = new FakeSess();
+    const adapter = linkExpiredWait(fake);
+    const created = await adapter.request(parseRequestArgs({ interaction: ROUND_1, expires_in: 30 }));
+    lapsed(fake, 600_000, -3_000);
+    fake.session!.link_state = 'expired';
+    const result = await adapter.response({ handle: created.interaction.handle, revision: 1, waitMs: 1000 });
+    expect(result.interaction.state).toBe('expired');
+  });
+});

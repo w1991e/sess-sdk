@@ -10,6 +10,9 @@
 //   met: 'ok' | 'busy' (one 429, then ok) | 'outage' (503 every time) | 'revalidate' (304 when asked)
 //   nws: 'ok' | 'outage'
 //   tamper: <revision> signs that revision's receipt over altered input (verification must fail).
+//   lapsed: true serves link timing (Decision 0009 Amendment 10): every unanswered read shows the
+//     link lapsed, an hour past its deadline with its horizon an hour ahead; the person then asks
+//     for more time and answers, so the answering read shows it live with one extension.
 //   weather: 'live' sends the weather requests to the real services instead (manual checks only).
 import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
@@ -127,6 +130,36 @@ function personAnswers() {
   record.pollsBeforeAnswer.push(unansweredPolls);
 }
 
+/** The `lapsed` world's link timing for the current read. */
+function linkTiming() {
+  const now = Date.now();
+  const iso = (ms) => new Date(ms).toISOString();
+  const deadline = now - 3_600_000;
+  const horizon = now + 3_600_000;
+  if (session.status === 'active')
+    return {
+      action_expires_at: iso(deadline),
+      action_expires_horizon: iso(horizon),
+      extensions_used: 0,
+      link_state: 'lapsed',
+      extensions: [],
+    };
+  const extended = {
+    number: 1,
+    previous_action_expires_at: iso(deadline),
+    action_expires_at: iso(now + 600_000),
+    from_lapsed: true,
+    extended_at: iso(now - 1000),
+  };
+  return {
+    action_expires_at: extended.action_expires_at,
+    action_expires_horizon: iso(horizon),
+    extensions_used: 1,
+    link_state: 'live',
+    extensions: [extended],
+  };
+}
+
 function store(interaction, revision) {
   const normalized = { ...interaction, response_policy: 'first' };
   record.interactions.push(normalized);
@@ -165,6 +198,7 @@ async function sessApi(url, init, headers) {
     interaction: session.interaction,
     response_schema: { type: 'object' },
     responses: session.responses,
+    ...(config.lapsed === true ? linkTiming() : {}),
   });
   if (method === 'GET' && rest === '') {
     if (session.status === 'active') {

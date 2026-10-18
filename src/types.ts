@@ -15,6 +15,17 @@ export type SurfaceRevision = DisplaySurfaceRevision | InteractiveSurfaceRevisio
 export type AcceptedResponse = InteractiveSession['responses'][number];
 export type SessionEvents = Schemas['SessionEventsResponse'];
 export type SessionEvent = SessionEvents['events'][number];
+/**
+ * The Sess link's state at the time of a Session read (Decision 0009 Amendment 10): `live` takes
+ * answers; `lapsed` is past its deadline but the person can still ask for more time, so the
+ * Session is still open; `expired` will never take an answer.
+ */
+export type LinkState = InteractiveSession['link_state'];
+/**
+ * One accepted extension of the Sess link: on Session reads (`extensions`) and on the Session log
+ * (`link_extensions`). It carries deadlines only, never an answer value.
+ */
+export type LinkExtension = InteractiveSession['extensions'][number];
 export type Deliveries = Schemas['DeliveriesResponse'];
 export type WebhookRegisterRequest = Schemas['WebhookRegisterRequest'];
 export type WebhookRegisterResponse = Schemas['WebhookRegisterResponse'];
@@ -60,7 +71,9 @@ export type CreateSessionRequest = {
   /**
    * Advanced: how long the human link stays open, in whole seconds from creation: from 30 up to
    * the plan's link lifetime (the runtime checks the ceiling). Absent: the plan's lifetime. The
-   * create response's `action_expires_at` says when the link ends; nothing moves it later.
+   * create response's `action_expires_at` is the link's deadline. On an interactive link of 20
+   * hours or less the person may move it forward, up to the horizon a Session read reports
+   * (`action_expires_horizon`, `link_state`); nothing else moves it.
    */
   expires_in?: number;
 };

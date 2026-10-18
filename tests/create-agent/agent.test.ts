@@ -170,6 +170,21 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     expect(round2).toContain(JSON.stringify(ATTRIBUTION));
   });
 
+  it('keeps waiting while the link is lapsed (an hour past its deadline, still extendable) and completes once the person asks for more time and answers', async () => {
+    const { app, record } = generate();
+    const run = await runAgent(app, record, {
+      answers: [{ place: 'oslo', day: 'sunday' }, ROUND_2],
+      lapsed: true,
+    });
+    expect(run.stderr).toBe('');
+    expect(run.code).toBe(0);
+    expect(run.stdout).toContain('· verified ✓');
+    const world = read(record);
+    expect(world).toMatchObject({ creates: 1, completes: 1, status: 'completed' });
+    // Each answer came after a read that showed the link lapsed: the wait did not end there.
+    expect(world.pollsBeforeAnswer).toEqual([1, 1]);
+  });
+
   it('stops without "verified" or completion when a receipt does not verify', async () => {
     const { app, record } = generate();
     const run = await runAgent(app, record, {

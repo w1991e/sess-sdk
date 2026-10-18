@@ -139,10 +139,36 @@ export function decodeCreate(value: unknown, allowInsecureLocalhost = false): Cr
 export function isLoopback(host: string): boolean {
   return host === 'localhost' || host === '[::1]' || /^127\.(?:\d{1,3}\.){2}\d{1,3}$/.test(host);
 }
+/** One accepted extension of the Sess link (Decision 0009 Amendment 10), numbered in order. */
+function linkExtension(value: unknown, number: number): void {
+  const v = object(value);
+  if (integer(v.number) !== number) protocol();
+  date(v.previous_action_expires_at);
+  date(v.action_expires_at);
+  if (typeof v.from_lapsed !== 'boolean') protocol();
+  date(v.extended_at);
+}
+/** The extension history: at most ten records, numbered 1, 2, … in order. */
+function linkExtensions(value: unknown): void {
+  const items = array(value);
+  if (items.length > 10) protocol();
+  items.forEach((item, i) => linkExtension(item, i + 1));
+}
+/**
+ * A Session read's link timing (Decision 0009 Amendment 10), checked when present. A runtime
+ * before link timing omits it; the wait then keeps its earlier rule (the deadline is final).
+ */
+function linkTiming(v: Record<string, unknown>): void {
+  if (v.link_state !== undefined) oneOf(v.link_state, ['live', 'lapsed', 'expired']);
+  if (v.action_expires_horizon !== undefined) nullableDate(v.action_expires_horizon);
+  if (v.extensions_used !== undefined && integer(v.extensions_used, 0) > 10) protocol();
+  if (v.extensions !== undefined) linkExtensions(v.extensions);
+}
 export function decodeSession(value: unknown, expectedId: string): Session {
   const v = object(value);
   if (string(v.id, sessionPattern) !== expectedId) protocol();
   const rev = integer(v.revision);
+  linkTiming(v);
   const mode = object(v.interaction).mode;
   if (mode === 'display') {
     interaction(v.interaction, 'display');
@@ -210,6 +236,9 @@ export function decodeEvents(value: unknown, expectedId: string): SessionEvents 
       receipt(e.receipt);
     } else if (actor !== 'owner') protocol();
   }
+  // Decision 0009 Amendment 10: the link's extensions are listed beside the Events (never as an
+  // Event type), only where the deployment enables them.
+  if (v.link_extensions !== undefined) linkExtensions(v.link_extensions);
   return value as SessionEvents;
 }
 function endpoint(value: unknown): void {

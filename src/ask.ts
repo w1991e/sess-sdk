@@ -117,9 +117,12 @@ export interface AskHandle<T> {
   /** The Surface revision of the question, for recovery through the advanced API. */
   readonly revision: number;
   /**
-   * When the link stops taking answers (`action_expires_at`, ISO 8601). Nothing moves it. An
-   * answer accepted before it is still returned after it; with none, `answer()` ends with
-   * `wait_ended` code `LINK_EXPIRED`. Null only from a runtime that does not report it.
+   * When the link stops taking answers (`action_expires_at`, ISO 8601), as created. On a link of
+   * 20 hours or less the person may ask for more time, which moves it forward up to a fixed
+   * horizon; while the link is lapsed (past it, still extendable) `answer()` keeps waiting. An
+   * answer accepted before the end is still returned after it; with none, `answer()` ends with
+   * `wait_ended` code `LINK_EXPIRED` once the link has expired. Null only from a runtime that
+   * does not report it.
    */
   readonly expiresAt: string | null;
   /**
