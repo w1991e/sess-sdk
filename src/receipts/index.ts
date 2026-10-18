@@ -1,4 +1,6 @@
-export { verifyDecisionReceipt } from './verify.js';
+export { verifyDecisionReceipt, verifyRendererIdentities } from './verify.js';
+export { BUNDLED_RENDERER_IDENTITIES } from './renderers.js';
+export type { RendererIdentitiesDocument, RendererIdentity } from './renderers.js';
 export type {
   ReceiptClaims,
   ReceiptPublicKey,

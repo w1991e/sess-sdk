@@ -88,3 +88,15 @@ The issuer signs with one active key and keeps publishing retired public keys fo
 ## 9. Versioning
 
 Any change to the claims, canonicalization, header or algorithm is a new format with a new `sess_receipt` value and `typ`. Version 1 receipts stay verifiable as written.
+
+## 10. Renderer identities
+
+`surface.renderer_version` names how the issuer showed the accepted revision to the person (Decision 0009 Amendment 13). Each revision records the identity it renders under, and every receipt accepted on it binds that identity. The issuer publishes the identities it signs receipts under at `<iss>/.well-known/sess-renderer-identities.json`:
+
+- one JWS signed with a receipt key of §4, in the RFC 7515 flattened JSON serialization `{"protected", "payload", "signature"}` (joined with `.` they are its compact form);
+- its protected header is `{"alg": "EdDSA", "kid", "typ": "sess-renderer-identities+jwt"}`;
+- its payload is the RFC 8785 canonical JSON `{"identities": [{"renderer_version": string, "since": "YYYY-MM-DD"}, …], "iss": <iss>, "sess_renderer_identities": 1}`, where `since` is the UTC date the identity was added.
+
+The list only grows: an identity is never removed, reordered or reused, so every receipt ever issued keeps verifying. `sess-html-form-1` is always on it.
+
+A verifier that checks `surface.renderer_version` accepts a value on a list it holds whose signature verifies under its trusted keys for the expected issuer (§4), with `typ` exactly `sess-renderer-identities+jwt` and `iss` the expected issuer. A list supplied alongside a receipt is never trusted on its own: it is accepted only through that signature. A verifier may also bundle the identities known at its release. The receipt format, its claims and its signature are unchanged.

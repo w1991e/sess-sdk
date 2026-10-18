@@ -170,6 +170,36 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     expect(round2).toContain(JSON.stringify(ATTRIBUTION));
   });
 
+  it('verifies receipts under sess-html-form-2, and under a later renderer identity on the signed list, with no template change (Decision 0009 Amendment 13)', async () => {
+    for (const options of [
+      { renderer: 'sess-html-form-2' },
+      { renderer: 'sess-html-form-3', listed: 'sess-html-form-3' },
+    ]) {
+      const { app, record } = generate();
+      const run = await runAgent(app, record, {
+        answers: [{ place: 'oslo', day: 'sunday' }, ROUND_2],
+        ...options,
+      });
+      expect(run.stderr, options.renderer).toBe('');
+      expect(run.code, options.renderer).toBe(0);
+      expect(run.stdout).toContain('· verified ✓');
+      const fetched = read(record).sess.filter((r) =>
+        r.endsWith('/.well-known/sess-renderer-identities.json'),
+      );
+      // The list is fetched only for an identity the SDK does not bundle.
+      expect(fetched.length > 0, options.renderer).toBe(options.renderer === 'sess-html-form-3');
+    }
+    // An identity on no signed list is refused: no "verified", no completion.
+    const { app, record } = generate();
+    const run = await runAgent(app, record, {
+      answers: [{ place: 'oslo', day: 'sunday' }, ROUND_2],
+      renderer: 'sess-html-form-3',
+    });
+    expect(run.code).toBe(1);
+    expect(run.stdout).not.toContain('verified ✓');
+    expect(read(record)).toMatchObject({ completes: 0 });
+  });
+
   it('stops without "verified" or completion when a receipt does not verify', async () => {
     const { app, record } = generate();
     const run = await runAgent(app, record, {

@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- Renderer identities (Decision 0009 Amendment 13). A receipt's `surface.renderer_version` now
+  verifies when it is an identity this release bundles (`sess-html-form-1`, `sess-html-form-2`;
+  `BUNDLED_RENDERER_IDENTITIES`) or one on the issuer's renderer list whose signature verifies
+  under the same trusted keys and issuer, so a later Sess page change needs no SDK update. Every
+  receipt that verified before still verifies, offline, with no list.
+- `verifyResponse()` (and so `sess.ask()`'s `answer()`) fetch the list from the API origin
+  (`/.well-known/sess-renderer-identities.json`) only for an identity this release does not
+  bundle. `verifyDecisionReceipt` takes it as `rendererIdentities`; `verifyRendererIdentities`
+  verifies a list on its own. A forged, unsigned, re-typed, foreign or malformed list fails with
+  `INVALID_RENDERER_LIST`; an identity on no verified list fails with `UNSUPPORTED_RENDERER`, as
+  before. New types `RendererIdentitiesDocument` and `RendererIdentity`. `ReceiptClaims`'
+  `surface.renderer_version` is now `string`.
+- `sess verify --renderers <file>`: with the issuer's signed list (verified under `--keys` and
+  `--issuer`; a list that does not verify exits 2), the bundle's renderer identity must be known
+  or listed (otherwise invalid, exit 1). Without it, bundle verification is unchanged.
+- The receipt-v1 specification copy is from Sess commit `bdb9d07` (§10, renderer identities).
+
 ## 0.1.0-rc.7 — 2026-10-18 (prepared, unpublished)
 
 Includes everything in the unpublished 0.1.0-rc.6 below, which is not published on its own.

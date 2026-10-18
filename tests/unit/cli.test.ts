@@ -14,6 +14,8 @@ import { verifyDecisionBundle, type DecisionBundleVerification } from '../../src
 import {
   buildCorpusVectors,
   corpusBundleWithClaims,
+  corpusBundleWithRenderer,
+  corpusRendererList,
   CORPUS_INPUT,
   CORPUS_ISSUER,
   CORPUS_NOW,
@@ -329,5 +331,69 @@ describe('sess verify <file>', () => {
     }
     expect(human.stdout).toContain('ses_\\u001b[2J\\u202e\\u009bx');
     expect((JSON.parse(json.stdout) as DecisionBundleVerification).receipt?.session_id).toBe(hostile);
+  });
+});
+
+// Decision 0009 Amendment 13 (rc.8): `--renderers <file>` takes the issuer's signed renderer list.
+// With it, the receipt's renderer identity must be one this release knows or one on that list; the
+// list is trusted only through its signature under --keys and --issuer. Without it, bundle-v1
+// verification is unchanged.
+describe('sess verify --renderers <file>', () => {
+  const LIST = [
+    { renderer_version: 'sess-html-form-1', since: '2026-10-09' },
+    { renderer_version: 'sess-html-form-3', since: '2026-11-02' },
+  ];
+  const write = async (name: string, value: unknown) => {
+    const file = join(dir, name);
+    await writeFile(file, JSON.stringify(value));
+    return file;
+  };
+  const args = (bundle: string, extra: string[] = []) => [
+    'verify',
+    bundle,
+    '--issuer',
+    CORPUS_ISSUER,
+    '--keys',
+    keysFile,
+    '--now',
+    CORPUS_NOW.toISOString(),
+    ...extra,
+  ];
+
+  it('accepts a receipt whose renderer identity is on the signed list, refuses one missing from it, and without the option checks nothing new', async () => {
+    const future = await write('future.json', await corpusBundleWithRenderer('sess-html-form-3'));
+    const listed = await write('renderers.json', await corpusRendererList(LIST));
+    const ok = await sess(args(future, ['--renderers', listed]));
+    expect(ok.code).toBe(0);
+    expect(ok.stdout).toContain('Renderer    sess-html-form-3 (listed)');
+    const json = await sess(args(future, ['--renderers', listed, '--json']));
+    expect(JSON.parse(json.stdout).renderer).toEqual({ identity: 'sess-html-form-3', status: 'listed' });
+    // A bundled identity needs no listing.
+    const two = await write('two.json', await corpusBundleWithRenderer('sess-html-form-2'));
+    expect((await sess(args(two, ['--renderers', listed]))).code).toBe(0);
+    // Not on the list: invalid, exit 1.
+    const short = await write('short.json', await corpusRendererList(LIST.slice(0, 1)));
+    const missing = await sess(args(future, ['--renderers', short]));
+    expect(missing.code).toBe(1);
+    expect(missing.stdout).toContain('Invalid decision bundle: renderer');
+    // Without --renderers, bundle-v1 verification is unchanged.
+    expect((await sess(args(future))).code).toBe(0);
+  });
+
+  it('exits 2 for a list that is not signed by the keys you trust, is from another issuer, has another typ or is not a list', async () => {
+    const future = await write('future-2.json', await corpusBundleWithRenderer('sess-html-form-3'));
+    const bad = [
+      await corpusRendererList(LIST, { key: 'stranger' }),
+      await corpusRendererList(LIST, { key: 'retired' }),
+      await corpusRendererList(LIST, { issuer: 'https://evil.example' }),
+      await corpusRendererList(LIST, { typ: 'sess-receipt+jwt' }),
+      { ...(await corpusRendererList(LIST)), signature: '' },
+      { keys: [] },
+    ];
+    for (const [i, value] of bad.entries()) {
+      const r = await sess(args(future, ['--renderers', await write(`bad-${i}.json`, value)]));
+      expect(r.code, String(i)).toBe(2);
+      expect(r.stderr).toContain("the --renderers file must be the issuer's renderer list");
+    }
   });
 });

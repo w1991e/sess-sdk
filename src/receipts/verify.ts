@@ -13,6 +13,12 @@ import {
   waitWithSignal,
   type DeepReadonly,
 } from './json.js';
+import {
+  BUNDLED_RENDERER_IDENTITIES,
+  verifyRendererList,
+  type RendererIdentitiesDocument,
+  type RendererIdentity,
+} from './renderers.js';
 
 export const MAX_RECEIPT_BYTES = 64 * 1024;
 export const MAX_RECEIPT_KEY_SET_BYTES = 256 * 1024;
@@ -58,7 +64,11 @@ export interface ReceiptClaims {
   session_id: string;
   step_id: string;
   event_id: string;
-  surface: { revision: number; hash: string; renderer_version: 'sess-html-form-1' };
+  /**
+   * `renderer_version`: the renderer identity the revision was shown under (Decision 0009
+   * Amendment 13): one this release bundles, or one on a list signed by the issuer's trusted keys.
+   */
+  surface: { revision: number; hash: string; renderer_version: string };
   action: { id: string; label: string; summary: string };
   input_hash: string;
   actor: { assurance: 'link_holder'; subject: string };
@@ -83,6 +93,12 @@ export interface VerifyDecisionReceiptInput {
   interaction: InteractiveSurfaceRevision['interaction'];
   keys?: ReceiptKeySet;
   keyResolver?: ReceiptKeyResolver;
+  /**
+   * The issuer's signed renderer-identity list (`/.well-known/sess-renderer-identities.json`),
+   * needed only for a receipt whose renderer identity this release does not bundle. It is trusted
+   * only through its signature under the same trusted keys and issuer.
+   */
+  rendererIdentities?: RendererIdentitiesDocument;
 }
 
 export interface VerifyDecisionReceiptOptions {
@@ -253,7 +269,8 @@ function claimsOf(raw: unknown): ReceiptClaims {
   ) {
     throw verificationError('INVALID_CLAIMS', 'The receipt claims do not match the supported format.');
   }
-  if (surface.renderer_version !== 'sess-html-form-1') {
+  // Membership (bundled or on a signed list) is checked once the signature holds.
+  if (typeof surface.renderer_version !== 'string' || !identifier(surface.renderer_version)) {
     throw verificationError('UNSUPPORTED_RENDERER', 'The receipt names an unsupported renderer version.');
   }
   if (actor.assurance !== 'link_holder' || !identifier(actor.subject)) {
@@ -303,6 +320,8 @@ export async function verifyDecisionReceipt(
   const interaction = snapshotJson(input.interaction);
   const resolver = input.keyResolver;
   const keys = input.keys === undefined ? undefined : validateKeySet(input.keys);
+  const rendererList =
+    input.rendererIdentities === undefined ? undefined : snapshotJson(input.rendererIdentities);
   if (
     (keys === undefined) === (resolver === undefined) ||
     (resolver !== undefined && typeof resolver !== 'function')
@@ -429,26 +448,8 @@ export async function verifyDecisionReceipt(
   if (claims.input_hash !== jsonDigest(acceptedInput)) {
     throw verificationError('INPUT_HASH_MISMATCH', 'The receipt does not bind the accepted typed input.');
   }
-  let trustedKeys = keys;
-  if (!trustedKeys && resolver) {
-    let resolved: ReceiptKeySet;
-    try {
-      resolved = await waitWithSignal(
-        Promise.resolve(resolver(Object.freeze({ kid: header.kid, issuer, ...(signal ? { signal } : {}) }))),
-        signal,
-      );
-    } catch {
-      if (signal?.aborted) throw abortError(signal);
-      // Callback failures may contain arbitrary application or upstream material,
-      // including caller-created SessError instances. Do not forward their fields.
-      throw verificationError(
-        'KEY_RESOLUTION_FAILED',
-        'The trusted receipt key resolver could not supply verification keys.',
-      );
-    }
-    trustedKeys = validateKeySet(resolved);
-  }
-  const publicKey = trustedKeys?.keys.find((key) => key.kid === header.kid);
+  const keyFor = trustedKeyLookup(keys, resolver, issuer, signal);
+  const publicKey = await keyFor(header.kid);
   if (!publicKey)
     throw verificationError('UNKNOWN_KEY_ID', 'The receipt signing key is not in the trusted key set.');
   try {
@@ -464,5 +465,86 @@ export async function verifyDecisionReceipt(
       'The receipt signature did not verify with the trusted Ed25519 key.',
     );
   }
+  // Decision 0009 Amendment 13: the renderer identity is one this release bundles, or one on the
+  // issuer's list that verifies under the same trusted keys.
+  const renderer = claims.surface.renderer_version;
+  if (!BUNDLED_RENDERER_IDENTITIES.includes(renderer)) {
+    const listed =
+      rendererList === undefined
+        ? []
+        : await verifyRendererList(rendererList, { issuer, keyFor, ...(signal ? { signal } : {}) });
+    if (!listed.some((identity) => identity.renderer_version === renderer)) {
+      throw verificationError(
+        'UNSUPPORTED_RENDERER',
+        'The receipt names a renderer identity that is not on the issuer’s signed list.',
+      );
+    }
+  }
   return deepFreeze(claims);
+}
+
+/** Resolves a kid to a trusted key: from the explicit set, or the trusted resolver (validated). */
+function trustedKeyLookup(
+  keys: ReceiptKeySet | undefined,
+  resolver: ReceiptKeyResolver | undefined,
+  issuer: string,
+  signal: AbortSignal | undefined,
+): (kid: string) => Promise<ReceiptPublicKey | undefined> {
+  return async (kid) => {
+    let trusted = keys;
+    if (!trusted && resolver) {
+      let resolved: ReceiptKeySet;
+      try {
+        resolved = await waitWithSignal(
+          Promise.resolve(resolver(Object.freeze({ kid, issuer, ...(signal ? { signal } : {}) }))),
+          signal,
+        );
+      } catch {
+        if (signal?.aborted) throw abortError(signal);
+        // Callback failures may contain arbitrary application or upstream material,
+        // including caller-created SessError instances. Do not forward their fields.
+        throw verificationError(
+          'KEY_RESOLUTION_FAILED',
+          'The trusted receipt key resolver could not supply verification keys.',
+        );
+      }
+      trusted = validateKeySet(resolved);
+    }
+    return trusted?.keys.find((key) => key.kid === kid);
+  };
+}
+
+/**
+ * Verifies an issuer's signed renderer-identity list (Decision 0009 Amendment 13) under the keys
+ * you trust for that issuer: exactly one of `keys` or `keyResolver`. Offline with explicit keys.
+ * Returns the listed identities, in order.
+ */
+export async function verifyRendererIdentities(
+  document: RendererIdentitiesDocument,
+  context: {
+    issuer: string;
+    keys?: ReceiptKeySet;
+    keyResolver?: ReceiptKeyResolver;
+    signal?: AbortSignal;
+  },
+): Promise<readonly RendererIdentity[]> {
+  const issuer = context?.issuer;
+  const resolver = context?.keyResolver;
+  const keys = context?.keys === undefined ? undefined : validateKeySet(context.keys);
+  if (
+    !identifier(issuer) ||
+    (keys === undefined) === (resolver === undefined) ||
+    (resolver !== undefined && typeof resolver !== 'function')
+  ) {
+    throw verificationError(
+      'VERIFICATION_CONTEXT_MISSING',
+      'A trusted issuer and exactly one trusted public key set or key resolver are required.',
+    );
+  }
+  const signal = context.signal;
+  return await verifyRendererList(document, {
+    issuer,
+    keyFor: trustedKeyLookup(keys, resolver, issuer, signal),
+    ...(signal ? { signal } : {}),
+  });
 }

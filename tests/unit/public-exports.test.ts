@@ -95,7 +95,13 @@ const BEFORE = {
 };
 const ADDED = {
   '.': ['AskAnswer', 'AskAnswerOptions', 'AskField', 'AskHandle', 'AskInput', 'AskOptions'],
-  './receipts': [],
+  // Decision 0009 Amendment 13 (rc.8): renderer identities on a signed list.
+  './receipts': [
+    'BUNDLED_RENDERER_IDENTITIES',
+    'RendererIdentitiesDocument',
+    'RendererIdentity',
+    'verifyRendererIdentities',
+  ],
   './webhooks': [],
   // S-07: the new optional QR entry point.
   './qr': [
@@ -162,9 +168,11 @@ describe('public exports', () => {
       'isInteractiveSurface',
     ]);
     expect(Object.keys(receipts).sort()).toEqual([
+      'BUNDLED_RENDERER_IDENTITIES',
       'BUNDLE_LIMITS',
       'verifyDecisionBundle',
       'verifyDecisionReceipt',
+      'verifyRendererIdentities',
     ]);
     expect(Object.keys(webhooks).sort()).toEqual(['verifyWebhook']);
   });

@@ -68,6 +68,9 @@ export interface WorldOptions {
   met?: 'ok' | 'busy' | 'outage' | 'revalidate';
   nws?: 'ok' | 'outage';
   tamper?: number;
+  /** The renderer identity the receipts name, and an extra identity on the signed list. */
+  renderer?: string;
+  listed?: string;
   env?: Record<string, string | undefined>;
 }
 
@@ -82,6 +85,8 @@ export function runAgent(app: string, record: string, options: WorldOptions) {
     met: options.met ?? 'ok',
     nws: options.nws ?? 'ok',
     tamper: options.tamper,
+    renderer: options.renderer,
+    listed: options.listed,
     record,
   };
   const env: Record<string, string> = {

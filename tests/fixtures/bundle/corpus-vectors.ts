@@ -187,6 +187,39 @@ export async function corpusBundleWithClaims(over: Record<string, unknown>): Pro
   return JSON.parse(JSON.stringify(bundleOf(receipt))) as unknown;
 }
 
+/**
+ * Decision 0009 Amendment 13 (not part of the frozen corpus): a bundle of the base vector whose
+ * receipt names `renderer`, signed by the issuer's current key.
+ */
+export async function corpusBundleWithRenderer(renderer: string): Promise<unknown> {
+  const base = claimsOf();
+  return corpusBundleWithClaims({
+    surface: { ...(base.surface as Record<string, unknown>), renderer_version: renderer },
+  });
+}
+
+/**
+ * Decision 0009 Amendment 13: a renderer-identity list document (flattened JWS JSON) signed by the
+ * named corpus key, for `issuer`, with the given payload claims replaced.
+ */
+export async function corpusRendererList(
+  identities: { renderer_version: string; since: string }[],
+  options: { key?: KeyName; issuer?: string; typ?: string } = {},
+): Promise<{ protected: string; payload: string; signature: string }> {
+  const name = options.key ?? 'current';
+  const compact = await new CompactSign(
+    json({ identities, iss: options.issuer ?? CORPUS_ISSUER, sess_renderer_identities: 1 }),
+  )
+    .setProtectedHeader({
+      alg: 'EdDSA',
+      kid: CORPUS_KEYS[name].kid,
+      typ: options.typ ?? 'sess-renderer-identities+jwt',
+    })
+    .sign(corpusPrivateKey(name));
+  const [protectedHeader, payload, signature] = compact.split('.') as [string, string, string];
+  return { protected: protectedHeader, payload, signature };
+}
+
 /** The full trusted context of the base vector. */
 export const FULL_CONTEXT: ExpectedBundleContext = {
   audience: CORPUS_AUDIENCE,
