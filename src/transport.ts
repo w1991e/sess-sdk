@@ -42,7 +42,7 @@ function credential(value: unknown): string {
   if (typeof value !== 'string' || !/^[\x21-\x7e]{1,4096}$/.test(value)) {
     throw new SessError(
       'configuration',
-      'Supply a nonempty server-side SESS API key without whitespace or control characters.',
+      'Supply a Sess API key on the server. It must not be empty or contain whitespace or control characters.',
       { code: 'INVALID_API_KEY', outcome: 'not_sent' },
     );
   }
@@ -372,7 +372,7 @@ export class Transport {
             const remoteId = safeText(remote.request_id, /^[A-Za-z0-9._:-]{1,128}$/, key, true) ?? requestId;
             const rejected = code !== undefined && rejections[response.status]?.includes(code);
             retryable = transientStatuses.has(response.status);
-            throw new SessError('api', 'SESS API request failed. Inspect the safe status and code fields.', {
+            throw new SessError('api', 'The Sess API returned an error. See the status and code fields.', {
               code,
               reason,
               status: response.status,
