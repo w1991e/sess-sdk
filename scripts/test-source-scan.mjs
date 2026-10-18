@@ -161,6 +161,45 @@ test('the exact public replay-identity fixture is benign while nearby/path/value
   });
 });
 
+test('the exact S-07 QR parity token line is benign only at its path and exact line; its value elsewhere, another value there, another file and a one-character mutation stay detected', async () => {
+  await withScanWorkspace(async (workspace) => {
+    const config = await prepareConfig(workspace);
+    const source = join(workspace, 'source');
+    const path = 'tests/unit/qr.test.ts';
+    // The synthetic token of the Sess renderer's QR vectors, assembled so this file never holds it.
+    const token = ['AbCdEfGhIjKlMnOpQrStUvWxYz', '0123456789', '_-abcde'].join('');
+    const benign = `const TOKEN = '${token}';\n`;
+    await file(source, path, `import { x } from './x.js';\n\n${benign}const LINKS = [];\n`);
+    assert.equal((await scan(binary, config.path, workspace, 'dir', source)).status, 'PASS');
+    const reversed = [...token].reverse().join('');
+    for (const [label, content] of [
+      ['the same value on another line', `${benign}const SECRET_TOKEN = '${token}';\n`],
+      ['another value on that line', benign.replace(token, reversed)],
+      ['a one-character mutation', benign.replace('abcde', 'abcdf')],
+      ['the exact line indented', `  ${benign}`],
+      ['the exact line with more after it', `${benign.trimEnd()} const apiKey = '${reversed}';\n`],
+      ['a real-looking marker beside it', `${benign}const apiKey = "${marker}";\n`],
+    ]) {
+      await file(source, path, content);
+      assert.equal(
+        (await scan(binary, config.path, workspace, 'dir', source)).status,
+        'FAIL',
+        `${label} must stay detected`,
+      );
+    }
+    await rm(join(source, path));
+    for (const other of ['tests/unit/other.test.ts', 'tests/unit/qr.test.mjs', 'src/qr/index.ts']) {
+      await file(source, other, benign);
+      assert.equal(
+        (await scan(binary, config.path, workspace, 'dir', source)).status,
+        'FAIL',
+        `the same line in ${other} must stay detected`,
+      );
+      await rm(join(source, other));
+    }
+  });
+});
+
 test('the SHA-verified upstream provider-domain detection regex is benign only on its original whole line/path', async () => {
   await withScanWorkspace(async (workspace) => {
     const config = await prepareConfig(workspace);
