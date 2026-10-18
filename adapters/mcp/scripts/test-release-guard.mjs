@@ -61,6 +61,41 @@ test('identity: wrong package name, path, visibility or registry metadata refuse
   const badServer = clone(server);
   badServer.version = '0.0.1';
   refuses(() => checkIdentity({ ...good, server: badServer }), /server.json version/);
+  // The registry entry names the stable release, never the candidate itself.
+  const candidateServer = clone(server);
+  candidateServer.version = '0.1.0-rc.1';
+  candidateServer.packages[0].version = '0.1.0-rc.1';
+  const candidate = clone(manifest);
+  candidate.version = '0.1.0-rc.1';
+  refuses(
+    () =>
+      checkIdentity({
+        ...good,
+        manifest: candidate,
+        server: candidateServer,
+        ref: 'refs/tags/mcp-v0.1.0-rc.1',
+      }),
+    /server.json version/,
+  );
+  const stableServer = clone(server);
+  stableServer.version = '0.1.0';
+  stableServer.packages[0].version = '0.1.0';
+  assert.deepEqual(
+    checkIdentity({ ...good, manifest: candidate, server: stableServer, ref: 'refs/tags/mcp-v0.1.0-rc.1' }),
+    { version: '0.1.0-rc.1', distTag: 'next' },
+  );
+  const stable = clone(manifest);
+  stable.version = '0.1.0';
+  assert.deepEqual(
+    checkIdentity({ ...good, manifest: stable, server: stableServer, ref: 'refs/tags/mcp-v0.1.0' }),
+    { version: '0.1.0', distTag: 'latest' },
+  );
+  const stalePackage = clone(stableServer);
+  stalePackage.packages[0].version = '0.1.0-rc.1';
+  refuses(
+    () => checkIdentity({ ...good, manifest: stable, server: stalePackage, ref: 'refs/tags/mcp-v0.1.0' }),
+    /identifier\/version/,
+  );
   const badPackage = clone(server);
   badPackage.packages[0].identifier = '@sess.si/other';
   refuses(() => checkIdentity({ ...good, server: badPackage }), /identifier\/version/);

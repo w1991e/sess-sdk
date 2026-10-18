@@ -2,19 +2,19 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.w1991e/sess",
   "title": "Sess",
-  "description": "Your agent asks a person through a private link and gets back a typed, receipt-verified answer.",
+  "description": "Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.",
   "repository": {
     "url": "https://github.com/w1991e/sess-sdk",
     "source": "github",
     "subfolder": "adapters/mcp"
   },
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@sess.si/mcp",
-      "version": "0.1.0-rc.1",
+      "version": "0.1.0",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

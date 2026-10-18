@@ -74,14 +74,36 @@ After any change to `listing.json`, run `npm run listing` and commit the result.
 
 ### MCP Registry
 
-Eligible once `@sess.si/mcp` is on npm with `mcpName` `io.github.w1991e/sess` (the registry checks
-it against the published package). `server.json` also advertises the remote endpoint, so submit it
-only after the `mcp.sess.si` readback.
+Official registry only (`registry.modelcontextprotocol.io`), under the GitHub namespace of the
+`w1991e` account: `io.github.w1991e/sess`. `w1991e` is a personal account, and GitHub
+authentication always grants the personal namespace `io.github.<username>/*` (an organization
+namespace would need org ownership). No other account is needed.
 
-1. Install `mcp-publisher` and sign in with GitHub as `w1991e` (`mcp-publisher login github`).
-2. From `adapters/mcp`, run `mcp-publisher publish`.
-3. Read the entry back from the registry API and record its version and date as submitted; record
-   it as listed only after the readback shows it.
+`server.json` names the planned stable release (`providers.mcpRegistry.version`, today `0.1.0`)
+for the server and for the npm package; it never names a release candidate or a dist-tag, so a
+candidate (`0.1.0-rc.N` on `next`) is never listed. The registry checks the npm package's `mcpName`
+against the server name, so the stable package must be on npm first. It also does not verify the
+remote URL, so publish only after the `mcp.sess.si` readback.
+
+`npm run check:listing` validates `server.json` against the pinned 2025-12-11 schema, and CI also
+runs the registry's own validator (`mcp-publisher validate`, pinned v1.8.1 by SHA-256; no login,
+no publish).
+
+Owner commands, after `@sess.si/mcp@0.1.0` is on npm with dist-tag `latest` and
+`https://mcp.sess.si/mcp` answers:
+
+1. Install the pinned publisher (macOS arm64 shown; other platforms from the same release):
+   `curl -fsSLO https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_darwin_arm64.tar.gz`,
+   check `shasum -a 256` is
+   `e45e520892460732a4bdf37255576415d4a53ec171f8b913faf15bb1aef7cb77`, then
+   `tar -xzf mcp-publisher_darwin_arm64.tar.gz mcp-publisher`.
+2. From `adapters/mcp` at the released commit: `../../mcp-publisher validate server.json` (or the
+   path you extracted it to).
+3. `mcp-publisher login github`, and authorize as `w1991e` in the browser (device code).
+4. `mcp-publisher publish`.
+5. Read the entry back:
+   `curl -s 'https://registry.modelcontextprotocol.io/v0/servers?search=io.github.w1991e/sess'`.
+   Record its version and date as submitted, and as listed only after the readback shows it.
 
 ### OpenAI (ChatGPT and Codex)
 

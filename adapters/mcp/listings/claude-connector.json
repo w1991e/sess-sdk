@@ -2,7 +2,7 @@
   "about": "Values for Anthropic's custom connector submission form, generated from listing.json. There is no published schema; listing.mjs checks the documented requirements. Generation is not submission.",
   "name": "Sess",
   "tagline": "Ask a person, get the answer",
-  "description": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a private link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
+  "description": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
   "serverUrl": "https://mcp.sess.si/mcp",
   "transport": "streamable-http",
   "status": "not-deployed",
