@@ -12,7 +12,16 @@
   "bugs": {
     "url": "https://github.com/w1991e/sess-sdk/issues"
   },
-  "homepage": "https://github.com/w1991e/sess-sdk/tree/master/create-agent#readme",
+  "homepage": "https://sess.si",
+  "keywords": [
+    "sess",
+    "create",
+    "starter",
+    "template",
+    "ai-agents",
+    "human-in-the-loop",
+    "signed-receipts"
+  ],
   "engines": {
     "node": ">=22.14.0"
   },

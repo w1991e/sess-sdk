@@ -12,7 +12,17 @@
   "bugs": {
     "url": "https://github.com/w1991e/sess-sdk/issues"
   },
-  "homepage": "https://github.com/w1991e/sess-sdk/tree/master/adapters/openclaw#readme",
+  "homepage": "https://sess.si",
+  "keywords": [
+    "sess",
+    "openclaw",
+    "openclaw-plugin",
+    "ai-agents",
+    "human-in-the-loop",
+    "approval",
+    "signed-receipts",
+    "agent-tools"
+  ],
   "engines": {
     "node": ">=24.16.0 <25"
   },

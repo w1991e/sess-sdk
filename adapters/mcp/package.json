@@ -13,7 +13,18 @@
   "bugs": {
     "url": "https://github.com/w1991e/sess-sdk/issues"
   },
-  "homepage": "https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp#readme",
+  "homepage": "https://sess.si",
+  "keywords": [
+    "sess",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "ai-agents",
+    "human-in-the-loop",
+    "approval",
+    "signed-receipts",
+    "agent-tools"
+  ],
   "engines": {
     "node": ">=22.14.0 <25"
   },
