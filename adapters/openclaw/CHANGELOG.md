@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Depends on `@sess.si/sdk` 0.1.0-rc.7 (was 0.1.0-rc.5). The adapter's own code is unchanged; the
+  next release candidate ships with it.
 - README "First interaction" now starts from a real message of your own: paste or forward it into
   your dashboard conversation, the agent drafts a reply, and you edit, approve or stop it through
   Sess before it goes anywhere. The plugin ships no sample message; a synthetic sample is shown for

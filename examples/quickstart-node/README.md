@@ -3,7 +3,7 @@
 This program asks a person one question through a hosted Sess page and continues with their
 verified answer.
 
-**Install** (in a copy of this directory; installs the published `@sess.si/sdk@0.1.0-rc.5` from npm):
+**Install** (in a copy of this directory; installs the published `@sess.si/sdk@0.1.0-rc.7` from npm):
 
 ```sh
 npm install --ignore-scripts
@@ -35,7 +35,7 @@ directory itself is not published.
 ### Install
 
 Copy this directory somewhere outside the SDK repository and run `npm install --ignore-scripts`
-there. [package.json](package.json) declares the exact SDK version, `0.1.0-rc.5`, which is published
+there. [package.json](package.json) declares the exact SDK version, `0.1.0-rc.7`, which is published
 on npm under the `next` dist-tag with npm provenance. Its registry integrity equals the pin in the
 SDK repository's [release/sdk-candidate.json](../../release/sdk-candidate.json). No lockfile is
 shipped; npm creates one in your copy.
@@ -43,7 +43,7 @@ shipped; npm creates one in your copy.
 To add the SDK to your own project instead, name the exact version (or `@next`):
 
 ```sh
-npm install --ignore-scripts @sess.si/sdk@0.1.0-rc.5
+npm install --ignore-scripts @sess.si/sdk@0.1.0-rc.7
 ```
 
 Do not install the bare `@sess.si/sdk` name: its `latest` dist-tag currently points at a deprecated

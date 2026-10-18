@@ -10,8 +10,7 @@
   answer accepted before the expiry is still released as `answered`. Nothing is completed or
   written on Sess; the local record is kept as blocked with reason `LINK_EXPIRED` (the record
   schema is unchanged).
-- Requires `@sess.si/sdk` 0.1.0-rc.7 for the wait's `LINK_EXPIRED`; the dependency moves to it when
-  rc.7 is published.
+- Depends on `@sess.si/sdk` 0.1.0-rc.7 (was 0.1.0-rc.5), for the wait's `LINK_EXPIRED`.
 - README "First interaction" now shows approving before acting: the agent asks you, on any device,
   to approve a commit (or a reply) before it acts, with the proposed message in a field you can
   edit, and continues only on the verified answer. It includes a synthetic, labelled sample
