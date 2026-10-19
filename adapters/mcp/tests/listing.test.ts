@@ -115,7 +115,7 @@ describe('listing.json artifacts', () => {
     );
     // While package.json is a candidate, the stable package is an owner blocker, not an error.
     expect(check(i).blockers).toContain(
-      'MCP Registry: server.json names @sess.si/mcp@0.1.0; package.json is 0.1.0-rc.2 (publish the stable release first)',
+      'MCP Registry: server.json names @sess.si/mcp@0.1.0; package.json is 0.1.0-rc.3 (publish the stable release first)',
     );
     for (const version of ['0.1.0-rc.1', 'next', 'latest', '^0.1.0', '0.1', '']) {
       const bad = inputs();

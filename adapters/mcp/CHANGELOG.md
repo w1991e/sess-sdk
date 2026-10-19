@@ -1,7 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.3 (candidate, unpublished)
 
+- Depends on `@sess.si/sdk` 0.1.0-rc.8 (was 0.1.0-rc.7): link timing (Decision 0009 Amendment 10)
+  and receipts whose renderer identity is on the issuer's signed renderer list (Amendment 13).
+  `sess_response` and `sess_ask` verify each answer with the SDK's `receipts.verifyResponse()`,
+  which accepts the identities it bundles (`sess-html-form-1`, `sess-html-form-2`) offline and
+  fetches the issuer's signed list only for any other one. A list that cannot be read is not a
+  verification failure: nothing is recorded and a later read verifies the answer again; a forged
+  or unlisted identity fails verification, as before.
 - Link timing (Decision 0009 Amendment 10). A lapsed link (past its deadline, but the person can
   still ask for more time until its horizon) is still open: `sess_response`, and so `sess_ask`,
   report `waiting`, never `expired`. `expired` is reported only once a read shows the link expired:
@@ -14,7 +21,7 @@
   is confirmed by one read, so an SDK that ends its wait at the deadline cannot report a lapsed
   link as expired. A runtime without link timing keeps the earlier rule.
 
-## 0.1.0-rc.2 (candidate, unpublished)
+## 0.1.0-rc.2 (published 2026-10-19)
 
 - Tool schemas `sess-mcp-tools/3`. Advanced: `sess_request` and `sess_ask` take an optional
   `expires_in` (whole seconds from creation, from 30 up to the plan's link lifetime; the same name
@@ -36,7 +43,7 @@
 - `compatibility.json` records the publication of `0.1.0-rc.1` on the npm dist-tag `next`
   (2026-10-17): registry SHA-256 and integrity, SLSA provenance and release run 38990432638.
 
-## 0.1.0-rc.1 (candidate, unpublished)
+## 0.1.0-rc.1 (published 2026-10-17)
 
 - First candidate of the local stdio MCP server for SESS.
 - Four tools with closed, versioned schemas (`sess-mcp-tools/1`): `sess_request`, `sess_response`,

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "package": {
     "name": "@sess.si/mcp",
-    "version": "0.1.0-rc.2",
+    "version": "0.1.0-rc.3",
     "toolSchema": "sess-mcp-tools/3"
   },
   "status": "published (next)",
