@@ -1,5 +1,5 @@
 {
-  "$comment": "Verbatim public copies of the Sess receipt-v1 and bundle-v1 specifications and the shared bundle-v1 conformance corpus. scripts/check-spec.mjs fails if a copy's SHA-256 differs from the Sess copy recorded here. Update only by copying the files again from the recorded Sess commit and recording the new commit and digests.",
+  "$comment": "Verbatim public copies of the Sess receipt-v1, bundle-v1, archival-core-v1 and witness-evidence-v1 specifications and of the shared conformance corpora: the bundle-v1 corpus, the archival-v1 compatibility/state corpus, the witness renewal vector and the recorded Sigstore staging witness run. scripts/check-spec.mjs fails if a copy’s SHA-256 differs from the Sess copy recorded here. Update only by copying the files again from the recorded Sess commit and recording the new commit and digests.",
   "repository": "Sess runtime",
   "commit": "9c223857350d20a3ab3ce1163b92eea8f05f79bf",
   "files": [
@@ -17,6 +17,31 @@
       "path": "tests/fixtures/bundle/bundle-v1-corpus.json",
       "source": "packages/security/test/fixtures/bundle-v1-corpus.json",
       "sha256": "de093ab7ba40eafdabd84102fbcc2feda4b929bd0ecf87049fd87e6ee41dd091"
+    },
+    {
+      "path": "docs/spec/archival-core-v1.md",
+      "source": "DOCS/spec/archival-core-v1.md",
+      "sha256": "81acf41d292bc919093adf40aa11c4932de1b45e308efebfd626553a582a7e66"
+    },
+    {
+      "path": "docs/spec/witness-evidence-v1.md",
+      "source": "DOCS/spec/witness-evidence-v1.md",
+      "sha256": "446d56ed79dda6fe6b8b088ad2d21a266d6f1a9b34afd87106bcfbdcdcfa4477"
+    },
+    {
+      "path": "tests/fixtures/archival/archival-v1-corpus.json",
+      "source": "packages/evidence/test/fixtures/archival-v1-corpus.json",
+      "sha256": "72c3ef0b8ee7713f21afc8c5d6b75085dc96cc01b2b44aae93ec19251799015b"
+    },
+    {
+      "path": "tests/fixtures/archival/renewal-vector.der",
+      "source": "packages/evidence/test/fixtures/witness/renewal-vector.der",
+      "sha256": "12eea4d0edb88dd7f75b28f98ca5230193f1e6eac532329081a3d9137321c732"
+    },
+    {
+      "path": "tests/fixtures/archival/sigstage-run.json",
+      "source": "packages/evidence/test/fixtures/witness/sigstage-run.json",
+      "sha256": "9b123535267a053ab5318f9db3453df307bf4d4ed4435d29bae7e8ff525319ec"
     }
   ]
 }

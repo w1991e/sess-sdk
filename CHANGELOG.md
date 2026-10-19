@@ -1,8 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.8 — 2026-10-19 (prepared, unpublished)
 
-- Link timing (Decision 0009 Amendment 10). On an interactive Sess link of 20 hours or less the
+Includes everything in the prepared, unpublished `0.1.0-rc.7` below; the registry goes from
+`0.1.0-rc.7` (once published) to `0.1.0-rc.8`. Every existing export is unchanged; runtime
+dependencies are unchanged.
+
+### Link timing (Decision 0009 Amendment 10)
+
+- On an interactive Sess link of 20 hours or less the
   person may ask for more time, up to ten times, never past a fixed horizon. Session reads carry
   `link_state` (`live`, `lapsed` or `expired`), `action_expires_horizon`, `extensions_used` and the
   `extensions` history; the Session log (`listEvents()`) lists the same records as
@@ -13,11 +19,14 @@
   horizon and end with `wait_ended` `LINK_EXPIRED` only once a read shows the link expired (two
   seconds past its end on the runtime clock, or, when the end cannot be placed, such as a
   revocation, a later read at least the grace after the first expired read; a short `intervalMs`
-  reads again sooner but never ends the wait inside the grace). A live read never ends the wait. Without `link_state` the
-  deadline stays final, as in rc.7.
+  reads again sooner but never ends the wait inside the grace). A live read never ends the wait.
+  Without `link_state` the deadline stays final, as in rc.7.
 - Contract snapshot from Sess runtime commit `ee777ab` (w1991e/sess PR #431's head, not yet merged
   there; see `contract/contract-lock.json`).
-- Renderer identities (Decision 0009 Amendment 13). A receipt's `surface.renderer_version` now
+
+### Renderer identities on the issuer's signed list (Decision 0009 Amendment 13)
+
+- A receipt's `surface.renderer_version` now
   verifies when it is an identity this release bundles (`sess-html-form-1`, `sess-html-form-2`;
   `BUNDLED_RENDERER_IDENTITIES`) or one on the issuer's renderer list whose signature verifies
   under the same trusted keys and issuer, so a later Sess page change needs no SDK update. Every
@@ -42,6 +51,27 @@
   or listed (otherwise invalid, exit 1). Without it, bundle verification is unchanged.
 - The receipt-v1 specification copy is from Sess commit `9c22385` (§10, renderer identities with
   `seq` and `iat`; Sess PR #444's head, not yet merged: re-pin to the merged commit).
+
+### Archival verifier
+
+- `@sess.si/sdk/archival`, a new subpath with the successor archival verifier:
+  `verifyArchivalEnvelope` checks an archival envelope (the exact original receipt, the issuer's
+  signed archival core and any witness evidence) offline against the receipt keys and witness anchors you trust, and reports
+  independent dimensions (signature, contents, context, witness, key trust, live expiry) with the
+  Sess core's reason codes. `presentArchivalVerification` maps them to the user-facing messages.
+  `parseTrustedRoot` and `parseWitnessKeySet` read a Sigstore `trusted_root.json` and the issuer's
+  witness key set into anchors. `checkWitnessAnchors` refuses an unusable anchor (a TSA certificate
+  that is not DER, a log base URL that is not https, a witness key that is not ECDSA P-256 SPKI, a
+  window that is not a date) with a `TypeError`; the verifier runs it on its `witnessAnchors`.
+  `verifyDecisionReceipt`, `verifyDecisionBundle` and receipt-v1 behaviour are unchanged.
+- `sess verify --archival <envelope.json> --keys <jwks.json>` with optional `--issuer`, context,
+  `--content`, `--witness-root` and `--witness-keys`; exits 0 verified, 1 not verified, 2 usage
+  error, and makes no network calls. `--renderers` applies to bundle verification only and is
+  refused with `--archival` (exit 2).
+- Verbatim archival-core-v1 and witness-evidence-v1 specifications, the archival-v1 corpus, the
+  witness renewal vector and the recorded Sigstore staging run in the source repository, pinned by
+  SHA-256 to one Sess commit (`9c22385`, with receipt-v1 above) and checked by
+  `npm run check:spec`.
 
 ## 0.1.0-rc.7 — 2026-10-18 (prepared, unpublished)
 

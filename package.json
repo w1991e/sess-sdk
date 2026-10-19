@@ -26,6 +26,10 @@
       "types": "./dist/receipts/index.d.ts",
       "import": "./dist/receipts/index.js"
     },
+    "./archival": {
+      "types": "./dist/archival/index.d.ts",
+      "import": "./dist/archival/index.js"
+    },
     "./webhooks": {
       "types": "./dist/webhooks/index.d.ts",
       "import": "./dist/webhooks/index.js"
