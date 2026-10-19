@@ -5,7 +5,12 @@
 // refused; old receipts keep verifying, offline, with no list.
 import { generateKeyPairSync } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { BUNDLED_RENDERER_IDENTITIES, verifyRendererIdentities } from '../../src/receipts/index.js';
+import {
+  BUNDLED_RENDERER_IDENTITIES,
+  BUNDLED_RENDERER_LIST,
+  newerRendererList,
+  verifyRendererIdentities,
+} from '../../src/receipts/index.js';
 import type { RendererIdentitiesDocument } from '../../src/receipts/renderers.js';
 import { createReceiptResource } from '../../src/receipts/resource.js';
 import { verifyDecisionReceipt, type ReceiptClaims } from '../../src/receipts/verify.js';
@@ -26,10 +31,23 @@ const LIST = [
   { renderer_version: 'sess-html-form-3', since: '2026-11-02' },
 ];
 const LIST_HEADER = { alg: 'EdDSA', kid: 'rfc8032-test-1', typ: 'sess-renderer-identities+jwt' };
+const IAT = Math.floor(Date.parse('2026-11-02T00:00:00Z') / 1000);
+
+/** List claims: edition 2 (the bundled edition 1 plus sess-html-form-3) unless overridden. */
+const claimsOf = (over: Record<string, unknown> = {}) => ({
+  iat: IAT,
+  identities: LIST,
+  iss: issuer,
+  seq: 2,
+  sess_renderer_identities: 1,
+  ...over,
+});
+/** Edition 1: exactly the bundled list. */
+const EDITION_1 = { identities: LIST.slice(0, 2), seq: 1 };
 
 /** A signed list document: the compact JWS of `claims` (canonical unless text), as flattened JSON. */
 function list(
-  claims: unknown = { identities: LIST, iss: issuer, sess_renderer_identities: 1 },
+  claims: unknown = claimsOf(),
   header: unknown = LIST_HEADER,
   key?: Parameters<typeof signPayload>[2],
 ): RendererIdentitiesDocument {
@@ -75,7 +93,7 @@ describe('renderer identities: the receipt verifier (Decision 0009 Amendment 13)
     });
     const claims = await verifyDecisionReceipt({ ...three.input, rendererIdentities: list() }, options);
     expect(claims.surface.renderer_version).toBe('sess-html-form-3');
-    const missing = list({ identities: LIST.slice(0, 2), iss: issuer, sess_renderer_identities: 1 });
+    const missing = list(claimsOf(EDITION_1));
     await expect(
       verifyDecisionReceipt({ ...three.input, rendererIdentities: missing }, options),
     ).rejects.toMatchObject({ code: 'UNSUPPORTED_RENDERER' });
@@ -89,11 +107,9 @@ describe('renderer identities: the receipt verifier (Decision 0009 Amendment 13)
     const three = withRenderer('sess-html-form-3');
     const other = generateKeyPairSync('ed25519').privateKey;
     const good = list();
-    const added = list({
-      identities: [...LIST, { renderer_version: 'x-4', since: '2026-12-01' }],
-      iss: issuer,
-      sess_renderer_identities: 1,
-    });
+    const added = list(
+      claimsOf({ identities: [...LIST, { renderer_version: 'x-4', since: '2026-12-01' }], seq: 3 }),
+    );
     const bad: [string, unknown][] = [
       ['forged: another key under the trusted kid', list(undefined, LIST_HEADER, other)],
       ['unsigned: an empty signature', { ...good, signature: '' }],
@@ -107,18 +123,39 @@ describe('renderer identities: the receipt verifier (Decision 0009 Amendment 13)
       ['tampered: an identity added under the old signature', { ...good, payload: added.payload }],
       ['a receipt typ', list(undefined, { ...LIST_HEADER, typ: 'sess-receipt+jwt' })],
       ['an unknown kid', list(undefined, { ...LIST_HEADER, kid: 'unknown-kid' })],
+      ['another issuer', list(claimsOf({ iss: 'https://evil.example' }))],
+      ['another version', list(claimsOf({ sess_renderer_identities: 2 }))],
       [
-        'another issuer',
-        list({ identities: LIST, iss: 'https://evil.example', sess_renderer_identities: 1 }),
+        'not canonical',
+        list(
+          JSON.stringify({ sess_renderer_identities: 1, seq: 2, iss: issuer, iat: IAT, identities: LIST }),
+        ),
       ],
-      ['another version', list({ identities: LIST, iss: issuer, sess_renderer_identities: 2 })],
-      ['not canonical', list(JSON.stringify({ sess_renderer_identities: 1, iss: issuer, identities: LIST }))],
-      [
-        'a duplicate identity',
-        list({ identities: [LIST[2], LIST[2]], iss: issuer, sess_renderer_identities: 1 }),
-      ],
+      ['a duplicate identity', list(claimsOf({ identities: [LIST[2], LIST[2]] }))],
       ['an extra document member', { ...good, header: { kid: 'rfc8032-test-1' } }],
       ['a compact string, not the document', `${good.protected}.${good.payload}.${good.signature}`],
+      ['no seq', list(claimsOf({ seq: undefined }))],
+      ['no iat', list(claimsOf({ iat: undefined }))],
+      ['seq 0', list(claimsOf({ seq: 0 }))],
+      ['a fractional seq', list(claimsOf({ seq: 2.5 }))],
+      ['a string iat', list(claimsOf({ iat: String(IAT) }))],
+      [
+        'tampered: seq raised under the old signature',
+        { ...good, payload: list(claimsOf({ seq: 9 })).payload },
+      ],
+      [
+        'tampered: iat moved under the old signature',
+        { ...good, payload: list(claimsOf({ iat: IAT + 1 })).payload },
+      ],
+      [
+        'disagrees with the bundled edition: sess-html-form-2 dropped',
+        list(claimsOf({ identities: [LIST[0], LIST[2]] })),
+      ],
+      [
+        'disagrees with the bundled edition: a re-dated identity',
+        list(claimsOf({ identities: [{ ...LIST[0], since: '2026-10-10' }, LIST[1], LIST[2]] })),
+      ],
+      ['the bundled edition number with other identities', list(claimsOf({ seq: 1 }))],
     ];
     for (const [name, document] of bad) {
       await expect(
@@ -133,9 +170,15 @@ describe('renderer identities: the receipt verifier (Decision 0009 Amendment 13)
 
   it('verifyRendererIdentities verifies a list offline under explicit keys or a resolver and refuses an ambiguous context', async () => {
     const f = fixture();
-    expect(await verifyRendererIdentities(list(), { issuer, keys: f.keys })).toEqual(LIST);
+    expect(await verifyRendererIdentities(list(), { issuer, keys: f.keys })).toEqual({
+      seq: 2,
+      iat: IAT,
+      identities: LIST,
+    });
     const resolver = vi.fn(async () => f.keys);
-    expect(await verifyRendererIdentities(list(), { issuer, keyResolver: resolver })).toEqual(LIST);
+    expect((await verifyRendererIdentities(list(), { issuer, keyResolver: resolver })).identities).toEqual(
+      LIST,
+    );
     expect(resolver).toHaveBeenCalledWith(expect.objectContaining({ kid: 'rfc8032-test-1', issuer }));
     await expect(
       verifyRendererIdentities(list(), { issuer, keys: f.keys, keyResolver: resolver }),
@@ -143,6 +186,90 @@ describe('renderer identities: the receipt verifier (Decision 0009 Amendment 13)
     await expect(verifyRendererIdentities(list(), { issuer: '', keys: f.keys })).rejects.toMatchObject({
       code: 'VERIFICATION_CONTEXT_MISSING',
     });
+  });
+});
+
+describe('renderer identities: list editions (seq, iat) and their order', () => {
+  it('the bundled list is edition 1 with its dates; BUNDLED_RENDERER_IDENTITIES names it', () => {
+    expect(BUNDLED_RENDERER_LIST).toEqual({ seq: 1, identities: LIST.slice(0, 2) });
+    expect(BUNDLED_RENDERER_IDENTITIES).toEqual(
+      BUNDLED_RENDERER_LIST.identities.map((i) => i.renderer_version),
+    );
+    expect(Object.isFrozen(BUNDLED_RENDERER_LIST)).toBe(true);
+  });
+
+  it('seq orders authentic lists across a growth, whichever comes first; an older edition still proves the identities it holds, and never their absence', async () => {
+    const f = fixture();
+    const v2 = await verifyRendererIdentities(list(), { issuer, keys: f.keys });
+    const grown = [...LIST, { renderer_version: 'sess-html-form-4', since: '2026-12-01' }];
+    const v3 = await verifyRendererIdentities(
+      list(claimsOf({ identities: grown, seq: 3, iat: IAT + 86400 })),
+      {
+        issuer,
+        keys: f.keys,
+      },
+    );
+    expect(newerRendererList(v2, v3)).toBe(v3);
+    expect(newerRendererList(v3, v2)).toBe(v3);
+    expect(newerRendererList(BUNDLED_RENDERER_LIST, v2)).toBe(v2);
+    // Edition 2 still proves sess-html-form-3 although edition 3 exists.
+    const three = withRenderer('sess-html-form-3');
+    await expect(
+      verifyDecisionReceipt({ ...three.input, rendererIdentities: list() }, options),
+    ).resolves.toBeDefined();
+    // It does not hold sess-html-form-4: that receipt is unsupported with it, never accepted by
+    // fallback, and accepted with edition 3.
+    const four = withRenderer('sess-html-form-4');
+    await expect(
+      verifyDecisionReceipt({ ...four.input, rendererIdentities: list() }, options),
+    ).rejects.toMatchObject({ code: 'UNSUPPORTED_RENDERER' });
+    await expect(
+      verifyDecisionReceipt(
+        { ...four.input, rendererIdentities: list(claimsOf({ identities: grown, seq: 3 })) },
+        options,
+      ),
+    ).resolves.toBeDefined();
+    // Lists that disagree are refused, never merged: a later edition that drops or reorders an
+    // identity, or two copies of one edition that differ.
+    for (const bad of [
+      { seq: 3, iat: IAT, identities: LIST.slice(0, 2) },
+      { seq: 3, iat: IAT, identities: [LIST[1]!, LIST[0]!, LIST[2]!] },
+      { seq: 2, iat: IAT, identities: grown },
+    ])
+      expect(() => newerRendererList(v2, bad)).toThrow(
+        expect.objectContaining({ code: 'INVALID_RENDERER_LIST' }),
+      );
+  });
+
+  it('key rotation: the same edition re-signed under a rotated key (another kid, a later iat) verifies with the published keys and agrees with the first copy', async () => {
+    const f = fixture();
+    const rotated = generateKeyPairSync('ed25519');
+    const keys = {
+      keys: [
+        ...f.keys.keys,
+        {
+          kty: 'OKP',
+          crv: 'Ed25519',
+          x: rotated.publicKey.export({ format: 'jwk' }).x as string,
+          kid: 'rotated-2',
+          alg: 'EdDSA',
+          use: 'sig',
+          key_ops: ['verify'],
+        },
+      ],
+    } as typeof f.keys;
+    const first = await verifyRendererIdentities(list(), { issuer, keys });
+    const copy = await verifyRendererIdentities(
+      list(claimsOf({ iat: IAT + 3600 }), { ...LIST_HEADER, kid: 'rotated-2' }, rotated.privateKey),
+      { issuer, keys },
+    );
+    expect(copy).toEqual({ seq: 2, iat: IAT + 3600, identities: LIST });
+    expect(newerRendererList(first, copy).identities).toEqual(LIST);
+    // The old key's copy still verifies while the old key is published; once it is not, it is not
+    // trusted (no fallback to another kid).
+    await expect(
+      verifyRendererIdentities(list(), { issuer, keys: { keys: [keys.keys[1]!] } as typeof f.keys }),
+    ).rejects.toMatchObject({ code: 'INVALID_RENDERER_LIST' });
   });
 });
 
@@ -184,10 +311,7 @@ describe('renderer identities: online verification fetches the list only when ne
       expect.objectContaining({ maxResponseBytes: 64 * 1024 }),
     );
     // A list served without the identity, or a forged one, does not verify the receipt.
-    const unlisted = resource(
-      'sess-html-form-3',
-      list({ identities: LIST.slice(0, 2), iss: issuer, sess_renderer_identities: 1 }),
-    );
+    const unlisted = resource('sess-html-form-3', list(claimsOf(EDITION_1)));
     await expect(unlisted.r.verifyResponse({ sessionId, response: unlisted.response })).rejects.toMatchObject(
       { code: 'UNSUPPORTED_RENDERER' },
     );

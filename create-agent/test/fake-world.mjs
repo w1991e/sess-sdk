@@ -94,9 +94,12 @@ function rendererList() {
   const header = Buffer.from(
     JSON.stringify({ alg: 'EdDSA', kid: KID, typ: 'sess-renderer-identities+jwt' }),
   ).toString('base64url');
-  const payload = Buffer.from(canonical({ identities, iss: API, sess_renderer_identities: 1 })).toString(
-    'base64url',
-  );
+  // Edition 1 is the bundled list; a list that adds an identity is the next edition.
+  const seq = config.listed ? 2 : 1;
+  const iat = Math.floor(Date.parse('2026-11-02T00:00:00Z') / 1000);
+  const payload = Buffer.from(
+    canonical({ iat, identities, iss: API, seq, sess_renderer_identities: 1 }),
+  ).toString('base64url');
   const signature = sign(null, Buffer.from(`${header}.${payload}`), privateKey).toString('base64url');
   return { protected: header, payload, signature };
 }

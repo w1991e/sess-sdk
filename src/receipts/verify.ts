@@ -17,7 +17,7 @@ import {
   BUNDLED_RENDERER_IDENTITIES,
   verifyRendererList,
   type RendererIdentitiesDocument,
-  type RendererIdentity,
+  type RendererList,
 } from './renderers.js';
 
 export const MAX_RECEIPT_BYTES = 64 * 1024;
@@ -469,10 +469,13 @@ export async function verifyDecisionReceipt(
   // issuer's list that verifies under the same trusted keys.
   const renderer = claims.surface.renderer_version;
   if (!BUNDLED_RENDERER_IDENTITIES.includes(renderer)) {
+    // A list proves the identities it holds; an identity it does not hold is unsupported, never
+    // accepted by fallback (an older list says nothing about what was added since).
     const listed =
       rendererList === undefined
         ? []
-        : await verifyRendererList(rendererList, { issuer, keyFor, ...(signal ? { signal } : {}) });
+        : (await verifyRendererList(rendererList, { issuer, keyFor, ...(signal ? { signal } : {}) }))
+            .identities;
     if (!listed.some((identity) => identity.renderer_version === renderer)) {
       throw verificationError(
         'UNSUPPORTED_RENDERER',
@@ -517,7 +520,8 @@ function trustedKeyLookup(
 /**
  * Verifies an issuer's signed renderer-identity list (Decision 0009 Amendment 13) under the keys
  * you trust for that issuer: exactly one of `keys` or `keyResolver`. Offline with explicit keys.
- * Returns the listed identities, in order.
+ * Returns the verified edition: `seq` (order lists by it; see newerRendererList), `iat` and the
+ * listed identities, in order.
  */
 export async function verifyRendererIdentities(
   document: RendererIdentitiesDocument,
@@ -527,7 +531,7 @@ export async function verifyRendererIdentities(
     keyResolver?: ReceiptKeyResolver;
     signal?: AbortSignal;
   },
-): Promise<readonly RendererIdentity[]> {
+): Promise<RendererList> {
   const issuer = context?.issuer;
   const resolver = context?.keyResolver;
   const keys = context?.keys === undefined ? undefined : validateKeySet(context.keys);

@@ -339,10 +339,12 @@ describe('sess verify <file>', () => {
 // list is trusted only through its signature under --keys and --issuer. Without it, bundle-v1
 // verification is unchanged.
 describe('sess verify --renderers <file>', () => {
-  const LIST = [
+  // Edition 2: the bundled edition 1 (form-1, form-2) plus a later identity.
+  const BUNDLED = [
     { renderer_version: 'sess-html-form-1', since: '2026-10-09' },
-    { renderer_version: 'sess-html-form-3', since: '2026-11-02' },
+    { renderer_version: 'sess-html-form-2', since: '2026-10-18' },
   ];
+  const LIST = [...BUNDLED, { renderer_version: 'sess-html-form-3', since: '2026-11-02' }];
   const write = async (name: string, value: unknown) => {
     const file = join(dir, name);
     await writeFile(file, JSON.stringify(value));
@@ -362,7 +364,7 @@ describe('sess verify --renderers <file>', () => {
 
   it('accepts a receipt whose renderer identity is on the signed list, refuses one missing from it, and without the option checks nothing new', async () => {
     const future = await write('future.json', await corpusBundleWithRenderer('sess-html-form-3'));
-    const listed = await write('renderers.json', await corpusRendererList(LIST));
+    const listed = await write('renderers.json', await corpusRendererList(LIST, { seq: 2 }));
     const ok = await sess(args(future, ['--renderers', listed]));
     expect(ok.code).toBe(0);
     expect(ok.stdout).toContain('Renderer    sess-html-form-3 (listed)');
@@ -371,8 +373,9 @@ describe('sess verify --renderers <file>', () => {
     // A bundled identity needs no listing.
     const two = await write('two.json', await corpusBundleWithRenderer('sess-html-form-2'));
     expect((await sess(args(two, ['--renderers', listed]))).code).toBe(0);
-    // Not on the list: invalid, exit 1.
-    const short = await write('short.json', await corpusRendererList(LIST.slice(0, 1)));
+    // Not on the list (the older edition 1 does not hold it): invalid, exit 1, never accepted by
+    // fallback.
+    const short = await write('short.json', await corpusRendererList(BUNDLED));
     const missing = await sess(args(future, ['--renderers', short]));
     expect(missing.code).toBe(1);
     expect(missing.stdout).toContain('Invalid decision bundle: renderer');
@@ -383,12 +386,19 @@ describe('sess verify --renderers <file>', () => {
   it('exits 2 for a list that is not signed by the keys you trust, is from another issuer, has another typ or is not a list', async () => {
     const future = await write('future-2.json', await corpusBundleWithRenderer('sess-html-form-3'));
     const bad = [
-      await corpusRendererList(LIST, { key: 'stranger' }),
-      await corpusRendererList(LIST, { key: 'retired' }),
-      await corpusRendererList(LIST, { issuer: 'https://evil.example' }),
-      await corpusRendererList(LIST, { typ: 'sess-receipt+jwt' }),
-      { ...(await corpusRendererList(LIST)), signature: '' },
+      await corpusRendererList(LIST, { seq: 2, key: 'stranger' }),
+      await corpusRendererList(LIST, { seq: 2, key: 'retired' }),
+      await corpusRendererList(LIST, { seq: 2, issuer: 'https://evil.example' }),
+      await corpusRendererList(LIST, { seq: 2, typ: 'sess-receipt+jwt' }),
+      { ...(await corpusRendererList(LIST, { seq: 2 })), signature: '' },
       { keys: [] },
+      // No seq or iat, or not positive integers.
+      await corpusRendererList(LIST, { omit: ['seq'] }),
+      await corpusRendererList(LIST, { omit: ['iat'] }),
+      await corpusRendererList(LIST, { seq: 0 }),
+      await corpusRendererList(LIST, { seq: 2, iat: '1792358400' }),
+      // A list that disagrees with the bundled edition (drops sess-html-form-2).
+      await corpusRendererList([BUNDLED[0]!, LIST[2]!], { seq: 2 }),
     ];
     for (const [i, value] of bad.entries()) {
       const r = await sess(args(future, ['--renderers', await write(`bad-${i}.json`, value)]));

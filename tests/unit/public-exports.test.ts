@@ -98,8 +98,11 @@ const ADDED = {
   // Decision 0009 Amendment 13 (rc.8): renderer identities on a signed list.
   './receipts': [
     'BUNDLED_RENDERER_IDENTITIES',
+    'BUNDLED_RENDERER_LIST',
     'RendererIdentitiesDocument',
     'RendererIdentity',
+    'RendererList',
+    'newerRendererList',
     'verifyRendererIdentities',
   ],
   './webhooks': [],
@@ -169,7 +172,9 @@ describe('public exports', () => {
     ]);
     expect(Object.keys(receipts).sort()).toEqual([
       'BUNDLED_RENDERER_IDENTITIES',
+      'BUNDLED_RENDERER_LIST',
       'BUNDLE_LIMITS',
+      'newerRendererList',
       'verifyDecisionBundle',
       'verifyDecisionReceipt',
       'verifyRendererIdentities',

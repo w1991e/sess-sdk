@@ -300,7 +300,7 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
             issuer: parsed.issuer,
             keys: trustedKeys,
           })
-        ).map((i) => i.renderer_version);
+        ).identities.map((i) => i.renderer_version);
       } catch {
         throw new UsageError(
           "the --renderers file must be the issuer's renderer list, signed with the keys you trust",

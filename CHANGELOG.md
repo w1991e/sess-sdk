@@ -12,12 +12,21 @@
   bundle. `verifyDecisionReceipt` takes it as `rendererIdentities`; `verifyRendererIdentities`
   verifies a list on its own. A forged, unsigned, re-typed, foreign or malformed list fails with
   `INVALID_RENDERER_LIST`; an identity on no verified list fails with `UNSUPPORTED_RENDERER`, as
-  before. New types `RendererIdentitiesDocument` and `RendererIdentity`. `ReceiptClaims`'
-  `surface.renderer_version` is now `string`.
+  before. New types `RendererIdentitiesDocument`, `RendererIdentity` and `RendererList`.
+  `ReceiptClaims`' `surface.renderer_version` is now `string`.
+- Renderer list editions. A list carries a signed `seq` (its edition, higher in every later
+  published edition) and `iat` (when that copy was signed); `verifyRendererIdentities` returns
+  `{ seq, iat, identities }`. `newerRendererList` orders two authentic lists by `seq`, with
+  containment as the cross-check, and refuses lists that disagree (`INVALID_RENDERER_LIST`);
+  `BUNDLED_RENDERER_LIST` is the bundled edition 1, and a verified list must agree with it. An
+  older list proves the identities it holds, never their absence: an identity it does not hold is
+  `UNSUPPORTED_RENDERER`, never accepted by fallback. Each online verification fetches the list
+  afresh (the endpoint is served `no-store`); nothing is cached.
 - `sess verify --renderers <file>`: with the issuer's signed list (verified under `--keys` and
   `--issuer`; a list that does not verify exits 2), the bundle's renderer identity must be known
   or listed (otherwise invalid, exit 1). Without it, bundle verification is unchanged.
-- The receipt-v1 specification copy is from Sess commit `bdb9d07` (§10, renderer identities).
+- The receipt-v1 specification copy is from Sess commit `9c22385` (§10, renderer identities with
+  `seq` and `iat`; Sess PR #444's head, not yet merged: re-pin to the merged commit).
 
 ## 0.1.0-rc.7 — 2026-10-18 (prepared, unpublished)
 

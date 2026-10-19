@@ -54,7 +54,10 @@ public verification keys through the same configured transport. It verifies:
   (`/.well-known/sess-renderer-identities.json`; `verifyRendererIdentities`). `verifyResponse()`
   and `sess.ask()` fetch that list from the API origin only for an identity this release does
   not bundle; `verifyDecisionReceipt` takes it as `rendererIdentities`, and `sess verify` as
-  `--renderers <file>`. A list is never trusted because it came beside a receipt.
+  `--renderers <file>`. A list is never trusted because it came beside a receipt. Lists are
+  ordered by their signed edition `seq`, with containment as the cross-check
+  (`newerRendererList`); a list that disagrees with the bundled edition, or with another of the
+  same `seq`, is refused. An older list proves only the identities it holds.
 - Canonical signed claims and required structure, valid acceptance timestamps,
   issued-time correspondence, bounded future issuance, and expiry at verification time.
 
