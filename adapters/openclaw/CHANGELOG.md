@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.1.0-rc.2 (candidate, unpublished)
+## 0.1.0-rc.3 (candidate, unpublished)
+
+- Depends on `@sess.si/sdk` 0.1.0-rc.8 (was 0.1.0-rc.7): receipts whose renderer identity is on the
+  issuer's signed renderer list (Decision 0009 Amendment 13) and link timing (Amendment 10).
+  `sess_response` and the re-verification before `sess_publish` and `sess_complete` use the SDK's
+  `receipts.verifyResponse()`, which accepts the identities it bundles (`sess-html-form-1`,
+  `sess-html-form-2`) offline and fetches the issuer's signed list only for any other one. A list
+  that cannot be read is a retryable read failure, never a verification failure; a forged or
+  unlisted identity fails verification, as before.
+
+## 0.1.0-rc.2 (published 2026-10-19)
 
 - Depends on `@sess.si/sdk` 0.1.0-rc.7 (was 0.1.0-rc.5).
 - Prose and printed strings say "Sess", not "SESS": tool descriptions, errors, notes, setup and
@@ -15,7 +25,7 @@
 - `compatibility.json` records the publication of `0.1.0-rc.1` on the npm dist-tag `next`
   (2026-10-17): registry SHA-256 and integrity, SLSA provenance and release run 38990667691.
 
-## 0.1.0-rc.1 (unreleased)
+## 0.1.0-rc.1 (published 2026-10-17)
 
 - Native OpenClaw plugin `sess` with four optional tools: `sess_request`, `sess_response`,
   `sess_publish`, `sess_complete` (tool schema version 1, closed schemas).

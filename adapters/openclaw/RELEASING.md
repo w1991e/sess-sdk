@@ -6,9 +6,9 @@ after a maintainer approves the protected environment, and nothing is installabl
 maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`) go to `next`,
 never to `latest`.
 
-The current candidate, `0.1.0-rc.2`, has its contents, expected tarball digests and exact
-maintainer steps in [release/rc2-packet.md](release/rc2-packet.md). `0.1.0-rc.1` is published
-([release/rc1-packet.md](release/rc1-packet.md)). Each candidate gets such a
+The current candidate is `0.1.0-rc.3`; its packet is written by the release owner once
+`@sess.si/sdk@0.1.0-rc.8` is published. `0.1.0-rc.2` ([release/rc2-packet.md](release/rc2-packet.md))
+and `0.1.0-rc.1` ([release/rc1-packet.md](release/rc1-packet.md)) are published. Each candidate gets such a
 packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
 
 ## Prerequisites (owner actions, in order)

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "@sess.si/openclaw",
-  "version": "0.1.0-rc.2",
-  "status": "0.1.0-rc.2 prepared, unpublished; 0.1.0-rc.1 published on npm dist-tag next (2026-10-17); G0/G1 qualification as recorded below; not independently verified",
+  "version": "0.1.0-rc.3",
+  "status": "0.1.0-rc.3 prepared, unpublished; 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; G0/G1 qualification as recorded below; not independently verified",
   "publication": {
     "version": "0.1.0-rc.1",
     "distTag": "next",
