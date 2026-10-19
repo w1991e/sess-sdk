@@ -2,9 +2,8 @@
 
 ## 0.1.0-rc.8 — 2026-10-19 (prepared, unpublished)
 
-Includes everything in the prepared, unpublished `0.1.0-rc.7` below; the registry goes from
-`0.1.0-rc.7` (once published) to `0.1.0-rc.8`. Every existing export is unchanged; runtime
-dependencies are unchanged.
+Builds on `0.1.0-rc.7` below, which is published; the registry goes from `0.1.0-rc.7` to
+`0.1.0-rc.8`. Every existing export is unchanged; runtime dependencies are unchanged.
 
 ### Link timing (Decision 0009 Amendment 10)
 
@@ -73,7 +72,7 @@ dependencies are unchanged.
   SHA-256 to one Sess commit (`9c22385`, with receipt-v1 above) and checked by
   `npm run check:spec`.
 
-## 0.1.0-rc.7 — 2026-10-18 (prepared, unpublished)
+## 0.1.0-rc.7 — 2026-10-18 (published 2026-10-18)
 
 Includes everything in the unpublished 0.1.0-rc.6 below, which is not published on its own.
 

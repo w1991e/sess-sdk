@@ -1,7 +1,7 @@
 {
   "$comment": "Verbatim public copies of the Sess receipt-v1, bundle-v1, archival-core-v1 and witness-evidence-v1 specifications and of the shared conformance corpora: the bundle-v1 corpus, the archival-v1 compatibility/state corpus, the witness renewal vector and the recorded Sigstore staging witness run. scripts/check-spec.mjs fails if a copy’s SHA-256 differs from the Sess copy recorded here. Update only by copying the files again from the recorded Sess commit and recording the new commit and digests.",
   "repository": "Sess runtime",
-  "commit": "9c223857350d20a3ab3ce1163b92eea8f05f79bf",
+  "commit": "d194ce6477daf8f7c316dc62d3f04508fe317833",
   "files": [
     {
       "path": "docs/spec/receipt-v1.md",

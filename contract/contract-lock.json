@@ -1,11 +1,11 @@
 {
-  "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (w1991e/sess PR #431 head, Decision 0009 Amendment 10 link timing, not yet merged to sess master; not yet served by production)",
-  "source_runtime_commit": "ee777ab408edd4dec5cd27e70b5e908adb990130",
+  "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (w1991e/sess PR #431 head 18786467, Decision 0009 Amendment 10 link timing; not yet merged to sess master, so it is re-pinned to the merge commit once #431 merges; not yet served by production)",
+  "source_runtime_commit": "1878646775446d077421b008ff5670f5fdc55557",
   "source_git_blob_sha1": "8e3cc00a177e8ec5cf4f7fb548861936396f68b2",
   "snapshot_sha256": "c91cd01bfe9cd169b05174b58f31098d0eb318d2979b59fa53c2e6dfcfac2ea8",
   "generator": "openapi-typescript",
   "generator_version": "7.13.0",
-  "recorded_at": "2026-10-18",
+  "recorded_at": "2026-10-19",
   "formatter": "prettier",
   "formatter_version": "3.9.10"
 }
