@@ -9,7 +9,8 @@ import {
   type DecisionBundleVerification,
   type ExpectedBundleContext,
 } from '../receipts/bundle.js';
-import { validateKeySet } from '../receipts/verify.js';
+import { BUNDLED_RENDERER_IDENTITIES } from '../receipts/renderers.js';
+import { validateKeySet, verifyRendererIdentities } from '../receipts/verify.js';
 
 /** Exit codes: valid, invalid bundle, usage or file error. */
 export const EXIT = Object.freeze({ valid: 0, invalid: 1, usage: 2 });
@@ -17,6 +18,7 @@ export const EXIT = Object.freeze({ valid: 0, invalid: 1, usage: 2 });
 /** A bundle file larger than this is not read (the bundle bound itself is 1 MiB canonical). */
 const MAX_BUNDLE_FILE_BYTES = 16 * 1024 * 1024;
 const MAX_KEYS_FILE_BYTES = 1024 * 1024;
+const MAX_RENDERERS_FILE_BYTES = 64 * 1024;
 
 export interface CliIo {
   stdout: (text: string) => void;
@@ -40,6 +42,11 @@ Expected context (optional; only what you pass is checked):
   --revision <n>      the Surface revision
   --action <id>       the action ID
 
+Renderer identity (optional):
+  --renderers <file>  the issuer's signed renderer list you obtained yourself
+                      (<issuer>/.well-known/sess-renderer-identities.json); also checks that the
+                      receipt's renderer identity is one this release knows or one on that list
+
 Other:
   --now <time>        check at this RFC 3339 time instead of now
   --json              print the full result as JSON
@@ -60,6 +67,7 @@ const STRING_OPTIONS = [
   'revision',
   'action',
   'now',
+  'renderers',
 ] as const;
 
 const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
@@ -103,6 +111,7 @@ interface Parsed {
   file: string;
   issuer: string;
   keysPath: string;
+  renderersPath: string | undefined;
   context: ExpectedBundleContext | undefined;
   now: Date | undefined;
   json: boolean;
@@ -177,6 +186,7 @@ function parse(argv: readonly string[]): Parsed | 'help' {
     file,
     issuer,
     keysPath,
+    renderersPath: str('renderers'),
     context: Object.keys(context).length > 0 ? context : undefined,
     now,
     json: values.json === true,
@@ -201,9 +211,16 @@ const REASON_TEXT: Record<string, string> = {
   surface_mismatch: 'the disclosed Surface is not the one the receipt signed',
   input_mismatch: 'the disclosed input is not the one the receipt signed',
   context_mismatch: 'the decision is not the one you expected',
+  renderer: 'the receipt names a renderer identity that is neither known nor on the signed list',
 };
 
-function summary(r: DecisionBundleVerification): string {
+/** With --renderers: the receipt's renderer identity and whether it is known or listed. */
+interface RendererCheck {
+  identity: string | null;
+  status: 'listed' | 'unlisted' | 'not_checked';
+}
+
+function summary(r: DecisionBundleVerification, renderer?: RendererCheck): string {
   const lines: string[] = [];
   const row = (label: string, value: string) => lines.push(`  ${label.padEnd(11)} ${value}`);
   const context =
@@ -225,11 +242,13 @@ function summary(r: DecisionBundleVerification): string {
     row('Context', context);
     row('Purpose', r.application_purpose);
     row('Expires', safe(c.expires_at));
+    if (renderer) row('Renderer', `${safe(c.surface.renderer_version)} (listed)`);
   } else {
     lines.push(`Invalid decision bundle: ${r.reason}`);
     lines.push(`  ${REASON_TEXT[r.reason ?? ''] ?? ''}`);
     row('Content', r.content);
     row('Context', context);
+    if (renderer?.identity) row('Renderer', `${safe(renderer.identity)} (${renderer.status})`);
   }
   row('Checked at', r.checked_at);
   return `${lines.join('\n')}\n`;
@@ -267,6 +286,27 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
         'the --keys file must be a JWK Set of public Ed25519 keys with unique kids (private keys are refused)',
       );
     }
+    // Decision 0009 Amendment 13: the issuer's signed renderer list, trusted only through its
+    // signature under the keys above.
+    let listed: readonly string[] | undefined;
+    if (parsed.renderersPath !== undefined) {
+      const listJson = parseJson(
+        await readBounded(parsed.renderersPath, MAX_RENDERERS_FILE_BYTES, 'the --renderers file'),
+      );
+      try {
+        if (!listJson.ok) throw new Error('not JSON');
+        listed = (
+          await verifyRendererIdentities(listJson.value as never, {
+            issuer: parsed.issuer,
+            keys: trustedKeys,
+          })
+        ).identities.map((i) => i.renderer_version);
+      } catch {
+        throw new UsageError(
+          "the --renderers file must be the issuer's renderer list, signed with the keys you trust",
+        );
+      }
+    }
     const bundleBytes = await readBounded(parsed.file, MAX_BUNDLE_FILE_BYTES, 'the bundle file');
     const bundleJson = parseJson(bundleBytes);
     let result: DecisionBundleVerification;
@@ -281,7 +321,25 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
     } catch {
       throw new UsageError('invalid verification options');
     }
-    io.stdout(parsed.json ? safeJson(result) : summary(result));
+    let renderer: RendererCheck | undefined;
+    if (listed !== undefined) {
+      const identity = result.receipt?.surface.renderer_version ?? null;
+      renderer =
+        identity === null
+          ? { identity, status: 'not_checked' }
+          : {
+              identity,
+              status:
+                BUNDLED_RENDERER_IDENTITIES.includes(identity) || listed.includes(identity)
+                  ? 'listed'
+                  : 'unlisted',
+            };
+      if (renderer.status === 'unlisted')
+        result = { ...result, valid: false, reason: 'renderer' as DecisionBundleVerification['reason'] };
+    }
+    io.stdout(
+      parsed.json ? safeJson(renderer ? { ...result, renderer } : result) : summary(result, renderer),
+    );
     return result.valid ? EXIT.valid : EXIT.invalid;
   } catch (e) {
     const message = e instanceof UsageError ? e.message : 'unexpected error';

@@ -70,6 +70,9 @@ export interface WorldOptions {
   tamper?: number;
   /** Serve link timing with every unanswered read lapsed (Decision 0009 Amendment 10). */
   lapsed?: boolean;
+  /** The renderer identity the receipts name, and an extra identity on the signed list. */
+  renderer?: string;
+  listed?: string;
   env?: Record<string, string | undefined>;
 }
 
@@ -85,6 +88,8 @@ export function runAgent(app: string, record: string, options: WorldOptions) {
     nws: options.nws ?? 'ok',
     tamper: options.tamper,
     lapsed: options.lapsed,
+    renderer: options.renderer,
+    listed: options.listed,
     record,
   };
   const env: Record<string, string> = {

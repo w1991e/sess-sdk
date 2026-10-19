@@ -13,6 +13,9 @@
 //   lapsed: true serves link timing (Decision 0009 Amendment 10): every unanswered read shows the
 //     link lapsed, an hour past its deadline with its horizon an hour ahead; the person then asks
 //     for more time and answers, so the answering read shows it live with one extension.
+//   renderer: the renderer identity the receipts name (default sess-html-form-1). The API also
+//     serves its signed renderer list (Decision 0009 Amendment 13), naming sess-html-form-1,
+//     sess-html-form-2 and, when given, `listed`.
 //   weather: 'live' sends the weather requests to the real services instead (manual checks only).
 import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
@@ -84,6 +87,26 @@ const json = (status, body, headers = {}) =>
 const authed = (status, body) => json(status, body, { etag: etag(), 'sess-workspace-id': WORKSPACE });
 const error = (status, code) => json(status, { error: { code, request_id: 'fake', message: code } });
 
+/** The signed renderer-identity list (flattened JWS JSON), signed with the receipt key. */
+function rendererList() {
+  const identities = [
+    { renderer_version: 'sess-html-form-1', since: '2026-10-09' },
+    { renderer_version: 'sess-html-form-2', since: '2026-10-18' },
+    ...(config.listed ? [{ renderer_version: config.listed, since: '2026-11-02' }] : []),
+  ];
+  const header = Buffer.from(
+    JSON.stringify({ alg: 'EdDSA', kid: KID, typ: 'sess-renderer-identities+jwt' }),
+  ).toString('base64url');
+  // Edition 1 is the bundled list; a list that adds an identity is the next edition.
+  const seq = config.listed ? 2 : 1;
+  const iat = Math.floor(Date.parse('2026-11-02T00:00:00Z') / 1000);
+  const payload = Buffer.from(
+    canonical({ iat, identities, iss: API, seq, sess_renderer_identities: 1 }),
+  ).toString('base64url');
+  const signature = sign(null, Buffer.from(`${header}.${payload}`), privateKey).toString('base64url');
+  return { protected: header, payload, signature };
+}
+
 /** The scripted person answers the current revision with the configured data. */
 function personAnswers() {
   const revision = session.revision;
@@ -104,7 +127,11 @@ function personAnswers() {
     session_id: SESSION_ID,
     step_id: `rev_${revision}`,
     event_id: eventId,
-    surface: { revision, hash: digest(session.interaction), renderer_version: 'sess-html-form-1' },
+    surface: {
+      revision,
+      hash: digest(session.interaction),
+      renderer_version: config.renderer ?? 'sess-html-form-1',
+    },
     action: { id: action.id, label: action.label, summary: action.intent ?? '' },
     // tamper: the receipt of that revision binds different input, so verification must fail.
     input_hash: digest(config.tamper === revision ? { ...data, tampered: true } : data),
@@ -172,6 +199,8 @@ async function sessApi(url, init, headers) {
   const method = init.method;
   record.sess.push(`${method} ${path}`);
   if (method === 'GET' && path === '/.well-known/sess-receipt-keys.json') return json(200, keySet);
+  if (method === 'GET' && path === '/.well-known/sess-renderer-identities.json')
+    return json(200, rendererList());
   if (headers.get('authorization') !== `Bearer ${config.apiKey}`) {
     record.unauthorized++;
     return error(401, 'UNAUTHENTICATED');

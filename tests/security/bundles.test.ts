@@ -264,10 +264,16 @@ describe('verifyDecisionReceipt is unchanged', () => {
     >();
     expect(verifyDecisionReceipt.length).toBe(1);
     expect(receipts.verifyDecisionReceipt).toBe(verifyDecisionReceipt);
+    // Decision 0009 Amendment 13 (rc.8, deliberate): the bundled renderer identities and the
+    // signed-list verifier, with the bundled edition and the edition order, are the only additions.
     expect(Object.keys(receipts).sort()).toEqual([
+      'BUNDLED_RENDERER_IDENTITIES',
+      'BUNDLED_RENDERER_LIST',
       'BUNDLE_LIMITS',
+      'newerRendererList',
       'verifyDecisionBundle',
       'verifyDecisionReceipt',
+      'verifyRendererIdentities',
     ]);
     // The same independent vector verifies to the same frozen claims.
     const f = fixture();

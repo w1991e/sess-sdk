@@ -47,8 +47,17 @@ public verification keys through the same configured transport. It verifies:
 - SHA-256 over RFC 8785 JCS of the **complete normalized immutable interaction** and
   accepted typed input. Descriptions, labels, Unicode, and numeric values stay intact.
 - Action ID, label, and summary, where the summary is the stored action's `intent`
-  or an empty string. The supported renderer is `sess-html-form-1`; the current return
-  channel is `null`.
+  or an empty string. The current return channel is `null`.
+- The renderer identity (`surface.renderer_version`, Decision 0009 Amendment 13): one this
+  release bundles (`sess-html-form-1`, `sess-html-form-2`), or one on the issuer's renderer list
+  whose signature verifies under the same trusted keys and issuer
+  (`/.well-known/sess-renderer-identities.json`; `verifyRendererIdentities`). `verifyResponse()`
+  and `sess.ask()` fetch that list from the API origin only for an identity this release does
+  not bundle; `verifyDecisionReceipt` takes it as `rendererIdentities`, and `sess verify` as
+  `--renderers <file>`. A list is never trusted because it came beside a receipt. Lists are
+  ordered by their signed edition `seq`, with containment as the cross-check
+  (`newerRendererList`); a list that disagrees with the bundled edition, or with another of the
+  same `seq`, is refused. An older list proves only the identities it holds.
 - Canonical signed claims and required structure, valid acceptance timestamps,
   issued-time correspondence, bounded future issuance, and expiry at verification time.
 
