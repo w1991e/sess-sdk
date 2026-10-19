@@ -1,0 +1,4 @@
+node_modules/
+qualification/
+.weather-cache.json
+package-lock.json

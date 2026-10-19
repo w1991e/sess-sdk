@@ -1,0 +1,16 @@
+{
+  "name": "sess-provider-recipes",
+  "private": true,
+  "type": "module",
+  "description": "The weekend planner with a model provider's own tool calling, on @sess.si/sdk. Not published.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "dependencies": {
+    "@sess.si/sdk": "0.1.0-rc.7"
+  },
+  "scripts": {
+    "qualify": "node qualify.mjs"
+  }
+}
