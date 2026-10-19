@@ -19,7 +19,7 @@ maintainer steps in [release/rc2-packet.md](release/rc2-packet.md). `0.1.0-rc.1`
 > automatically, without protection rules, and the publish job would then run without maintainer
 > approval.
 
-1. **SDK published — done.** The pinned `@sess.si/sdk@0.1.0-rc.7` (`release/sdk-candidate.json`) is
+1. **SDK published — done.** The pinned `@sess.si/sdk@0.1.0-rc.8` (`release/sdk-candidate.json`) is
    on npm under the dist-tag `next`, with provenance, and its registry tarball has exactly the
    pinned SHA-256 and integrity. `package-lock.json` resolves it from the registry (switched with
    `npm run sdk:switch-to-registry -- --apply`). `npm run setup`, `npm run check`, CI and the

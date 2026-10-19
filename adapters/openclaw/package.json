@@ -55,7 +55,7 @@
     "test:release-guard": "node --test scripts/test-release-guard.mjs"
   },
   "dependencies": {
-    "@sess.si/sdk": "0.1.0-rc.7"
+    "@sess.si/sdk": "0.1.0-rc.8"
   },
   "peerDependencies": {
     "openclaw": "2026.10.3"

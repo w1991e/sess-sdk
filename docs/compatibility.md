@@ -1,11 +1,13 @@
 # Compatibility and evidence
 
-SDK version: **0.1.0-rc.7**, published on npm under the `next` dist-tag with provenance and pinned
-in [release/sdk-candidate.json](../release/sdk-candidate.json); it adds `sess.ask()` (from rc.6,
-which was never published on its own), the Advanced link lifetime (`expires_in`,
-`action_expires_at`, `LINK_EXPIRED`) and `@sess.si/sdk/qr`. Its contract snapshot is from Sess
-runtime commit `b48e8e722122545eef895ec6863aaef8a974d985`. **0.1.0-rc.5** (decision-bundle
-verification and the `sess verify` executable) and **0.1.0-rc.4** remain published.
+SDK version: **0.1.0-rc.8**, published on npm under the `next` dist-tag with provenance and pinned
+in [release/sdk-candidate.json](../release/sdk-candidate.json); it adds link timing (Decision 0009
+Amendment 10: asking for more time on a Sess link), receipts whose renderer identity is on the
+issuer's signed renderer list (Amendment 13; `verifyResponse()` fetches the list only for an
+identity it does not bundle) and the archival verifier. Its contract snapshot is from Sess runtime
+commit `1878646775446d077421b008ff5670f5fdc55557`. **0.1.0-rc.7** (`sess.ask()`, the Advanced link
+lifetime and `@sess.si/sdk/qr`), **0.1.0-rc.5** (decision-bundle verification and the `sess verify`
+executable) and **0.1.0-rc.4** remain published.
 **0.1.0-rc.3** is held and will not be published. The SDK version is independent of HTTP API
 `info.version` 0.1.0 and the runtime's Git commit.
 
