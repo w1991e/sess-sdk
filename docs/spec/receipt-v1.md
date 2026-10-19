@@ -95,8 +95,12 @@ Any change to the claims, canonicalization, header or algorithm is a new format 
 
 - one JWS signed with a receipt key of §4, in the RFC 7515 flattened JSON serialization `{"protected", "payload", "signature"}` (joined with `.` they are its compact form);
 - its protected header is `{"alg": "EdDSA", "kid", "typ": "sess-renderer-identities+jwt"}`;
-- its payload is the RFC 8785 canonical JSON `{"identities": [{"renderer_version": string, "since": "YYYY-MM-DD"}, …], "iss": <iss>, "sess_renderer_identities": 1}`, where `since` is the UTC date the identity was added.
+- its payload is the RFC 8785 canonical JSON `{"iat": <NumericDate>, "identities": [{"renderer_version": string, "since": "YYYY-MM-DD"}, …], "iss": <iss>, "seq": <integer>, "sess_renderer_identities": 1}`, where `since` is the UTC date the identity was added;
+- `seq` (an integer, 1 or more) is the list's edition: every published edition has a higher `seq` than the one before it, and a copy re-signed without change (for example under a rotated key) keeps its `seq`;
+- `iat` is when that copy was signed, a NumericDate in whole seconds as in §3.
 
-The list only grows: an identity is never removed, reordered or reused, so every receipt ever issued keeps verifying. `sess-html-form-1` is always on it.
+The signature covers `seq` and `iat`. The list only grows: an identity is never removed, reordered or reused, so every receipt ever issued keeps verifying. `sess-html-form-1` is always on it.
+
+A verifier holding several authentic lists of one issuer orders them by `seq`, with containment as the cross-check: a later edition begins with every identity of an earlier one, in order and with the same dates, and two copies with the same `seq` list the same identities; lists that disagree are refused, never merged. An older list still proves every identity it contains. It never proves that an identity is absent from the current list: only a list fetched afresh from the issuer can say that, and how often to refresh is the verifier's choice (the endpoint is served `no-store`).
 
 A verifier that checks `surface.renderer_version` accepts a value on a list it holds whose signature verifies under its trusted keys for the expected issuer (§4), with `typ` exactly `sess-renderer-identities+jwt` and `iss` the expected issuer. A list supplied alongside a receipt is never trusted on its own: it is accepted only through that signature. A verifier may also bundle the identities known at its release. The receipt format, its claims and its signature are unchanged.
