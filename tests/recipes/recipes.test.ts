@@ -43,7 +43,7 @@ const KEY_ENV: Record<string, string> = {
 const DEFAULT_MODEL: Record<string, string> = {
   openai: 'gpt-5.4-nano',
   anthropic: 'claude-haiku-5-5',
-  gemini: 'gemini-2.5-flash-lite',
+  gemini: 'gemini-3.8-flash',
   xai: 'grok-4.3',
   meta: 'muse-spark-1.3',
   openrouter: 'anthropic/claude-haiku-5.5',
@@ -278,10 +278,13 @@ const CARRIES: Record<string, (seen: Seen, i: number) => void> = {
   },
   gemini(s, i) {
     expect(s.url).toBe(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent',
     );
     expect(s.headers['x-goog-api-key']).toBe(MODEL_KEY);
-    expect(s.body.generationConfig).toEqual({ maxOutputTokens: 2000 }); // 2.5 Flash-Lite: no thinking level
+    expect(s.body.generationConfig).toEqual({
+      maxOutputTokens: 2000,
+      thinkingConfig: { thinkingLevel: 'low' },
+    });
     expect(s.body.tools[0].functionDeclarations[0]).toMatchObject({ name: 'sess_ask' });
     const model = s.body.contents.at(-2);
     expect(model.parts[0]).toMatchObject({ thoughtSignature: `ts_${i - 1}` });
@@ -324,6 +327,15 @@ const CARRIES: Record<string, (seen: Seen, i: number) => void> = {
   },
 };
 
+/** OpenRouter's GET /api/v1/key, mocked: usage 1.25 before the run, 1.2512 after. */
+function billingMock() {
+  const reads = [1.25, 1.2512];
+  return async (url: string) => {
+    expect(url).toBe('https://openrouter.ai/api/v1/key');
+    return new Response(JSON.stringify({ data: { usage: reads.shift() } }), { status: 200 });
+  };
+}
+
 interface RunOptions {
   timeouts?: number;
   env?: Record<string, string | undefined>;
@@ -349,6 +361,9 @@ async function runProvider(id: string, { timeouts = 0, env = {}, dir, refuse, ex
     },
     Sess: sess.Sess,
     guard: { fetch: model.fetch, sleep: async () => {} },
+    // OpenRouter's billed readback, mocked: the key's usage before and after the run.
+    billingFetch: billingMock(),
+    billingSettleMs: 0,
     workflow: { weatherFor, pollMs: 10 },
     qualify: true,
     sdkVersion: '0.1.0-rc.7',
@@ -388,7 +403,14 @@ describe('provider recipes (mocked providers)', () => {
       });
       expect(out).toContain(FINAL);
       expect(out).toMatch(/usage: 7000 input, 700 output tokens in 7 calls, 7 requests \(0 retries\)/);
-      expect(out).toMatch(/cost: US\$\d+\.\d{4}/);
+      expect(out).toMatch(
+        /estimate: US\$\d+\.\d{4} \(reported usage × published rates\)\nreservation: US\$\d+\.\d{4} booked against the cap \(charged at ceiling US\$0\.0000; US\$\d+\.\d{4} reserved before the run\)/,
+      );
+      expect(out).toMatch(
+        id === 'openrouter'
+          ? /provider charge: unknown \(not attributable to this run \(OpenRouter GET \/api\/v1\/key usage is a cumulative key counter\); unreconciled_key_counter_only\)/
+          : /provider charge: unknown \(not available with this key \(provider console\); unreconciled_unknown\)/,
+      );
       expect(out).toMatch(/budget before the run: US\$0\.0000 spent; US\$15\.0000 left of the US\$15 target/);
       expect(out).toMatch(/budget after the run: US\$0\.\d{4} spent/);
     });
@@ -403,8 +425,8 @@ describe('provider recipes (mocked providers)', () => {
       expect(text).not.toContain(secret);
     const record = JSON.parse(text);
     expect(record).toMatchObject({
-      schema: 'sess.recipe-qualification/2',
-      runner_version: '2.0.0',
+      schema: 'sess.recipe-qualification/3',
+      runner_version: '2.1.0',
       provider: 'openai',
       model_requested: 'gpt-5.4-nano',
       model_returned: ['gpt-5.4-nano-2026-08-01'],
@@ -423,7 +445,11 @@ describe('provider recipes (mocked providers)', () => {
         source: 'https://developers.openai.com/api/docs/pricing',
         read_at: '2026-10-18',
       },
-      cost_usd: 0.002275, // 7,000 × 0.20 + 700 × 1.25 per million
+      usage_cost_usd: 0.002275, // 7,000 × 0.20 + 700 × 1.25 per million, all reported
+      ceiling_reserved_usd: 0,
+      estimated_total_usd: 0.002275,
+      billed_usd: null,
+      billed_source: 'not available with this key (provider console)',
       max_cost_usd: 0.064, // the token caps at the dearer of gpt-5.4-nano and its fallback gpt-4.1-mini
       bounds: { maxCalls: 10, maxRequests: 12, maxOutputTokens: 2000, maxRunInputTokens: 80000 },
     });
@@ -498,7 +524,7 @@ describe('provider recipes (mocked providers)', () => {
     expect(a.model.seen).toHaveLength(0);
     const b = await runProvider('gemini', { env: { RECIPE_MODEL: 'gemini-other', RECIPE_RATES: '1,2' } });
     expect(b.model.seen[0]?.url).toContain('/models/gemini-other:generateContent');
-    expect(b.out).toMatch(/cost: US\$0\.0084/); // 7000 × 1 + 700 × 2 per million
+    expect(b.out).toMatch(/estimate: US\$0\.0084/); // 7000 × 1 + 700 × 2 per million
     expect(records(b.dir)[0].rates_usd_per_million).toMatchObject({
       input: 1,
       output: 2,
@@ -564,15 +590,16 @@ describe('recipe spend guard', () => {
       ['anthropic', 'settled'],
       ['gemini', 'settled'],
     ]);
-    // anthropic: 7,000 × 0.10 + 700 × 0.50; gemini: 7,000 × 0.10 + 700 × 0.40 (per million).
-    expect(ledger.runs.map((r: Any) => r.cost_usd)).toEqual([0.00105, 0.00098]);
-    expect(ledger.runs.map((r: Any) => r.max_cost_usd)).toEqual([0.018, 0.016]);
+    // anthropic: 7,000 × 0.10 + 700 × 0.50; gemini (3.8 Flash): 7,000 × 0.75 + 700 × 3.75 (per million).
+    expect(ledger.runs.map((r: Any) => r.estimated_total_usd)).toEqual([0.00105, 0.007875]);
+    expect(ledger.runs.map((r: Any) => r.cost_usd)).toEqual([0.00105, 0.007875]); // the alias earlier runners read
+    expect(ledger.runs.map((r: Any) => r.max_cost_usd)).toEqual([0.018, 0.135]); // gemini: the dearer of 3.8 Flash and its 3.5 Flash-Lite fallback
     expect(ledger.runs[0].record).toMatch(/^anthropic-.*\.json$/);
 
     ledger.runs.push({ id: 'crashed', status: 'reserved', provider: 'xai', cost_usd: null, max_cost_usd: 5 });
     writeFileSync(join(dir, 'spend-ledger.json'), JSON.stringify(ledger));
     const next = await runProvider('openrouter', { dir });
-    expect(next.out).toContain('budget before the run: US$5.0020 spent; US$9.9980 left of the US$15 target');
+    expect(next.out).toContain('budget before the run: US$5.0089 spent; US$9.9911 left of the US$15 target');
   });
 });
 
@@ -762,7 +789,12 @@ describe('models and the weekly check', () => {
     const cheapest = Object.fromEntries(
       Object.entries<Any>(models.providers).map(([id, e]) => [id, cheapestModel(e)]),
     );
-    expect(cheapest).toEqual({ ...DEFAULT_MODEL, openrouter: 'google/gemini-2.5-flash-lite' });
+    // Gemini's default is the current Flash by founder choice (models.json note), not the cheapest.
+    expect(cheapest).toEqual({
+      ...DEFAULT_MODEL,
+      gemini: 'gemini-3.1-flash-lite',
+      openrouter: 'google/gemini-2.5-flash-lite',
+    });
   });
 
   it('--weekly runs the happy path once per provider with a key, on its cheapest model, under the same guard', async () => {

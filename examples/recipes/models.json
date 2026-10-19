@@ -39,22 +39,24 @@
     },
     "gemini": {
       "source": "https://ai.google.dev/gemini-api/docs/pricing",
-      "default": "gemini-2.5-flash-lite",
-      "note": "Cheapest paid-tier text model with function calling. Gemini 3 rates are introductory through 2026-12-31.",
+      "default": "gemini-3.8-flash",
+      "fallback": "gemini-3.5-flash-lite",
+      "note": "Founder 2026-10-19: the current Flash, with Flash-Lite as the fallback. models.list on the qualification key (free, 2026-10-19) lists gemini-3.5-flash, but Google deprecated it (it routes to gemini-3.6-flash and has no price on the pricing page); the newest listed Flash is gemini-3.8-flash, stable, function calling supported (model page), which Google recommends for new projects. gemini-3.5-flash-lite is the fallback if the default answers 404 before any tool ran. gemini-2.5-flash-lite answers 404 'no longer available to new users' and is not listed. Gemini 3.8 Flash rates are introductory through 2026-12-31 (then 1.50 / 7.50).",
       "models": {
-        "gemini-2.5-flash-lite": {
-          "input": 0.1,
-          "output": 0.4
-        },
         "gemini-3.1-flash-lite": {
           "input": 0.25,
           "output": 1.5
+        },
+        "gemini-3.5-flash-lite": {
+          "input": 0.3,
+          "output": 2.5
         },
         "gemini-3.8-flash": {
           "input": 0.75,
           "output": 3.75
         }
-      }
+      },
+      "read_at": "2026-10-19"
     },
     "xai": {
       "source": "https://docs.x.ai/developers/pricing",

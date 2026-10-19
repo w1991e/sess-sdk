@@ -39,14 +39,14 @@ The private link prints in your terminal. Open it on your phone and answer there
   - 20 minutes in all.
 - [models.json](models.json) holds each provider's default model and rates: the cheapest current model with tool calling, with the exceptions explained in its notes. The rates are dated, with source URLs:
 
-  | Provider   | Default model                                                | USD per 1M tokens, input / output | Most a run can cost |
-  | ---------- | ------------------------------------------------------------ | --------------------------------- | ------------------- |
-  | OpenAI     | `gpt-5.4-nano`; if the key is not offered it, `gpt-4.1-mini` | 0.20 / 1.25 (0.40 / 1.60)         | US$0.041 (US$0.064) |
-  | Anthropic  | `claude-haiku-5-5`                                           | 0.10 / 0.50                       | US$0.018            |
-  | Gemini     | `gemini-2.5-flash-lite`                                      | 0.10 / 0.40                       | US$0.016            |
-  | xAI        | `grok-4.3`                                                   | 1.25 / 2.50                       | US$0.150            |
-  | Meta       | `muse-spark-1.3`, Standard mode                              | 1.25 / 4.25                       | US$0.185            |
-  | OpenRouter | `anthropic/claude-haiku-5.5`                                 | 0.10 / 0.50                       | US$0.018            |
+  | Provider   | Default model                                                                                                     | USD per 1M tokens, input / output | Most a run can cost |
+  | ---------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------- |
+  | OpenAI     | `gpt-5.4-nano`; if the key is not offered it, `gpt-4.1-mini`                                                      | 0.20 / 1.25 (0.40 / 1.60)         | US$0.041 (US$0.064) |
+  | Anthropic  | `claude-haiku-5-5`                                                                                                | 0.10 / 0.50                       | US$0.018            |
+  | Gemini     | `gemini-3.8-flash` (the current Flash, founder 2026-10-19); if the key is not offered it, `gemini-3.5-flash-lite` | 0.75 / 3.75 (0.30 / 2.50)         | US$0.135 (US$0.074) |
+  | xAI        | `grok-4.3`                                                                                                        | 1.25 / 2.50                       | US$0.150            |
+  | Meta       | `muse-spark-1.3`, Standard mode                                                                                   | 1.25 / 4.25                       | US$0.185            |
+  | OpenRouter | `anthropic/claude-haiku-5.5`                                                                                      | 0.10 / 0.50                       | US$0.018            |
 
   "Most a run can cost" is the run's token caps at these rates.
 
@@ -67,16 +67,25 @@ The private link prints in your terminal. Open it on your phone and answer there
 
 - **Spend guard.** `qualify.mjs` keeps a local ledger, `qualification/spend-ledger.json`.
   - Before a run, it reserves the run's maximum possible cost. That is the token caps at the dated rates, retries included, and for OpenAI the dearer of the default and its fallback. It refuses the run unless that amount fits both the **US$100 ceiling** and the lower operating target **`RECIPE_BUDGET_USD`** (default 15, never above 100).
-  - After the run, it settles the reservation at the cost computed from the usage the provider reported, with unreported attempts at their ceilings.
+  - After the run, it settles the reservation at the **estimate**: the usage the provider reported × the rates, plus every attempt that reported no usage at its ceiling. Ledger entries written before this split carry only `cost_usd`; they still count, at that cost, and new entries keep `cost_usd` as an alias of the estimate so earlier runners can still read the ledger.
   - A run that crashed keeps its reservation at the maximum.
   - The budget check and the reservation happen in one step, and so does each settlement. Each step holds `qualification/spend-ledger.lock`, which is created exclusively, and reloads the latest ledger. It changes only its own entry, then renames the new file into place. Two processes therefore never lose each other's entries.
   - Only one qualification run can happen at a time. A run holds `qualification/run.lock` from admission until settlement, and a second run started meanwhile is refused. Each lock holds a unique owner token, written whole to a private temporary file and then hard-linked into place, so the lock never exists without its token. If the process holding a lock has exited, the next run breaks it only while holding a separate `<lock>.break` file, and only if the lock still holds the very token it found stale; a replacement lock is never removed, and a release removes only its own token. An empty or unreadable lock, or a `.break` left by an exited process, stops the run and names the file to remove by hand.
   - It prints the budget left before and after each run.
   - A run with no rates in `models.json` or `RECIPE_RATES` is refused.
-- **Records.** Each run writes `qualification/<provider>-<time>.json` (schema `sess.recipe-qualification/2`). It holds:
+- **Records.** Each run writes `qualification/<provider>-<time>.json` (schema `sess.recipe-qualification/3`; version 3 split `cost_usd` into the fields below). It holds:
   - the provider, the model requested, and the model id or ids the API returned;
   - the resolved `@sess.si/sdk` version (null if it is not installed), the recipe's git SHA with a dirty flag (read on a branch or a detached HEAD alike; a real run whose SHA cannot be determined is refused), the runner version and the UTC time;
-  - the scenario and outcome, the usage, calls, requests and retries, the cost, its maximum, and the rates with their source and date;
+  - the scenario and outcome, the usage (reported and charged at ceiling), calls, requests and retries, the maximum cost, and the rates with their source and date;
+  - **three spend figures** (founder, 2026-10-19):
+    - the **estimate**, `usage_cost_usd`: reported usage × rates. It is null, printed as unknown, if no attempt reported usage.
+    - the **conservative reservation**, `booked_usd`: `estimated_total_usd` (`usage_cost_usd` plus `ceiling_reserved_usd`, the attempts charged at their ceiling). This is the figure the cap and the ledger count, beside the run's `max_cost_usd` reserved before it.
+    - the **provider-reported charge**, `billed_usd`, with `billed_source` and `billed_reconciliation`. No provider gives an ordinary key a charge attributable to one run. So `billed_usd` is null, printed as "unknown", never zero:
+      - for OpenAI, Anthropic, Gemini, xAI and Meta, `billed_source` is "not available with this key (provider console)". xAI's billing needs a separate Management API key.
+      - OpenRouter's `GET /api/v1/key` usage is a cumulative key counter. Delayed accounting, a decrease or other use of the key all move it, so its change during the run is kept as `key_usage_delta_usd`, a diagnostic only (unclamped), with `billed_reconciliation: unreconciled_key_counter_only`.
+
+    The runner prints the three figures on separate lines (plus the key-counter diagnostic where there is one) and never prints a key.
+
   - **`proved`**, only the checks the tools observed, and **`not_proved`**, all the others. The checks are: tool call issued, Sess link created before the wait, answer received, receipt verified, continuation after the first answer, live weather used, second round published, second answer on the same link, second receipt verified, Session completed, final answer returned, wait resumed after a timeout, and correction applied.
 
   A record holds no key, no private link and no answers. The ledger and the records are both **gitignored** here. Commit a record as evidence elsewhere, deliberately.
@@ -122,5 +131,5 @@ npm ci --ignore-scripts && npm run build && npx vitest run tests/recipes
 - It runs the happy path once per provider, on that provider's cheapest listed model, one after another. The runs use the same per-run limits and the same spend guard, retries included.
 - A provider without a key is skipped, and the check stops at the first budget refusal.
 - Every run still needs a person to answer its link.
-- At the rates above, one weekly round can cost at most about US$0.43.
+- At the rates above, one weekly round can cost at most about US$0.46.
 - Nothing schedules it. Scheduling is a separate founder decision.

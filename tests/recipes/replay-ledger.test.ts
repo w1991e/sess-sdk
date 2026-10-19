@@ -179,15 +179,17 @@ describe('RECIPE-BUDGET-LEDGER-01: the ledger across processes', { timeout: 30_0
     expect(admitted.every((x: Any) => x.entry)).toBe(true);
     expect(ledgerOf(dir).runs).toHaveLength(8);
     await Promise.all(
-      handles.map((h, i) => h.settle(admitted[i].entry.id, { cost_usd: 0.01, record: null })),
+      handles.map((h, i) => h.settle(admitted[i].entry.id, { estimated_total_usd: 0.01, record: null })),
     );
     const runs = ledgerOf(dir).runs;
     expect(runs).toHaveLength(8);
-    expect(runs.every((r: Any) => r.status === 'settled' && r.cost_usd === 0.01)).toBe(true);
+    expect(
+      runs.every((r: Any) => r.status === 'settled' && r.estimated_total_usd === 0.01 && r.cost_usd === 0.01),
+    ).toBe(true);
     // A crashed run's reservation (never settled) survives another run's settlement.
     const crashed = await handles[0].admit(15, run(1));
     const other = await handles[1].admit(15, run(0.5));
-    await handles[1].settle(other.entry.id, { cost_usd: 0.2, record: null });
+    await handles[1].settle(other.entry.id, { estimated_total_usd: 0.2, record: null });
     expect(ledgerOf(dir).runs.find((r: Any) => r.id === crashed.entry.id)).toMatchObject({
       status: 'reserved',
       max_cost_usd: 1,
@@ -228,17 +230,19 @@ describe('qualify.mjs --dry-run (free pre-flight)', { timeout: 30_000 }, () => {
     expect(text).toContain(
       'DRY RUN: the model provider, the Sess API, the person and the weather are simulated.',
     );
-    expect(text).toContain('budget after the run: US$0.0010 spent');
+    expect(text).toContain('budget after the run: US$0.0079 spent');
     const [record] = recordsOf(dir);
     expect(record).toMatchObject({
       dry_run: true,
       simulated: ['model provider', 'Sess API', 'the person', 'weather'],
       provider: 'gemini',
-      model_requested: 'gemini-2.5-flash-lite',
+      model_requested: 'gemini-3.8-flash',
       outcome: 'completed',
       proved: [],
-      cost_usd: 0.00098,
-      max_cost_usd: 0.016,
+      estimated_total_usd: 0.007875,
+      billed_usd: null,
+      billed_source: 'dry run: nothing is sent or billed',
+      max_cost_usd: 0.135,
     });
     expect(record.proved_in_simulation).toEqual(
       expect.arrayContaining(['receipt_verified', 'second_receipt_verified']),

@@ -4,7 +4,7 @@
 // With `qualify` it is the qualification runner. Before the run it reserves the run's maximum
 // possible cost (the token caps at the dated rates, retries included) in the local spend ledger,
 // and refuses unless that fits both the US$100 ceiling and the lower operating target
-// (RECIPE_BUDGET_USD, default 15). After the run it settles the reservation at the cost computed
+// (RECIPE_BUDGET_USD, default 15). After the run it settles the reservation at the estimated cost computed
 // from the usage, and writes a versioned record of what was proved, with no key, no private link
 // and no answer content.
 import { execFileSync } from 'node:child_process';
@@ -17,9 +17,9 @@ import { fileURLToPath } from 'node:url';
 import { BOUNDS, createGuard, maxRunCost } from './bounds.mjs';
 import { CHECKS, createWorkflow, observed, SYSTEM, TASK } from './workflow.mjs';
 
-export const RECORD_SCHEMA = 'sess.recipe-qualification/2';
+export const RECORD_SCHEMA = 'sess.recipe-qualification/3';
 export const LEDGER_SCHEMA = 'sess.recipe-spend-ledger/1';
-export const RUNNER_VERSION = '2.0.0';
+export const RUNNER_VERSION = '2.1.0';
 /** The total ceiling for provider qualification spend (founder amendment 3), US dollars. */
 export const CEILING_USD = 100;
 export const DEFAULT_BUDGET_USD = 15;
@@ -155,6 +155,13 @@ export async function runRecipe(provider, plan, options = {}) {
       ...options.workflow,
     });
 
+    // A billed readback only where the provider offers one to an ordinary key (OpenRouter).
+    const billing = options.qualify && !options.recordExtra?.dry_run ? provider.billing : null;
+    const billingFetch = options.billingFetch ?? globalThis.fetch;
+    const billedBefore = billing
+      ? await billing.read({ apiKey, fetch: billingFetch }).catch(() => null)
+      : null;
+
     out(`Running the ${provider.id} recipe (${model}). Waiting for the person on the link.`);
     let text = null;
     let failure = null;
@@ -175,18 +182,16 @@ export async function runRecipe(provider, plan, options = {}) {
       break;
     }
     const stats = guard.stats();
-    const cost = rates ? costOf(stats.usage, rates) : null;
+    const spend = spendOf(stats, rates);
+    const billed = await billedSpend(billing, billedBefore, { apiKey, fetch: billingFetch, options });
+    const charge = reconcile(spend, billed, options);
     const completed = workflow.state.steps.includes('completed');
     if (text) out(`\n${text}`);
     out(
       `\nusage: ${stats.usage.input_tokens} input, ${stats.usage.output_tokens} output tokens in ` +
         `${stats.calls} calls, ${stats.requests} requests (${stats.retries} retries)`,
     );
-    out(
-      cost === null
-        ? 'cost: unknown (set RECIPE_RATES=input,output in USD per 1M tokens)'
-        : `cost: US$${cost.toFixed(4)}`,
-    );
+    for (const line of spendLines(spend, billed, charge, reservation?.max_cost_usd ?? null)) out(line);
     const result = {
       ok: completed && !failure,
       code: failure ?? (completed ? 'completed' : 'not_completed'),
@@ -222,9 +227,23 @@ export async function runRecipe(provider, plan, options = {}) {
       calls: stats.calls,
       requests: stats.requests,
       retries: stats.retries,
+      usage_reported: stats.usage_reported,
+      usage_at_ceiling: stats.usage_at_ceiling,
       attempts_charged_at_ceiling: stats.estimated_attempts,
       rates_usd_per_million: rates,
-      cost_usd: round(cost),
+      // Estimated (usage × rates, plus ceilings where no usage was reported) and billed (a provider
+      // readback, where one exists) are separate figures. The cap and the ledger use the estimate.
+      usage_cost_usd: spend.usage_cost_usd,
+      ceiling_reserved_usd: spend.ceiling_reserved_usd,
+      estimated_total_usd: spend.estimated_total_usd,
+      billed_usd: billed.billed_usd,
+      billed_source: billed.billed_source,
+      // Three figures (founder 2026-10-19 ~02:00Z): the estimate (usage_cost_usd), the conservative
+      // reservation (booked_usd, what the cap counts) and the provider-reported charge (billed_usd,
+      // with billed_source and billed_reconciliation). An unknown charge stays null, never zero.
+      booked_usd: charge.booked_usd,
+      billed_reconciliation: charge.billed_reconciliation,
+      key_usage_delta_usd: billed.key_usage_delta_usd ?? null,
       max_cost_usd: reservation?.max_cost_usd ?? null,
       duration_s: Math.round(stats.elapsed_ms / 1000),
       bounds,
@@ -240,11 +259,17 @@ export async function runRecipe(provider, plan, options = {}) {
       await writeFile(path, textOut, { flag: 'wx' });
       out(`record: ${path}`);
     }
-    // Settled at the computed cost; without rates or usage, the reservation stands at its maximum.
+    // Settled at the estimate; without rates, the reservation stands at its maximum.
     const after = await ledger.settle(
       reservation.id,
       {
-        cost_usd: round(cost),
+        estimated_total_usd: spend.estimated_total_usd,
+        usage_cost_usd: spend.usage_cost_usd,
+        ceiling_reserved_usd: spend.ceiling_reserved_usd,
+        billed_usd: billed.billed_usd,
+        billed_source: billed.billed_source,
+        booked_usd: charge.booked_usd,
+        billed_reconciliation: charge.billed_reconciliation,
         record: path ? path.slice(ledger.dir.length + 1) : null,
       },
       budgetOf(env),
@@ -256,6 +281,101 @@ export async function runRecipe(provider, plan, options = {}) {
 
 export function costOf(usage, rates) {
   return (usage.input_tokens * rates.input + usage.output_tokens * rates.output) / 1e6;
+}
+
+/**
+ * The run's estimated spend: `usage_cost_usd` is the usage the provider reported × the rates (null
+ * when no attempt reported usage), `ceiling_reserved_usd` the attempts charged at their ceiling ×
+ * the rates, `estimated_total_usd` their sum. All null without rates.
+ */
+export function spendOf(stats, rates) {
+  if (!rates) return { usage_cost_usd: null, ceiling_reserved_usd: null, estimated_total_usd: null };
+  const usage = stats.usage_reported.attempts > 0 ? costOf(stats.usage_reported, rates) : null;
+  const ceiling = costOf(stats.usage_at_ceiling, rates);
+  return {
+    usage_cost_usd: round(usage),
+    ceiling_reserved_usd: round(ceiling),
+    estimated_total_usd: round((usage ?? 0) + ceiling),
+  };
+}
+
+export const BILLED_UNAVAILABLE = 'not available with this key (provider console)';
+
+/** The billed readback (after minus before), or null with the reason. Never prints a key. */
+async function billedSpend(billing, before, { apiKey, fetch, options }) {
+  if (options.recordExtra?.dry_run)
+    return {
+      billed_usd: null,
+      billed_source: 'dry run: nothing is sent or billed',
+      key_usage_delta_usd: null,
+    };
+  if (!billing) return { billed_usd: null, billed_source: BILLED_UNAVAILABLE, key_usage_delta_usd: null };
+  // The provider's accounting can trail the last response by a moment.
+  await new Promise((done) => setTimeout(done, options.billingSettleMs ?? 3000));
+  const after = await billing.read({ apiKey, fetch }).catch(() => null);
+  if (!Number.isFinite(before) || !Number.isFinite(after))
+    return {
+      billed_usd: null,
+      billed_source: `readback failed (${billing.source})`,
+      key_usage_delta_usd: null,
+    };
+  // The key's usage is a cumulative counter: delayed accounting, a decrease or other use of the same
+  // key all change it, so the difference is not this run's charge. It is kept as a diagnostic only,
+  // unclamped; the run's provider charge stays unknown (ASTRA RECIPE-BILLED-ATTRIBUTION-01).
+  return {
+    billed_usd: null,
+    billed_source: `not attributable to this run (${billing.source} is a cumulative key counter)`,
+    key_usage_delta_usd: round(after - before),
+  };
+}
+
+/**
+ * Reconciles the provider-reported charge with the estimate. `booked_usd` is the conservative
+ * reservation the cap counts: the estimate including ceilings, raised to the provider's charge when
+ * that is higher. Null without rates (the ledger then keeps the run's maximum).
+ */
+export function reconcile(spend, billed, options = {}) {
+  const est = spend.estimated_total_usd;
+  const known = Number.isFinite(billed.billed_usd);
+  const booked = est === null ? null : round(known ? Math.max(est, billed.billed_usd) : est);
+  let status;
+  if (options.recordExtra?.dry_run) status = 'not_applicable_dry_run';
+  else if (!known)
+    status = Number.isFinite(billed.key_usage_delta_usd)
+      ? 'unreconciled_key_counter_only'
+      : 'unreconciled_unknown';
+  else if (est === null) status = 'reported_without_estimate';
+  else
+    status = billed.billed_usd <= est + 1e-9 ? 'within_reservation' : 'exceeds_reservation_booked_at_charge';
+  return { booked_usd: booked, billed_reconciliation: status };
+}
+
+function spendLines(spend, billed, charge, maxCost) {
+  const usd = (n) => (n === null || n === undefined ? 'unknown' : `US$${n.toFixed(4)}`);
+  const estimate =
+    spend.estimated_total_usd === null
+      ? 'estimate: unknown (set RECIPE_RATES=input,output in USD per 1M tokens)'
+      : spend.usage_cost_usd === null
+        ? 'estimate: unknown (the provider reported no usage)'
+        : `estimate: ${usd(spend.usage_cost_usd)} (reported usage × published rates)`;
+  const reservation =
+    charge.booked_usd === null
+      ? `reservation: ${usd(maxCost)} (the run's maximum stands; no rates)`
+      : `reservation: ${usd(charge.booked_usd)} booked against the cap (charged at ceiling ` +
+        `${usd(spend.ceiling_reserved_usd)}; ${usd(maxCost)} reserved before the run)`;
+  const provider =
+    billed.billed_usd === null
+      ? `provider charge: unknown (${billed.billed_source}; ${charge.billed_reconciliation})`
+      : `provider charge: ${usd(billed.billed_usd)} (${billed.billed_source}; ${charge.billed_reconciliation})`;
+  const lines = [estimate, reservation, provider];
+  if (Number.isFinite(billed.key_usage_delta_usd)) {
+    const d = billed.key_usage_delta_usd;
+    lines.push(
+      `key usage change during the run: ${d < 0 ? '-' : ''}US$${Math.abs(d).toFixed(4)} ` +
+        "(diagnostic only: a cumulative key counter, not this run's charge)",
+    );
+  }
+  return lines;
 }
 
 /** The operating target: RECIPE_BUDGET_USD (default 15), never above the ceiling. Null if invalid. */
@@ -328,6 +448,7 @@ export function openLedger(dir, { hooks = {} } = {}) {
           started_at: new Date().toISOString(),
           status: 'reserved',
           ...run,
+          estimated_total_usd: null,
           cost_usd: null,
         };
         data.runs.push(entry);
@@ -335,11 +456,21 @@ export function openLedger(dir, { hooks = {} } = {}) {
       });
     },
     /** Settles one reservation against the latest ledger; every other entry is left as it is. */
-    settle(id, { cost_usd, record }, budget = DEFAULT_BUDGET_USD) {
+    settle(id, settled, budget = DEFAULT_BUDGET_USD) {
       return locked((data) => {
         const entry = data.runs.find((r) => r.id === id);
         if (!entry) throw new Error(`No reservation ${id} in the spend ledger.`);
-        Object.assign(entry, { status: 'settled', settled_at: new Date().toISOString(), cost_usd, record });
+        // `cost_usd` stays as an alias of what the cap counts (booked, else the estimate), so earlier
+        // runners still read this ledger conservatively.
+        const { estimated_total_usd = null, record = null, ...rest } = settled;
+        Object.assign(entry, {
+          status: 'settled',
+          settled_at: new Date().toISOString(),
+          estimated_total_usd,
+          cost_usd: Number.isFinite(rest.booked_usd) ? rest.booked_usd : estimated_total_usd,
+          ...rest,
+          record,
+        });
         return { write: true, value: remainingOf(data, budget) };
       });
     },
@@ -351,9 +482,21 @@ export function openLedger(dir, { hooks = {} } = {}) {
   };
 }
 
+/**
+ * What a settled entry counts against the cap: `booked_usd` (the estimate raised to a higher
+ * provider charge), else `estimated_total_usd`, else the `cost_usd` of entries from before them.
+ */
+const estimateOf = (r) =>
+  Number.isFinite(r.booked_usd)
+    ? r.booked_usd
+    : Number.isFinite(r.estimated_total_usd)
+      ? r.estimated_total_usd
+      : Number.isFinite(r.cost_usd)
+        ? r.cost_usd
+        : null;
 const spentOf = (data) =>
   data.runs.reduce(
-    (sum, r) => sum + (r.status === 'settled' && r.cost_usd !== null ? r.cost_usd : r.max_cost_usd),
+    (sum, r) => sum + (r.status === 'settled' && estimateOf(r) !== null ? estimateOf(r) : r.max_cost_usd),
     0,
   );
 

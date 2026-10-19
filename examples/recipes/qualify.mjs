@@ -7,7 +7,7 @@
 // retries, 2,000 output tokens per request, 80k input / 20k output per run with every attempt
 // counted, 60 s per request, 2 retries on 429/5xx/network only, 20 minutes), inside the spend
 // guard in harness.mjs (the run's maximum possible cost must fit the US$100 ceiling and the
-// RECIPE_BUDGET_USD target, default 15). It prints the usage, the cost and the budget left, and
+// RECIPE_BUDGET_USD target, default 15). It prints the usage, the three spend figures (estimate, reservation, provider charge) and the budget left, and
 // writes a versioned record of what it proved. The person answers on the link themselves: this
 // runner never answers for them. Keys come only from the environment (see with-keychain.sh).
 //

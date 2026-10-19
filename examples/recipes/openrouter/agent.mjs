@@ -9,6 +9,28 @@ export const PROVIDER = {
   id: 'openrouter',
   keyEnv: 'OPENROUTER_API_KEY',
   file: fileURLToPath(import.meta.url),
+  /**
+   * A free readback an ordinary OpenRouter key can make: the key's cumulative `usage` in USD from
+   * GET /api/v1/key, read before and after a qualification run. The difference is recorded as a
+   * diagnostic only, never as the run's charge (other use of the key, delayed accounting). Null on
+   * any failure.
+   */
+  billing: {
+    source: 'OpenRouter GET /api/v1/key usage',
+    async read({ apiKey, fetch }) {
+      const response = await fetch('https://openrouter.ai/api/v1/key', {
+        headers: { authorization: `Bearer ${apiKey}`, accept: 'application/json' },
+        redirect: 'error',
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) {
+        await response.body?.cancel().catch(() => {});
+        return null;
+      }
+      const usage = (await response.json())?.data?.usage;
+      return Number.isFinite(usage) ? usage : null;
+    },
+  },
 };
 
 export async function plan({ workflow, guard, model, apiKey, system, task }) {

@@ -33,7 +33,7 @@ export async function plan({ workflow, guard, model, apiKey, system, task }) {
         tools,
         generationConfig: {
           maxOutputTokens: guard.bounds.maxOutputTokens,
-          // Gemini 3 models take a thinking level; 2.5 Flash-Lite does not think by default.
+          // Gemini 3 models (the default 3.1 Flash-Lite included) take a thinking level.
           ...(model.startsWith('gemini-3') ? { thinkingConfig: { thinkingLevel: 'low' } } : {}),
         },
       },

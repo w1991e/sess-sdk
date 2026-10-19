@@ -4,7 +4,8 @@
 // usage the provider reported, or the attempt's ceiling when it reported none (a failed or retried
 // attempt, a response without usage). A request is sent only if its ceiling still fits the run's
 // token caps, so a run never uses more than the caps; maxRunCost() prices exactly that.
-// The guard never reads a failed response's body, so a provider error cannot echo a key.
+// Of a failed response's body the guard keeps only the provider's short error name (errorReason),
+// so a provider error cannot echo a key.
 
 export const BOUNDS = Object.freeze({
   /** Model calls (turns) per run. */
@@ -36,12 +37,30 @@ export function maxRunCost(rates, bounds = BOUNDS) {
 
 /** A bound was reached or a call failed for good; `code` is stable, the message carries no body. */
 export class BoundError extends Error {
-  constructor(code, message, status) {
+  constructor(code, message, status, reason) {
     super(message);
     this.name = 'BoundError';
     this.code = code;
     if (status !== undefined) this.status = status;
+    if (reason) this.reason = reason;
   }
+}
+
+/**
+ * The provider's own error name from a failed response (Google `error.status` such as NOT_FOUND,
+ * OpenAI-style `error.code` / `error.type` such as model_not_found), or null. Only a short
+ * letters-and-underscores name is taken; no message, number or other body text is kept, so a
+ * provider error can never echo a key into a log or record.
+ */
+async function errorReason(response) {
+  try {
+    const text = await response.text();
+    if (text.length > 65_536) return null;
+    const error = JSON.parse(text)?.error;
+    for (const value of [error?.status, error?.code, error?.type])
+      if (typeof value === 'string' && /^[A-Za-z][A-Za-z_]{2,39}$/.test(value)) return value;
+  } catch {}
+  return null;
 }
 
 export function createGuard({
@@ -61,9 +80,16 @@ export function createGuard({
   const stop = (code, message) => {
     throw new BoundError(code, message);
   };
+  /** The tokens the provider reported, and the ceilings charged where it reported none. */
+  const reported = { input_tokens: 0, output_tokens: 0, attempts: 0 };
+  const atCeiling = { input_tokens: 0, output_tokens: 0, attempts: 0 };
   function charge(input, output, estimated) {
     usage.input_tokens += input;
     usage.output_tokens += output;
+    const into = estimated ? atCeiling : reported;
+    into.input_tokens += input;
+    into.output_tokens += output;
+    into.attempts++;
     if (estimated) counts.estimated_attempts++;
   }
   function settle() {
@@ -127,9 +153,16 @@ export function createGuard({
       charge(ceiling.input, ceiling.output, true);
       const status = response ? response.status : failure;
       const retryable = !response || response.status === 429 || response.status >= 500;
+      if (!retryable || attempt >= bounds.backoffMs.length) {
+        const reason = response ? await errorReason(response) : null;
+        throw new BoundError(
+          'provider_failed',
+          `The model request failed (${status}${reason ? ` ${reason}` : ''}).`,
+          status,
+          reason,
+        );
+      }
       await response?.body?.cancel().catch(() => {});
-      if (!retryable || attempt >= bounds.backoffMs.length)
-        throw new BoundError('provider_failed', `The model request failed (${status}).`, status);
       counts.retries++;
       await sleep(bounds.backoffMs[attempt]);
     }
@@ -143,12 +176,15 @@ export function createGuard({
     if (typeof model === 'string' && model) models.add(model);
     const ceiling = pending ?? { input: 0, output: 0 };
     pending = null;
-    const reported = Number.isFinite(inputTokens) && Number.isFinite(outputTokens);
-    charge(
-      Number.isFinite(inputTokens) ? inputTokens : ceiling.input,
-      Number.isFinite(outputTokens) ? outputTokens : ceiling.output,
-      !reported,
-    );
+    const hasIn = Number.isFinite(inputTokens);
+    const hasOut = Number.isFinite(outputTokens);
+    if (hasIn && hasOut) charge(inputTokens, outputTokens, false);
+    else if (!hasIn && !hasOut) charge(ceiling.input, ceiling.output, true);
+    else {
+      // One count reported: it is usage; the missing one is charged at its ceiling.
+      charge(hasIn ? inputTokens : 0, hasOut ? outputTokens : 0, false);
+      charge(hasIn ? 0 : ceiling.input, hasOut ? 0 : ceiling.output, true);
+    }
     check();
   }
 
@@ -159,7 +195,14 @@ export function createGuard({
     count,
     stats() {
       settle();
-      return { ...counts, usage: { ...usage }, models: [...models], elapsed_ms: now() - started };
+      return {
+        ...counts,
+        usage: { ...usage },
+        usage_reported: { ...reported },
+        usage_at_ceiling: { ...atCeiling },
+        models: [...models],
+        elapsed_ms: now() - started,
+      };
     },
   };
 }
