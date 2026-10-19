@@ -11,8 +11,9 @@
   and is read as before.
 - `waitForResponse()` and `answer()` treat a lapsed link as still open: they keep waiting until the
   horizon and end with `wait_ended` `LINK_EXPIRED` only once a read shows the link expired (two
-  seconds past its end on the runtime clock, or a second read after that grace when the end cannot
-  be placed, such as a revocation). A live read never ends the wait. Without `link_state` the
+  seconds past its end on the runtime clock, or, when the end cannot be placed, such as a
+  revocation, a later read at least the grace after the first expired read; a short `intervalMs`
+  reads again sooner but never ends the wait inside the grace). A live read never ends the wait. Without `link_state` the
   deadline stays final, as in rc.7.
 - Contract snapshot from Sess runtime commit `ee777ab` (w1991e/sess PR #431's head, not yet merged
   there; see `contract/contract-lock.json`).

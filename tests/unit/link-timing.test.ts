@@ -176,6 +176,88 @@ describe('link timing: the wait', () => {
     }
   });
 
+  // ASTRA A10-SDK-GRACE-01: a short polling interval reads again inside the grace, and that read
+  // must not end the wait. An answer accepted before the end whose write becomes visible inside
+  // the grace is returned.
+  const shortInterval = async (opts: {
+    start: number;
+    extra: Record<string, unknown>;
+    answerVisibleAt?: number;
+    dateHeader?: boolean;
+    advanceMs: number;
+  }) => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    try {
+      vi.setSystemTime(opts.start);
+      const seen: number[] = [];
+      const fetch = vi.fn(async () => {
+        const now = Date.now();
+        seen.push(now - opts.start);
+        const answered = opts.answerVisibleAt !== undefined && now >= opts.answerVisibleAt;
+        const body = {
+          ...timing('expired', opts.extra),
+          ...(answered
+            ? { status: 'responded', responses: [{ ...RESPONSE, accepted_at: iso(opts.start - 500) }] }
+            : {}),
+        };
+        return opts.dateHeader === false
+          ? json(session(body as never), 200, { etag: '"e"' })
+          : read(body, now);
+      });
+      const settled = new Sess({ apiKey: API_KEY, fetch }).sessions
+        .waitForResponse(SESSION_ID, { revision: 1, intervalMs: 1_000 })
+        .then(
+          (result) => ({ result, error: undefined }),
+          (error: unknown) => ({ result: undefined, error }),
+        );
+      await vi.advanceTimersByTimeAsync(opts.advanceMs);
+      return { ...(await settled), seen };
+    } finally {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    }
+  };
+
+  it('A10-SDK-GRACE-01: natural expiry with a one-second interval — a second expired read inside the grace keeps waiting; an answer visible 1.5 s after the end is returned, and with none the wait ends only at end + grace', async () => {
+    const extra = { extensions_used: 10 };
+    const answered = await shortInterval({
+      start: DEADLINE,
+      extra,
+      answerVisibleAt: DEADLINE + 1_500,
+      advanceMs: 5_000,
+    });
+    expect(answered.error).toBeUndefined();
+    expect(answered.result?.response.event_id).toBe(RESPONSE.event_id);
+    expect(answered.seen).toEqual([0, 1_000, 2_000]);
+    const none = await shortInterval({ start: DEADLINE, extra, advanceMs: 5_000 });
+    expect(none.error).toMatchObject({ kind: 'wait_ended', code: 'LINK_EXPIRED' });
+    expect(none.seen).toEqual([0, 1_000, 2_000]);
+  });
+
+  it('A10-SDK-GRACE-01: a revoked link (expired before its end) with a one-second interval is final only once a read the grace plus the Date resolution after the first expired read still shows it; an answer landing inside that time is returned', async () => {
+    const start = DEADLINE - 10_000;
+    const answered = await shortInterval({
+      start,
+      extra: {},
+      answerVisibleAt: start + 1_500,
+      advanceMs: 5_000,
+    });
+    expect(answered.result?.response.event_id).toBe(RESPONSE.event_id);
+    expect(answered.seen).toEqual([0, 1_000, 2_000]);
+    const late = await shortInterval({ start, extra: {}, answerVisibleAt: start + 2_500, advanceMs: 5_000 });
+    expect(late.result?.response.event_id).toBe(RESPONSE.event_id);
+    expect(late.seen).toEqual([0, 1_000, 2_000, 3_000]);
+    const none = await shortInterval({ start, extra: {}, advanceMs: 5_000 });
+    expect(none.error).toMatchObject({ kind: 'wait_ended', code: 'LINK_EXPIRED' });
+    // Whole-second Date headers: three seconds between the headers, never two.
+    expect(none.seen).toEqual([0, 1_000, 2_000, 3_000]);
+    // Without a Date header this machine's clock is exact: the grace alone.
+    const local = await shortInterval({ start, extra: {}, dateHeader: false, advanceMs: 5_000 });
+    expect(local.error).toMatchObject({ kind: 'wait_ended', code: 'LINK_EXPIRED' });
+    expect(local.seen).toEqual([0, 1_000, 2_000]);
+  });
+
   it('a live read never ends the wait as expired, even when the clocks place it past the deadline', async () => {
     vi.useFakeTimers();
     try {

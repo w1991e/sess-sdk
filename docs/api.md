@@ -137,8 +137,10 @@ Session is still open) or `expired` (never takes an answer), with `action_expire
 `extensions_used` and the `extensions` history; the Session log lists the same records as
 `link_extensions`. Every wait keeps waiting while the link is live or lapsed. It ends with
 `wait_ended` `LINK_EXPIRED` only once a read shows the link expired: one made two seconds past the
-link's end on the runtime clock (the response's HTTP `Date`, else this machine's), or a second read
-after that grace. An answer accepted before the end is returned. A runtime without link timing
+link's end on the runtime clock (the response's HTTP `Date`, else this machine's), or, when the end
+cannot be placed (a revocation), a read at least that grace after the first expired read. A short
+`intervalMs` reads again sooner but never ends the wait inside the grace. An answer accepted before
+the end is returned. A runtime without link timing
 reports no `link_state`; its deadline is then final, as before. Nothing is completed for you.
 
 Concurrent calls on one handle share one verification and one completion. A timeout or abort ends

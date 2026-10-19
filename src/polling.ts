@@ -73,8 +73,13 @@ export async function waitForResponse(
   );
   const budget = deadline(timeoutMs, options.signal);
   const expires = performance.now() + timeoutMs;
-  /** A read already showed the link expired with no answer: the next such read is final. */
-  let expiredSeen = false;
+  /**
+   * The first read in a row that showed the link expired with no answer at an instant the clocks
+   * cannot place past its end: its runtime clock, that clock's resolution, and whether the clock
+   * was the runtime's (HTTP Date) or this machine's. Such a read is final only once a later one,
+   * at least LINK_EXPIRY_GRACE_MS (plus the resolution) after it on the same clock, still shows it.
+   */
+  let expiredSince: { at: number; resolutionMs: number; server: boolean } | undefined;
   const ended = (code: string, message: string) =>
     new SessError('wait_ended', message, { code, sessionId: id, revision });
   try {
@@ -109,29 +114,39 @@ export async function waitForResponse(
       //   person can still ask for more time until the horizon). The wait never ends on the
       //   link; it reads again soon after the link could end.
       // - expired: final once a read made at least LINK_EXPIRY_GRACE_MS past the link's end, or a
-      //   second read after the grace (an end the clocks cannot place, such as a revocation),
-      //   still shows it expired with no answer.
+      //   read at least the grace after the first expired read on the same clock (an end the
+      //   clocks cannot place, such as a revocation), still shows it expired with no answer. A
+      //   short polling interval reads again sooner but never ends the wait inside the grace.
       // - no link_state (a runtime before link timing): the deadline is final, as before.
       let untilFinalReadMs = Number.POSITIVE_INFINITY;
       const link = linkEnd(session);
       const observedAt = current.meta.serverDate ?? Date.now();
       // A Date header has whole seconds: one more second puts the next read past the instant.
       const resolutionMs = current.meta.serverDate === undefined ? 0 : 1000;
+      const server = current.meta.serverDate !== undefined;
+      if (link.state !== 'expired' || (expiredSince !== undefined && expiredSince.server !== server))
+        expiredSince = undefined;
       if (link.state === 'live' || link.state === 'lapsed') {
-        expiredSeen = false;
         if (link.endsAt !== undefined && link.endsAt + LINK_EXPIRY_GRACE_MS > observedAt)
           untilFinalReadMs = link.endsAt + LINK_EXPIRY_GRACE_MS - observedAt + resolutionMs;
       } else if (link.state === 'expired' || link.endsAt !== undefined) {
         const finalAt = (link.endsAt ?? observedAt) + LINK_EXPIRY_GRACE_MS;
-        if (observedAt >= finalAt || (link.state === 'expired' && expiredSeen))
+        // Whole-second Date headers: a full grace plus one second between the two headers puts
+        // more than the grace between the two reads.
+        const graceSeenAt =
+          expiredSince === undefined
+            ? Number.POSITIVE_INFINITY
+            : expiredSince.at + LINK_EXPIRY_GRACE_MS + expiredSince.resolutionMs;
+        if (observedAt >= finalAt || observedAt >= graceSeenAt)
           throw ended(
             'LINK_EXPIRED',
             'The Sess link expired with no accepted response for this revision. Nothing was completed.',
           );
         untilFinalReadMs = finalAt - observedAt + resolutionMs;
         if (link.state === 'expired') {
-          expiredSeen = true;
-          untilFinalReadMs = Math.min(untilFinalReadMs, LINK_EXPIRY_GRACE_MS + resolutionMs);
+          expiredSince ??= { at: observedAt, resolutionMs, server };
+          const graceEndsAt = expiredSince.at + LINK_EXPIRY_GRACE_MS + expiredSince.resolutionMs;
+          untilFinalReadMs = Math.min(untilFinalReadMs, Math.max(1, graceEndsAt - observedAt));
         }
       }
       await delay(
