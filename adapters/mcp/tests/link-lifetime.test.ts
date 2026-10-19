@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { SessError } from '@sess.si/sdk';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdapterError } from '../src/errors.js';
 import { SessMcpAdapter } from '../src/operations.js';
 import { TOOLS } from '../src/tools.js';
@@ -33,6 +33,8 @@ function records(profile = 'default'): any[] {
     .filter((n) => n.endsWith('.json'))
     .map((n) => JSON.parse(readFileSync(join(handles, n), 'utf8')));
 }
+/** The adapter's link expiry grace, as in the SDK wait. */
+const LINK_EXPIRY_GRACE_MS = 2000;
 const tool = (name: string) => TOOLS.find((t) => t.name === name)!;
 const ask = { question: 'Synthetic question?', fields: [{ name: 'ok', label: 'OK', type: 'boolean' }] };
 
@@ -210,24 +212,91 @@ describe('link timing: lapsed is still open', () => {
     expect(records()[0]).toMatchObject({ state: 'blocked', blockedReason: 'LINK_EXPIRED' });
   });
 
-  it('a live read is never expired, even an hour past its deadline by the clocks; a link read as expired before its end (revoked) is "expired" at once', async () => {
-    const fake = new FakeSess();
-    const adapter = adapterWith(dir.path, fake, { verify: acceptingVerifier(fake) });
-    const created = await adapter.request(parseRequestArgs({ interaction: ROUND_1, expires_in: 30 }));
-    const handle = created.interaction.handle;
-    Object.assign(fake.session!, {
-      action_expires_at: new Date(Date.now() - 3_600_000).toISOString(),
-      action_expires_horizon: null,
-      extensions_used: 0,
-      link_state: 'live',
-      extensions: [],
-    });
-    expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('waiting');
-    Object.assign(fake.session!, {
-      action_expires_at: new Date(Date.now() + 600_000).toISOString(),
-      link_state: 'expired',
-    });
-    expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('expired');
+  it('a live read is never expired, even an hour past its deadline by the clocks; a link read as expired before its end (revoked) is "expired" only once a read the grace later still shows it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const fake = new FakeSess();
+      const adapter = adapterWith(dir.path, fake, { verify: acceptingVerifier(fake) });
+      const created = await adapter.request(parseRequestArgs({ interaction: ROUND_1, expires_in: 30 }));
+      const handle = created.interaction.handle;
+      Object.assign(fake.session!, {
+        action_expires_at: new Date(Date.now() - 3_600_000).toISOString(),
+        action_expires_horizon: null,
+        extensions_used: 0,
+        link_state: 'live',
+        extensions: [],
+      });
+      expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('waiting');
+      Object.assign(fake.session!, {
+        action_expires_at: new Date(Date.now() + 600_000).toISOString(),
+        link_state: 'expired',
+      });
+      // The first such read cannot be final: an answer accepted just before the revocation may
+      // still be landing (A10-SDK-GRACE-01, as in the SDK wait).
+      expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('waiting');
+      expect(records()[0].state).not.toBe('blocked');
+      vi.setSystemTime(Date.now() + LINK_EXPIRY_GRACE_MS - 1);
+      expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('waiting');
+      vi.setSystemTime(Date.now() + 1);
+      expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('expired');
+      expect(records()[0]).toMatchObject({ state: 'blocked', blockedReason: 'LINK_EXPIRED' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('A10-SDK-GRACE-01: an answer that becomes visible inside the grace after a revoked (expired, end ahead) read-once is released, never reported as expired', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const fake = new FakeSess();
+      const adapter = adapterWith(dir.path, fake, { verify: acceptingVerifier(fake) });
+      const created = await adapter.request(parseRequestArgs({ interaction: ROUND_1, expires_in: 30 }));
+      const handle = created.interaction.handle;
+      Object.assign(fake.session!, {
+        action_expires_at: new Date(Date.now() + 600_000).toISOString(),
+        action_expires_horizon: null,
+        extensions_used: 0,
+        link_state: 'expired',
+        extensions: [],
+      });
+      expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('waiting');
+      vi.setSystemTime(Date.now() + 1_500);
+      const eventId = fake.answer(ANSWER_1.data, ANSWER_1.action_id);
+      const result = await adapter.response({ handle, revision: 1, waitMs: 0 });
+      expect(result.interaction.state).toBe('answered');
+      expect(result.interaction.response?.eventId).toBe(eventId);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('A10-SDK-GRACE-01: an expired read with no end given is placed by the grace too, and a read that is not expired starts the grace again', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const fake = new FakeSess();
+      const adapter = adapterWith(dir.path, fake, { verify: acceptingVerifier(fake) });
+      const created = await adapter.request(parseRequestArgs({ interaction: ROUND_1, expires_in: 30 }));
+      const handle = created.interaction.handle;
+      Object.assign(fake.session!, {
+        action_expires_at: null,
+        action_expires_horizon: null,
+        extensions_used: 0,
+        link_state: 'expired',
+        extensions: [],
+      });
+      expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('waiting');
+      // A read that is not expired in between starts the grace again.
+      fake.session!.link_state = 'lapsed';
+      vi.setSystemTime(Date.now() + 1_000);
+      expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('waiting');
+      fake.session!.link_state = 'expired';
+      vi.setSystemTime(Date.now() + 1_500);
+      expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('waiting');
+      vi.setSystemTime(Date.now() + LINK_EXPIRY_GRACE_MS);
+      expect((await adapter.response({ handle, revision: 1, waitMs: 0 })).interaction.state).toBe('expired');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('a wait that ends with LINK_EXPIRED while a read shows the link lapsed reports "waiting", not "expired"; nothing is written on Sess', async () => {

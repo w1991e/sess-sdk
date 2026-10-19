@@ -59,13 +59,18 @@ function stillOpen(session: object): boolean {
 }
 
 /**
- * Whether a read with no answer for the revision shows the link has expired for good.
- * - live or lapsed (link timing, Amendment 10): never; a lapsed link can still be extended.
- * - expired: once the runtime clock is the grace past the link's end (its horizon while an
- *   extension is left, else its deadline), or at once when that end is still ahead (revoked).
- * - no link_state (a runtime before link timing): the deadline plus the grace, as before.
+ * What a read with no answer for the revision shows about the link's end:
+ * - `false`: still open, or not yet past its end. live or lapsed (link timing, Amendment 10) is
+ *   never expired; a lapsed link can still be extended.
+ * - `'final'`: expired, with the runtime clock the grace past the link's end (its horizon while an
+ *   extension is left, else its deadline); or, from a runtime before link timing (no link_state),
+ *   past the deadline plus the grace, as before.
+ * - `'unplaced'`: expired at an instant the clocks cannot place past its end (revoked before its
+ *   end, or no end given). As in the SDK wait (A10-SDK-GRACE-01), such a read is final only once
+ *   another, at least the grace (plus the clock's resolution) later on the same clock, still
+ *   shows it: an answer accepted just before a revocation may still be landing.
  */
-function expiredAt(session: object, meta: object): boolean {
+function expiredAt(session: object, meta: object): false | 'final' | 'unplaced' {
   if (stillOpen(session)) return false;
   const v = session as {
     action_expires_at?: unknown;
@@ -74,18 +79,24 @@ function expiredAt(session: object, meta: object): boolean {
     link_state?: unknown;
   };
   const deadline = instant(v.action_expires_at);
-  const serverDate: unknown = (meta as { serverDate?: unknown }).serverDate;
-  const observedAt = typeof serverDate === 'number' && Number.isFinite(serverDate) ? serverDate : Date.now();
+  const observedAt = observed(meta).at;
   if (v.link_state === 'expired') {
     const horizon = instant(v.action_expires_horizon);
     const extendable =
       horizon !== undefined && typeof v.extensions_used === 'number' && v.extensions_used < 10;
     const end = extendable && deadline !== undefined ? Math.max(horizon, deadline) : deadline;
-    return (
-      end === undefined || observedAt >= end + LINK_EXPIRY_GRACE_MS || end > observedAt + LINK_EXPIRY_GRACE_MS
-    );
+    if (end !== undefined && observedAt >= end + LINK_EXPIRY_GRACE_MS) return 'final';
+    return end === undefined || end > observedAt + LINK_EXPIRY_GRACE_MS ? 'unplaced' : false;
   }
-  return deadline !== undefined && observedAt >= deadline + LINK_EXPIRY_GRACE_MS;
+  return deadline !== undefined && observedAt >= deadline + LINK_EXPIRY_GRACE_MS ? 'final' : false;
+}
+
+/** The runtime clock of a read: its HTTP Date (whole seconds) when given, else this machine's. */
+function observed(meta: object): { at: number; resolutionMs: number; server: boolean } {
+  const serverDate: unknown = (meta as { serverDate?: unknown }).serverDate;
+  return typeof serverDate === 'number' && Number.isFinite(serverDate)
+    ? { at: serverDate, resolutionMs: 1000, server: true }
+    : { at: Date.now(), resolutionMs: 0, server: false };
 }
 export interface VerifiedResponseResult {
   eventId: string;
@@ -213,6 +224,12 @@ export class SessMcpAdapter {
   #options: AdapterOptions;
   #context?: Promise<OperationContext>;
   #secrets: string[] = [];
+  /**
+   * Per handle and revision, the first read-once (wait_ms 0) in a row that showed the link expired
+   * at an instant the clocks cannot place (see expiredAt). In memory only: a restart starts the
+   * grace again, which only ever delays the end, never reports it early.
+   */
+  #unplacedSince = new Map<string, { at: number; resolutionMs: number; server: boolean }>();
 
   constructor(options: AdapterOptions) {
     this.#options = options;
@@ -388,8 +405,28 @@ export class SessMcpAdapter {
         if (response) found = { response, etag: current.meta.etag, currentRevision: session.revision };
         else if (session.status === 'completed') return await this.#block(record, 'CLOSED_WITHOUT_RESPONSE');
         else if (session.revision > args.revision) return await this.#block(record, 'REVISION_SUPERSEDED');
-        else if (expiredAt(session, current.meta)) return await this.#expire(record);
-        else return await this.#transition(record, 'waiting');
+        else {
+          const key = `${record.handle}:${args.revision}`;
+          const end = expiredAt(session, current.meta);
+          if (end === 'final') {
+            this.#unplacedSince.delete(key);
+            return await this.#expire(record);
+          }
+          if (end === 'unplaced') {
+            const now = observed(current.meta);
+            const since = this.#unplacedSince.get(key);
+            if (
+              since !== undefined &&
+              since.server === now.server &&
+              now.at >= since.at + LINK_EXPIRY_GRACE_MS + since.resolutionMs
+            ) {
+              this.#unplacedSince.delete(key);
+              return await this.#expire(record);
+            }
+            if (since === undefined || since.server !== now.server) this.#unplacedSince.set(key, now);
+          } else this.#unplacedSince.delete(key);
+          return await this.#transition(record, 'waiting');
+        }
       } else {
         const result = await client.sessions.waitForResponse(sessionId, {
           revision: args.revision,
