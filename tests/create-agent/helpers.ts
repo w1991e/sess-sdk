@@ -68,6 +68,8 @@ export interface WorldOptions {
   met?: 'ok' | 'busy' | 'outage' | 'revalidate';
   nws?: 'ok' | 'outage';
   tamper?: number;
+  /** Serve link timing with every unanswered read lapsed (Decision 0009 Amendment 10). */
+  lapsed?: boolean;
   env?: Record<string, string | undefined>;
 }
 
@@ -82,6 +84,7 @@ export function runAgent(app: string, record: string, options: WorldOptions) {
     met: options.met ?? 'ok',
     nws: options.nws ?? 'ok',
     tamper: options.tamper,
+    lapsed: options.lapsed,
     record,
   };
   const env: Record<string, string> = {

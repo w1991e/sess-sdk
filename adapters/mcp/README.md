@@ -143,9 +143,10 @@ with `sess_response`, `sess_publish` and `sess_complete` as usual.
 
 Advanced: `expires_in` sets how long the link stays open, in whole seconds from creation: from 30
 up to your plan's link lifetime (Sess checks the ceiling). The result's `expiresAt` is when the link
-stops taking answers; nothing moves it. `sess_response` reports `expired` once the link has closed
-with no answer: it is final, and nothing was completed. An answer accepted before the expiry is
-still returned as `answered`.
+stops taking answers, as created; on a link of 20 hours or less the person may ask for more time, up
+to a fixed horizon. While the link is lapsed (past that time but still extendable) `sess_response`
+reports `waiting`. It reports `expired` once the link has closed for good with no answer: it is
+final, and nothing was completed. An answer accepted before the end is still returned as `answered`.
 
 Input schemas are closed: unknown properties, unsafe keys (`__proto__`, `constructor`,
 `prototype`), more than 8 levels of nesting, an interaction over 32 KiB, more than 24 fields or 5

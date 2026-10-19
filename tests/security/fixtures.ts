@@ -112,6 +112,11 @@ export function fixture(acceptedMillis = now - 1000) {
     status: 'responded',
     // The served contract requires every Session to carry its human link's stored expiry.
     action_expires_at: new Date(acceptedMillis + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    // Decision 0009 Amendment 10: a seven-day link has no horizon and is never extended.
+    action_expires_horizon: null,
+    extensions_used: 0,
+    link_state: 'live',
+    extensions: [],
     interaction,
     response_schema: { type: 'object' },
     responses: [response],

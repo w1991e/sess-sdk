@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- Link timing (Decision 0009 Amendment 10). On an interactive Sess link of 20 hours or less the
+  person may ask for more time, up to ten times, never past a fixed horizon. Session reads carry
+  `link_state` (`live`, `lapsed` or `expired`), `action_expires_horizon`, `extensions_used` and the
+  `extensions` history; the Session log (`listEvents()`) lists the same records as
+  `link_extensions`, beside the Events, whose shape is unchanged. New types `LinkState` and
+  `LinkExtension`. These fields are checked when present; a runtime without link timing omits them
+  and is read as before.
+- `waitForResponse()` and `answer()` treat a lapsed link as still open: they keep waiting until the
+  horizon and end with `wait_ended` `LINK_EXPIRED` only once a read shows the link expired (two
+  seconds past its end on the runtime clock, or, when the end cannot be placed, such as a
+  revocation, a later read at least the grace after the first expired read; a short `intervalMs`
+  reads again sooner but never ends the wait inside the grace). A live read never ends the wait. Without `link_state` the
+  deadline stays final, as in rc.7.
+- Contract snapshot from Sess runtime commit `ee777ab` (w1991e/sess PR #431's head, not yet merged
+  there; see `contract/contract-lock.json`).
+
 ## 0.1.0-rc.7 — 2026-10-18 (prepared, unpublished)
 
 Includes everything in the unpublished 0.1.0-rc.6 below, which is not published on its own.

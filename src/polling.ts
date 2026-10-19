@@ -11,21 +11,42 @@ import type {
 } from './types.js';
 
 /**
- * Once a Session's link has expired (`action_expires_at`), the wait reads it once more when the
- * runtime clock is this far past the expiry, then ends: an answer accepted before the expiry is
- * returned; otherwise the wait ends with `LINK_EXPIRED`. Two seconds covers the one-second
+ * Once a Session's link has reached its end (its deadline, `action_expires_at`, or while the
+ * person can still extend it, its horizon), the wait reads it once more when the runtime clock is
+ * this far past that end, then ends: an answer accepted before the end is returned; otherwise the
+ * wait ends with `LINK_EXPIRED`. Two seconds covers the one-second
  * resolution of the HTTP `Date` header plus an answer accepted just before the expiry whose write
  * is still landing, and keeps the end prompt.
  */
 export const LINK_EXPIRY_GRACE_MS = 2000;
 
-/** The Session's link expiry in milliseconds since the epoch, when it carries a valid one. */
-function linkExpiry(session: InteractiveSession): number | undefined {
-  const value: unknown = (session as { action_expires_at?: unknown }).action_expires_at;
+/** An RFC 3339 UTC instant in milliseconds since the epoch, when the value is a valid one. */
+function instant(value: unknown): number | undefined {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value))
     return undefined;
   const ms = Date.parse(value);
   return Number.isFinite(ms) ? ms : undefined;
+}
+
+/**
+ * The link's state as read and the instant it ends for good as far as this read shows: its
+ * horizon while the person can still extend it (an extension left), else its deadline
+ * (`action_expires_at`). No state from a runtime before link timing (Decision 0009 Amendment 10).
+ */
+function linkEnd(session: InteractiveSession): { state: string | undefined; endsAt: number | undefined } {
+  const v = session as {
+    action_expires_at?: unknown;
+    action_expires_horizon?: unknown;
+    extensions_used?: unknown;
+    link_state?: unknown;
+  };
+  const deadline = instant(v.action_expires_at);
+  const horizon = instant(v.action_expires_horizon);
+  const extendable = horizon !== undefined && typeof v.extensions_used === 'number' && v.extensions_used < 10;
+  return {
+    state: typeof v.link_state === 'string' ? v.link_state : undefined,
+    endsAt: extendable && deadline !== undefined ? Math.max(horizon, deadline) : deadline,
+  };
 }
 
 export async function waitForResponse(
@@ -52,6 +73,13 @@ export async function waitForResponse(
   );
   const budget = deadline(timeoutMs, options.signal);
   const expires = performance.now() + timeoutMs;
+  /**
+   * The first read in a row that showed the link expired with no answer at an instant the clocks
+   * cannot place past its end: its runtime clock, that clock's resolution, and whether the clock
+   * was the runtime's (HTTP Date) or this machine's. Such a read is final only once a later one,
+   * at least LINK_EXPIRY_GRACE_MS (plus the resolution) after it on the same clock, still shows it.
+   */
+  let expiredSince: { at: number; resolutionMs: number; server: boolean } | undefined;
   const ended = (code: string, message: string) =>
     new SessError('wait_ended', message, { code, sessionId: id, revision });
   try {
@@ -79,23 +107,47 @@ export async function waitForResponse(
         );
       if (session.revision > revision)
         throw ended('REVISION_SUPERSEDED', 'The requested unanswered revision was superseded.');
-      // The link's expiry (Decision 0009 Amendment 7): the runtime accepts no answer after
-      // action_expires_at, and an answer accepted before it is in every later read. A read made
-      // when the runtime clock was at least LINK_EXPIRY_GRACE_MS past the expiry, with no answer,
-      // is final. The runtime clock is the response's HTTP Date (at or before the read), else
-      // this machine's. Nothing is completed here.
+      // The link's end (Decision 0009 Amendments 7 and 10): an answer accepted while the link
+      // was live is in every later read. The runtime clock is the response's HTTP Date (at or
+      // before the read), else this machine's. Nothing is completed here.
+      // - live or lapsed: the Session is still open (a lapsed link takes no answer, but the
+      //   person can still ask for more time until the horizon). The wait never ends on the
+      //   link; it reads again soon after the link could end.
+      // - expired: final once a read made at least LINK_EXPIRY_GRACE_MS past the link's end, or a
+      //   read at least the grace after the first expired read on the same clock (an end the
+      //   clocks cannot place, such as a revocation), still shows it expired with no answer. A
+      //   short polling interval reads again sooner but never ends the wait inside the grace.
+      // - no link_state (a runtime before link timing): the deadline is final, as before.
       let untilFinalReadMs = Number.POSITIVE_INFINITY;
-      const cutoff = linkExpiry(session);
-      if (cutoff !== undefined) {
-        const observedAt = current.meta.serverDate ?? Date.now();
-        const finalAt = cutoff + LINK_EXPIRY_GRACE_MS;
-        if (observedAt >= finalAt)
+      const link = linkEnd(session);
+      const observedAt = current.meta.serverDate ?? Date.now();
+      // A Date header has whole seconds: one more second puts the next read past the instant.
+      const resolutionMs = current.meta.serverDate === undefined ? 0 : 1000;
+      const server = current.meta.serverDate !== undefined;
+      if (link.state !== 'expired' || (expiredSince !== undefined && expiredSince.server !== server))
+        expiredSince = undefined;
+      if (link.state === 'live' || link.state === 'lapsed') {
+        if (link.endsAt !== undefined && link.endsAt + LINK_EXPIRY_GRACE_MS > observedAt)
+          untilFinalReadMs = link.endsAt + LINK_EXPIRY_GRACE_MS - observedAt + resolutionMs;
+      } else if (link.state === 'expired' || link.endsAt !== undefined) {
+        const finalAt = (link.endsAt ?? observedAt) + LINK_EXPIRY_GRACE_MS;
+        // Whole-second Date headers: a full grace plus one second between the two headers puts
+        // more than the grace between the two reads.
+        const graceSeenAt =
+          expiredSince === undefined
+            ? Number.POSITIVE_INFINITY
+            : expiredSince.at + LINK_EXPIRY_GRACE_MS + expiredSince.resolutionMs;
+        if (observedAt >= finalAt || observedAt >= graceSeenAt)
           throw ended(
             'LINK_EXPIRED',
             'The Sess link expired with no accepted response for this revision. Nothing was completed.',
           );
-        // A Date header has whole seconds: one more second puts the next read past finalAt.
-        untilFinalReadMs = finalAt - observedAt + (current.meta.serverDate === undefined ? 0 : 1000);
+        untilFinalReadMs = finalAt - observedAt + resolutionMs;
+        if (link.state === 'expired') {
+          expiredSince ??= { at: observedAt, resolutionMs, server };
+          const graceEndsAt = expiredSince.at + LINK_EXPIRY_GRACE_MS + expiredSince.resolutionMs;
+          untilFinalReadMs = Math.min(untilFinalReadMs, Math.max(1, graceEndsAt - observedAt));
+        }
       }
       await delay(
         Math.min(

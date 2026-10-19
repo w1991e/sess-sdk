@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Link timing (Decision 0009 Amendment 10). A lapsed link (past its deadline, but the person can
+  still ask for more time until its horizon) is still open: `sess_response`, and so `sess_ask`,
+  report `waiting`, never `expired`. `expired` is reported only once a read shows the link expired:
+  past its end (its horizon while an extension is left, else its deadline) plus the two-second
+  grace, or at once when expired before that end (revoked). A wait that ends with `LINK_EXPIRED`
+  is confirmed by one read, so an SDK that ends its wait at the deadline cannot report a lapsed
+  link as expired. A runtime without link timing keeps the earlier rule.
+
 ## 0.1.0-rc.2 (candidate, unpublished)
 
 - Tool schemas `sess-mcp-tools/3`. Advanced: `sess_request` and `sess_ask` take an optional
