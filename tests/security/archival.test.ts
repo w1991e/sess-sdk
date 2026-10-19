@@ -152,10 +152,16 @@ describe('archival verifier: the shared archival-v1 corpus', () => {
   });
 
   it('adds a separately named subpath; the receipts exports are unchanged', () => {
+    // The archival verifier adds nothing to ./receipts; the renderer-list exports there are
+    // rc.8's own (Decision 0009 Amendment 13, #70).
     expect(Object.keys(receipts).sort()).toEqual([
+      'BUNDLED_RENDERER_IDENTITIES',
+      'BUNDLED_RENDERER_LIST',
       'BUNDLE_LIMITS',
+      'newerRendererList',
       'verifyDecisionBundle',
       'verifyDecisionReceipt',
+      'verifyRendererIdentities',
     ]);
     expect(Object.keys(archival).sort()).toEqual([
       'ARCHIVAL_CONTENT_MAX_BYTES',
