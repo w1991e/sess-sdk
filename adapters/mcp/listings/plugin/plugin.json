@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "sess",
-  "version": "0.1.0-rc.2",
+  "version": "0.1.0-rc.3",
   "description": "Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.",
   "author": {
     "name": "Sess",
