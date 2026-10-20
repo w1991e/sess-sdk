@@ -104,12 +104,28 @@ function processAlive(pid: number): boolean {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** The owner resolution for a trial start whose outcome is unknown (no path: errors never name one). */
+/**
+ * A start intent never marked reported: a server stopped mid-start, so the start may still be in
+ * an unknown state that no caller was told about. Fails closed until the owner resolves it (no path:
+ * errors never name one).
+ */
 function startUnknown(): AdapterError {
   return new AdapterError(
     'CREATE_OUTCOME_UNKNOWN',
     `A Sess trial start from this server may already exist, but its outcome is unknown, so no new trial is started and nothing was sent. To start fresh, the owner deletes the trials folder in this server's state directory. ${FREE_PLAN_NEXT}`,
   );
+}
+
+/** Proposed copy: the lost start itself (founder answer 2, 2026-10-20). */
+export const TRIAL_START_LOST =
+  'The outcome is unknown: Sess may have started a trial and created this request, but its answer was lost. Nothing was retried. The next ask will start a new trial.';
+/** Proposed copy: a call that was already waiting while that start's outcome became unknown. */
+export const TRIAL_START_QUEUED =
+  'A trial start a moment ago has an unknown outcome, so this ask was not sent. The next ask will start a new trial.';
+
+/** A start intent as saved: `reportedAt` is set once its unknown outcome was returned to a caller. */
+export interface StartIntent {
+  reportedAt?: number;
 }
 
 /**
@@ -118,9 +134,12 @@ function startUnknown(): AdapterError {
  *
  * - `<origin digest>.json`: the confirmed trial and its credential;
  * - `<origin digest>.start.json`: a start intent, written durably before the anonymous start is
- *   sent. It is replaced by the trial record on a confirmed start and removed only on a definite
- *   refusal. While it exists without a trial record, the start's outcome is unknown and every create
- *   fails closed, in this process, in queued calls and after restarts, until the owner resolves it;
+ *   sent. It is replaced by the trial record on a confirmed start and removed on a definite refusal.
+ *   On an unknown outcome it is kept and marked reported (`reportedAt`) when that outcome is
+ *   returned. A create that began waiting at or before `reportedAt` fails closed (no second start
+ *   from calls queued behind the lost one); a create that began after it may clear the intent and
+ *   start a fresh trial, under the lock (founder answer 2, 2026-10-20). An intent never marked
+ *   reported (a server stopped mid-start) fails closed until the owner resolves it;
  * - `<origin digest>.json.lock`: the lock, holding its owner's pid and a random token.
  *
  * `withLock` serializes trial starts within this process (single flight) and across processes
@@ -143,21 +162,38 @@ export class TrialStateStore {
     this.#intent = join(this.#dir, `${name}.start.json`);
   }
 
-  /** Whether a start intent exists (any content, even unreadable, counts: fail closed). */
-  async hasStartIntent(): Promise<boolean> {
+  /** The saved start intent, if any. Unreadable content counts as an unreported intent (fail closed). */
+  async readStartIntent(): Promise<StartIntent | undefined> {
+    let text: string;
     try {
-      await readFile(this.#intent);
-      return true;
+      text = await readFile(this.#intent, 'utf8');
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
       throw new AdapterError('STATE_STORE_ERROR', 'The saved Sess trial could not be read.', true);
     }
+    try {
+      const value = JSON.parse(text) as { schema?: unknown; origin?: unknown; reportedAt?: unknown };
+      if (
+        value.schema === 1 &&
+        value.origin === this.#origin &&
+        Number.isSafeInteger(value.reportedAt) &&
+        (value.reportedAt as number) > 0
+      )
+        return { reportedAt: value.reportedAt as number };
+    } catch {
+      // Unreadable: unreported.
+    }
+    return {};
   }
 
-  async writeStartIntent(at: string): Promise<void> {
+  async writeStartIntent(at: string, reportedAt?: number): Promise<void> {
     try {
       await mkdir(this.#dir, { recursive: true, mode: 0o700 });
-      await atomicWrite(this.#intent, this.#dir, JSON.stringify({ schema: 1, origin: this.#origin, at }));
+      await atomicWrite(
+        this.#intent,
+        this.#dir,
+        JSON.stringify({ schema: 1, origin: this.#origin, at, ...(reportedAt ? { reportedAt } : {}) }),
+      );
     } catch {
       throw new AdapterError(
         'STATE_STORE_ERROR',
@@ -282,6 +318,22 @@ export class TrialRefusal extends SessError {
       ...(code ? { code } : {}),
     });
     this.adapterError = adapterError;
+  }
+}
+
+/**
+ * The trial start's own outcome is unknown (outcome `unknown`: the request operation saves the
+ * record as create_unknown and never retries), reported with the trial-specific message.
+ */
+export class TrialStartUnknown extends SessError {
+  readonly adapterError = new AdapterError('CREATE_OUTCOME_UNKNOWN', TRIAL_START_LOST);
+  constructor(cause: SessError) {
+    super('unknown_outcome', cause.message, {
+      outcome: 'unknown',
+      operation: 'sessions.create',
+      ...(cause.code ? { code: cause.code } : {}),
+      ...(cause.status ? { status: cause.status } : {}),
+    });
   }
 }
 
@@ -505,7 +557,8 @@ export function createTrialClient(options: TrialClientOptions): SessClient {
    * refusal, and kept on an unknown outcome (later creates then fail closed).
    */
   async function start(body: { interaction: unknown }) {
-    await store.writeStartIntent(new Date(now()).toISOString());
+    const at = new Date(now()).toISOString();
+    await store.writeStartIntent(at);
     let result;
     try {
       result = await dispatchStart(body);
@@ -517,6 +570,14 @@ export function createTrialClient(options: TrialClientOptions): SessClient {
           // Kept: later creates fail closed until the owner resolves it. Never a second start.
           diagnostics('trial_intent_not_cleared');
         }
+        throw error;
+      }
+      if (error instanceof SessError && error.outcome === 'unknown') {
+        // Marked reported, still under the lock, just before the outcome is returned: calls already
+        // waiting fail closed; a call that begins after this may start a fresh trial. If the mark
+        // cannot be saved, the intent stays unreported and every later call fails closed.
+        await store.writeStartIntent(at, Date.now()).catch(() => diagnostics('trial_intent_not_reported'));
+        throw new TrialStartUnknown(error);
       }
       throw error;
     }
@@ -639,15 +700,24 @@ export function createTrialClient(options: TrialClientOptions): SessClient {
       if ((request as { expires_in?: unknown }).expires_in !== undefined)
         throw new TrialRefusal(trialUnsupported('expires_in'), 'not_sent');
       let existing: TrialState | undefined;
+      // When this call began, before it waited for the lock (the same wall clock as `reportedAt`).
+      const began = Date.now();
       // Single flight: the first create starts the trial while holding the lock; every concurrent
-      // or later create (in this process or another sharing the state) reuses the saved trial. A
-      // start intent without a trial record means an earlier start's outcome is unknown: fail
-      // closed, never start again.
+      // or later create (in this process or another sharing the state) reuses the saved trial, and
+      // a saved trial is never replaced. A start intent without a trial record is an earlier start
+      // of unknown outcome: calls that were already waiting fail closed; a call that began after
+      // that outcome was reported starts a fresh trial (start() atomically replaces the intent).
       const first = await store
         .withLock(async () => {
           existing = await store.read();
           if (existing) return undefined;
-          if (await store.hasStartIntent()) throw startUnknown();
+          const intent = await store.readStartIntent();
+          if (intent) {
+            if (intent.reportedAt === undefined) throw startUnknown();
+            if (began <= intent.reportedAt)
+              throw new AdapterError('CREATE_OUTCOME_UNKNOWN', TRIAL_START_QUEUED);
+            diagnostics('trial_restart_after_unknown');
+          }
           return start(body);
         })
         .catch((error: unknown) => {

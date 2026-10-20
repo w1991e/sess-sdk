@@ -8,7 +8,13 @@ import {
 } from '@sess.si/sdk';
 import { loadLocalConfig, type AdapterConfig } from './config.js';
 import { AdapterError, type Diagnostics } from './errors.js';
-import { TrialRefusal, TrialStateStore, createTrialClient, trialUnsupported } from './trial.js';
+import {
+  TrialRefusal,
+  TrialStartUnknown,
+  TrialStateStore,
+  createTrialClient,
+  trialUnsupported,
+} from './trial.js';
 import {
   ProfileHandleStore,
   RECORD_SCHEMA,
@@ -348,6 +354,8 @@ export class SessMcpAdapter {
         );
       });
       this.#options.diagnostics('create_unknown', { code: sessCode(error) });
+      // Trial mode: the lost trial start says so, and that the next ask starts a new trial.
+      if (error instanceof TrialStartUnknown) throw error.adapterError;
       throw new AdapterError(
         'CREATE_OUTCOME_UNKNOWN',
         'The create outcome is unknown; a Session may exist. It was not retried automatically. Ask the owner to check Sess before creating another interaction.',

@@ -9,7 +9,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AdapterError } from '../src/errors.js';
 import { SessMcpAdapter } from '../src/operations.js';
 import { createSessMcpServer } from '../src/server.js';
-import { TRIAL_LIMITS, TrialStateStore, trialReadFetch } from '../src/trial.js';
+import {
+  TRIAL_LIMITS,
+  TRIAL_START_LOST,
+  TRIAL_START_QUEUED,
+  TrialStateStore,
+  trialReadFetch,
+} from '../src/trial.js';
 import { parseAskArgs } from '../src/validate.js';
 import { tempDir } from './helpers.js';
 import { TrialStub } from './trial-stub.js';
@@ -247,39 +253,101 @@ describe('trial mode: only what the trial supports', () => {
     const handles = join(dir.path, 'profiles', 'default', 'handles');
     const states = readdirSync(handles).map((n) => JSON.parse(readFileSync(join(handles, n), 'utf8')).state);
     expect(states.sort()).toEqual(['create_unknown', 'waiting']);
+    // Founder answer 3: once a trial exists, a later ask reuses it; no new trial is started.
+    await new Promise((r) => setTimeout(r, 5));
+    await adapter.request(ask());
+    expect(stub.anonymousCreates()).toHaveLength(1);
   });
 });
 
-describe('trial mode: a trial start whose outcome is unknown fails closed (MCP-TRIAL-START-UNKNOWN-01)', () => {
-  it('concurrent asks with a lost first start send exactly one anonymous POST; a restart sends none', async () => {
+describe('trial mode: a trial start whose outcome is unknown (MCP-TRIAL-START-UNKNOWN-01, founder answer 2)', () => {
+  const later = () => new Promise((r) => setTimeout(r, 5));
+  const handleStates = () => {
+    const handles = join(dir.path, 'profiles', 'default', 'handles');
+    return readdirSync(handles)
+      .map((n) => JSON.parse(readFileSync(join(handles, n), 'utf8')).state)
+      .sort();
+  };
+
+  it('calls queued behind a lost start send nothing; the next ask starts exactly one new trial', async () => {
     const stub = new TrialStub();
     stub.loseNextCreate = true;
     stub.createDelayMs = 40;
     const one = trialAdapter(stub);
     const two = trialAdapter(stub);
     const results = await Promise.allSettled([one.request(ask()), one.request(ask()), two.request(ask())]);
-    expect(results.map((r) => r.status)).toEqual(['rejected', 'rejected', 'rejected']);
-    for (const r of results)
-      expect(((r as PromiseRejectedResult).reason as AdapterError).code).toBe('CREATE_OUTCOME_UNKNOWN');
-    const messages = results.map((r) => ((r as PromiseRejectedResult).reason as AdapterError).message);
-    expect(messages.filter((m) => m.includes('outcome is unknown, so no new trial is started'))).toHaveLength(
-      2,
-    );
+    const errors = results.map((r) => {
+      expect(r.status).toBe('rejected');
+      return (r as PromiseRejectedResult).reason as AdapterError;
+    });
+    for (const e of errors) {
+      expect(e.code).toBe('CREATE_OUTCOME_UNKNOWN');
+      expect(e.message).toMatch(/unknown outcome|outcome is unknown/);
+      expect(e.message).toContain('The next ask will start a new trial.');
+    }
+    expect(errors.filter((e) => e.message === TRIAL_START_LOST)).toHaveLength(1);
+    expect(errors.filter((e) => e.message === TRIAL_START_QUEUED)).toHaveLength(2);
+    // Queued calls: 0 extra POSTs. Sess applied the lost start, so exactly one trial exists.
     expect(stub.anonymousCreates()).toHaveLength(1);
-    // Sess applied the lost start: one trial exists, and no second one was made.
     expect(stub.trials.size).toBe(1);
     expect(trialFiles()).toEqual([expect.stringMatching(/\.start\.json$/)]);
-    // A restart (a new instance on the same state) also fails closed and sends nothing.
-    const before = stub.calls.length;
-    const restarted = await failure(trialAdapter(stub).request(ask()));
-    expect(restarted.code).toBe('CREATE_OUTCOME_UNKNOWN');
-    expect(restarted.message).toContain('trials folder');
-    expect(restarted.message).toContain('Free plan');
-    expect(stub.calls.length).toBe(before);
-    // The failed-closed asks left no handle records; the lost one is create_unknown.
-    const handles = join(dir.path, 'profiles', 'default', 'handles');
-    const states = readdirSync(handles).map((n) => JSON.parse(readFileSync(join(handles, n), 'utf8')).state);
-    expect(states).toEqual(['create_unknown']);
+    expect(handleStates()).toEqual(['create_unknown']);
+    // The next ask, after the outcome was reported, starts exactly one new trial.
+    await later();
+    expect((await one.request(ask())).interaction.state).toBe('waiting');
+    expect(stub.anonymousCreates()).toHaveLength(2);
+    expect(trialFiles()).toEqual([expect.stringMatching(/^[0-9a-f]{32}\.json$/)]);
+    // And that trial is then reused, never replaced.
+    await two.request(ask());
+    expect(stub.anonymousCreates()).toHaveLength(2);
+  });
+
+  it('a restart after a lost start: the next ask sends exactly one new start', async () => {
+    const stub = new TrialStub();
+    stub.loseNextCreate = true;
+    expect((await failure(trialAdapter(stub).request(ask()))).message).toBe(TRIAL_START_LOST);
+    await later();
+    const restarted = trialAdapter(stub);
+    expect((await restarted.request(ask())).interaction.state).toBe('waiting');
+    expect(stub.anonymousCreates()).toHaveLength(2);
+    expect(handleStates()).toEqual(['create_unknown', 'waiting']);
+  });
+
+  it('after a lost start, concurrent next asks still start exactly one trial', async () => {
+    const stub = new TrialStub();
+    stub.loseNextCreate = true;
+    await failure(trialAdapter(stub).request(ask()));
+    await later();
+    stub.createDelayMs = 40;
+    const one = trialAdapter(stub);
+    const two = trialAdapter(stub);
+    const results = await Promise.all([one.request(ask()), one.request(ask()), two.request(ask())]);
+    expect(results.map((r) => r.interaction.state)).toEqual(['waiting', 'waiting', 'waiting']);
+    expect(stub.anonymousCreates()).toHaveLength(2);
+    expect(stub.calls.filter((c) => c.method === 'POST' && c.authorization)).toHaveLength(2);
+  });
+
+  it('an intent never reported (a server stopped mid-start) fails closed until the owner resolves it', async () => {
+    const stub = new TrialStub();
+    const trials = join(dir.path, 'profiles', 'default', 'trials');
+    mkdirSync(trials, { recursive: true, mode: 0o700 });
+    const name = createHash('sha256').update(stub.origin, 'utf8').digest('hex').slice(0, 32);
+    writeFileSync(
+      join(trials, `${name}.start.json`),
+      JSON.stringify({ schema: 1, origin: stub.origin, at: new Date().toISOString() }),
+      { mode: 0o600 },
+    );
+    await later();
+    for (let i = 0; i < 2; i++) {
+      const error = await failure(trialAdapter(stub).request(ask()));
+      expect(error.code).toBe('CREATE_OUTCOME_UNKNOWN');
+      expect(error.message).toContain('outcome is unknown');
+      expect(error.message).toContain('trials folder');
+    }
+    expect(stub.calls).toHaveLength(0);
+    rmSync(trials, { recursive: true });
+    expect((await trialAdapter(stub).request(ask())).interaction.state).toBe('waiting');
+    expect(stub.anonymousCreates()).toHaveLength(1);
   });
 
   it('the start intent is saved (0600) before the anonymous POST is sent', async () => {
@@ -312,16 +380,6 @@ describe('trial mode: a trial start whose outcome is unknown fails closed (MCP-T
     expect((await adapter.request(ask())).interaction.state).toBe('waiting');
     expect(stub.anonymousCreates()).toHaveLength(2);
     expect(stub.trials.size).toBe(1);
-  });
-
-  it('the owner resolution (deleting the trials folder) lets a new trial start', async () => {
-    const stub = new TrialStub();
-    stub.loseNextCreate = true;
-    await failure(trialAdapter(stub).request(ask()));
-    expect((await failure(trialAdapter(stub).request(ask()))).code).toBe('CREATE_OUTCOME_UNKNOWN');
-    rmSync(join(dir.path, 'profiles', 'default', 'trials'), { recursive: true });
-    expect((await trialAdapter(stub).request(ask())).interaction.state).toBe('waiting');
-    expect(stub.anonymousCreates()).toHaveLength(2);
   });
 });
 

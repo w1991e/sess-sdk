@@ -7,8 +7,10 @@
   or listing tools; concurrent first calls start exactly one (an in-process single flight plus a
   lock file in the state directory; a lock left by an exited process fails closed until the owner
   removes it, and release checks ownership). A durable start intent is saved before the anonymous
-  start is sent; while a start's outcome is unknown, every ask fails closed with
-  `CREATE_OUTCOME_UNKNOWN` and sends nothing, across restarts, until the owner resolves it. Its
+  start is sent. A lost start is `CREATE_OUTCOME_UNKNOWN` and is never retried; asks already
+  waiting behind it fail the same way and send nothing; the next ask after the outcome was reported
+  (also after a restart) starts one new trial. A start interrupted by a stopped server fails closed
+  until the owner deletes the trials folder. Its
   management credential is kept only in
   `<state dir>/profiles/<profile>/trials/` (0600) and reused across calls and restarts; it never
   appears in a tool result, URL or diagnostic. `sess_publish`, `sess_complete` and `expires_in`
@@ -18,7 +20,8 @@
   an error, never a trial.
 - `sess_request` with a refused `SESS_API_KEY` (`UNAUTHORIZED`) now says the key may be mistyped,
   expired or revoked (still `CREATE_REJECTED`).
-- Registry listing: `SESS_API_KEY` is optional (proposed wording).
+- Registry listing: `SESS_API_KEY` is optional; "No Sess signup or API key required." is approved
+  wording (founder, 2026-10-20).
 
 ## 0.1.0-rc.2 (candidate, unpublished)
 
