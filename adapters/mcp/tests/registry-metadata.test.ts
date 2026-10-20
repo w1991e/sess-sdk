@@ -40,7 +40,7 @@ describe('MCP registry metadata (server.json, schema 2025-12-11)', () => {
     });
   });
 
-  it('declares only real owner configuration; the key is required and secret; no test-only flag', () => {
+  it('declares only real owner configuration; the key is optional (trial mode) and secret; no test-only flag', () => {
     const vars = server.packages[0].environmentVariables as {
       name: string;
       isRequired: boolean;
@@ -48,8 +48,9 @@ describe('MCP registry metadata (server.json, schema 2025-12-11)', () => {
     }[];
     const known = new Set<string>(Object.values(ENV));
     for (const v of vars) expect(known.has(v.name)).toBe(true);
-    expect(vars.find((v) => v.name === ENV.apiKey)).toMatchObject({ isRequired: true, isSecret: true });
-    expect(vars.filter((v) => v.isRequired).map((v) => v.name)).toEqual([ENV.apiKey]);
+    // Without SESS_API_KEY the stdio server runs the no-signup trial, so nothing is required.
+    expect(vars.find((v) => v.name === ENV.apiKey)).toMatchObject({ isRequired: false, isSecret: true });
+    expect(vars.filter((v) => v.isRequired).map((v) => v.name)).toEqual([]);
     expect(vars.some((v) => v.name === ENV.insecureLocalhost)).toBe(false);
     // Every owner setting the server reads is declared, except the test-only localhost flag.
     expect(vars.map((v) => v.name).sort()).toEqual(

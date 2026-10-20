@@ -80,11 +80,36 @@ export function defaultStateDir(env: NodeJS.ProcessEnv, platform = process.platf
   return join(homedir(), '.local', 'state', 'sess-mcp');
 }
 
+/** Trial-mode configuration: the same owner settings without a credential (none is configured). */
+export type TrialConfig = Omit<AdapterConfig, 'apiKey' | 'expectedWorkspaceId'>;
+
+/**
+ * The local composition's mode. Trial mode only when no owner credential is configured at all:
+ * SESS_API_KEY absent or empty. A configured key that is malformed is NOT_CONFIGURED, and a key
+ * Sess refuses (invalid, expired, revoked) is reported as such: neither ever falls back to a trial.
+ */
+export type LocalConfig = { mode: 'owner'; config: AdapterConfig } | { mode: 'trial'; config: TrialConfig };
+
+export function loadLocalConfig(env: NodeJS.ProcessEnv): LocalConfig {
+  const apiKey = env[ENV.apiKey];
+  if (apiKey !== undefined && apiKey !== '') return { mode: 'owner', config: loadConfig(env) };
+  const { expectedWorkspaceId, ...config } = settings(env);
+  if (expectedWorkspaceId !== undefined)
+    return notConfigured(
+      `${ENV.workspace} applies only with ${ENV.apiKey}. Trial mode trusts the trial's own workspace; unset ${ENV.workspace}.`,
+    );
+  return { mode: 'trial', config };
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv): AdapterConfig {
   const apiKey = env[ENV.apiKey];
   if (typeof apiKey !== 'string' || !/^[\x21-\x7e]{1,4096}$/.test(apiKey)) {
     return notConfigured(`Set ${ENV.apiKey} in the MCP server environment (never in a tool argument).`);
   }
+  return { apiKey, ...settings(env) };
+}
+
+function settings(env: NodeJS.ProcessEnv): Omit<AdapterConfig, 'apiKey'> {
   const insecure = env[ENV.insecureLocalhost];
   if (insecure !== undefined && insecure !== '' && insecure !== '1' && insecure !== '0') {
     return notConfigured(`${ENV.insecureLocalhost} must be 1 or unset.`);
@@ -114,7 +139,6 @@ export function loadConfig(env: NodeJS.ProcessEnv): AdapterConfig {
     maxWaitMs = Number(maxWait);
   }
   return {
-    apiKey,
     origin,
     allowInsecureLocalhost,
     profile,

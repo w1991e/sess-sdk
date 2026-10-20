@@ -61,8 +61,8 @@
     "environmentVariables": [
       {
         "name": "SESS_API_KEY",
-        "description": "Sess developer API key (owner credential; never a tool argument).",
-        "isRequired": true,
+        "description": "Optional. No Sess signup or API key required: without a key the server runs the free trial. Set your Sess developer API key to use your plan (never a tool argument).",
+        "isRequired": false,
         "isSecret": true
       },
       {

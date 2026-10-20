@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- Trial mode (stdio): with no `SESS_API_KEY` set (unset or empty), the server uses Sess's
+  no-signup trial. The trial starts on the first `sess_ask` or `sess_request`, never on connecting
+  or listing tools; concurrent first calls start exactly one (an in-process single flight plus a
+  lock file in the state directory). Its management credential is kept only in
+  `<state dir>/profiles/<profile>/trials/` (0600) and reused across calls and restarts; it never
+  appears in a tool result, URL or diagnostic. `sess_publish`, `sess_complete` and `expires_in`
+  answer `TRIAL_UNSUPPORTED` without sending anything. Limit refusals are `TRIAL_LIMIT` and name
+  the limit; an ended trial is `TRIAL_ENDED`; no replacement trial is ever started. Receipt
+  verification and the create no-retry rule are unchanged. A configured key that Sess refuses is
+  an error, never a trial.
+- `sess_request` with a refused `SESS_API_KEY` (`UNAUTHORIZED`) now says the key may be mistyped,
+  expired or revoked (still `CREATE_REJECTED`).
+- Registry listing: `SESS_API_KEY` is optional (proposed wording).
+
 ## 0.1.0-rc.2 (candidate, unpublished)
 
 - Tool schemas `sess-mcp-tools/3`. Advanced: `sess_request` and `sess_ask` take an optional

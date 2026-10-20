@@ -12,11 +12,41 @@ not at a release. Its SDK dependency, `@sess.si/sdk@0.1.0-rc.7`, is published on
 installed tarball; everything marked _untested_ is the intended registry form. See
 [compatibility.json](compatibility.json) for the exact tuple.
 
+## Try it without a key
+
+<!-- Proposed wording, awaiting the founder's line-by-line sign-off (sess DOCS/product/copy.md). -->
+
+No Sess signup or API key required. Start the server without `SESS_API_KEY` and it runs Sess's
+free trial: your agent can ask a person with `sess_ask` or `sess_request` and read the verified
+answer with `sess_response`. To keep going, use the Free plan (up to 500 requests a month, at no
+cost): create an API key in your Sess account and set it as `SESS_API_KEY`.
+
+How trial mode works:
+
+- **Only without a key.** The server uses the trial only when `SESS_API_KEY` is unset or empty.
+  When a key is set and Sess refuses it (mistyped, expired or revoked), you get an error; the
+  server never switches to the trial.
+- **Started on the first ask.** Connecting and listing tools send nothing. The first `sess_ask`
+  or `sess_request` starts the trial; calls made at the same moment, in this process or in another
+  server on the same state directory, start exactly one.
+- **One trial, kept private.** The trial's credential is saved only in
+  `<state dir>/profiles/<profile>/trials/` (file mode 0600, folder 0700) and reused across calls
+  and restarts. It never appears in a tool result, a URL or the server's diagnostics. Deleting that
+  folder loses access to the trial's answers.
+- **What it supports.** Ask (`sess_ask`, `sess_request`) and read (`sess_response`), with the same
+  receipt verification. `sess_publish`, `sess_complete` and `expires_in` need an API key; in trial
+  mode they say so and send nothing. Trial links stay open for 1 hour.
+- **Limits.** Up to 3 requests waiting for an answer at a time and 10 requests per trial, within
+  24 hours of the trial's start; answers stay readable for 24 hours after their link closes. Sess
+  allows 3 new trials per network a day. When a limit is reached, the error names it
+  (`TRIAL_LIMIT`) and how to keep going on the Free plan. The server never starts another trial to
+  get around a limit; an ended trial is `TRIAL_ENDED`.
+
 ## Set up with Claude Code (connection tested) or Cursor (untested)
 
 You need Node 22.14 or later on 22.x, or Node 24 (qualified on 22.14.0 and 24.21.0), and a Sess
-developer API key from [the Sess developer portal](https://app.sess.si). Never paste the key into
-a chat or a tool argument, and never commit it.
+developer API key from [the Sess developer portal](https://app.sess.si) (or no key, for the
+trial above). Never paste the key into a chat or a tool argument, and never commit it.
 
 ### Claude Code
 
@@ -194,6 +224,9 @@ Codes map to the shared adapter error classes (`adapters/CONTRACT.md`, "Error cl
 | `RECOVERY_BLOCKED`                                                                                        | `blocked`                       | No; owner resolution                                                                                                                                  |
 | `SESS_UNAVAILABLE`                                                                                        | `unavailable`                   | Yes, later; nothing changed                                                                                                                           |
 | `NOT_CONFIGURED`, `SESS_PROTOCOL_ERROR`                                                                   | `configuration`                 | After the owner fixes the configuration                                                                                                               |
+| `TRIAL_UNSUPPORTED` (trial mode)                                                                          | `configuration`                 | No; nothing was sent. Set `SESS_API_KEY` (Free plan)                                                                                                  |
+| `TRIAL_ENDED`, `TRIAL_UNAVAILABLE` (trial mode)                                                           | `create_rejected`               | No; no Session exists. Set `SESS_API_KEY` (Free plan)                                                                                                 |
+| `TRIAL_LIMIT` (trial mode)                                                                                | `create_rejected`               | Only if `retryable` is true (requests waiting for an answer), after the time in the message; otherwise set `SESS_API_KEY`                             |
 | `STATE_STORE_ERROR`, `STATE_STORE_FULL`                                                                   | `store`                         | Only if `retryable` is true (a transient read/write failure); unreadable, inconsistent or unsupported-version records and a full store need the owner |
 
 Receipt verification is classified by the shared core (`src/internal/shared.ts`, a byte-identical
@@ -211,13 +244,13 @@ blocks like a definitive rejection.
 
 | Variable                                 | Meaning                                                                                                                                           |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SESS_API_KEY`                           | Required. Read on the first tool call, never at startup or from arguments.                                                                        |
+| `SESS_API_KEY`                           | Optional. Read on the first tool call, never at startup or from arguments. Unset or empty: trial mode (above).                                    |
 | `SESS_API_ORIGIN`                        | Default `https://api.sess.si`. Another origin must be HTTPS without path, query or credentials.                                                   |
 | `SESS_MCP_PROFILE`                       | Profile name, default `default`.                                                                                                                  |
 | `SESS_MCP_STATE_DIR`                     | Absolute state directory. Default `$XDG_STATE_HOME/sess-mcp`, `~/.local/state/sess-mcp`, or `%LOCALAPPDATA%\sess-mcp` (Windows is not qualified). |
 | `SESS_MCP_MAX_WAIT_MS`                   | Lower the 45 000 ms wait ceiling.                                                                                                                 |
 | `SESS_RECEIPT_ISSUER`                    | Receipt issuer if it differs from the API origin.                                                                                                 |
-| `SESS_EXPECTED_WORKSPACE_ID`             | Trusted workspace for a runtime that does not return `Sess-Workspace-Id`.                                                                         |
+| `SESS_EXPECTED_WORKSPACE_ID`             | Trusted workspace for a runtime that does not return `Sess-Workspace-Id`. Not with trial mode, which trusts the trial's own workspace.            |
 | `SESS_MCP_TEST_ALLOW_INSECURE_LOCALHOST` | Testing only: `1` allows `http://localhost`, `127.0.0.1` or `[::1]` origins.                                                                      |
 
 ## Security and support boundary
@@ -226,7 +259,9 @@ blocks like a definitive rejection.
   server does not invent one. Anyone who can call its tools acts for the configured key. Run it only
   for your own private client. Handles are bound to the profile, API origin and a credential
   generation (a keyed digest stored per profile; the key itself is never written). A handle from
-  another profile, origin or key is rejected.
+  another profile, origin or key is rejected. In trial mode the trial's credential plays the key's
+  part: anyone who can call the tools acts for the trial, and trial handles are bound apart from
+  any key's (setting a key later does not open them).
 - **The Sess link is a bearer capability.** It is returned only by `sess_request` (or its shortcut `sess_ask`), to your private
   client. It is never written to stderr diagnostics, which carry only fixed event names and codes.
   Anyone with the link can answer as `link_holder`.

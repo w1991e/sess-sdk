@@ -6,8 +6,9 @@ import {
   type CreateSessionRequest,
   type PublishSessionRequest,
 } from '@sess.si/sdk';
-import { loadConfig, type AdapterConfig } from './config.js';
+import { loadLocalConfig, type AdapterConfig } from './config.js';
 import { AdapterError, type Diagnostics } from './errors.js';
+import { TrialRefusal, TrialStateStore, createTrialClient, trialUnsupported } from './trial.js';
 import {
   ProfileHandleStore,
   RECORD_SCHEMA,
@@ -81,17 +82,28 @@ export interface OperationContext {
   store: HandleStore;
   /** Upper bound and default for one sess_response wait. */
   maxWaitMs: number;
+  /** Trial mode (no owner credential configured): only the operations the trial routes offer. */
+  trial?: true;
 }
 
 /**
+ * The trial's binding key for the profile store. It contains a NUL, which no configured owner key
+ * can (printable ASCII only), so trial records and owner records never share a binding.
+ */
+const TRIAL_BINDING_KEY = '\u0000sess-mcp-trial';
+
+/**
  * Local (stdio) composition: the owner credential and profile store come from the server process
- * environment on the first tool call, exactly as before.
+ * environment on the first tool call, exactly as before. With no SESS_API_KEY configured at all,
+ * the composition runs in trial mode: the trial starts on the first create, never on connecting.
  */
 export interface LocalAdapterOptions {
   env: NodeJS.ProcessEnv;
   diagnostics: Diagnostics;
   /** Test seam only; never reachable from tool arguments. */
   createClient?: (config: AdapterConfig) => SessClient;
+  /** Test seam only (trial mode's HTTP); never reachable from tool arguments. */
+  fetch?: typeof globalThis.fetch;
   now?: () => Date;
   context?: never;
 }
@@ -194,7 +206,27 @@ export class SessMcpAdapter {
 
   /** The local composition: env credential and profile store, read on the first tool call. */
   async #local(options: LocalAdapterOptions): Promise<OperationContext> {
-    const config = loadConfig(options.env);
+    const local = loadLocalConfig(options.env);
+    if (local.mode === 'trial') {
+      const config = local.config;
+      const store = await ProfileHandleStore.open(
+        config.stateDir,
+        config.profile,
+        config.origin,
+        TRIAL_BINDING_KEY,
+      );
+      const client = createTrialClient({
+        config,
+        state: new TrialStateStore(config.stateDir, config.profile, config.origin),
+        diagnostics: options.diagnostics,
+        protect: (secret) => this.#secrets.push(secret),
+        ...(options.fetch ? { fetch: options.fetch } : {}),
+        ...(options.now ? { now: () => options.now!().getTime() } : {}),
+      });
+      options.diagnostics('configured', { profile: config.profile, mode: 'trial' });
+      return { client, store, maxWaitMs: config.maxWaitMs, trial: true };
+    }
+    const config = local.config;
     this.#secrets.push(config.apiKey);
     const store = await ProfileHandleStore.open(
       config.stateDir,
@@ -249,7 +281,8 @@ export class SessMcpAdapter {
 
   /** request: persist intent, create exactly once, persist, then return URL and handle immediately. */
   async request(args: RequestArgs): Promise<AdapterResult> {
-    const { store, client } = await this.#ctx();
+    const { store, client, trial } = await this.#ctx();
+    if (trial && args.expiresIn !== undefined) throw trialUnsupported('expires_in');
     await store.assertCapacity();
     const body = {
       interaction: args.interaction,
@@ -276,7 +309,14 @@ export class SessMcpAdapter {
       if (error instanceof SessError && (error.outcome === 'not_sent' || error.outcome === 'rejected')) {
         await store.discard(record.handle);
         this.#options.diagnostics('create_rejected', { code: sessCode(error) });
+        // Trial mode: a named limit, an ended trial or an unsupported option. Never a new trial.
+        if (error instanceof TrialRefusal) throw error.adapterError;
         const code = safeCode(error);
+        if (!trial && code === 'UNAUTHORIZED')
+          throw new AdapterError(
+            'CREATE_REJECTED',
+            'Sess did not accept SESS_API_KEY (UNAUTHORIZED): it may be mistyped, expired or revoked. Nothing was created. Set a working key for this server; while a key is set, it never switches to trial mode.',
+          );
         const detail = code ? ` (${code})` : '';
         throw new AdapterError('CREATE_REJECTED', `Sess did not create the interaction${detail}.`);
       }
@@ -792,7 +832,8 @@ export class SessMcpAdapter {
   }
 
   async complete(args: CompleteArgs): Promise<AdapterResult> {
-    const { store, client } = await this.#ctx();
+    const { store, client, trial } = await this.#ctx();
+    if (trial) throw trialUnsupported('complete');
     const prepared = await this.#prepare('complete', args);
     if ('done' in prepared) return prepared.done;
     const { record, pending } = prepared;
@@ -854,7 +895,8 @@ export class SessMcpAdapter {
   }
 
   async publish(args: PublishArgs): Promise<AdapterResult> {
-    const { store, client } = await this.#ctx();
+    const { store, client, trial } = await this.#ctx();
+    if (trial) throw trialUnsupported('publish');
     const body = { interaction: args.interaction };
     const prepared = await this.#prepare('publish', args, body);
     if ('done' in prepared) return prepared.done;

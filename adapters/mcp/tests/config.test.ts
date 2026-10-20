@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { loadConfig } from '../src/config.js';
+import { loadConfig, loadLocalConfig } from '../src/config.js';
 import { AdapterError, redact, stderrDiagnostics } from '../src/errors.js';
 import { VERSION } from '../src/version.js';
 
@@ -29,6 +29,20 @@ describe('owner-controlled configuration', () => {
   it('requires a key from the environment and never echoes it', () => {
     expect(notConfigured({ SESS_MCP_STATE_DIR: '/tmp/x' })).toContain('SESS_API_KEY');
     expect(notConfigured({ ...base, SESS_API_KEY: 'has space' })).not.toContain('has space');
+  });
+
+  it('selects trial mode only when no key is configured at all; a configured key is never replaced', () => {
+    const settings = { SESS_MCP_STATE_DIR: '/tmp/x' };
+    expect(loadLocalConfig(settings).mode).toBe('trial');
+    expect(loadLocalConfig({ ...settings, SESS_API_KEY: '' }).mode).toBe('trial');
+    expect('apiKey' in loadLocalConfig(settings).config).toBe(false);
+    expect(loadLocalConfig(base)).toMatchObject({ mode: 'owner', config: { apiKey: base.SESS_API_KEY } });
+    try {
+      loadLocalConfig({ ...base, SESS_API_KEY: 'has space' });
+      throw new Error('expected NOT_CONFIGURED');
+    } catch (error) {
+      expect((error as AdapterError).code).toBe('NOT_CONFIGURED');
+    }
   });
 
   it('accepts alternative origins only over HTTPS; localhost HTTP only behind the test flag', () => {

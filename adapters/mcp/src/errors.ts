@@ -23,7 +23,15 @@ export type AdapterErrorCode =
   | 'SESS_UNAVAILABLE'
   | 'SESS_PROTOCOL_ERROR'
   | 'STATE_STORE_ERROR'
-  | 'STATE_STORE_FULL';
+  | 'STATE_STORE_FULL'
+  /** Trial mode (no SESS_API_KEY): the operation needs an API key. Nothing was sent. */
+  | 'TRIAL_UNSUPPORTED'
+  /** Trial mode: Sess refused a create for a named trial limit. Nothing was created. */
+  | 'TRIAL_LIMIT'
+  /** Trial mode: the saved trial no longer exists on Sess. Nothing was created; no new trial is started. */
+  | 'TRIAL_ENDED'
+  /** Trial mode: this Sess API has no trial. Nothing was created. */
+  | 'TRIAL_UNAVAILABLE';
 
 export class AdapterError extends Error {
   readonly code: AdapterErrorCode;

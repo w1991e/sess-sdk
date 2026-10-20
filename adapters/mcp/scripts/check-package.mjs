@@ -176,7 +176,9 @@ process.env = env;
   );
   run(process.execPath, ['import-smoke.mjs'], consumer);
 
-  // The installed bin over stdio, with an environment that has no SESS credential at all.
+  // The installed bin over stdio, with an environment that has no SESS credential at all (trial
+  // mode). Nothing here may reach Sess or start a trial: listing writes nothing, an unknown handle
+  // fails closed before any request, and an operation the trial lacks is refused before any request.
   const env = { PATH: process.env.PATH ?? '', SESS_MCP_STATE_DIR: state };
   const session = await connectStdio({ binPath, env, cwd: consumer });
   let tools;
@@ -197,18 +199,34 @@ process.env = env;
       for (const forbidden of ['api_key', 'origin', 'base_url', 'workspace_id', 'session_id', 'callback_url'])
         assert(!(forbidden in tool.inputSchema.properties), `${tool.name} accepts ${forbidden}`);
     }
+    assert(!existsSync(join(state, 'profiles')), 'tools/list wrote local state');
     const missing = await session.client.callTool({
       name: 'sess_response',
       arguments: { handle: 'sh_AAAAAAAAAAAAAAAAAAAAAA', revision: 1 },
     });
     assert(
-      missing.isError && missing.content[0].text.includes('NOT_CONFIGURED'),
-      'unconfigured call must fail closed',
+      missing.isError && missing.content[0].text.includes('HANDLE_NOT_FOUND'),
+      'an unknown handle must fail closed without a credential',
+    );
+    const unsupported = await session.client.callTool({
+      name: 'sess_complete',
+      arguments: {
+        handle: 'sh_AAAAAAAAAAAAAAAAAAAAAA',
+        expected_revision: 1,
+        response_event_id: 'evt_00000000000000000000000001',
+      },
+    });
+    assert(
+      unsupported.isError && unsupported.content[0].text.includes('TRIAL_UNSUPPORTED'),
+      'trial mode must refuse sess_complete before any request',
     );
   } finally {
     await session.close();
   }
-  assert(!existsSync(join(state, 'profiles')), 'tools/list or an unconfigured call wrote local state');
+  assert(
+    !existsSync(join(state, 'profiles', 'default', 'trials')),
+    'a call without a create started a trial',
+  );
 
   // Raw JSON-RPC: the server itself must reject unknown and unsafe keys, whatever a client does.
   const raw = await rawExchange(binPath, env, [
@@ -335,7 +353,7 @@ process.stdout.write(JSON.stringify({
       `offline --ignore-scripts install of packed adapter + ${install.sdkMode} SDK`,
       'no import-time network/timers/output/file reads/SESS env reads',
       'installed bin initialize + tools/list via official MCP client',
-      'unconfigured call fails closed without writing state',
+      'no credential (trial mode): tools/list writes nothing; unknown handle and sess_complete fail closed; no trial started',
       'server-side rejection of __proto__ and unknown argument keys',
       'import boundary: node:, own relative files, @modelcontextprotocol/server(/stdio), @modelcontextprotocol/node and SESS SDK only',
       'exports: ./http (with types) and ./package.json only',
