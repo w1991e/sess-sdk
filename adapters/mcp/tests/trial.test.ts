@@ -313,6 +313,70 @@ describe('trial mode: a trial start whose outcome is unknown (MCP-TRIAL-START-UN
     expect(handleStates()).toEqual(['create_unknown', 'waiting']);
   });
 
+  it('an ask that begins while the lost start is still being reported fails closed (MCP-TRIAL-REPORT-ORDER-03)', async () => {
+    const stub = new TrialStub();
+    stub.loseNextCreate = true;
+    const proto = TrialStateStore.prototype;
+    const write = proto.writeStartIntent;
+    const withLock = proto.withLock;
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let paused!: () => void;
+    const reporting = new Promise<void>((r) => (paused = r));
+    let lockEntries = 0;
+    proto.writeStartIntent = async function (this: TrialStateStore, ...args: Parameters<typeof write>) {
+      // Pause only the report mark (the write that carries reportedAt), after its clock sample.
+      if (args[1] !== undefined) {
+        paused();
+        await gate;
+      }
+      return write.apply(this, args);
+    };
+    proto.withLock = function (this: TrialStateStore, fn: () => Promise<unknown>) {
+      lockEntries++;
+      return withLock.call(this, fn);
+    } as typeof withLock;
+    try {
+      let firstSettled = false;
+      const firstAsk = trialAdapter(stub)
+        .request(ask())
+        .finally(() => (firstSettled = true));
+      await reporting;
+      // Real time moves past the report's clock sample; a second adapter's ask then begins and
+      // waits for the lock while the report write is still pending.
+      await later();
+      const entered = lockEntries;
+      const secondAsk = trialAdapter(stub).request(ask());
+      while (lockEntries === entered) await new Promise((r) => setTimeout(r, 1));
+      await later();
+      expect(firstSettled).toBe(false);
+      release();
+      const [first, second] = await Promise.allSettled([firstAsk, secondAsk]);
+      expect(first.status).toBe('rejected');
+      expect(second.status).toBe('rejected');
+      const one = (first as PromiseRejectedResult).reason as AdapterError;
+      const two = (second as PromiseRejectedResult).reason as AdapterError;
+      expect([one.code, one.message]).toEqual(['CREATE_OUTCOME_UNKNOWN', TRIAL_START_LOST]);
+      expect([two.code, two.message]).toEqual(['CREATE_OUTCOME_UNKNOWN', TRIAL_START_QUEUED]);
+      // One anonymous POST, one trial; the queued ask got no handle.
+      expect(stub.anonymousCreates()).toHaveLength(1);
+      expect(stub.trials.size).toBe(1);
+      expect(handleStates()).toEqual(['create_unknown']);
+    } finally {
+      proto.writeStartIntent = write;
+      proto.withLock = withLock;
+    }
+    // Control: an ask that begins after the report is persisted starts exactly one fresh trial,
+    // which is then reused.
+    const next = trialAdapter(stub);
+    expect((await next.request(ask())).interaction.state).toBe('waiting');
+    expect(stub.anonymousCreates()).toHaveLength(2);
+    expect(stub.trials.size).toBe(2);
+    await trialAdapter(stub).request(ask());
+    expect(stub.anonymousCreates()).toHaveLength(2);
+    expect(handleStates()).toEqual(['create_unknown', 'waiting', 'waiting']);
+  });
+
   it('after a lost start, concurrent next asks still start exactly one trial', async () => {
     const stub = new TrialStub();
     stub.loseNextCreate = true;

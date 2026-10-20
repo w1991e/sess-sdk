@@ -123,9 +123,19 @@ export const TRIAL_START_LOST =
 export const TRIAL_START_QUEUED =
   'A trial start a moment ago has an unknown outcome, so this ask was not sent. The next ask will start a new trial.';
 
-/** A start intent as saved: `reportedAt` is set once its unknown outcome was returned to a caller. */
+/**
+ * A start intent as read. `key` names that start (its saved `at` and random `id`); `reported` is
+ * true once its unknown outcome was durably marked, just before that outcome is returned.
+ */
 export interface StartIntent {
-  reportedAt?: number;
+  key?: string;
+  reported: boolean;
+}
+
+/** One trial start's identity, saved in its intent before the anonymous create is sent. */
+export interface StartIdentity {
+  at: string;
+  id: string;
 }
 
 /**
@@ -136,9 +146,13 @@ export interface StartIntent {
  * - `<origin digest>.start.json`: a start intent, written durably before the anonymous start is
  *   sent. It is replaced by the trial record on a confirmed start and removed on a definite refusal.
  *   On an unknown outcome it is kept and marked reported (`reportedAt`) when that outcome is
- *   returned. A create that began waiting at or before `reportedAt` fails closed (no second start
- *   from calls queued behind the lost one); a create that began after it may clear the intent and
- *   start a fresh trial, under the lock (founder answer 2, 2026-10-20). An intent never marked
+ *   returned. The persisted record, not a clock, decides who may start again: every create reads
+ *   the intent when it begins, before it waits for the lock. Only a create that had already seen
+ *   this same start (same `at` and `id`) durably marked reported is a later ask; it may replace
+ *   the intent and start a fresh trial, under the lock (founder answer 2, 2026-10-20). A create
+ *   that began before the mark was saved (it saw no intent, an unreported one or another start)
+ *   was queued behind the lost start and fails closed, in this process or another sharing the
+ *   state directory: no second start from calls queued behind the lost one. An intent never marked
  *   reported (a server stopped mid-start) fails closed until the owner resolves it;
  * - `<origin digest>.json.lock`: the lock, holding its owner's pid and a random token.
  *
@@ -172,27 +186,43 @@ export class TrialStateStore {
       throw new AdapterError('STATE_STORE_ERROR', 'The saved Sess trial could not be read.', true);
     }
     try {
-      const value = JSON.parse(text) as { schema?: unknown; origin?: unknown; reportedAt?: unknown };
+      const value = JSON.parse(text) as {
+        schema?: unknown;
+        origin?: unknown;
+        at?: unknown;
+        id?: unknown;
+        reportedAt?: unknown;
+      };
       if (
         value.schema === 1 &&
         value.origin === this.#origin &&
-        Number.isSafeInteger(value.reportedAt) &&
-        (value.reportedAt as number) > 0
+        typeof value.at === 'string' &&
+        typeof value.id === 'string'
       )
-        return { reportedAt: value.reportedAt as number };
+        return {
+          key: JSON.stringify([value.at, value.id]),
+          reported: Number.isSafeInteger(value.reportedAt) && (value.reportedAt as number) > 0,
+        };
     } catch {
       // Unreadable: unreported.
     }
-    return {};
+    return { reported: false };
   }
 
-  async writeStartIntent(at: string, reportedAt?: number): Promise<void> {
+  /** Saves the intent for `start`; with `reportedAt`, marks its unknown outcome as reported. */
+  async writeStartIntent(start: StartIdentity, reportedAt?: number): Promise<void> {
     try {
       await mkdir(this.#dir, { recursive: true, mode: 0o700 });
       await atomicWrite(
         this.#intent,
         this.#dir,
-        JSON.stringify({ schema: 1, origin: this.#origin, at, ...(reportedAt ? { reportedAt } : {}) }),
+        JSON.stringify({
+          schema: 1,
+          origin: this.#origin,
+          at: start.at,
+          id: start.id,
+          ...(reportedAt ? { reportedAt } : {}),
+        }),
       );
     } catch {
       throw new AdapterError(
@@ -557,8 +587,11 @@ export function createTrialClient(options: TrialClientOptions): SessClient {
    * refusal, and kept on an unknown outcome (later creates then fail closed).
    */
   async function start(body: { interaction: unknown }) {
-    const at = new Date(now()).toISOString();
-    await store.writeStartIntent(at);
+    const identity: StartIdentity = {
+      at: new Date(now()).toISOString(),
+      id: randomBytes(16).toString('base64url'),
+    };
+    await store.writeStartIntent(identity);
     let result;
     try {
       result = await dispatchStart(body);
@@ -573,10 +606,14 @@ export function createTrialClient(options: TrialClientOptions): SessClient {
         throw error;
       }
       if (error instanceof SessError && error.outcome === 'unknown') {
-        // Marked reported, still under the lock, just before the outcome is returned: calls already
-        // waiting fail closed; a call that begins after this may start a fresh trial. If the mark
-        // cannot be saved, the intent stays unreported and every later call fails closed.
-        await store.writeStartIntent(at, Date.now()).catch(() => diagnostics('trial_intent_not_reported'));
+        // Marked reported, still under the lock, just before the outcome is returned. Only a call
+        // that begins after this mark is saved (and so reads it) may start a fresh trial; a call
+        // that began earlier, including while this write is pending, fails closed. `reportedAt` is
+        // a record, never the boundary. If the mark cannot be saved, the intent stays unreported
+        // and every later call fails closed.
+        await store
+          .writeStartIntent(identity, Date.now())
+          .catch(() => diagnostics('trial_intent_not_reported'));
         throw new TrialStartUnknown(error);
       }
       throw error;
@@ -700,21 +737,24 @@ export function createTrialClient(options: TrialClientOptions): SessClient {
       if ((request as { expires_in?: unknown }).expires_in !== undefined)
         throw new TrialRefusal(trialUnsupported('expires_in'), 'not_sent');
       let existing: TrialState | undefined;
-      // When this call began, before it waited for the lock (the same wall clock as `reportedAt`).
-      const began = Date.now();
+      // What this call saw when it began, before it waited for the lock: the persisted start
+      // intent, shared by every process on this state directory. An unreadable intent counts as
+      // nothing seen, so a lost start found under the lock then fails this call closed.
+      const seen = await store.readStartIntent().catch(() => undefined);
       // Single flight: the first create starts the trial while holding the lock; every concurrent
       // or later create (in this process or another sharing the state) reuses the saved trial, and
       // a saved trial is never replaced. A start intent without a trial record is an earlier start
-      // of unknown outcome: calls that were already waiting fail closed; a call that began after
-      // that outcome was reported starts a fresh trial (start() atomically replaces the intent).
+      // of unknown outcome. A call that began before that outcome's report was saved was queued
+      // behind the lost start and fails closed. Only a call that began after it, having already
+      // seen that same start marked reported, starts a fresh trial (start() replaces the intent).
       const first = await store
         .withLock(async () => {
           existing = await store.read();
           if (existing) return undefined;
           const intent = await store.readStartIntent();
           if (intent) {
-            if (intent.reportedAt === undefined) throw startUnknown();
-            if (began <= intent.reportedAt)
+            if (!intent.reported) throw startUnknown();
+            if (!seen?.reported || seen.key === undefined || seen.key !== intent.key)
               throw new AdapterError('CREATE_OUTCOME_UNKNOWN', TRIAL_START_QUEUED);
             diagnostics('trial_restart_after_unknown');
           }
