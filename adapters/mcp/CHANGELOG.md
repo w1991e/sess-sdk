@@ -5,7 +5,11 @@
 - Trial mode (stdio): with no `SESS_API_KEY` set (unset or empty), the server uses Sess's
   no-signup trial. The trial starts on the first `sess_ask` or `sess_request`, never on connecting
   or listing tools; concurrent first calls start exactly one (an in-process single flight plus a
-  lock file in the state directory). Its management credential is kept only in
+  lock file in the state directory; a lock left by an exited process fails closed until the owner
+  removes it, and release checks ownership). A durable start intent is saved before the anonymous
+  start is sent; while a start's outcome is unknown, every ask fails closed with
+  `CREATE_OUTCOME_UNKNOWN` and sends nothing, across restarts, until the owner resolves it. Its
+  management credential is kept only in
   `<state dir>/profiles/<profile>/trials/` (0600) and reused across calls and restarts; it never
   appears in a tool result, URL or diagnostic. `sess_publish`, `sess_complete` and `expires_in`
   answer `TRIAL_UNSUPPORTED` without sending anything. Limit refusals are `TRIAL_LIMIT` and name

@@ -1,5 +1,6 @@
-import { generateKeyPairSync } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { createHash, generateKeyPairSync } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
@@ -8,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AdapterError } from '../src/errors.js';
 import { SessMcpAdapter } from '../src/operations.js';
 import { createSessMcpServer } from '../src/server.js';
-import { TRIAL_LIMITS, trialReadFetch } from '../src/trial.js';
+import { TRIAL_LIMITS, TrialStateStore, trialReadFetch } from '../src/trial.js';
 import { parseAskArgs } from '../src/validate.js';
 import { tempDir } from './helpers.js';
 import { TrialStub } from './trial-stub.js';
@@ -234,23 +235,151 @@ describe('trial mode: only what the trial supports', () => {
     expect(error.code).toBe('VERIFICATION_FAILED');
   });
 
-  it('a lost create response stays "outcome unknown"; it is never retried and a lost start saves no trial', async () => {
+  it('a lost create response in a started trial stays "outcome unknown" and is never retried', async () => {
     const stub = new TrialStub();
     const adapter = trialAdapter(stub);
+    await adapter.request(ask());
     stub.loseNextCreate = true;
     const lost = await failure(adapter.request(ask()));
     expect(lost.code).toBe('CREATE_OUTCOME_UNKNOWN');
-    expect(lost.message).toMatch(/not retried|Do not call/);
-    expect(stub.calls.filter((c) => c.method === 'POST')).toHaveLength(1);
-    expect(trialFiles()).toEqual([]);
-    // The same for a later create in a started trial.
-    await adapter.request(ask());
-    stub.loseNextCreate = true;
-    const again = await failure(adapter.request(ask()));
-    expect(again.code).toBe('CREATE_OUTCOME_UNKNOWN');
+    expect(lost.message).toMatch(/not retried/);
+    expect(stub.calls.filter((c) => c.method === 'POST')).toHaveLength(2);
     const handles = join(dir.path, 'profiles', 'default', 'handles');
     const states = readdirSync(handles).map((n) => JSON.parse(readFileSync(join(handles, n), 'utf8')).state);
-    expect(states.sort()).toEqual(['create_unknown', 'create_unknown', 'waiting']);
+    expect(states.sort()).toEqual(['create_unknown', 'waiting']);
+  });
+});
+
+describe('trial mode: a trial start whose outcome is unknown fails closed (MCP-TRIAL-START-UNKNOWN-01)', () => {
+  it('concurrent asks with a lost first start send exactly one anonymous POST; a restart sends none', async () => {
+    const stub = new TrialStub();
+    stub.loseNextCreate = true;
+    stub.createDelayMs = 40;
+    const one = trialAdapter(stub);
+    const two = trialAdapter(stub);
+    const results = await Promise.allSettled([one.request(ask()), one.request(ask()), two.request(ask())]);
+    expect(results.map((r) => r.status)).toEqual(['rejected', 'rejected', 'rejected']);
+    for (const r of results)
+      expect(((r as PromiseRejectedResult).reason as AdapterError).code).toBe('CREATE_OUTCOME_UNKNOWN');
+    const messages = results.map((r) => ((r as PromiseRejectedResult).reason as AdapterError).message);
+    expect(messages.filter((m) => m.includes('outcome is unknown, so no new trial is started'))).toHaveLength(
+      2,
+    );
+    expect(stub.anonymousCreates()).toHaveLength(1);
+    // Sess applied the lost start: one trial exists, and no second one was made.
+    expect(stub.trials.size).toBe(1);
+    expect(trialFiles()).toEqual([expect.stringMatching(/\.start\.json$/)]);
+    // A restart (a new instance on the same state) also fails closed and sends nothing.
+    const before = stub.calls.length;
+    const restarted = await failure(trialAdapter(stub).request(ask()));
+    expect(restarted.code).toBe('CREATE_OUTCOME_UNKNOWN');
+    expect(restarted.message).toContain('trials folder');
+    expect(restarted.message).toContain('Free plan');
+    expect(stub.calls.length).toBe(before);
+    // The failed-closed asks left no handle records; the lost one is create_unknown.
+    const handles = join(dir.path, 'profiles', 'default', 'handles');
+    const states = readdirSync(handles).map((n) => JSON.parse(readFileSync(join(handles, n), 'utf8')).state);
+    expect(states).toEqual(['create_unknown']);
+  });
+
+  it('the start intent is saved (0600) before the anonymous POST is sent', async () => {
+    const stub = new TrialStub();
+    const trials = join(dir.path, 'profiles', 'default', 'trials');
+    let seen: string[] = [];
+    const fetchSpy = (async (input: string | URL | Request, init?: RequestInit) => {
+      if (String(input).endsWith('/v1/trial/sessions')) {
+        seen = readdirSync(trials);
+        if (process.platform !== 'win32')
+          for (const n of seen) expect(statSync(join(trials, n)).mode & 0o777).toBe(0o600);
+      }
+      return stub.fetch(input, init);
+    }) as typeof fetch;
+    const adapter = new SessMcpAdapter({ env: trialEnv(stub), diagnostics: () => {}, fetch: fetchSpy });
+    await adapter.request(ask());
+    expect(seen.some((n) => n.endsWith('.start.json'))).toBe(true);
+    expect(seen.some((n) => /^[0-9a-f]{32}\.json$/.test(n))).toBe(false);
+    // Promoted: only the trial record remains.
+    expect(trialFiles()).toEqual([expect.stringMatching(/^[0-9a-f]{32}\.json$/)]);
+  });
+
+  it('a definite refusal clears the intent, so a later ask may start the trial', async () => {
+    const stub = new TrialStub();
+    stub.newTrials = 3;
+    const adapter = trialAdapter(stub);
+    expect((await failure(adapter.request(ask()))).code).toBe('TRIAL_LIMIT');
+    expect(trialFiles()).toEqual([]);
+    stub.newTrials = 0;
+    expect((await adapter.request(ask())).interaction.state).toBe('waiting');
+    expect(stub.anonymousCreates()).toHaveLength(2);
+    expect(stub.trials.size).toBe(1);
+  });
+
+  it('the owner resolution (deleting the trials folder) lets a new trial start', async () => {
+    const stub = new TrialStub();
+    stub.loseNextCreate = true;
+    await failure(trialAdapter(stub).request(ask()));
+    expect((await failure(trialAdapter(stub).request(ask()))).code).toBe('CREATE_OUTCOME_UNKNOWN');
+    rmSync(join(dir.path, 'profiles', 'default', 'trials'), { recursive: true });
+    expect((await trialAdapter(stub).request(ask())).interaction.state).toBe('waiting');
+    expect(stub.anonymousCreates()).toHaveLength(2);
+  });
+});
+
+describe('trial mode: the trial lock (MCP-TRIAL-LOCK-02)', () => {
+  const lockPath = (stub: TrialStub) => {
+    const name = createHash('sha256').update(stub.origin, 'utf8').digest('hex').slice(0, 32);
+    return join(dir.path, 'profiles', 'default', 'trials', `${name}.json.lock`);
+  };
+  const deadPid = () => {
+    const child = spawnSync(process.execPath, ['-e', '']);
+    return child.pid!;
+  };
+
+  it('two reclaimers of a stale lock both fail closed; neither removes it or sends anything', async () => {
+    const stub = new TrialStub();
+    const lock = lockPath(stub);
+    mkdirSync(join(lock, '..'), { recursive: true, mode: 0o700 });
+    const stale = JSON.stringify({ pid: deadPid(), token: 'stale-holder' });
+    writeFileSync(lock, stale, { mode: 0o600 });
+    const results = await Promise.allSettled([
+      trialAdapter(stub).request(ask()),
+      trialAdapter(stub).request(ask()),
+    ]);
+    for (const r of results) {
+      expect(r.status).toBe('rejected');
+      const error = (r as PromiseRejectedResult).reason as AdapterError;
+      expect(error.code).toBe('STATE_STORE_ERROR');
+      expect(error.message).toContain('.lock');
+    }
+    expect(readFileSync(lock, 'utf8')).toBe(stale);
+    expect(stub.calls).toHaveLength(0);
+  });
+
+  it('waits for a live holder, then proceeds once it releases', async () => {
+    const stub = new TrialStub();
+    const lock = lockPath(stub);
+    mkdirSync(join(lock, '..'), { recursive: true, mode: 0o700 });
+    writeFileSync(lock, JSON.stringify({ pid: process.pid, token: 'live-holder' }), { mode: 0o600 });
+    const pending = trialAdapter(stub).request(ask());
+    await new Promise((r) => setTimeout(r, 150));
+    expect(stub.calls).toHaveLength(0);
+    rmSync(lock);
+    expect((await pending).interaction.state).toBe('waiting');
+    expect(stub.anonymousCreates()).toHaveLength(1);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it('release never removes a replacement live holder’s lock', async () => {
+    const stub = new TrialStub();
+    const store = new TrialStateStore(dir.path, 'default', stub.origin);
+    const lock = lockPath(stub);
+    const replacement = JSON.stringify({ pid: process.pid, token: 'replacement-holder' });
+    await store.withLock(async () => {
+      expect(JSON.parse(readFileSync(lock, 'utf8')).pid).toBe(process.pid);
+      // Another holder's lock replaces ours while we hold the section.
+      writeFileSync(lock, replacement, { mode: 0o600 });
+    });
+    expect(readFileSync(lock, 'utf8')).toBe(replacement);
   });
 });
 

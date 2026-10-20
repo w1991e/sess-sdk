@@ -10,7 +10,7 @@
 //
 // Reads and receipt verification use the unchanged @sess.si/sdk client, whose owner read paths are
 // mapped onto the trial read route by a narrow fetch adapter (below).
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Sess, SessError, type CreateSessionRequest } from '@sess.si/sdk';
@@ -104,15 +104,34 @@ function processAlive(pid: number): boolean {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** The owner resolution for a trial start whose outcome is unknown (no path: errors never name one). */
+function startUnknown(): AdapterError {
+  return new AdapterError(
+    'CREATE_OUTCOME_UNKNOWN',
+    `A Sess trial start from this server may already exist, but its outcome is unknown, so no new trial is started and nothing was sent. To start fresh, the owner deletes the trials folder in this server's state directory. ${FREE_PLAN_NEXT}`,
+  );
+}
+
 /**
- * The trial's protected state for one profile and API origin:
- * `<stateDir>/profiles/<profile>/trials/<origin digest>.json`, mode 0600 in a 0700 directory.
+ * The trial's protected state for one profile and API origin, in
+ * `<stateDir>/profiles/<profile>/trials/` (0700), each file 0600:
+ *
+ * - `<origin digest>.json`: the confirmed trial and its credential;
+ * - `<origin digest>.start.json`: a start intent, written durably before the anonymous start is
+ *   sent. It is replaced by the trial record on a confirmed start and removed only on a definite
+ *   refusal. While it exists without a trial record, the start's outcome is unknown and every create
+ *   fails closed, in this process, in queued calls and after restarts, until the owner resolves it;
+ * - `<origin digest>.json.lock`: the lock, holding its owner's pid and a random token.
+ *
  * `withLock` serializes trial starts within this process (single flight) and across processes
- * sharing the state directory (an exclusive lock file naming its holder's pid).
+ * sharing the state directory. A lock whose holder process has exited is never reclaimed
+ * automatically: the call fails closed and names the cleanup. Release removes the lock only while
+ * it still holds this owner's token.
  */
 export class TrialStateStore {
   readonly #dir: string;
   readonly #path: string;
+  readonly #intent: string;
   readonly #origin: string;
   #queue: Promise<unknown> = Promise.resolve();
 
@@ -121,6 +140,35 @@ export class TrialStateStore {
     this.#dir = join(stateDir, 'profiles', profile, 'trials');
     const name = createHash('sha256').update(origin, 'utf8').digest('hex').slice(0, 32);
     this.#path = join(this.#dir, `${name}.json`);
+    this.#intent = join(this.#dir, `${name}.start.json`);
+  }
+
+  /** Whether a start intent exists (any content, even unreadable, counts: fail closed). */
+  async hasStartIntent(): Promise<boolean> {
+    try {
+      await readFile(this.#intent);
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+      throw new AdapterError('STATE_STORE_ERROR', 'The saved Sess trial could not be read.', true);
+    }
+  }
+
+  async writeStartIntent(at: string): Promise<void> {
+    try {
+      await mkdir(this.#dir, { recursive: true, mode: 0o700 });
+      await atomicWrite(this.#intent, this.#dir, JSON.stringify({ schema: 1, origin: this.#origin, at }));
+    } catch {
+      throw new AdapterError(
+        'STATE_STORE_ERROR',
+        'The Sess trial start could not be saved. Nothing was sent.',
+        true,
+      );
+    }
+  }
+
+  async clearStartIntent(): Promise<void> {
+    await rm(this.#intent);
   }
 
   async read(): Promise<TrialState | undefined> {
@@ -151,19 +199,35 @@ export class TrialStateStore {
     this.#queue = new Promise<void>((resolve) => (release = resolve));
     await previous.catch(() => undefined);
     try {
-      const lock = await this.#acquireFileLock();
+      const token = await this.#acquireFileLock();
       try {
         return await fn();
       } finally {
-        await rm(lock, { force: true }).catch(() => undefined);
+        await this.#releaseFileLock(token);
       }
     } finally {
       release();
     }
   }
 
+  get #lock(): string {
+    return `${this.#path}.lock`;
+  }
+
+  /** Removes the lock only while it still holds this owner's token. */
+  async #releaseFileLock(token: string): Promise<void> {
+    try {
+      const held = JSON.parse(await readFile(this.#lock, 'utf8')) as { token?: unknown };
+      if (held.token !== token) return;
+      await rm(this.#lock);
+    } catch {
+      // Gone or replaced: not ours to remove.
+    }
+  }
+
   async #acquireFileLock(): Promise<string> {
-    const lock = `${this.#path}.lock`;
+    const lock = this.#lock;
+    const token = randomBytes(16).toString('base64url');
     const deadline = Date.now() + LOCK_WAIT_MS;
     try {
       await mkdir(this.#dir, { recursive: true, mode: 0o700 });
@@ -172,24 +236,28 @@ export class TrialStateStore {
     }
     for (;;) {
       try {
-        await writeFile(lock, JSON.stringify({ pid: process.pid }), { mode: 0o600, flag: 'wx' });
-        return lock;
+        await writeFile(lock, JSON.stringify({ pid: process.pid, token }), { mode: 0o600, flag: 'wx' });
+        return token;
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'EEXIST')
           throw new AdapterError('STATE_STORE_ERROR', 'The saved Sess trial could not be locked.', true);
       }
-      // A lock left by a process that no longer runs is removed; a live holder is waited for.
+      // A live holder is waited for. A lock whose holder has exited is never reclaimed here (two
+      // reclaimers could both win): fail closed until the owner removes it. An unreadable lock
+      // (for example one still being written) counts as live.
       let holder: number | undefined;
       try {
         const pid: unknown = (JSON.parse(await readFile(lock, 'utf8')) as { pid?: unknown }).pid;
         holder = Number.isSafeInteger(pid) && (pid as number) > 0 ? (pid as number) : undefined;
-      } catch {
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
         holder = undefined;
       }
-      if (holder !== undefined && !processAlive(holder)) {
-        await rm(lock, { force: true }).catch(() => undefined);
-        continue;
-      }
+      if (holder !== undefined && !processAlive(holder))
+        throw new AdapterError(
+          'STATE_STORE_ERROR',
+          'A Sess MCP server stopped while it held the Sess trial lock. Nothing was sent. The owner removes the file ending in .lock in the trials folder of this server’s state directory, after checking no other Sess MCP server is running on it.',
+        );
       if (Date.now() >= deadline)
         throw new AdapterError(
           'SESS_UNAVAILABLE',
@@ -431,8 +499,33 @@ export function createTrialClient(options: TrialClientOptions): SessClient {
     };
   }
 
-  /** The anonymous create that starts the trial, under the trial lock. */
+  /**
+   * Starts the trial, under the trial lock: the start intent is saved durably before the anonymous
+   * create is sent, replaced by the trial record on a confirmed start, removed only on a definite
+   * refusal, and kept on an unknown outcome (later creates then fail closed).
+   */
   async function start(body: { interaction: unknown }) {
+    await store.writeStartIntent(new Date(now()).toISOString());
+    let result;
+    try {
+      result = await dispatchStart(body);
+    } catch (error) {
+      if (error instanceof SessError && error.outcome === 'rejected') {
+        try {
+          await store.clearStartIntent();
+        } catch {
+          // Kept: later creates fail closed until the owner resolves it. Never a second start.
+          diagnostics('trial_intent_not_cleared');
+        }
+      }
+      throw error;
+    }
+    // The trial record is saved; a leftover intent is ignored while that record exists.
+    await store.clearStartIntent().catch(() => diagnostics('trial_intent_not_cleared'));
+    return result;
+  }
+
+  async function dispatchStart(body: { interaction: unknown }) {
     const response = await post(body, undefined);
     if (response.status !== 201) {
       const { code, retryAfterMs: after } = await refusal(response);
@@ -547,11 +640,14 @@ export function createTrialClient(options: TrialClientOptions): SessClient {
         throw new TrialRefusal(trialUnsupported('expires_in'), 'not_sent');
       let existing: TrialState | undefined;
       // Single flight: the first create starts the trial while holding the lock; every concurrent
-      // or later create (in this process or another sharing the state) reuses the saved trial.
+      // or later create (in this process or another sharing the state) reuses the saved trial. A
+      // start intent without a trial record means an earlier start's outcome is unknown: fail
+      // closed, never start again.
       const first = await store
         .withLock(async () => {
           existing = await store.read();
           if (existing) return undefined;
+          if (await store.hasStartIntent()) throw startUnknown();
           return start(body);
         })
         .catch((error: unknown) => {

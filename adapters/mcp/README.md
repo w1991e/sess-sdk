@@ -33,6 +33,12 @@ How trial mode works:
   `<state dir>/profiles/<profile>/trials/` (file mode 0600, folder 0700) and reused across calls
   and restarts. It never appears in a tool result, a URL or the server's diagnostics. Deleting that
   folder loses access to the trial's answers.
+- **An unconfirmed start stops.** The server records that it is starting the trial before it sends
+  the request. If the answer is lost, a trial may exist without its credential, so every later ask
+  (including after a restart) fails with `CREATE_OUTCOME_UNKNOWN` and sends nothing, until the
+  owner deletes the trials folder or sets `SESS_API_KEY`. A server that stopped while holding the
+  trial lock leaves a file ending in `.lock` there; asks fail with `STATE_STORE_ERROR` until the
+  owner removes it.
 - **What it supports.** Ask (`sess_ask`, `sess_request`) and read (`sess_response`), with the same
   receipt verification. `sess_publish`, `sess_complete` and `expires_in` need an API key; in trial
   mode they say so and send nothing. Trial links stay open for 1 hour.
