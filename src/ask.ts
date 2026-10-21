@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { inspect } from 'node:util';
-import { SessError } from './errors.js';
+import { SessError, lengthMessage } from './errors.js';
 import { canonicalJson } from './receipts/json.js';
 import type { ReceiptResource } from './receipts/resource.js';
 import type { Sessions } from './sessions.js';
@@ -19,7 +19,7 @@ import { withSignal } from './internal/time.js';
 interface AskFieldBase {
   /** Key of this field in the answer: `^[a-z][a-z0-9_]{0,63}$`. */
   readonly name: string;
-  /** Human-facing label, 1–200 characters. */
+  /** What the field asks for: short, a few words; at most 60. Example: `Refund amount` */
   readonly label: string;
   /** Default `true`, except boolean fields (default `false`). */
   readonly required?: boolean;
@@ -40,22 +40,31 @@ export type AskField =
   | (AskFieldBase & { readonly type: 'boolean'; readonly default?: boolean })
   | (AskFieldBase & {
       readonly type: 'choice';
+      /** 1–100 choices. The words shown for one choice: short; at most 60. Example: `Next Monday` */
       readonly options: readonly [string, ...string[]];
       readonly default?: string;
     })
   | (AskFieldBase & {
       readonly type: 'multi_choice';
+      /** 1–100 choices. The words shown for one choice: short; at most 60. Example: `Next Monday` */
       readonly options: readonly [string, ...string[]];
       readonly default?: readonly string[];
     });
 
-/** A question plus typed fields: the same shape as the MCP `sess_ask` tool input. */
+/**
+ * A question plus typed fields: the same shape as the MCP `sess_ask` tool input. Lengths are in
+ * Unicode code points and are never truncated: a value over its limit throws a `SessError` whose
+ * `field`, `limit` and `length` say which value to shorten and to what.
+ */
 export interface AskInput<F extends readonly AskField[] = readonly AskField[]> {
-  /** Shown as the page title, 1–200 characters. */
+  /**
+   * The page's heading: a question or a task, about 40 characters; at most 80.
+   * Examples: `Approve the refund?`, `Pick a delivery date`
+   */
   readonly question: string;
-  /** Optional plain-text context shown above the fields, 1–4000 characters. */
+  /** Optional plain-text context shown above the fields, at most 4,000 characters. */
   readonly details?: string;
-  /** Submit button label, default `Send`. */
+  /** A button: a verb, 1–3 words; at most 24. Default `Send`. Examples: `Approve`, `Send refund` */
   readonly submit_label?: string;
   /** One to twelve fields with unique names. */
   readonly fields: F;
@@ -134,7 +143,22 @@ export interface AskHandle<T> {
 
 /** The runtime byte limit for one stored interaction. */
 const SURFACE_LIMIT_BYTES = 131_072;
-const LIMITS = Object.freeze({ fields: 12, options: 100, depth: 8, textMax: 4000 });
+/**
+ * Sess's limits, in Unicode code points (the runtime checks the same numbers; nothing is ever
+ * truncated): the question (title) 80, details (a text component) 4,000, the submit button 24,
+ * field labels and options 60.
+ */
+const LIMITS = Object.freeze({
+  fields: 12,
+  options: 100,
+  depth: 8,
+  textMax: 4000,
+  question: 80,
+  details: 4000,
+  submitLabel: 24,
+  label: 60,
+  option: 60,
+});
 const TYPES = ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice'] as const;
 type AskType = (typeof TYPES)[number];
 const FIELD_NAME = /^[a-z][a-z0-9_]{0,63}$/;
@@ -169,6 +193,24 @@ function invalid(path: string, problem: string): never {
   throw new SessError('configuration', `Invalid question: ${path} ${problem}.`, {
     code: 'INVALID_QUESTION',
     outcome: 'not_sent',
+  });
+}
+/** `fields[0].label` → `/fields/0/label`: the JSON pointer of an input path. */
+function pointer(path: string): string {
+  return `/${path
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .join('/')}`;
+}
+function tooLong(path: string, limit: number, length: number): never {
+  // The value itself never enters the message: only its pointer, the limit and its length, in
+  // Sess's own sentences.
+  throw new SessError('configuration', lengthMessage(pointer(path), limit, length), {
+    code: 'INVALID_QUESTION',
+    outcome: 'not_sent',
+    field: pointer(path),
+    limit,
+    length,
   });
 }
 function safeKey(key: string): string {
@@ -224,7 +266,8 @@ function text(value: Json | undefined, path: string, max: number): string {
   if (typeof value !== 'string') return invalid(path, 'must be a string');
   if (!value.isWellFormed()) invalid(path, 'must be well-formed Unicode');
   const length = codePoints(value);
-  if (length < 1 || length > max) invalid(path, `must be 1–${max} characters`);
+  if (length > max) tooLong(path, max, length);
+  if (length < 1) invalid(path, `must be 1–${max} characters`);
   if (!/\S/.test(value)) invalid(path, 'must not be blank');
   if (CONTROL.test(value)) invalid(path, 'contains control or bidirectional override characters');
   return value;
@@ -275,7 +318,7 @@ function compileField(raw: Json, path: string, names: Set<string>) {
   const name = f.name;
   if (names.has(name)) invalid(`${path}.name`, 'duplicates another field name');
   names.add(name);
-  const label = text(f.label, `${path}.label`, 200);
+  const label = text(f.label, `${path}.label`, LIMITS.label);
   const type = f.type as AskType;
   if (!TYPES.includes(type)) invalid(`${path}.type`, `must be one of ${TYPES.join(', ')}`);
   const choice = type === 'choice' || type === 'multi_choice';
@@ -319,7 +362,7 @@ function compileField(raw: Json, path: string, names: Set<string>) {
       const options = f.options;
       if (!Array.isArray(options) || options.length < 1 || options.length > LIMITS.options)
         invalid(`${path}.options`, `must list 1–${LIMITS.options} options`);
-      const values = options.map((option, i) => text(option, `${path}.options[${i}]`, 200));
+      const values = options.map((option, i) => text(option, `${path}.options[${i}]`, LIMITS.option));
       if (new Set(values).size !== values.length) invalid(`${path}.options`, 'must be unique');
       compiled.options = Object.freeze([...values]);
       schema =
@@ -358,9 +401,10 @@ export function compileAsk(input: unknown): CompiledAsk {
       expiresIn < LINK_LIFETIME_FLOOR_SECONDS)
   )
     invalid('expires_in', `must be a whole number of seconds, at least ${LINK_LIFETIME_FLOOR_SECONDS}`);
-  const title = text(a.question, 'question', 200);
-  const details = a.details === undefined ? undefined : text(a.details, 'details', 4000);
-  const submit = a.submit_label === undefined ? 'Send' : text(a.submit_label, 'submit_label', 200);
+  const title = text(a.question, 'question', LIMITS.question);
+  const details = a.details === undefined ? undefined : text(a.details, 'details', LIMITS.details);
+  const submit =
+    a.submit_label === undefined ? 'Send' : text(a.submit_label, 'submit_label', LIMITS.submitLabel);
   const fields = a.fields;
   if (!Array.isArray(fields) || fields.length < 1 || fields.length > LIMITS.fields)
     invalid('fields', `must contain 1–${LIMITS.fields} fields`);

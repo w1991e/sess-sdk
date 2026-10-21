@@ -8,7 +8,8 @@
 // - the initializer's package.json has no scripts at all and packs the template.
 // With a directory (a generated agent, or a checkout of the public sess-agent-starter repository),
 // it also checks that every template file is there with identical bytes (package.json may differ
-// only in its name) and that nothing else is, apart from a lockfile, .git, .github, node_modules and the weather cache.
+// only in its name) and that nothing else is, apart from a lockfile, .git, .github, node_modules, the weather cache
+// and the starter repository's own agent instructions (AGENTS.md, and CLAUDE.md importing it).
 // The test suite runs it on every `npm test`; sdk-pin.mjs keeps the version pin itself current.
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -18,7 +19,15 @@ const here = dirname(fileURLToPath(import.meta.url));
 export const TEMPLATE = resolve(here, '..', 'template');
 const ROOT = resolve(here, '..', '..');
 const EXACT = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
-const EXTRA = new Set(['package-lock.json', '.git', '.github', 'node_modules', '.weather-cache.json']);
+const EXTRA = new Set([
+  'package-lock.json',
+  '.git',
+  '.github',
+  'node_modules',
+  '.weather-cache.json',
+  'AGENTS.md',
+  'CLAUDE.md',
+]);
 
 /** Template file name -> generated name. Dotfiles are stored as `_name` so that npm packs them. */
 export function templateFiles() {

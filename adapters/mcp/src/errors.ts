@@ -25,18 +25,52 @@ export type AdapterErrorCode =
   | 'STATE_STORE_ERROR'
   | 'STATE_STORE_FULL';
 
+/**
+ * A value over its length limit: a JSON pointer to it in the tool arguments (or, from Sess, in the
+ * request body), the most it may have and what it has, in Unicode code points.
+ */
+export interface LengthDetail {
+  field: string;
+  limit: number;
+  length: number;
+}
+
+/**
+ * Sess's own sentences for a length error (`field` is a JSON pointer); the title (sess_ask's
+ * question) has its own.
+ */
+export function lengthMessage(field: string, limit: number, length: number): string {
+  if (field === '/interaction/title' || field === '/question')
+    return `The title can be at most ${limit} characters. Keep it to a short heading, about 40.`;
+  return `${field} is ${length} characters; the limit is ${limit}. Shorten it to at most ${limit} characters.`;
+}
+
+/** Sess's sentence for an enum ID with no option label, shown as its own label and too long. */
+export function fallbackLabelMessage(field: string, limit: number, length: number): string {
+  return `${field} is ${length} characters and has no option label, so it is shown as its label; the limit is ${limit}. Give it an option label of at most ${limit} characters, or shorten it.`;
+}
+
 export class AdapterError extends Error {
   readonly code: AdapterErrorCode;
   /** True when repeating the same call later may succeed without operator action. */
   readonly retryable: boolean;
-  constructor(code: AdapterErrorCode, message: string, retryable = false) {
+  /** Set only for a value over its length limit: fix that value and call again. */
+  readonly tooLong?: LengthDetail;
+  constructor(code: AdapterErrorCode, message: string, retryable = false, tooLong?: LengthDetail) {
     super(message);
     this.name = 'AdapterError';
     this.code = code;
     this.retryable = retryable;
+    if (tooLong) this.tooLong = tooLong;
   }
-  toJSON(): { code: AdapterErrorCode; message: string; retryable: boolean } {
-    return { code: this.code, message: this.message, retryable: this.retryable };
+  /** `field`, `limit` and `length` appear beside the code only for a length error. */
+  toJSON(): { code: AdapterErrorCode; message: string; retryable: boolean } & Partial<LengthDetail> {
+    return {
+      code: this.code,
+      message: this.message,
+      retryable: this.retryable,
+      ...(this.tooLong ? { ...this.tooLong } : {}),
+    };
   }
 }
 

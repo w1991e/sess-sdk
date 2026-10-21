@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { SessError, attachRecovery } from './errors.js';
+import { SessError, attachRecovery, lengthMessage } from './errors.js';
 import type { SessErrorDetails, WriteOutcome } from './errors.js';
 import type { ApiResult, CreateSessionResponse, RequestOptions, ResponseMeta, SessOptions } from './types.js';
 import { isLoopback } from './internal/decode.js';
@@ -114,6 +114,31 @@ function safeText(
     return undefined;
   return value;
 }
+/** A JSON pointer into the request body: no controls or bidirectional overrides. */
+const POINTER = /^(?:\/[^\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩/]{0,128}){1,16}$/;
+const count = (value: unknown) =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+
+/**
+ * The length detail of a 400 INVALID_SCHEMA for a value over its limit (field, limit, length):
+ * all three or none. Every other error carries none.
+ */
+function lengthDetail(
+  remote: Record<string, unknown>,
+  code: string | undefined,
+  key: string | undefined,
+): Pick<SessErrorDetails, 'field' | 'limit' | 'length'> {
+  if (code !== 'INVALID_SCHEMA') return {};
+  const field = safeText(remote.field, POINTER, key);
+  const limit = count(remote.limit);
+  const length = count(remote.length);
+  return field !== undefined && limit !== undefined && length !== undefined && length > limit
+    ? { field, limit, length }
+    : {};
+}
+const lengthFields = (e: SessError): Pick<SessErrorDetails, 'field' | 'limit' | 'length'> =>
+  e.field !== undefined ? { field: e.field, limit: e.limit, length: e.length } : {};
+
 export function retryAfter(header: string | null): number | undefined {
   if (header === null) return undefined;
   if (/^\d+$/.test(header.trim())) {
@@ -379,9 +404,15 @@ export class Transport {
             const remoteId = safeText(remote.request_id, /^[A-Za-z0-9._:-]{1,128}$/, key, true) ?? requestId;
             const rejected = code !== undefined && rejections[response.status]?.includes(code);
             retryable = transientStatuses.has(response.status);
-            throw new SessError('api', 'The Sess API returned an error. See the status and code fields.', {
+            const length = lengthDetail(remote, code, key);
+            const message =
+              length.field !== undefined
+                ? lengthMessage(length.field, length.limit!, length.length!)
+                : 'The Sess API returned an error. See the status and code fields.';
+            throw new SessError('api', message, {
               code,
               reason,
+              ...length,
               status: response.status,
               requestId: remoteId,
               retryAfterMs,
@@ -453,6 +484,7 @@ export class Transport {
           const details: SessErrorDetails = {
             code: error.code,
             reason: error.reason,
+            ...lengthFields(error),
             status: error.status ?? response?.status,
             requestId: error.requestId,
             retryAfterMs: error.retryAfterMs,
@@ -496,6 +528,7 @@ export class Transport {
         {
           code: e.code,
           reason: e.reason,
+          ...lengthFields(e),
           operation: op.name,
           attempts,
           outcome: isWrite ? (dispatched ? 'unknown' : 'not_sent') : undefined,

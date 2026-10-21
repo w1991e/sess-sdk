@@ -161,6 +161,19 @@ one class of the shared adapter contract:
 | `STORE_FULL`               | `store`               | The bounded interaction store is full; nothing was dropped             |
 | `STORE_UNAVAILABLE`        | `store`               | Durable plugin state failed; nothing further was sent                  |
 
+Lengths follow Sess, in Unicode code points, and are never truncated: title 80 (about 40 is the
+style), description 280, heading 60, field and option labels 60, field description 160, action
+label 24, record caption 200, record key 40 and string value 200, text 4,000; at most 5 actions.
+A choice without an `option_labels` entry shows its enum ID, so that ID is held to 60 too (named at
+its enum entry, e.g. `.../schema/enum/1`); a long ID with a short label is fine.
+Each such field in the tool schema carries its purpose, style, limit and examples. A value over
+its limit fails with `INVALID_ARGUMENTS`, and the error also carries `field` (a JSON pointer such
+as `/interaction/title`; for a record key it ends with that key), `limit` and `length`. Its
+message is Sess's own: "The title can be at most 80 characters. Keep it to a short heading, about
+40." for the title, otherwise "{field} is {length} characters; the limit is {limit}. Shorten it to
+at most {limit} characters." A Sess length refusal on create (`CREATE_REJECTED`) carries the same
+fields when the SDK reports them.
+
 `AUTHORITY_REVOKED` from `sess_request` after its Session was created and saved means: redeliver
 the **original** host call to read the link. Starting a new `sess_request` would create a second
 Session. For the other tools, retry in a new admitted call.

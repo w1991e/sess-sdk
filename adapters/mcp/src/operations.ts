@@ -7,7 +7,7 @@ import {
   type PublishSessionRequest,
 } from '@sess.si/sdk';
 import { loadConfig, type AdapterConfig } from './config.js';
-import { AdapterError, type Diagnostics } from './errors.js';
+import { AdapterError, lengthMessage, type Diagnostics, type LengthDetail } from './errors.js';
 import {
   ProfileHandleStore,
   RECORD_SCHEMA,
@@ -181,6 +181,24 @@ function safeCode(error: unknown): string | undefined {
     : undefined;
 }
 
+/**
+ * The length detail of a Sess 400 INVALID_SCHEMA (field, limit, length), when the SDK exposes it
+ * (`SessError.field/limit/length`, after @sess.si/sdk 0.1.0-rc.7). Read defensively: an older SDK
+ * has none, and the local checks have already refused the same limits before dispatch.
+ */
+function sessLength(error: unknown): LengthDetail | undefined {
+  if (!(error instanceof SessError) || error.code !== 'INVALID_SCHEMA') return undefined;
+  const { field, limit, length } = error as unknown as Record<string, unknown>;
+  const count = (n: unknown) => typeof n === 'number' && Number.isSafeInteger(n) && n >= 0;
+  return typeof field === 'string' &&
+    // A pointer may end with a record key; no controls or bidirectional overrides.
+    /^(?:\/[^\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩/]{0,128}){1,16}$/.test(field) &&
+    count(limit) &&
+    count(length)
+    ? { field, limit: limit as number, length: length as number }
+    : undefined;
+}
+
 function sessCode(error: unknown): string {
   if (error instanceof SessError) return `${error.kind}${safeCode(error) ? `/${safeCode(error)}` : ''}`;
   return 'unexpected';
@@ -330,6 +348,14 @@ export class SessMcpAdapter {
         this.#options.diagnostics('create_rejected', { code: sessCode(error) });
         const code = safeCode(error);
         const detail = code ? ` (${code})` : '';
+        const tooLong = sessLength(error);
+        if (tooLong)
+          throw new AdapterError(
+            'CREATE_REJECTED',
+            `Sess did not create the interaction: ${lengthMessage(tooLong.field, tooLong.limit, tooLong.length)}`,
+            false,
+            tooLong,
+          );
         throw new AdapterError('CREATE_REJECTED', `Sess did not create the interaction${detail}.`);
       }
       const recovered = error instanceof SessError ? error.getRecoveryResult() : undefined;

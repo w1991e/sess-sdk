@@ -13,6 +13,19 @@
   again (a later read, or a waiting call, ends it). A wait that ends with `LINK_EXPIRED`
   is confirmed by one read, so an SDK that ends its wait at the deadline cannot report a lapsed
   link as expired. A runtime without link timing keeps the earlier rule.
+- Tool schemas `sess-mcp-tools/4`: Sess's length limits for what a person reads, in Unicode code
+  points (title 80, description 280, heading 60, field and option labels 60, field description
+  160, button label 24, record caption 200, record key 40 and string value 200, text 4,000; at
+  most 5 buttons), with Sess's own wording (SURFACE_TEXT_DOCS) and error sentences. Every
+  such field carries a one-line purpose and style, `maxLength` and `examples` within the limit;
+  `sess_ask`'s description carries one complete good call. Lengths were counted in UTF-16 units
+  before; they are now code points, as Sess counts them.
+- A value over its limit is refused before anything is sent or saved, never truncated, with
+  `INVALID_ARGUMENTS` plus `field` (a JSON pointer into the arguments), `limit` and `length`, and a
+  message ending in the fix. A Sess length refusal on create returns the same fields when the SDK
+  reports them.
+- `server.json` names `package.json`'s exact version and stays in step with it on every release
+  candidate; the listing check, a test and the release guard fail when they differ.
 
 ## 0.1.0-rc.2 (candidate, unpublished)
 

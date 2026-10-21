@@ -13,8 +13,6 @@ import addFormats from 'ajv-formats';
 export const LISTING_SCHEMA = 'sess-mcp-listing/1';
 const PLUGIN_DIR = 'listings/plugin';
 const PRINT_WIDTH = 110;
-/** A stable semantic version: x.y.z with no prerelease or build part. */
-const STABLE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 // Words that must not appear in any listing, and claims
 // that overstate what a receipt or the product does. Matched case-insensitively on word starts.
@@ -116,15 +114,15 @@ function serverJson({ listing, manifest }) {
       source: listing.repository.source,
       subfolder: manifest.repository.directory,
     },
-    // The planned stable release (providers.mcpRegistry.version), for the server and the package:
-    // the registry entry never names a prerelease or a dist-tag.
-    version: registry.version,
+    // In step with the package on every release candidate (founder, 2026-10-20): package.json's
+    // exact version, for the server and the package; never a dist-tag.
+    version: manifest.version,
     packages: [
       {
         registryType: 'npm',
         registryBaseUrl: 'https://registry.npmjs.org',
         identifier: manifest.name,
-        version: registry.version,
+        version: manifest.version,
         runtimeHint: listing.stdio.runtimeHint,
         transport: { type: 'stdio' },
         environmentVariables: listing.stdio.environmentVariables,
@@ -422,14 +420,10 @@ export function validate(inputs, files, schemaTexts) {
   );
   if (server.$schema !== registry.schema.id) errors.push('server.json $schema is not the pinned schema');
   if (server.name !== manifest.mcpName) errors.push('server.json name drifts from package.json mcpName');
-  // A stable version only (no prerelease, never a dist-tag such as next), the release that
-  // package.json is a candidate of, for the server and its npm package alike.
-  if (!STABLE.test(registry.version ?? ''))
-    errors.push('providers.mcpRegistry.version must be a stable x.y.z version (no prerelease or tag)');
-  else if (manifest.version.split('-')[0] !== registry.version)
-    errors.push('providers.mcpRegistry.version must be the release package.json is (a candidate of)');
-  if (server.version !== registry.version || server.packages?.some((p) => p.version !== registry.version))
-    errors.push('server.json and its npm package must name providers.mcpRegistry.version');
+  // In step with the package on every release candidate: package.json's exact version, for the
+  // server and its npm package alike.
+  if (server.version !== manifest.version || server.packages?.some((p) => p.version !== manifest.version))
+    errors.push(`server.json and its npm package must name package.json's version ${manifest.version}`);
 
   // Agent Plugins bundle against the pinned 1.0.0 schemas, plus OpenAI's documented limits.
   const plugin = json(`${PLUGIN_DIR}/plugin.json`);
@@ -534,10 +528,6 @@ export function validate(inputs, files, schemaTexts) {
     );
   if (listing.stdio.status !== 'published')
     blockers.push(`MCP Registry and Cursor stdio: ${manifest.name} is ${listing.stdio.status} on npm`);
-  if (manifest.version !== registry.version)
-    blockers.push(
-      `MCP Registry: server.json names ${manifest.name}@${registry.version}; package.json is ${manifest.version} (publish the stable release first)`,
-    );
   for (const [key, entry] of Object.entries(listing.urls))
     if (entry.status !== 'live')
       blockers.push(`urls.${key}: ${entry.status}${entry.note ? ` (${entry.note})` : ''}`);

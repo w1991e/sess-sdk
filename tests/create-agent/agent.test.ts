@@ -26,6 +26,39 @@ const read = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as WorldRe
 const components = (record: WorldRecord, round: number) =>
   record.interactions[round - 1]?.source.components ?? [];
 const texts = (record: WorldRecord, round: number) => components(record, round).map((c) => JSON.stringify(c));
+/** Every value a person reads that is over Sess's limit (code points), as `path length>limit`. */
+function overLimits(interaction: any): string[] {
+  const over: string[] = [];
+  const check = (path: string, value: unknown, limit: number) => {
+    if (typeof value === 'string' && [...value].length > limit)
+      over.push(`${path} ${[...value].length}>${limit}`);
+  };
+  check('title', interaction.title, 80);
+  if ([...interaction.title].length >= 40)
+    over.push(`title ${[...interaction.title].length} is not under 40`);
+  check('description', interaction.description, 280);
+  if (interaction.actions.length > 5) over.push('more than 5 actions');
+  interaction.actions.forEach((a: any, i: number) => check(`actions/${i}/label`, a.label, 24));
+  interaction.source.components.forEach((c: any, i: number) => {
+    const at = `components/${i}`;
+    if (c.type === 'heading') check(`${at}/text`, c.text, 60);
+    if (c.type === 'text') check(`${at}/text`, c.text, 4000);
+    if (c.type === 'record') {
+      check(`${at}/label`, c.label, 60);
+      for (const [key, value] of Object.entries(c.fields)) {
+        check(`${at}/fields key`, key, 40);
+        check(`${at}/fields/${key}`, value, 200);
+      }
+    }
+    if (c.type === 'field') {
+      check(`${at}/label`, c.label, 60);
+      check(`${at}/description`, c.description, 160);
+      for (const [key, label] of Object.entries(c.option_labels ?? {}))
+        check(`${at}/option_labels/${key}`, label, 60);
+    }
+  });
+  return over;
+}
 
 beforeAll(() => {
   if (!existsSync(join(ROOT, 'dist', 'index.d.ts')))
@@ -101,10 +134,12 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     };
     expect(choice.schema.enum).toEqual(['option_1', 'option_2', 'option_3']);
     expect(Object.values(choice.option_labels)).toEqual([
-      'A walk or hike outdoors — Morning, 09:00–12:00 (18 °C · dry · wind 3 m/s)',
-      'A picnic in the park — Afternoon, 12:00–17:00 (18 °C · dry · wind 3 m/s)',
-      'A bike ride — Evening, 17:00–21:00 (18 °C · dry · wind 3 m/s)',
+      'A walk or hike outdoors — Morning, 09:00–12:00',
+      'A picnic in the park — Afternoon, 12:00–17:00',
+      'A bike ride — Evening, 17:00–21:00',
     ]);
+    // Every value a person reads is within Sess's limits; titles under 40 characters.
+    expect(world.interactions.flatMap(overLimits)).toEqual([]);
 
     // A second run within the forecast's Expires does not ask MET again.
     const cached = await runAgent(app, record, { answers: [{ place: 'oslo', day: 'sunday' }, ROUND_2] });
@@ -149,6 +184,7 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     expect(world.weather.every((w) => w.userAgent === `sess-agent-starter/1.0 ${CONTACT}`)).toBe(true);
     expect(texts(world, 2).join()).toContain('US weather alerts (NWS)');
     expect(texts(world, 2).join()).toContain('Heat Advisory until 8 PM');
+    expect(world.interactions.flatMap(overLimits)).toEqual([]);
   });
 
   it('says so when NWS alerts cannot be reached, and still completes the plan', async () => {

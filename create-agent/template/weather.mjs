@@ -60,10 +60,13 @@ export async function weatherFor({ lat, lon, country, date, zone }, contact) {
   const nws = country === 'US' ? `https://api.weather.gov/alerts/active?point=${deg(lat)},${deg(lon)}` : null;
   const found = nws ? await getJson(nws, contact, 'application/geo+json') : { features: [] };
   // null: NWS could not be reached (said so on the page); [] : no active alerts.
+  // Sess shows a record value of up to 200 characters and never cuts one: a longer headline gives
+  // way to the alert's short event name.
+  const fits = (text) => (typeof text === 'string' && [...text].length <= 200 ? text : undefined);
   const alerts = Array.isArray(found?.features)
     ? found.features
         .slice(0, 3)
-        .map((a) => String(a?.properties?.headline ?? a?.properties?.event ?? ''))
+        .map((a) => fits(a?.properties?.headline) ?? fits(a?.properties?.event) ?? '')
         .filter(Boolean)
     : null;
   return { forecast, slots: summarize(forecast, date, zone), alerts };

@@ -3,7 +3,7 @@
   "package": {
     "name": "@sess.si/mcp",
     "version": "0.1.0-rc.2",
-    "toolSchema": "sess-mcp-tools/3"
+    "toolSchema": "sess-mcp-tools/4"
   },
   "status": "published (next)",
   "recordedAt": "2026-10-14",

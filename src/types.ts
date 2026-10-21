@@ -60,11 +60,69 @@ export type FieldSchema = SchemaDocumentation &
       }
   );
 type WireComponent = Schemas['SurfaceComponent'];
+type Component<T extends WireComponent['type']> = Extract<WireComponent, { type: T }>;
+/**
+ * One piece of an interactive Surface, shown in order. Lengths are Unicode code points; Sess
+ * never truncates: a value over its limit is a 400 INVALID_SCHEMA whose `field`, `limit` and
+ * `length` (on `SessError`) name the value and the most it may have.
+ */
 export type SurfaceComponent =
-  | Exclude<WireComponent, { type: 'field' }>
-  | (Omit<Extract<WireComponent, { type: 'field' }>, 'schema'> & { schema: FieldSchema });
-export type InteractiveInteraction = Omit<RawPublishSessionRequest['interaction'], 'source'> & {
+  | (Component<'heading'> & {
+      /** A section heading: a few words; at most 60. Example: `Order details` */
+      text: string;
+    })
+  | (Component<'text'> & {
+      /**
+       * A paragraph of plain text (never markup): what the person needs to know; at most 4000.
+       * Example: `The refund goes back to the card used for the order.`
+       */
+      text: string;
+    })
+  | (Component<'record'> & {
+      /** Optional caption above the record: a few words; at most 200. Example: `Order 1042` */
+      label?: string;
+      /**
+       * Rows shown verbatim, 1–50. A row's name: a word or two; at most 40 (example `Amount`).
+       * A row's value: a string of at most 200, or a number, boolean or null (example `$120.00`).
+       */
+      fields: { [key: string]: string | number | boolean | null };
+    })
+  | (Omit<Component<'field'>, 'schema'> & {
+      /** What the field asks for: short, a few words; at most 60. Example: `Refund amount` */
+      label: string;
+      /**
+       * Optional help under the label: one hint; at most 160.
+       * Example: `Leave it as is to refund the full amount.`
+       */
+      description?: string;
+      /** The words shown for one choice: short; at most 60. Example: `Next Monday` */
+      option_labels?: { [key: string]: string };
+      schema: FieldSchema;
+    });
+type DocumentedAction = RawPublishSessionRequest['interaction']['actions'][number] & {
+  /** A button: a verb, 1–3 words; at most 24. Examples: `Approve`, `Send refund` */
+  label: string;
+};
+/**
+ * An interactive Surface: a title, plain-text components and typed fields, and 1–5 actions.
+ * Limits in Unicode code points: title 80, description 280, heading 60, text 4000, record
+ * caption 200, row name 40, row string value 200, field label 60, field help 160, option label
+ * 60, button 24; at most 5 actions.
+ */
+export type InteractiveInteraction = Omit<RawPublishSessionRequest['interaction'], 'source' | 'actions'> & {
+  /**
+   * The page's heading: a question or a task, about 40 characters; at most 80.
+   * Examples: `Approve the refund?`, `Pick a delivery date`
+   */
+  title: string;
+  /**
+   * Optional context under the title: what the person decides and why, in one or two plain
+   * sentences; at most 280. Example: `The customer was charged twice for order 1042.`
+   */
+  description?: string;
   source: { kind: 'sess_surface'; components: SurfaceComponent[] };
+  /** The buttons, 1–5. A button: a verb, 1–3 words; at most 24. */
+  actions: DocumentedAction[];
 };
 export type CreateSessionRequest = {
   interaction: DisplayInteraction | InteractiveInteraction;

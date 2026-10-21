@@ -130,7 +130,10 @@ describe('sess_ask input', () => {
       JSON.parse(`{"question":"Q","fields":[{"name":"a","label":"A","type":"text"}],"__proto__":{}}`),
       'unsafe key',
     );
-    rejects({ question: 'Q', details: 'x'.repeat(4001), fields: [ask.fields[0]] }, 'length');
+    rejects(
+      { question: 'Q', details: 'x'.repeat(4001), fields: [ask.fields[0]] },
+      'Shorten it to at most 4000 characters',
+    );
   });
 });
 

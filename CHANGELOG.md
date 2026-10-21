@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.8 — 2026-10-22 (prepared, unpublished)
 
 - Link timing (Decision 0009 Amendment 10). On an interactive Sess link of 20 hours or less the
   person may ask for more time, up to ten times, never past a fixed horizon. Session reads carry
@@ -45,6 +45,16 @@
   or listed (otherwise invalid, exit 1). Without it, bundle verification is unchanged.
 - The receipt-v1 specification copy is from Sess commit `a60ca69` (§10, renderer identities with
   `seq` and `iat`; Sess PR #444's merge commit).
+- Sess's length limits, in Unicode code points and never truncated: title 80, description 280,
+  heading 60, field and option labels 60, field description 160, action label 24, record caption
+  200, record key 40 and string value 200, text 4,000; at most 5 actions. The types' JSDoc gives each field its
+  purpose, style and limit.
+- `sess.ask()` checks them before anything is sent: `question` 80, `submit_label` 24, field
+  labels and options 60 (were 200).
+- A length error carries `field` (a JSON pointer), `limit` and `length` on `SessError`, from
+  `sess.ask()` (`INVALID_QUESTION`) and from Sess (400 `INVALID_SCHEMA`), and its message is
+  Sess's own fix. The README and the quickstart show catching it, shortening the value and asking again.
+  Surfaces stored before these limits still read as before.
 
 ## 0.1.0-rc.7 — 2026-10-18 (prepared, unpublished)
 

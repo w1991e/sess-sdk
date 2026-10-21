@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Sess's length limits for what a person reads, in Unicode code points (were UTF-16 units and
+  200/1,000/4,000): title 80, description 280, heading 60, field and option labels 60, field
+  description 160, action label 24, record caption 200, record key 40 and string value 200, text
+  4,000, with Sess's own wording (SURFACE_TEXT_DOCS) and error sentences. Each such
+  field in the tool schema has a one-line purpose and style, `maxLength` and `examples`; the
+  interaction schema has one complete example and `sess_request`'s description the style lines.
+- A value over its limit fails with `INVALID_ARGUMENTS` plus `field` (a JSON pointer), `limit` and
+  `length`, and a message ending with the fix; nothing is truncated. A Sess length refusal on
+  create carries the same fields when the SDK reports them.
+
 ## 0.1.0-rc.2 (candidate, unpublished)
 
 - Depends on `@sess.si/sdk` 0.1.0-rc.7 (was 0.1.0-rc.5).

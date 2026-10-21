@@ -88,13 +88,49 @@ It is a convenience over the operations below for one question; it adds no endpo
 | `multi_choice` | Unique list of `options`, always present       | `options`: 1–100 unique strings  |
 
 Every field has a unique `name` (`^[a-z][a-z0-9_]{0,63}$`, the key in the answer), a `label`
-(1–200 characters), optional `required` (default `true`, `false` for `boolean`) and optional `default`,
-a proposal that must itself be a valid value. A question has 1–12 fields, a 1–200 character `question`
-(the page title), optional `details` (1–4,000 characters of plain text above the fields) and an
-optional `submit_label` (default `Send`). It compiles to one interactive Surface: a text component
-for `details`, one field component per field with its runtime schema, and one `submit` action.
-Invalid input fails with `SessError` kind `configuration`, code `INVALID_QUESTION`, outcome
-`not_sent`, before credential lookup or network access; messages name the path, never your values.
+(short, 1–60 characters), optional `required` (default `true`, `false` for `boolean`) and optional
+`default`, a proposal that must itself be a valid value. Each option is 1–60 characters. A question
+has 1–12 fields, a `question` (the page title: a question or a task, about 40 characters, at most
+80), optional `details` (1–4,000 characters of plain text above the fields) and an optional
+`submit_label` (the button: a verb of 1–3 words, at most 24 characters; default `Send`). It
+compiles to one interactive Surface: a text component for `details`, one field component per field
+with its runtime schema, and one `submit` action. Invalid input fails with `SessError` kind
+`configuration`, code `INVALID_QUESTION`, outcome `not_sent`, before credential lookup or network
+access; messages name the path, never your values.
+
+### Length limits
+
+Sess counts lengths in Unicode code points and never truncates. The limits of an interactive
+Surface:
+
+| Value                                              | Style                          | At most  |
+| -------------------------------------------------- | ------------------------------ | -------- |
+| `title`                                            | A question or a task, about 40 | 80       |
+| `description` (under the title)                    | One or two sentences           | 280      |
+| `heading` component `text`                         | Short                          | 60       |
+| Field `label`, `option_labels` value, `ask` option | Short                          | 60       |
+| Field `description` (help)                         | One hint                       | 160      |
+| Action `label` (`ask`: `submit_label`)             | A verb, 1–3 words              | 24       |
+| `record` `label` (caption)                         | A few words                    | 200      |
+| `record` key / string value                        | As written                     | 40 / 200 |
+| `text` component                                   | Plain text                     | 4,000    |
+
+At most 5 actions. A display Session's title is also at most 80 (the same title message); its
+description stays at most 4,000. A choice without an `option_labels` entry shows its enum ID, so
+that ID is held to 60 too; a long ID with a short label is fine (IDs may have up to 200). Over 60,
+Sess names the enum entry (`/interaction/source/components/2/schema/enum/1`, or
+`.../schema/items/enum/1`) and says: "{field} is {length} characters and has no option label, so it
+is shown as its label; the limit is {limit}. Give it an option label of at most {limit}
+characters, or shorten it."
+A value over its limit fails without creating or changing anything. `sess.ask()` checks its own
+values first (`INVALID_QUESTION`, outcome `not_sent`); Sess checks every request (`api`, status
+400, code `INVALID_SCHEMA`, outcome `rejected`). Either way the `SessError` carries `field`, a
+JSON pointer to the value (`/question`, `/fields/0/label`, `/interaction/title`; for a record key,
+the pointer ends with that key), `limit` and `length`. The message is Sess's: "The title can be
+at most 80 characters. Keep it to a short heading, about 40." for the title, otherwise
+"{field} is {length} characters; the limit is {limit}. Shorten it to at most {limit}
+characters." Shorten that value and send the request again. Other errors leave these three
+fields unset. Reads of Surfaces stored before these limits keep working.
 
 The answer type is inferred from literal field definitions: required fields are properties,
 optional ones may be absent, `choice` values are the option literals. The values are checked against
@@ -156,6 +192,8 @@ early. Invalid success schemas, 409/412 and other authoritative client errors ar
 
 `SessError.kind` is `configuration`, `api`, `transport`, `timeout`, `aborted`, `protocol`,
 `unknown_outcome`, `receipt_verification` or `wait_ended`. Inspect fields rather than parsing messages.
+A 400 `INVALID_SCHEMA` for a value over its length limit also keeps `field`, `limit` and `length`
+([Length limits](#length-limits)).
 Nested `error.code`, `error.request_id` and `error.reason` survive only as bounded safe identifiers;
 arbitrary server message text and payloads are discarded. Hook metadata is restricted to operation,
 status/code, duration, attempt and request ID.

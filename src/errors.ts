@@ -24,6 +24,12 @@ export interface SessErrorDetails {
   retryAfterMs?: number;
   sessionId?: string;
   revision?: number;
+  /** With a length error: a JSON pointer to the value that is too long, e.g. `/interaction/title`. */
+  field?: string;
+  /** With a length error: the most the value may have, in Unicode code points. */
+  limit?: number;
+  /** With a length error: the value's actual length, in Unicode code points. */
+  length?: number;
 }
 const recovery = new WeakMap<SessError, Readonly<CreateSessionResponse>>();
 
@@ -41,6 +47,16 @@ export class SessError extends Error {
   readonly retryAfterMs?: number;
   readonly sessionId?: string;
   readonly revision?: number;
+  /**
+   * Set only when a value is too long (a 400 INVALID_SCHEMA from Sess, or INVALID_QUESTION from
+   * `ask`): a JSON pointer to it, e.g. `/interaction/title`. Nothing is ever truncated: shorten
+   * the value to at most `limit` characters and send again.
+   */
+  readonly field?: string;
+  /** With `field`: the most the value may have, in Unicode code points (e.g. title 80). */
+  readonly limit?: number;
+  /** With `field`: the value's actual length, in Unicode code points. */
+  readonly length?: number;
 
   constructor(kind: SessErrorKind, message: string, details: SessErrorDetails = {}) {
     super(message);
@@ -68,6 +84,9 @@ export class SessError extends Error {
       outcome,
       idempotencyKey,
       retryAfterMs,
+      field,
+      limit,
+      length,
     } = this;
     return {
       name,
@@ -82,12 +101,24 @@ export class SessError extends Error {
       outcome,
       idempotencyKey,
       retryAfterMs,
+      field,
+      limit,
+      length,
     };
   }
 
   [inspect.custom](): object {
     return this.toJSON();
   }
+}
+
+/** Internal: the one-line fix every length error carries (field, limit, actual length, fix). */
+export function lengthMessage(field: string, limit: number, length: number): string {
+  // The same sentences as Sess's 400 INVALID_SCHEMA (`field` is a JSON pointer); the title (the
+  // `sess.ask()` question) has its own.
+  if (field === '/interaction/title' || field === '/question')
+    return `The title can be at most ${limit} characters. Keep it to a short heading, about 40.`;
+  return `${field} is ${length} characters; the limit is ${limit}. Shorten it to at most ${limit} characters.`;
 }
 
 /** Internal: keep private creation capabilities out of inspection and serialization. */

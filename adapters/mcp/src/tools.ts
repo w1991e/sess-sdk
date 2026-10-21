@@ -1,10 +1,13 @@
-import { ASK_LIMITS, LIMITS } from './validate.js';
+import { ASK_LIMITS, LIMITS, TEXT_LIMITS as L } from './validate.js';
 
 /**
  * Versioned tool contract. Changing any input or output schema requires a new version. Titles and
  * annotations are host hints, not part of the versioned schemas; listing.json artifacts copy them.
+ * sess-mcp-tools/4: Sess's length limits for what a person reads (title 80, button 24, labels 60,
+ * help 160, description 280, heading 60, record key 40 and value 200), with a purpose, style and
+ * examples on every such field.
  */
-export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/3';
+export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/4';
 export const TOOL_NAMES = [
   'sess_request',
   'sess_response',
@@ -15,6 +18,74 @@ export const TOOL_NAMES = [
 export type ToolName = (typeof TOOL_NAMES)[number];
 
 const text = (max: number) => ({ type: 'string', minLength: 1, maxLength: max });
+/** A string a person reads: its purpose and style, its limit and examples within it. */
+type Docs = { line: string; examples: readonly string[] };
+const shown = (max: number, docs: Docs, minLength = 1) => ({
+  type: 'string',
+  minLength,
+  maxLength: max,
+  description: docs.line,
+  examples: docs.examples,
+});
+
+/**
+ * Each human-visible string's purpose and style, one line, and examples inside its limit: exactly
+ * Sess's SURFACE_TEXT_DOCS (packages/spec/src/interactive.ts), the same wording as the SDK JSDoc,
+ * the API reference and llms.txt. Lengths are Unicode code points; nothing is ever truncated.
+ */
+export const TEXT_DOCS = {
+  title: {
+    line: `The page's heading: a question or a task, about 40 characters; at most ${L.title}.`,
+    examples: ['Approve the refund?', 'Pick a delivery date'],
+  },
+  description: {
+    line: `Optional context under the title: what the person decides and why, in one or two plain sentences; at most ${L.description}.`,
+    examples: ['The customer was charged twice for order 1042.'],
+  },
+  heading: { line: `A section heading: a few words; at most ${L.heading}.`, examples: ['Order details'] },
+  text: {
+    line: `A paragraph of plain text (never markup): what the person needs to know; at most ${L.text}.`,
+    examples: ['The refund goes back to the card used for the order.'],
+  },
+  recordLabel: {
+    line: `Optional caption above the record: a few words; at most ${L.recordLabel}.`,
+    examples: ['Order 1042'],
+  },
+  recordKey: {
+    line: `A row's name, shown verbatim: a word or two; at most ${L.recordKey}.`,
+    examples: ['Amount'],
+  },
+  recordValue: {
+    line: `A row's value, shown verbatim: a string of at most ${L.recordValue}, or a number, boolean or null.`,
+    examples: ['$120.00'],
+  },
+  fieldLabel: {
+    line: `What the field asks for: short, a few words; at most ${L.label}.`,
+    examples: ['Refund amount'],
+  },
+  fieldDescription: {
+    line: `Optional help under the label: one hint; at most ${L.help}.`,
+    examples: ['Leave it as is to refund the full amount.'],
+  },
+  optionLabel: {
+    line: `The words shown for one choice: short; at most ${L.optionLabel}.`,
+    examples: ['Next Monday'],
+  },
+  actionLabel: {
+    line: `A button: a verb, 1–3 words; at most ${L.actionLabel}.`,
+    examples: ['Approve', 'Send refund'],
+  },
+} as const satisfies Record<string, Docs>;
+
+/** What a model needs to fix a refused value in one try. */
+const TOO_LONG =
+  'A value over its limit is refused with INVALID_ARGUMENTS naming the field (a JSON pointer), the limit, its length and the fix; nothing is truncated. Shorten that value and call again.';
+
+const titleSchema = shown(L.title, TEXT_DOCS.title);
+const buttonSchema = shown(L.actionLabel, TEXT_DOCS.actionLabel);
+const labelSchema = shown(L.label, TEXT_DOCS.fieldLabel);
+const helpSchema = shown(L.help, TEXT_DOCS.fieldDescription, 0);
+
 const handle = {
   type: 'string',
   pattern: '^sh_[A-Za-z0-9_-]{22}$',
@@ -42,11 +113,11 @@ const fieldSchema = {
   required: ['type'],
   properties: {
     type: { enum: ['string', 'number', 'integer', 'boolean', 'array'] },
-    title: text(200),
-    description: { type: 'string', maxLength: 1000 },
+    title: text(L.schemaTitle),
+    description: { type: 'string', maxLength: L.schemaDescription },
     minLength: { type: 'integer', minimum: 0 },
     maxLength: { type: 'integer', minimum: 0 },
-    enum: { type: 'array', minItems: 1, maxItems: LIMITS.enumValues, items: text(200) },
+    enum: { type: 'array', minItems: 1, maxItems: LIMITS.enumValues, items: text(L.enumValue) },
     minimum: { type: 'number' },
     maximum: { type: 'number' },
     exclusiveMinimum: { type: 'number' },
@@ -57,7 +128,7 @@ const fieldSchema = {
       required: ['type', 'enum'],
       properties: {
         type: { const: 'string' },
-        enum: { type: 'array', minItems: 1, maxItems: LIMITS.enumValues, items: text(200) },
+        enum: { type: 'array', minItems: 1, maxItems: LIMITS.enumValues, items: text(L.enumValue) },
       },
     },
     minItems: { type: 'integer', minimum: 0 },
@@ -66,15 +137,55 @@ const fieldSchema = {
   },
 };
 
+/** One complete good interaction: every value within its limit, the title under 40 characters. */
+export const INTERACTION_EXAMPLE = {
+  mode: 'interactive',
+  title: 'Approve this commit?',
+  description: 'Check the message before I commit.',
+  source: {
+    kind: 'sess_surface',
+    components: [
+      { type: 'heading', text: 'What changed' },
+      { type: 'record', label: 'Files', fields: { 'src/greeting.js': 'Greets users by first name' } },
+      {
+        type: 'field',
+        name: 'message',
+        label: 'Commit message',
+        description: 'Edit it if you like.',
+        multiline: true,
+        schema: { type: 'string', minLength: 1, maxLength: 2000 },
+        value: 'Greet users by first name',
+      },
+    ],
+  },
+  actions: [
+    { id: 'approve', label: 'Approve', intent: 'approve' },
+    { id: 'stop', label: 'Stop', intent: 'reject' },
+  ],
+};
+
+/** One complete good sess_ask call: a question under 40 characters, short labels, a verb button. */
+export const ASK_EXAMPLE = {
+  question: 'Where should we go on Saturday?',
+  details: 'I will check the forecast and suggest a plan.',
+  fields: [
+    { name: 'place', label: 'Where to?', type: 'choice', options: ['Beach', 'Mountains', 'City'] },
+    { name: 'avoid', label: 'Anything to avoid?', type: 'text', required: false },
+  ],
+  submit_label: 'Plan it',
+};
+
 /** The supported SESS interactive Surface (same semantic contract as @sess.si/sdk InteractiveInteraction). */
 export const interactionSchema = {
   type: 'object',
+  description: `A Sess form: a title, components shown in order and 1-${LIMITS.actions} buttons. Keep it short: a person reads it on a phone. ${TOO_LONG}`,
   additionalProperties: false,
   required: ['mode', 'title', 'source', 'actions'],
+  examples: [INTERACTION_EXAMPLE],
   properties: {
     mode: { const: 'interactive' },
-    title: text(200),
-    description: { type: 'string', maxLength: 4000 },
+    title: titleSchema,
+    description: shown(L.description, TEXT_DOCS.description, 0),
     source: {
       type: 'object',
       additionalProperties: false,
@@ -91,13 +202,19 @@ export const interactionSchema = {
                 type: 'object',
                 additionalProperties: false,
                 required: ['type', 'text'],
-                properties: { type: { const: 'heading' }, text: text(200) },
+                properties: {
+                  type: { const: 'heading' },
+                  text: shown(L.heading, TEXT_DOCS.heading),
+                },
               },
               {
                 type: 'object',
                 additionalProperties: false,
                 required: ['type', 'text'],
-                properties: { type: { const: 'text' }, text: text(4000) },
+                properties: {
+                  type: { const: 'text' },
+                  text: shown(L.text, TEXT_DOCS.text),
+                },
               },
               {
                 type: 'object',
@@ -105,12 +222,20 @@ export const interactionSchema = {
                 required: ['type', 'fields'],
                 properties: {
                   type: { const: 'record' },
-                  label: text(200),
+                  label: shown(L.recordLabel, TEXT_DOCS.recordLabel),
                   fields: {
                     type: 'object',
+                    description: `Rows shown verbatim, 1-${LIMITS.recordEntries}. Each key: ${TEXT_DOCS.recordKey.line}`,
                     minProperties: 1,
                     maxProperties: LIMITS.recordEntries,
-                    additionalProperties: primitive,
+                    // maxLength applies to string values only; keys are checked on every call.
+                    additionalProperties: {
+                      ...primitive,
+                      maxLength: L.recordValue,
+                      description: TEXT_DOCS.recordValue.line,
+                      examples: TEXT_DOCS.recordValue.examples,
+                    },
+                    examples: [{ Amount: '$120.00' }],
                   },
                 },
               },
@@ -121,11 +246,16 @@ export const interactionSchema = {
                 properties: {
                   type: { const: 'field' },
                   name: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,63}$' },
-                  label: text(200),
-                  description: { type: 'string', maxLength: 1000 },
+                  label: labelSchema,
+                  description: helpSchema,
                   required: { type: 'boolean' },
                   multiline: { type: 'boolean' },
-                  option_labels: { type: 'object', additionalProperties: text(200) },
+                  option_labels: {
+                    type: 'object',
+                    description:
+                      'Display labels for enum values. A value without a label is shown as written, so it is then held to 60 characters too; give a long ID a short label.',
+                    additionalProperties: shown(L.optionLabel, TEXT_DOCS.optionLabel),
+                  },
                   schema: fieldSchema,
                   value: {
                     description: 'Proposed value the person can correct.',
@@ -140,6 +270,7 @@ export const interactionSchema = {
     },
     actions: {
       type: 'array',
+      description: `The buttons, 1-${LIMITS.actions}.`,
       minItems: 1,
       maxItems: LIMITS.actions,
       items: {
@@ -148,7 +279,7 @@ export const interactionSchema = {
         required: ['id', 'label'],
         properties: {
           id: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,31}$' },
-          label: text(200),
+          label: buttonSchema,
           intent: { enum: ['submit', 'continue', 'approve', 'reject', 'request_change'] },
         },
       },
@@ -204,7 +335,9 @@ export const TOOLS = [
     description:
       'Create a hosted Sess form for a person and return immediately with a private link (interaction.humanUrl) and a handle. ' +
       'Give the link only to the intended person in this private conversation; anyone holding it can answer. ' +
-      'Then call sess_response with the handle and revision. Do not call sess_request again for the same question.',
+      'Then call sess_response with the handle and revision. Do not call sess_request again for the same question. ' +
+      'Keep it short: a title of about 40 characters (at most 80), button labels a verb of 1-3 words (at most 24), field labels at most 60, help one hint (at most 160). ' +
+      TOO_LONG,
     inputSchema: {
       type: 'object',
       additionalProperties: false,
@@ -283,19 +416,19 @@ export const TOOLS = [
     description:
       'Shortcut for sess_request: give a question and up to 12 simple fields; it creates the same hosted form and returns ' +
       'immediately with a private link (interaction.humanUrl) and a handle, in state "waiting". It never waits and never returns an answer. ' +
-      'Continue exactly as after sess_request: give the link only to the intended person, then call sess_response. Do not call it again for the same question.',
+      'Continue exactly as after sess_request: give the link only to the intended person, then call sess_response. Do not call it again for the same question. ' +
+      'Keep it short: the question is a short heading, about 40 characters (at most 80); the button a verb of 1-3 words (at most 24); labels and options at most 60. ' +
+      TOO_LONG +
+      ` Example: ${JSON.stringify(ASK_EXAMPLE)}`,
     inputSchema: {
       type: 'object',
       additionalProperties: false,
       required: ['question', 'fields'],
+      examples: [ASK_EXAMPLE],
       properties: {
-        question: { ...text(200), description: 'Shown as the form title.' },
-        details: {
-          type: 'string',
-          maxLength: 4000,
-          description: 'Optional plain-text context shown above the fields.',
-        },
-        submit_label: text(200),
+        question: titleSchema,
+        details: shown(L.text, TEXT_DOCS.text),
+        submit_label: { ...buttonSchema, description: `${TEXT_DOCS.actionLabel.line} Default "Send".` },
         fields: {
           type: 'array',
           minItems: 1,
@@ -306,10 +439,17 @@ export const TOOLS = [
             required: ['name', 'label', 'type'],
             properties: {
               name: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,63}$' },
-              label: text(200),
+              label: labelSchema,
               type: { enum: ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice'] },
               required: { type: 'boolean', description: 'Default true, except boolean fields.' },
-              options: { type: 'array', minItems: 1, maxItems: ASK_LIMITS.options, items: text(200) },
+              options: {
+                type: 'array',
+                description: 'The choices for choice and multi_choice fields.',
+                minItems: 1,
+                maxItems: ASK_LIMITS.options,
+                items: shown(L.optionLabel, TEXT_DOCS.optionLabel),
+                examples: [['Next Monday', 'Next Friday']],
+              },
               default: {
                 description: 'Proposed value the person can correct.',
                 anyOf: [primitive, { type: 'array', items: { type: 'string' } }],

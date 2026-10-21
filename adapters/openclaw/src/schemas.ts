@@ -1,5 +1,5 @@
 import type { InteractiveInteraction } from '@sess.si/sdk';
-import { fail } from './errors.js';
+import { fail, failTooLong, fallbackLabelMessage } from './errors.js';
 
 /**
  * Adapter policy limits, at or below the runtime contract (spec 7.3). They are adapter limits,
@@ -31,8 +31,84 @@ const FORBIDDEN_CHARACTERS =
   /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
 const INTENTS = new Set(['submit', 'continue', 'approve', 'reject', 'request_change']);
 
+/**
+ * Sess's length limits for what a person reads, in Unicode code points: the runtime checks the
+ * same numbers and never truncates. Over one, a call is refused with its field (a JSON pointer),
+ * the limit, its length and the fix.
+ */
+export const TEXT_LIMITS = Object.freeze({
+  title: 80,
+  description: 280,
+  heading: 60,
+  text: 4000,
+  label: 60,
+  optionLabel: 60,
+  help: 160,
+  actionLabel: 24,
+  recordLabel: 200,
+  recordKey: 40,
+  recordValue: 200,
+  /** Not shown as written (enum values, a schema's own title): the earlier runtime bounds. */
+  schemaTitle: 200,
+  schemaDescription: 1000,
+  enumValue: 200,
+});
+
+const T = TEXT_LIMITS;
+/**
+ * Each human-visible string's purpose and style, one line, and examples inside its limit: exactly
+ * Sess's SURFACE_TEXT_DOCS (packages/spec/src/interactive.ts), shared with the MCP tools, the SDK
+ * JSDoc, the API reference and llms.txt.
+ */
+export const TEXT_DOCS = Object.freeze({
+  title: {
+    line: `The page's heading: a question or a task, about 40 characters; at most ${T.title}.`,
+    examples: ['Approve the refund?', 'Pick a delivery date'],
+  },
+  description: {
+    line: `Optional context under the title: what the person decides and why, in one or two plain sentences; at most ${T.description}.`,
+    examples: ['The customer was charged twice for order 1042.'],
+  },
+  heading: { line: `A section heading: a few words; at most ${T.heading}.`, examples: ['Order details'] },
+  text: {
+    line: `A paragraph of plain text (never markup): what the person needs to know; at most ${T.text}.`,
+    examples: ['The refund goes back to the card used for the order.'],
+  },
+  recordLabel: {
+    line: `Optional caption above the record: a few words; at most ${T.recordLabel}.`,
+    examples: ['Order 1042'],
+  },
+  recordKey: {
+    line: `A row's name, shown verbatim: a word or two; at most ${T.recordKey}.`,
+    examples: ['Amount'],
+  },
+  recordValue: {
+    line: `A row's value, shown verbatim: a string of at most ${T.recordValue}, or a number, boolean or null.`,
+    examples: ['$120.00'],
+  },
+  fieldLabel: {
+    line: `What the field asks for: short, a few words; at most ${T.label}.`,
+    examples: ['Refund amount'],
+  },
+  fieldDescription: {
+    line: `Optional help under the label: one hint; at most ${T.help}.`,
+    examples: ['Leave it as is to refund the full amount.'],
+  },
+  optionLabel: {
+    line: `The words shown for one choice: short; at most ${T.optionLabel}.`,
+    examples: ['Next Monday'],
+  },
+  actionLabel: {
+    line: `A button: a verb, 1–3 words; at most ${T.actionLabel}.`,
+    examples: ['Approve', 'Send refund'],
+  },
+});
+
 const plainText = (max: number) =>
   ({ type: 'string', minLength: 1, maxLength: max, pattern: '\\S' }) as const;
+/** A string a person reads: its purpose and style, its limit and examples within it. */
+const shown = (max: number, docs: { line: string; examples: readonly string[] }) =>
+  ({ ...plainText(max), description: docs.line, examples: docs.examples }) as const;
 
 const fieldValueSchema = {
   type: 'object',
@@ -40,8 +116,8 @@ const fieldValueSchema = {
     'Restricted JSON Schema for the value: string (minLength, maxLength, enum), number/integer (minimum, maximum, exclusiveMinimum, exclusiveMaximum), boolean, or array of string enum IDs (items {type: "string", enum}, minItems, maxItems, uniqueItems: true).',
   properties: {
     type: { type: 'string', enum: ['string', 'number', 'integer', 'boolean', 'array'] },
-    title: { type: 'string', maxLength: 200 },
-    description: { type: 'string', maxLength: 1000 },
+    title: { type: 'string', maxLength: TEXT_LIMITS.schemaTitle },
+    description: { type: 'string', maxLength: TEXT_LIMITS.schemaDescription },
     minLength: { type: 'integer', minimum: 0 },
     maxLength: { type: 'integer', minimum: 0 },
     enum: {
@@ -80,11 +156,44 @@ const fieldValueSchema = {
 export const INTERACTION_SCHEMA = {
   type: 'object',
   description:
-    'A Sess interactive Surface: plain-text components, typed fields and 1-5 actions. No HTML, scripts or styles.',
+    'A Sess interactive Surface: plain-text components, typed fields and 1-5 actions. No HTML, scripts or styles. ' +
+    'Keep it short: a person reads it on a phone. A value over its limit is refused with INVALID_ARGUMENTS naming the field (a JSON pointer), the limit, its length and the fix; nothing is truncated. Shorten that value and call again.',
+  examples: [
+    {
+      mode: 'interactive',
+      title: 'Approve this commit?',
+      description: 'Check the message before I commit.',
+      source: {
+        kind: 'sess_surface',
+        components: [
+          { type: 'heading', text: 'What changed' },
+          { type: 'record', label: 'Files', fields: { 'src/greeting.js': 'Greets users by first name' } },
+          {
+            type: 'field',
+            name: 'message',
+            label: 'Commit message',
+            description: 'Edit it if you like.',
+            multiline: true,
+            schema: { type: 'string', minLength: 1, maxLength: 2000 },
+            value: 'Greet users by first name',
+          },
+        ],
+      },
+      actions: [
+        { id: 'approve', label: 'Approve', intent: 'approve' },
+        { id: 'stop', label: 'Stop', intent: 'reject' },
+      ],
+    },
+  ],
   properties: {
     mode: { type: 'string', enum: ['interactive'] },
-    title: plainText(200),
-    description: { type: 'string', maxLength: 4000 },
+    title: shown(TEXT_LIMITS.title, TEXT_DOCS.title),
+    description: {
+      type: 'string',
+      maxLength: TEXT_LIMITS.description,
+      description: TEXT_DOCS.description.line,
+      examples: TEXT_DOCS.description.examples,
+    },
     source: {
       type: 'object',
       properties: {
@@ -97,7 +206,10 @@ export const INTERACTION_SCHEMA = {
             anyOf: [
               {
                 type: 'object',
-                properties: { type: { type: 'string', enum: ['heading'] }, text: plainText(200) },
+                properties: {
+                  type: { type: 'string', enum: ['heading'] },
+                  text: shown(TEXT_LIMITS.heading, TEXT_DOCS.heading),
+                },
                 required: ['type', 'text'],
                 additionalProperties: false,
               },
@@ -105,7 +217,13 @@ export const INTERACTION_SCHEMA = {
                 type: 'object',
                 properties: {
                   type: { type: 'string', enum: ['text'] },
-                  text: { type: 'string', minLength: 1, maxLength: 4000 },
+                  text: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: TEXT_LIMITS.text,
+                    description: TEXT_DOCS.text.line,
+                    examples: TEXT_DOCS.text.examples,
+                  },
                 },
                 required: ['type', 'text'],
                 additionalProperties: false,
@@ -114,12 +232,20 @@ export const INTERACTION_SCHEMA = {
                 type: 'object',
                 properties: {
                   type: { type: 'string', enum: ['record'] },
-                  label: plainText(200),
+                  label: shown(TEXT_LIMITS.recordLabel, TEXT_DOCS.recordLabel),
                   fields: {
                     type: 'object',
+                    description: `Rows shown verbatim, 1-${LIMITS.recordFields}. Each key: ${TEXT_DOCS.recordKey.line}`,
                     minProperties: 1,
                     maxProperties: LIMITS.recordFields,
-                    additionalProperties: { type: ['string', 'number', 'boolean', 'null'] },
+                    // maxLength applies to string values only; keys are checked on every call.
+                    additionalProperties: {
+                      type: ['string', 'number', 'boolean', 'null'],
+                      maxLength: TEXT_LIMITS.recordValue,
+                      description: TEXT_DOCS.recordValue.line,
+                      examples: TEXT_DOCS.recordValue.examples,
+                    },
+                    examples: [{ Amount: '$120.00' }],
                   },
                 },
                 required: ['type', 'fields'],
@@ -130,14 +256,21 @@ export const INTERACTION_SCHEMA = {
                 properties: {
                   type: { type: 'string', enum: ['field'] },
                   name: { type: 'string', pattern: FIELD_NAME.source },
-                  label: plainText(200),
-                  description: { type: 'string', maxLength: 1000 },
+                  label: shown(TEXT_LIMITS.label, TEXT_DOCS.fieldLabel),
+                  description: {
+                    type: 'string',
+                    maxLength: TEXT_LIMITS.help,
+                    description: TEXT_DOCS.fieldDescription.line,
+                    examples: TEXT_DOCS.fieldDescription.examples,
+                  },
                   required: { type: 'boolean' },
                   multiline: { type: 'boolean' },
                   option_labels: {
                     type: 'object',
+                    description:
+                      'Display labels for enum values. A value without a label is shown as written, so it is then held to 60 characters too; give a long ID a short label.',
                     maxProperties: LIMITS.enumOptions,
-                    additionalProperties: plainText(200),
+                    additionalProperties: shown(TEXT_LIMITS.optionLabel, TEXT_DOCS.optionLabel),
                   },
                   schema: fieldValueSchema,
                   value: { description: 'Proposed value; must be valid against schema.' },
@@ -160,7 +293,7 @@ export const INTERACTION_SCHEMA = {
         type: 'object',
         properties: {
           id: { type: 'string', pattern: ACTION_ID.source },
-          label: plainText(200),
+          label: shown(TEXT_LIMITS.actionLabel, TEXT_DOCS.actionLabel),
           intent: { type: 'string', enum: [...INTENTS] },
         },
         required: ['id', 'label'],
@@ -283,9 +416,29 @@ function closed(value: unknown, path: string, allowed: readonly string[], requir
   return value;
 }
 
-function str(value: unknown, path: string, min: number, max: number, nonBlank = false): string {
-  if (typeof value !== 'string' || value.length < min || value.length > max)
-    invalid(path, `must be a string of ${min}-${max} characters.`);
+/** `interaction.actions[0].label` → `/interaction/actions/0/label` (plain identifier segments only). */
+function pointer(path: string, key?: string): string {
+  const base = `/${path
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .join('/')}`;
+  // A record key or option value ends the pointer as Sess's does (RFC 6901 escaped).
+  return key === undefined ? base : `${base}/${key.replace(/~/g, '~0').replace(/\//g, '~1')}`;
+}
+
+function str(
+  value: unknown,
+  path: string,
+  min: number,
+  max: number,
+  nonBlank = false,
+  field = pointer(path),
+): string {
+  if (typeof value !== 'string') invalid(path, `must be a string of ${min}-${max} characters.`);
+  // Counted in Unicode code points, as Sess counts them; nothing is ever truncated.
+  const length = [...value].length;
+  if (length > max) failTooLong(field, max, length);
+  if (length < min) invalid(path, `must be a string of ${min}-${max} characters.`);
   if (FORBIDDEN_CHARACTERS.test(value))
     invalid(path, 'control or bidirectional-override characters are not accepted.');
   if (nonBlank && !/\S/.test(value)) invalid(path, 'must not be blank.');
@@ -310,7 +463,7 @@ function finiteNumber(value: unknown, path: string): number {
 function enumList(value: unknown, path: string): string[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > LIMITS.enumOptions)
     invalid(path, `must list 1-${LIMITS.enumOptions} options.`);
-  const list = value.map((item, index) => str(item, `${path}[${index}]`, 1, 200, true));
+  const list = value.map((item, index) => str(item, `${path}[${index}]`, 1, TEXT_LIMITS.enumValue, true));
   if (new Set(list).size !== list.length) invalid(path, 'options must be unique.');
   return list;
 }
@@ -343,8 +496,9 @@ function fieldSchema(value: unknown, path: string): CheckedFieldSchema {
     ['type'],
   );
   const type = raw.type;
-  if (raw.title !== undefined) str(raw.title, `${path}.title`, 0, 200);
-  if (raw.description !== undefined) str(raw.description, `${path}.description`, 0, 1000);
+  if (raw.title !== undefined) str(raw.title, `${path}.title`, 0, TEXT_LIMITS.schemaTitle);
+  if (raw.description !== undefined)
+    str(raw.description, `${path}.description`, 0, TEXT_LIMITS.schemaDescription);
   const only = (keys: string[]) => {
     for (const key of Object.keys(raw))
       if (![...base, ...keys].includes(key))
@@ -430,8 +584,8 @@ export function validateInteraction(value: unknown, path = 'interaction'): Inter
     ['mode', 'title', 'source', 'actions'],
   );
   if (top.mode !== 'interactive') invalid(`${path}.mode`, 'must be "interactive".');
-  str(top.title, `${path}.title`, 1, 200, true);
-  if (top.description !== undefined) str(top.description, `${path}.description`, 0, 4000);
+  str(top.title, `${path}.title`, 1, TEXT_LIMITS.title, true);
+  if (top.description !== undefined) str(top.description, `${path}.description`, 0, TEXT_LIMITS.description);
   if (top.response_policy !== undefined && top.response_policy !== 'first')
     invalid(`${path}.response_policy`, 'must be "first".');
   const source = closed(top.source, `${path}.source`, ['kind', 'components'], ['kind', 'components']);
@@ -446,21 +600,22 @@ export function validateInteraction(value: unknown, path = 'interaction'): Inter
     switch (component.type) {
       case 'heading':
         closed(component, at, ['type', 'text'], ['type', 'text']);
-        str(component.text, `${at}.text`, 1, 200, true);
+        str(component.text, `${at}.text`, 1, TEXT_LIMITS.heading, true);
         break;
       case 'text':
         closed(component, at, ['type', 'text'], ['type', 'text']);
-        str(component.text, `${at}.text`, 1, 4000);
+        str(component.text, `${at}.text`, 1, TEXT_LIMITS.text);
         break;
       case 'record': {
         closed(component, at, ['type', 'label', 'fields'], ['type', 'fields']);
-        if (component.label !== undefined) str(component.label, `${at}.label`, 1, 200, true);
+        if (component.label !== undefined)
+          str(component.label, `${at}.label`, 1, TEXT_LIMITS.recordLabel, true);
         if (!isPlainObject(component.fields)) invalid(`${at}.fields`, 'must be an object.');
         const entries = Object.entries(component.fields);
         if (entries.length < 1 || entries.length > LIMITS.recordFields)
           invalid(`${at}.fields`, `must have 1-${LIMITS.recordFields} entries.`);
         for (const [key, item] of entries) {
-          str(key, `${at}.fields key`, 1, 200, true);
+          str(key, `${at}.fields key`, 1, TEXT_LIMITS.recordKey, true, pointer(`${at}.fields`, key));
           if (!(
             item === null ||
             typeof item === 'string' ||
@@ -468,7 +623,8 @@ export function validateInteraction(value: unknown, path = 'interaction'): Inter
             (typeof item === 'number' && Number.isFinite(item))
           ))
             invalid(`${at}.fields`, 'values must be strings, finite numbers, booleans or null.');
-          if (typeof item === 'string') str(item, `${at}.fields value`, 0, 4000);
+          if (typeof item === 'string')
+            str(item, `${at}.fields value`, 0, TEXT_LIMITS.recordValue, false, pointer(`${at}.fields`, key));
         }
         break;
       }
@@ -495,8 +651,9 @@ export function validateInteraction(value: unknown, path = 'interaction'): Inter
         if (RESERVED_FIELD_NAMES.has(name)) invalid(`${at}.name`, `"${name}" is a reserved field name.`);
         if (names.has(name)) invalid(`${at}.name`, 'field names must be unique.');
         names.add(name);
-        str(component.label, `${at}.label`, 1, 200, true);
-        if (component.description !== undefined) str(component.description, `${at}.description`, 0, 1000);
+        str(component.label, `${at}.label`, 1, TEXT_LIMITS.label, true);
+        if (component.description !== undefined)
+          str(component.description, `${at}.description`, 0, TEXT_LIMITS.help);
         if (component.required !== undefined) bool(component.required, `${at}.required`);
         if (component.multiline !== undefined) bool(component.multiline, `${at}.multiline`);
         const schema = fieldSchema(component.schema, `${at}.schema`);
@@ -508,8 +665,33 @@ export function validateInteraction(value: unknown, path = 'interaction'): Inter
           for (const [key, label] of Object.entries(component.option_labels)) {
             if (!schema.options.includes(key))
               invalid(`${at}.option_labels`, 'labels a value that is not a declared option.');
-            str(label, `${at}.option_labels.${key}`, 1, 200, true);
+            str(
+              label,
+              `${at}.option_labels.${key}`,
+              1,
+              TEXT_LIMITS.optionLabel,
+              true,
+              pointer(`${at}.option_labels`, key),
+            );
           }
+        }
+        // The words shown for a choice are its label, otherwise the enum ID itself: an unlabelled ID
+        // is held to the option-label limit and named at its enum entry. A long opaque ID with a
+        // short label stays legal (IDs keep their own 200 bound).
+        if (schema.options) {
+          const labels = isPlainObject(component.option_labels) ? component.option_labels : {};
+          const enumAt = schema.type === 'array' ? `${at}.schema.items.enum` : `${at}.schema.enum`;
+          schema.options.forEach((id, index) => {
+            if (Object.hasOwn(labels, id)) return;
+            const length = [...id].length;
+            if (length > TEXT_LIMITS.optionLabel)
+              failTooLong(
+                pointer(`${enumAt}[${index}]`),
+                TEXT_LIMITS.optionLabel,
+                length,
+                fallbackLabelMessage,
+              );
+          });
         }
         if ('value' in component) schema.check(component.value, `${at}.value`);
         break;
@@ -531,7 +713,7 @@ export function validateInteraction(value: unknown, path = 'interaction'): Inter
       invalid(`${at}.id`, 'must match ^[a-z][a-z0-9_]{0,31}$.');
     if (ids.has(checked.id)) invalid(`${at}.id`, 'action IDs must be unique.');
     ids.add(checked.id);
-    str(checked.label, `${at}.label`, 1, 200, true);
+    str(checked.label, `${at}.label`, 1, TEXT_LIMITS.actionLabel, true);
     if (checked.intent !== undefined && (typeof checked.intent !== 'string' || !INTENTS.has(checked.intent)))
       invalid(`${at}.intent`, 'unsupported intent.');
   });

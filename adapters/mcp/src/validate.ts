@@ -1,4 +1,4 @@
-import { AdapterError } from './errors.js';
+import { AdapterError, fallbackLabelMessage, lengthMessage } from './errors.js';
 
 /**
  * Adapter policy limits. They are at or below the runtime's published contract limits and are
@@ -19,6 +19,29 @@ export const LIMITS = Object.freeze({
   maxRevision: 999_999_999,
 });
 
+/**
+ * Sess's length limits for what a person reads, in Unicode code points: the runtime checks the
+ * same numbers and never truncates. A value over its limit is refused with its field (a JSON
+ * pointer), the limit, its length and the fix.
+ */
+export const TEXT_LIMITS = Object.freeze({
+  title: 80,
+  description: 280,
+  heading: 60,
+  text: 4000,
+  label: 60,
+  optionLabel: 60,
+  help: 160,
+  actionLabel: 24,
+  recordLabel: 200,
+  recordKey: 40,
+  recordValue: 200,
+  /** Not shown as written (enum values, a schema's own title): the earlier runtime bounds. */
+  enumValue: 200,
+  schemaTitle: 200,
+  schemaDescription: 1000,
+});
+
 export const HANDLE_PATTERN = /^sh_[A-Za-z0-9_-]{22}$/;
 export const EVENT_ID_PATTERN = /^evt_[0-9A-HJKMNP-TV-Z]{26}$/;
 const ACTION_ID = /^[a-z][a-z0-9_]{0,31}$/;
@@ -33,6 +56,27 @@ export type JsonObject = { [key: string]: JsonValue };
 function invalid(path: string, problem: string): never {
   throw new AdapterError('INVALID_ARGUMENTS', `${path || 'arguments'}: ${problem}`);
 }
+/**
+ * `interaction.actions[0].label` → `/interaction/actions/0/label`. A record key or option value
+ * ends the pointer as Sess's does (RFC 6901 escaped), so the error names that exact entry.
+ */
+function pointer(path: string, key?: string): string {
+  const base = `/${path
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .join('/')}`;
+  return key === undefined ? base : `${base}/${key.replace(/~/g, '~0').replace(/\//g, '~1')}`;
+}
+function tooLong(path: string, limit: number, length: number, key?: string): never {
+  // Sess's own sentences, naming the pointer, the limit and the length; never the value.
+  const field = pointer(path, key);
+  throw new AdapterError('INVALID_ARGUMENTS', lengthMessage(field, limit, length), false, {
+    field,
+    limit,
+    length,
+  });
+}
+const codePoints = (value: string) => [...value].length;
 function label(key: string): string {
   return /^[A-Za-z0-9_]{1,40}$/.test(key) ? key : '?';
 }
@@ -91,9 +135,19 @@ function closed(
   }
   for (const key of required) if (!(key in value)) invalid(path, `missing required property "${key}"`);
 }
-function text(value: JsonValue | undefined, path: string, max: number, min = 1, nonBlank = true): string {
+function text(
+  value: JsonValue | undefined,
+  path: string,
+  max: number,
+  min = 1,
+  nonBlank = true,
+  key?: string,
+): string {
   if (typeof value !== 'string') return invalid(path, 'must be a string');
-  if (value.length < min || value.length > max) invalid(path, `length must be ${min}..${max}`);
+  // Counted in Unicode code points, as Sess counts them.
+  const length = codePoints(value);
+  if (length > max) tooLong(path, max, length, key);
+  if (length < min) invalid(path, `length must be ${min}..${max}`);
   if (nonBlank && min > 0 && !/\S/.test(value)) invalid(path, 'must not be blank');
   if (CONTROL.test(value)) invalid(path, 'contains control or bidirectional override characters');
   return value;
@@ -130,12 +184,13 @@ function fieldSchema(value: JsonValue | undefined, path: string): void {
   closed(schema, path, SCHEMA_KEYS, ['type']);
   if (!['string', 'number', 'integer', 'boolean', 'array'].includes(schema.type as string))
     invalid(`${path}.type`, 'must be string, number, integer, boolean or array');
-  if (schema.title !== undefined) text(schema.title, `${path}.title`, 200);
-  if (schema.description !== undefined) text(schema.description, `${path}.description`, 1000, 0);
+  if (schema.title !== undefined) text(schema.title, `${path}.title`, TEXT_LIMITS.schemaTitle);
+  if (schema.description !== undefined)
+    text(schema.description, `${path}.description`, TEXT_LIMITS.schemaDescription, 0);
   if (schema.enum !== undefined) {
     if (!Array.isArray(schema.enum) || schema.enum.length < 1 || schema.enum.length > LIMITS.enumValues)
       invalid(`${path}.enum`, `must list 1..${LIMITS.enumValues} values`);
-    schema.enum.forEach((item, i) => text(item, `${path}.enum[${i}]`, 200));
+    schema.enum.forEach((item, i) => text(item, `${path}.enum[${i}]`, TEXT_LIMITS.enumValue));
   }
   for (const key of ['minLength', 'maxLength', 'minItems', 'maxItems'] as const) {
     if (schema[key] !== undefined) integer(schema[key], `${path}.${key}`, 0, 100_000);
@@ -152,7 +207,7 @@ function fieldSchema(value: JsonValue | undefined, path: string): void {
     if (items.type !== 'string') invalid(`${path}.items.type`, 'must be string');
     if (!Array.isArray(items.enum) || items.enum.length < 1 || items.enum.length > LIMITS.enumValues)
       invalid(`${path}.items.enum`, `must list 1..${LIMITS.enumValues} values`);
-    items.enum.forEach((item, i) => text(item, `${path}.items.enum[${i}]`, 200));
+    items.enum.forEach((item, i) => text(item, `${path}.items.enum[${i}]`, TEXT_LIMITS.enumValue));
   }
 }
 
@@ -161,25 +216,26 @@ function component(value: JsonValue, path: string, names: Set<string>): boolean 
   switch (c.type) {
     case 'heading':
       closed(c, path, ['type', 'text'], ['type', 'text']);
-      text(c.text, `${path}.text`, 200);
+      text(c.text, `${path}.text`, TEXT_LIMITS.heading);
       return false;
     case 'text':
       closed(c, path, ['type', 'text'], ['type', 'text']);
-      text(c.text, `${path}.text`, 4000, 1, false);
+      text(c.text, `${path}.text`, TEXT_LIMITS.text, 1, false);
       return false;
     case 'record': {
       closed(c, path, ['type', 'label', 'fields'], ['type', 'fields']);
-      if (c.label !== undefined) text(c.label, `${path}.label`, 200);
+      if (c.label !== undefined) text(c.label, `${path}.label`, TEXT_LIMITS.recordLabel);
       const fields = object(c.fields, `${path}.fields`);
       const keys = Object.keys(fields);
       if (keys.length < 1 || keys.length > LIMITS.recordEntries)
         invalid(`${path}.fields`, `must have 1..${LIMITS.recordEntries} entries`);
       for (const key of keys) {
-        text(key, `${path}.fields`, 200);
+        // As Sess does, a too-long key or value is named by a pointer ending with that key.
+        text(key, `${path}.fields`, TEXT_LIMITS.recordKey, 1, true, key);
         const entry = fields[key];
         if (entry !== null && typeof entry === 'object')
           invalid(`${path}.fields`, 'values must be primitive');
-        if (typeof entry === 'string') text(entry, `${path}.fields`, 4000, 0);
+        if (typeof entry === 'string') text(entry, `${path}.fields`, TEXT_LIMITS.recordValue, 0, true, key);
       }
       return false;
     }
@@ -195,8 +251,8 @@ function component(value: JsonValue, path: string, names: Set<string>): boolean 
       if (UNSAFE_KEYS.has(name)) invalid(`${path}.name`, `"${name}" is a reserved name`);
       if (names.has(name)) invalid(`${path}.name`, 'duplicates another field name');
       names.add(name);
-      text(c.label, `${path}.label`, 200);
-      if (c.description !== undefined) text(c.description, `${path}.description`, 1000, 0);
+      text(c.label, `${path}.label`, TEXT_LIMITS.label);
+      if (c.description !== undefined) text(c.description, `${path}.description`, TEXT_LIMITS.help, 0);
       for (const key of ['required', 'multiline'] as const) {
         if (c[key] !== undefined && typeof c[key] !== 'boolean')
           invalid(`${path}.${key}`, 'must be a boolean');
@@ -207,11 +263,12 @@ function component(value: JsonValue, path: string, names: Set<string>): boolean 
         if (keys.length > LIMITS.optionLabels)
           invalid(`${path}.option_labels`, `must have at most ${LIMITS.optionLabels} entries`);
         for (const key of keys) {
-          text(key, `${path}.option_labels`, 200);
-          text(labels[key], `${path}.option_labels`, 200);
+          text(key, `${path}.option_labels`, TEXT_LIMITS.enumValue);
+          text(labels[key], `${path}.option_labels`, TEXT_LIMITS.optionLabel, 1, true, key);
         }
       }
       fieldSchema(c.schema, `${path}.schema`);
+      effectiveOptionLabels(c, path);
       if (c.value !== undefined) {
         const v = c.value;
         if (Array.isArray(v)) v.forEach((item, i) => text(item, `${path}.value[${i}]`, 200));
@@ -226,6 +283,36 @@ function component(value: JsonValue, path: string, names: Set<string>): boolean 
   }
 }
 
+/**
+ * The words shown for each choice are its `option_labels` entry, otherwise the enum ID itself.
+ * An ID without a label is therefore held to the option-label limit and named at its enum entry
+ * (`/…/schema/enum/1` or `/…/schema/items/enum/1`); a long opaque ID with a short label stays legal
+ * (IDs keep their own 200 bound). Explicit labels are checked above.
+ */
+function effectiveOptionLabels(c: JsonObject, path: string): void {
+  const schema = c.schema as JsonObject;
+  const items = schema.items as JsonObject | undefined;
+  const [ids, at] = Array.isArray(schema.enum)
+    ? [schema.enum, `${path}.schema.enum`]
+    : Array.isArray(items?.enum)
+      ? [items.enum, `${path}.schema.items.enum`]
+      : [[], ''];
+  const labels = (c.option_labels ?? {}) as JsonObject;
+  ids.forEach((id, i) => {
+    if (typeof id !== 'string' || Object.hasOwn(labels, id)) return;
+    const length = codePoints(id);
+    if (length > TEXT_LIMITS.optionLabel) {
+      const field = pointer(`${at}[${i}]`);
+      const limit = TEXT_LIMITS.optionLabel;
+      throw new AdapterError('INVALID_ARGUMENTS', fallbackLabelMessage(field, limit, length), false, {
+        field,
+        limit,
+        length,
+      });
+    }
+  });
+}
+
 /** A closed check of the supported interactive Surface shape. The runtime still validates it. */
 export function validateInteraction(value: JsonValue | undefined, path = 'interaction'): JsonObject {
   const interaction = object(value, path);
@@ -238,8 +325,9 @@ export function validateInteraction(value: JsonValue | undefined, path = 'intera
     ['mode', 'title', 'source', 'actions'],
   );
   if (interaction.mode !== 'interactive') invalid(`${path}.mode`, 'must be "interactive"');
-  text(interaction.title, `${path}.title`, 200);
-  if (interaction.description !== undefined) text(interaction.description, `${path}.description`, 4000, 0);
+  text(interaction.title, `${path}.title`, TEXT_LIMITS.title);
+  if (interaction.description !== undefined)
+    text(interaction.description, `${path}.description`, TEXT_LIMITS.description, 0);
   if (interaction.response_policy !== undefined && interaction.response_policy !== 'first')
     invalid(`${path}.response_policy`, 'must be "first"');
   const source = object(interaction.source, `${path}.source`);
@@ -264,7 +352,7 @@ export function validateInteraction(value: JsonValue | undefined, path = 'intera
     const id = pattern(action.id, `${path}.actions[${i}].id`, ACTION_ID);
     if (ids.has(id)) invalid(`${path}.actions[${i}].id`, 'duplicates another action');
     ids.add(id);
-    text(action.label, `${path}.actions[${i}].label`, 200);
+    text(action.label, `${path}.actions[${i}].label`, TEXT_LIMITS.actionLabel);
     if (
       action.intent !== undefined &&
       !['submit', 'continue', 'approve', 'reject', 'request_change'].includes(action.intent as string)
@@ -377,6 +465,9 @@ function askField(value: JsonValue | undefined, path: string): JsonObject {
   if (f.multiline !== undefined && type !== 'text') invalid(`${path}.multiline`, 'is only allowed for text');
   if ((f.minimum !== undefined || f.maximum !== undefined) && type !== 'number' && type !== 'integer')
     invalid(path, 'minimum/maximum are only allowed for number and integer');
+  // Checked here so a length error names the sess_ask argument (/fields/0/label), not the
+  // compiled interaction.
+  text(f.label, `${path}.label`, TEXT_LIMITS.label);
   let schema: JsonObject;
   switch (type) {
     case 'text':
@@ -398,6 +489,8 @@ function askField(value: JsonValue | undefined, path: string): JsonObject {
       const options = f.options;
       if (!Array.isArray(options) || options.length < 1 || options.length > ASK_LIMITS.options)
         invalid(`${path}.options`, `must list 1..${ASK_LIMITS.options} options`);
+      // Each option is shown as written, so it is held to the option-label limit.
+      options.forEach((option, i) => text(option, `${path}.options[${i}]`, TEXT_LIMITS.optionLabel));
       if (new Set(options).size !== options.length) invalid(`${path}.options`, 'must be unique');
       schema =
         type === 'choice'
@@ -427,23 +520,21 @@ export function parseAskArgs(raw: unknown): RequestArgs {
     ['question', 'details', 'fields', 'submit_label', 'expires_in'],
     ['question', 'fields'],
   );
+  const title = text(a.question, 'question', TEXT_LIMITS.title);
+  const submit =
+    a.submit_label === undefined ? 'Send' : text(a.submit_label, 'submit_label', TEXT_LIMITS.actionLabel);
   const fields = a.fields;
   if (!Array.isArray(fields) || fields.length < 1 || fields.length > ASK_LIMITS.fields)
     invalid('fields', `must contain 1..${ASK_LIMITS.fields} fields`);
   const components: JsonValue[] = [];
-  if (a.details !== undefined) components.push({ type: 'text', text: text(a.details, 'details', 4000) });
+  if (a.details !== undefined)
+    components.push({ type: 'text', text: text(a.details, 'details', TEXT_LIMITS.text) });
   fields.forEach((f, i) => components.push(askField(f, `fields[${i}]`)));
   const interaction: JsonObject = {
     mode: 'interactive',
-    title: text(a.question, 'question', 200),
+    title,
     source: { kind: 'sess_surface', components },
-    actions: [
-      {
-        id: 'submit',
-        label: a.submit_label === undefined ? 'Send' : text(a.submit_label, 'submit_label', 200),
-        intent: 'submit',
-      },
-    ],
+    actions: [{ id: 'submit', label: submit, intent: 'submit' }],
   };
   return { interaction: validateInteraction(interaction), ...linkLifetime(a.expires_in) };
 }

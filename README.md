@@ -55,6 +55,47 @@ confirmed; calling `answer()` again replays the same completion. The handle live
 resume after a restart, persist `sessionId` and `revision` and continue with the API below
 ([Integration](docs/integration.md#one-question-with-sessask)).
 
+## Keep it short
+
+A person reads the page on a phone, so Sess keeps every piece of it short. Lengths count
+characters (Unicode code points), and Sess never truncates:
+
+| What                        | Style                          | At most  |
+| --------------------------- | ------------------------------ | -------- |
+| Title (`question`)          | A question or a task, about 40 | 80       |
+| Button (`submit_label`)     | A verb, 1–3 words              | 24       |
+| Field label, option         | Short                          | 60       |
+| Help (field `description`)  | One hint                       | 160      |
+| Description under the title | One or two sentences           | 280      |
+| Heading                     | Short                          | 60       |
+| Record caption              | A few words                    | 200      |
+| Record key / string value   | As written                     | 40 / 200 |
+| Text (`details`)            | Plain text                     | 4,000    |
+
+There are at most 5 buttons. A value over its limit fails with a `SessError` that names it:
+`field` is a JSON pointer such as `/question`, `limit` is the most it may have and `length` is
+what it has. The message says how to fix it: "The title can be at most 80 characters. Keep it
+to a short heading, about 40." for the title, and for anything else, for example
+"/fields/0/label is 72 characters; the limit is 60. Shorten it to at most 60 characters." Nothing
+was created (`outcome` is `not_sent` or `rejected`), so shorten the value and ask again:
+
+```ts
+import { Sess, SessError } from '@sess.si/sdk';
+declare function shorten(text: string, max: number): Promise<string>; // e.g. your model rewrites it
+
+const sess = new Sess({ apiKey: process.env.SESS_API_KEY });
+const fields = [{ name: 'approved', label: 'Approve it', type: 'boolean' }] as const;
+async function askShort(question: string) {
+  try {
+    return await sess.ask({ question, fields });
+  } catch (error) {
+    if (!(error instanceof SessError) || error.field !== '/question' || error.limit === undefined)
+      throw error;
+    return sess.ask({ question: await shorten(question, error.limit), fields });
+  }
+}
+```
+
 **Release status:** every SDK release so far is a `0.1.0` release candidate, served under the `next`
 dist-tag. There is no stable release yet: do not install the bare name, whose `latest` tag points at a
 deprecated `0.0.0-stage` placeholder. The [changelog](CHANGELOG.md) describes each version;

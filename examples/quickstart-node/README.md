@@ -93,6 +93,28 @@ response. Sess renders the page; the example sends only typed data.
 It never prints the API key or receipt contents. An uncertain create or complete outcome is
 reported as uncertain, never as success, and creation is never retried automatically.
 
+## If a value is too long
+
+Sess keeps the page short and never truncates it. The title is a question or a task, about 40
+characters and at most 80; a button label is a verb of 1–3 words, at most 24; field labels and
+options at most 60; help at most 160. A value over its limit fails before anything is created,
+with a `SessError` carrying `field` (a JSON pointer such as `/interaction/title`), `limit` and
+`length`. The program prints them and stops; shorten that value and run again. In your own code,
+shorten and retry in one step:
+
+```js
+try {
+  created = await sess.sessions.create({ interaction });
+} catch (error) {
+  if (!(error instanceof SessError) || error.field !== '/interaction/title') throw error;
+  interaction.title = await shorten(interaction.title, error.limit); // e.g. your model rewrites it
+  created = await sess.sessions.create({ interaction });
+}
+```
+
+Retrying is safe here because a length error means nothing was created (`outcome` is
+`rejected`). Any other create error keeps the never-retry rule above.
+
 ## Clean install check (maintainers and CI)
 
 [scripts/clean-install-check.mjs](scripts/clean-install-check.mjs) copies this directory to a fresh

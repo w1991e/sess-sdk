@@ -38,15 +38,12 @@ export function checkIdentity({ manifest, server, ref, repository }) {
   if (ref !== `refs/tags/mcp-v${manifest.version}`)
     refuse(`tag ${ref} does not equal refs/tags/mcp-v${manifest.version}`);
   if (!server || manifest.mcpName !== server.name) refuse('package.json mcpName must equal server.json name');
-  // server.json is the MCP Registry entry of the stable release only (listing.json
-  // providers.mcpRegistry.version): a candidate x.y.z-rc.N carries the x.y.z entry it leads to,
-  // and the stable x.y.z release carries exactly its own version. The entry is published to the
-  // registry separately, after the stable package is on npm; never for a candidate.
-  const release = manifest.version.split('-')[0];
-  if (server.version !== release)
-    refuse('server.json version must equal the package version (its stable release for a candidate)');
+  // server.json, the MCP Registry entry, stays in step with the package on every release
+  // candidate (founder, 2026-10-20): the server and its npm package name exactly this version.
+  // Submitting the entry to the registry remains a separate owner action.
+  if (server.version !== manifest.version) refuse('server.json version must equal the package version');
   const npmPackage = server.packages?.find((p) => p.registryType === 'npm');
-  if (npmPackage?.identifier !== PACKAGE || npmPackage.version !== release)
+  if (npmPackage?.identifier !== PACKAGE || npmPackage.version !== manifest.version)
     refuse('server.json npm package identifier/version drift');
   // Release candidates never take the default dist-tag.
   return { version: manifest.version, distTag: manifest.version.includes('-rc.') ? 'next' : 'latest' };

@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { SessError, type AcceptedResponse, type InteractiveInteraction } from '@sess.si/sdk';
 import type { GuardedClient } from './client.js';
 import type { AdapterConfig, ResolvedCredential } from './config.js';
-import { SessAdapterError, fail } from './errors.js';
+import { SessAdapterError, fail, lengthMessage, type LengthDetail } from './errors.js';
 import { sameBinding, type InvocationLease } from './host.js';
 import { bodyDigest, classifyVerification } from './internal/shared.js';
 import type { CompleteArgs, PublishArgs, RequestArgs, ResponseArgs } from './schemas.js';
@@ -108,6 +108,24 @@ const LINK_NOTE =
 
 function asSessError(error: unknown): SessError | undefined {
   return error instanceof SessError ? error : undefined;
+}
+
+/**
+ * The length detail of a Sess 400 INVALID_SCHEMA (field, limit, length), when the SDK exposes it
+ * (after @sess.si/sdk 0.1.0-rc.7). Read defensively: an older SDK has none, and the local checks
+ * have already refused the same limits before dispatch.
+ */
+function sessLength(error: SessError | undefined): LengthDetail | undefined {
+  if (error?.code !== 'INVALID_SCHEMA') return undefined;
+  const { field, limit, length } = error as unknown as Record<string, unknown>;
+  const count = (n: unknown) => typeof n === 'number' && Number.isSafeInteger(n) && n >= 0;
+  return typeof field === 'string' &&
+    // A pointer may end with a record key; no controls or bidirectional overrides.
+    /^(?:\/[^\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩/]{0,128}){1,16}$/.test(field) &&
+    count(limit) &&
+    count(length)
+    ? { field, limit: limit as number, length: length as number }
+    : undefined;
 }
 
 /**
@@ -228,6 +246,13 @@ export async function sessRequest(deps: InvocationDeps, args: RequestArgs): Prom
         fail(
           'CREATE_REJECTED',
           'The host revoked this invocation before the request was sent; no Session was created.',
+        );
+      const tooLong = sessLength(sessError);
+      if (tooLong)
+        throw new SessAdapterError(
+          'CREATE_REJECTED',
+          `Sess did not create the Session: ${lengthMessage(tooLong.field, tooLong.limit, tooLong.length)}`,
+          tooLong,
         );
       fail(
         'CREATE_REJECTED',

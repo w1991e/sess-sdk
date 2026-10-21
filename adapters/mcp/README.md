@@ -125,7 +125,7 @@ A synthetic sample of what the agent sends (sample content, not from a real repo
 Text blocks are shown as plain paragraphs, so send a summary of the change rather than a raw diff;
 line breaks are kept in multiline fields.
 
-## Tools (`sess-mcp-tools/3`)
+## Tools (`sess-mcp-tools/4`)
 
 | Tool            | Input                                                                         | Result `interaction.state`                                    |
 | --------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -153,6 +153,50 @@ Input schemas are closed: unknown properties, unsafe keys (`__proto__`, `constru
 actions are rejected, never truncated. `interaction` is the Sess interactive Surface used by
 `@sess.si/sdk` (`heading`, `text`, `record` and `field` components). Tools never accept an API
 origin, key, workspace, Session ID or callback URL.
+
+### Keep it short
+
+A person reads the form on a phone. Every field a person reads carries its purpose, style, limit
+and examples in the tool schema, and `sess_ask`'s description carries one complete good call.
+Lengths are Unicode code points:
+
+| What                                         | Style                          | At most  |
+| -------------------------------------------- | ------------------------------ | -------- |
+| Title (`title`, `sess_ask` `question`)       | A question or a task, about 40 | 80       |
+| Button (action `label`, `submit_label`)      | A verb, 1–3 words              | 24       |
+| Field label, option label, `sess_ask` option | Short                          | 60       |
+| Help (field `description`)                   | One hint                       | 160      |
+| `description` under the title                | One or two sentences           | 280      |
+| `heading`                                    | Short                          | 60       |
+| `record` `label` (caption)                   | A few words                    | 200      |
+| `record` key / string value                  | As written                     | 40 / 200 |
+| `text`, `sess_ask` `details`                 | Plain text                     | 4,000    |
+
+A choice without an `option_labels` entry shows its enum ID, so that ID is held to 60 too (named at
+its enum entry, e.g. `/interaction/source/components/2/schema/enum/1`); a long ID with a short
+label is fine.
+
+A value over its limit is refused before anything is sent or saved, never truncated, with
+`INVALID_ARGUMENTS` and the value's `field` (a JSON pointer into the arguments, such as
+`/question` or `/interaction/actions/0/label`; for a record key it ends with that key), the
+`limit` and its `length`. The message is Sess's own: the title has "The title can be at most 80
+characters. Keep it to a short heading, about 40."; anything else names its pointer:
+
+```json
+{
+  "error": {
+    "code": "INVALID_ARGUMENTS",
+    "message": "/fields/0/label is 72 characters; the limit is 60. Shorten it to at most 60 characters.",
+    "retryable": false,
+    "field": "/fields/0/label",
+    "limit": 60,
+    "length": 72
+  }
+}
+```
+
+Shorten that value and call the tool again. If Sess itself refuses a length (`CREATE_REJECTED`,
+with an SDK that reports it), the same three fields come back.
 
 Every result is `{ "interaction": { handle, revision, state, humanUrl?, response? } }`, returned as
 `structuredContent` and as JSON text. `answered` is returned only after

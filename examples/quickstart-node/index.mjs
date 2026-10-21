@@ -106,6 +106,12 @@ if (sessionId === undefined) {
         );
       fail(`Creation outcome is unknown. A Session may exist; do not re-run blindly. ${describe(error)}`);
     }
+    // A value over its length limit: Sess names it (a JSON pointer), its limit and its length, and
+    // created nothing. Shorten that value in `interaction` above and run again.
+    if (error instanceof SessError && error.field !== undefined)
+      fail(
+        `Too long: ${error.field} has ${error.length} characters; at most ${error.limit}. Shorten it and run again.`,
+      );
     fail(`Could not create the Session: ${describe(error)}`);
   }
   sessionId = created.data.id;

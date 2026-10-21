@@ -43,6 +43,18 @@ The flow is in [agent.mjs](agent.mjs); the weather, the plan rule and their attr
    time. The plans come from a fixed rule, not an AI model. Nothing is booked.
 6. Verifies that answer, completes the Session and prints your plan and the receipt summary.
 
+### Change a question
+
+Each question is a `form(...)` in [agent.mjs](agent.mjs): a title, a line under it, its fields and
+one button. Keep what the person reads short; Sess never cuts it:
+
+- the title: a question or a task, about 40 characters (at most 80);
+- the button: a verb, 1–3 words (at most 24);
+- field labels and choices: short (at most 60);
+- help under a field: one hint (at most 160).
+
+Sess refuses anything longer and creates nothing; shorten it and run again.
+
 ### Weather data
 
 Forecasts come from [MET Norway](https://api.met.no) under

@@ -54,7 +54,7 @@ them, and the schema versions, before each submission.
 | `sess_complete` | no        | **yes**     | yes        | yes        | Terminal: the link stops accepting answers and never reopens. Changed from `false`.                  |
 | `sess_ask`      | no        | no          | no         | yes        | The same create as `sess_request`.                                                                   |
 
-Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/2` schemas.
+Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` schemas.
 
 ## Before any submission
 
@@ -79,17 +79,18 @@ Official registry only (`registry.modelcontextprotocol.io`), under the GitHub na
 authentication always grants the personal namespace `io.github.<username>/*` (an organization
 namespace would need org ownership). No other account is needed.
 
-`server.json` names the planned stable release (`providers.mcpRegistry.version`, today `0.1.0`)
-for the server and for the npm package; it never names a release candidate or a dist-tag, so a
-candidate (`0.1.0-rc.N` on `next`) is never listed. The registry checks the npm package's `mcpName`
-against the server name, so the stable package must be on npm first. It also does not verify the
-remote URL, so publish only after the `mcp.sess.si` readback.
+`server.json` names `package.json`'s exact version for the server and for the npm package, and
+stays in step with it on every release candidate (founder, 2026-10-20): `npm run listing` writes
+it, and `npm run check:listing`, the registry-metadata test and the release guard fail when they
+differ. It never names a dist-tag. The registry checks the npm package's `mcpName` against the
+server name, so that version must be on npm first. It also does not verify the remote URL, so
+publish only after the `mcp.sess.si` readback.
 
 `npm run check:listing` validates `server.json` against the pinned 2025-12-11 schema, and CI also
 runs the registry's own validator (`mcp-publisher validate`, pinned v1.8.1 by SHA-256; no login,
 no publish).
 
-Owner commands, after `@sess.si/mcp@0.1.0` is on npm with dist-tag `latest` and
+Owner commands, after `@sess.si/mcp` at the version `server.json` names is on npm and
 `https://mcp.sess.si/mcp` answers:
 
 1. Install the pinned publisher (macOS arm64 shown; other platforms from the same release):
