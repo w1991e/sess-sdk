@@ -105,7 +105,16 @@ const ADDED = {
     'LinkExtension',
     'LinkState',
   ],
-  './receipts': [],
+  // Decision 0009 Amendment 13 (rc.8): renderer identities on a signed list.
+  './receipts': [
+    'BUNDLED_RENDERER_IDENTITIES',
+    'BUNDLED_RENDERER_LIST',
+    'RendererIdentitiesDocument',
+    'RendererIdentity',
+    'RendererList',
+    'newerRendererList',
+    'verifyRendererIdentities',
+  ],
   './webhooks': [],
   // S-07: the new optional QR entry point.
   './qr': [
@@ -172,9 +181,13 @@ describe('public exports', () => {
       'isInteractiveSurface',
     ]);
     expect(Object.keys(receipts).sort()).toEqual([
+      'BUNDLED_RENDERER_IDENTITIES',
+      'BUNDLED_RENDERER_LIST',
       'BUNDLE_LIMITS',
+      'newerRendererList',
       'verifyDecisionBundle',
       'verifyDecisionReceipt',
+      'verifyRendererIdentities',
     ]);
     expect(Object.keys(webhooks).sort()).toEqual(['verifyWebhook']);
   });

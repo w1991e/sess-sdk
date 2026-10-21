@@ -19,7 +19,32 @@
   see `contract/contract-lock.json`). Besides link timing it carries what Sess master already
   describes: the interactive text limits with `field`, `limit` and `length` on a length error,
   `progress`, the receipt `format` and the renderer identities list. The generated wire types gain
-  them; the SDK's public types and behavior change only where an entry here says so.
+  them; the SDK's public types and behavior in this change are link timing only.
+- Renderer identities (Decision 0009 Amendment 13). A receipt's `surface.renderer_version` now
+  verifies when it is an identity this release bundles (`sess-html-form-1`, `sess-html-form-2`;
+  `BUNDLED_RENDERER_IDENTITIES`) or one on the issuer's renderer list whose signature verifies
+  under the same trusted keys and issuer, so a later Sess page change needs no SDK update. Every
+  receipt that verified before still verifies, offline, with no list.
+- `verifyResponse()` (and so `sess.ask()`'s `answer()`) fetch the list from the API origin
+  (`/.well-known/sess-renderer-identities.json`) only for an identity this release does not
+  bundle. `verifyDecisionReceipt` takes it as `rendererIdentities`; `verifyRendererIdentities`
+  verifies a list on its own. A forged, unsigned, re-typed, foreign or malformed list fails with
+  `INVALID_RENDERER_LIST`; an identity on no verified list fails with `UNSUPPORTED_RENDERER`, as
+  before. New types `RendererIdentitiesDocument`, `RendererIdentity` and `RendererList`.
+  `ReceiptClaims`' `surface.renderer_version` is now `string`.
+- Renderer list editions. A list carries a signed `seq` (its edition, higher in every later
+  published edition) and `iat` (when that copy was signed); `verifyRendererIdentities` returns
+  `{ seq, iat, identities }`. `newerRendererList` orders two authentic lists by `seq`, with
+  containment as the cross-check, and refuses lists that disagree (`INVALID_RENDERER_LIST`);
+  `BUNDLED_RENDERER_LIST` is the bundled edition 1, and a verified list must agree with it. An
+  older list proves the identities it holds, never their absence: an identity it does not hold is
+  `UNSUPPORTED_RENDERER`, never accepted by fallback. Each online verification fetches the list
+  afresh (the endpoint is served `no-store`); nothing is cached.
+- `sess verify --renderers <file>`: with the issuer's signed list (verified under `--keys` and
+  `--issuer`; a list that does not verify exits 2), the bundle's renderer identity must be known
+  or listed (otherwise invalid, exit 1). Without it, bundle verification is unchanged.
+- The receipt-v1 specification copy is from Sess commit `a60ca69` (§10, renderer identities with
+  `seq` and `iat`; Sess PR #444's merge commit).
 
 ## 0.1.0-rc.7 — 2026-10-18 (prepared, unpublished)
 

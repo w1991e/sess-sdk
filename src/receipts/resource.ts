@@ -18,7 +18,29 @@ import {
   waitWithSignal,
   type DeepReadonly,
 } from './json.js';
+import {
+  BUNDLED_RENDERER_IDENTITIES,
+  MAX_RENDERER_IDENTITIES_BYTES,
+  RENDERER_IDENTITIES_PATH,
+  type RendererIdentitiesDocument,
+} from './renderers.js';
 import { MAX_RECEIPT_KEY_SET_BYTES, verifyDecisionReceipt, type ReceiptClaims } from './verify.js';
+
+/**
+ * The renderer identity a receipt names, read without trusting it: only to decide whether the
+ * issuer's signed list is needed (the verifier decides). Undefined when it cannot be read.
+ */
+function namedRenderer(receipt: string): string | undefined {
+  try {
+    const claims: unknown = JSON.parse(
+      Buffer.from(receipt.split('.')[1] ?? '', 'base64url').toString('utf8'),
+    );
+    const surface = (claims as { surface?: { renderer_version?: unknown } } | null)?.surface;
+    return typeof surface?.renderer_version === 'string' ? surface.renderer_version : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export interface VerificationRequestOptions {
   signal?: AbortSignal;
@@ -188,9 +210,24 @@ export function createReceiptResource(context: Context): ReceiptResource {
             'An accepted response requires an interactive immutable Surface.',
           );
         }
+        // Decision 0009 Amendment 13: a renderer identity this release does not bundle is
+        // accepted only on the issuer's signed list, fetched from the same API origin as the keys.
+        const renderer = namedRenderer(response.receipt);
+        let rendererIdentities: RendererIdentitiesDocument | undefined;
+        if (renderer !== undefined && !BUNDLED_RENDERER_IDENTITIES.includes(renderer)) {
+          const listed = await waitWithSignal(
+            publicGet(RENDERER_IDENTITIES_PATH, {
+              ...requestOptions(),
+              maxResponseBytes: MAX_RENDERER_IDENTITIES_BYTES,
+            }),
+            controller.signal,
+          );
+          rendererIdentities = listed.data as RendererIdentitiesDocument;
+        }
         const claims = await verifyDecisionReceipt(
           {
             receipt: response.receipt,
+            ...(rendererIdentities !== undefined ? { rendererIdentities } : {}),
             issuer,
             audience: trustedWorkspace,
             expected: {

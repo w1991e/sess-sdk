@@ -187,6 +187,55 @@ export async function corpusBundleWithClaims(over: Record<string, unknown>): Pro
   return JSON.parse(JSON.stringify(bundleOf(receipt))) as unknown;
 }
 
+/**
+ * Decision 0009 Amendment 13 (not part of the frozen corpus): a bundle of the base vector whose
+ * receipt names `renderer`, signed by the issuer's current key.
+ */
+export async function corpusBundleWithRenderer(renderer: string): Promise<unknown> {
+  const base = claimsOf();
+  return corpusBundleWithClaims({
+    surface: { ...(base.surface as Record<string, unknown>), renderer_version: renderer },
+  });
+}
+
+/**
+ * Decision 0009 Amendment 13: a renderer-identity list document (flattened JWS JSON) signed by the
+ * named corpus key, for `issuer`, edition `seq` signed at `iat`.
+ */
+export async function corpusRendererList(
+  identities: { renderer_version: string; since: string }[],
+  options: {
+    key?: KeyName;
+    issuer?: string;
+    typ?: string;
+    /** The list edition (default 1, the bundled edition). */
+    seq?: unknown;
+    /** When this copy was signed, NumericDate (default the corpus clock). */
+    iat?: unknown;
+    /** Payload members to drop (for malformed-list controls). */
+    omit?: ('seq' | 'iat')[];
+  } = {},
+): Promise<{ protected: string; payload: string; signature: string }> {
+  const name = options.key ?? 'current';
+  const claims: Record<string, unknown> = {
+    identities,
+    iss: options.issuer ?? CORPUS_ISSUER,
+    seq: 'seq' in options ? options.seq : 1,
+    iat: 'iat' in options ? options.iat : Math.floor(CORPUS_NOW.getTime() / 1000),
+    sess_renderer_identities: 1,
+  };
+  for (const member of options.omit ?? []) delete claims[member];
+  const compact = await new CompactSign(json(claims))
+    .setProtectedHeader({
+      alg: 'EdDSA',
+      kid: CORPUS_KEYS[name].kid,
+      typ: options.typ ?? 'sess-renderer-identities+jwt',
+    })
+    .sign(corpusPrivateKey(name));
+  const [protectedHeader, payload, signature] = compact.split('.') as [string, string, string];
+  return { protected: protectedHeader, payload, signature };
+}
+
 /** The full trusted context of the base vector. */
 export const FULL_CONTEXT: ExpectedBundleContext = {
   audience: CORPUS_AUDIENCE,
