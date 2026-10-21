@@ -62,8 +62,9 @@ export type FieldSchema = SchemaDocumentation &
 type WireComponent = Schemas['SurfaceComponent'];
 type Component<T extends WireComponent['type']> = Extract<WireComponent, { type: T }>;
 /**
- * One piece of an interactive Surface, shown in order. Lengths are Unicode code points; Sess
- * never truncates: a value over its limit is a 400 INVALID_SCHEMA whose `field`, `limit` and
+ * One piece of an interactive Surface, shown in source order. Consecutive fields share one group;
+ * a heading or text starts a new one. Lengths are Unicode code points; Sess never truncates (rows
+ * grow to fit): a value over its limit is a 400 INVALID_SCHEMA whose `field`, `limit` and
  * `length` (on `SessError`) name the value and the most it may have.
  */
 export type SurfaceComponent =
@@ -88,14 +89,17 @@ export type SurfaceComponent =
       fields: { [key: string]: string | number | boolean | null };
     })
   | (Omit<Component<'field'>, 'schema'> & {
-      /** What the field asks for: short, a few words; at most 60. Example: `Refund amount` */
+      /** What the field asks for: a word or two, about 20 characters; at most 60. Example: `Refund amount` */
       label: string;
       /**
-       * Optional help under the label: one hint; at most 160.
+       * Optional help, only when needed: one hint, shown under its own field; at most 160.
        * Example: `Leave it as is to refund the full amount.`
        */
       description?: string;
-      /** The words shown for one choice: short; at most 60. Example: `Next Monday` */
+      /**
+       * The words shown for one choice: short, since a native picker may clip long options; put
+       * decision detail in a text or record on the page; at most 60. Example: `Next Monday`
+       */
       option_labels?: { [key: string]: string };
       schema: FieldSchema;
     });

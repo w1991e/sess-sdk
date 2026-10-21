@@ -60,15 +60,15 @@ export const TEXT_DOCS = {
     examples: ['$120.00'],
   },
   fieldLabel: {
-    line: `What the field asks for: short, a few words; at most ${L.label}.`,
+    line: `What the field asks for: a word or two, about 20 characters; at most ${L.label}.`,
     examples: ['Refund amount'],
   },
   fieldDescription: {
-    line: `Optional help under the label: one hint; at most ${L.help}.`,
+    line: `Optional help, only when needed: one hint, shown under its own field; at most ${L.help}.`,
     examples: ['Leave it as is to refund the full amount.'],
   },
   optionLabel: {
-    line: `The words shown for one choice: short; at most ${L.optionLabel}.`,
+    line: `The words shown for one choice: short, since a native picker may clip long options; put decision detail in a text or record on the page; at most ${L.optionLabel}.`,
     examples: ['Next Monday'],
   },
   actionLabel: {
@@ -76,6 +76,10 @@ export const TEXT_DOCS = {
     examples: ['Approve', 'Send refund'],
   },
 } as const satisfies Record<string, Docs>;
+
+/** How the page lays out components and fields (Sess form 2): the same wording as the SDK JSDoc. */
+export const LAYOUT_DOCS =
+  'Shown in source order. Consecutive fields share one group; a heading or text starts a new one. Nothing is truncated: rows grow to fit.';
 
 /** What a model needs to fix a refused value in one try. */
 const TOO_LONG =
@@ -194,6 +198,7 @@ export const interactionSchema = {
         kind: { const: 'sess_surface' },
         components: {
           type: 'array',
+          description: LAYOUT_DOCS,
           minItems: 1,
           maxItems: LIMITS.components,
           items: {
@@ -336,7 +341,7 @@ export const TOOLS = [
       'Create a hosted Sess form for a person and return immediately with a private link (interaction.humanUrl) and a handle. ' +
       'Give the link only to the intended person in this private conversation; anyone holding it can answer. ' +
       'Then call sess_response with the handle and revision. Do not call sess_request again for the same question. ' +
-      'Keep it short: a title of about 40 characters (at most 80), button labels a verb of 1-3 words (at most 24), field labels at most 60, help one hint (at most 160). ' +
+      'Keep it short: a title of about 40 characters (at most 80), button labels a verb of 1-3 words (at most 24), field labels a word or two, about 20 characters (at most 60), help only when needed (at most 160), option labels short with decision detail in a text or record. ' +
       TOO_LONG,
     inputSchema: {
       type: 'object',
@@ -417,7 +422,7 @@ export const TOOLS = [
       'Shortcut for sess_request: give a question and up to 12 simple fields; it creates the same hosted form and returns ' +
       'immediately with a private link (interaction.humanUrl) and a handle, in state "waiting". It never waits and never returns an answer. ' +
       'Continue exactly as after sess_request: give the link only to the intended person, then call sess_response. Do not call it again for the same question. ' +
-      'Keep it short: the question is a short heading, about 40 characters (at most 80); the button a verb of 1-3 words (at most 24); labels and options at most 60. ' +
+      'Keep it short: the question is a short heading, about 40 characters (at most 80); the button a verb of 1-3 words (at most 24); labels about 20 characters and options short (each at most 60), with decision detail in details. ' +
       TOO_LONG +
       ` Example: ${JSON.stringify(ASK_EXAMPLE)}`,
     inputSchema: {
@@ -431,6 +436,8 @@ export const TOOLS = [
         submit_label: { ...buttonSchema, description: `${TEXT_DOCS.actionLabel.line} Default "Send".` },
         fields: {
           type: 'array',
+          description:
+            'Shown in this order, as one group under details. Nothing is truncated: rows grow to fit.',
           minItems: 1,
           maxItems: ASK_LIMITS.fields,
           items: {
@@ -444,7 +451,8 @@ export const TOOLS = [
               required: { type: 'boolean', description: 'Default true, except boolean fields.' },
               options: {
                 type: 'array',
-                description: 'The choices for choice and multi_choice fields.',
+                description:
+                  'The choices for choice and multi_choice fields. Keep each short; put the detail a choice needs in details.',
                 minItems: 1,
                 maxItems: ASK_LIMITS.options,
                 items: shown(L.optionLabel, TEXT_DOCS.optionLabel),

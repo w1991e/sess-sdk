@@ -67,7 +67,7 @@ async function readAuthoredConfig(): Promise<unknown> {
 const DESCRIPTIONS: Record<ToolName, string> = {
   sess_request:
     'Ask a person for a structured decision through a private Sess link. Returns a handle, revision and humanUrl immediately. Present the link privately; wait with sess_response only once the person can see it. ' +
-    'Keep it short: a title of about 40 characters (at most 80), button labels a verb of 1-3 words (at most 24), field labels at most 60, help one hint (at most 160). ' +
+    'Keep it short: a title of about 40 characters (at most 80), button labels a verb of 1-3 words (at most 24), field labels a word or two, about 20 characters (at most 60), help only when needed (at most 160), option labels short with decision detail in a text or record. ' +
     'A value over its limit is refused with INVALID_ARGUMENTS naming the field (a JSON pointer), the limit, its length and the fix; nothing is truncated. Shorten that value and call again.',
   sess_response:
     'Read, or wait a bounded time for, the verified answer to one exact revision. A needs_resume result is normal: the form stays available; ask the person to submit, then call again. Never loop.',

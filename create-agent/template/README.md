@@ -50,10 +50,18 @@ one button. Keep what the person reads short; Sess never cuts it:
 
 - the title: a question or a task, about 40 characters (at most 80);
 - the button: a verb, 1–3 words (at most 24);
-- field labels and choices: short (at most 60);
-- help under a field: one hint (at most 160).
+- field labels: a word or two, about 20 characters (at most 60);
+- choices: short (at most 60);
+- help under a field: one hint, only when it is needed (at most 160).
 
 Sess refuses anything longer and creates nothing; shorten it and run again.
+
+### Fields on the page
+
+Sess shows a form's parts in the order you list them. Fields next to each other share one group;
+a heading or a text starts a new one. A field's help shows under that field. Keep choices short
+and put the detail behind them in a text or record on the page: a phone's picker may clip a long
+choice. Nothing is cut off; a long row grows to fit.
 
 ### Weather data
 

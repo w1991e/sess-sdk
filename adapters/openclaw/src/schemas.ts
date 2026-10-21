@@ -87,15 +87,15 @@ export const TEXT_DOCS = Object.freeze({
     examples: ['$120.00'],
   },
   fieldLabel: {
-    line: `What the field asks for: short, a few words; at most ${T.label}.`,
+    line: `What the field asks for: a word or two, about 20 characters; at most ${T.label}.`,
     examples: ['Refund amount'],
   },
   fieldDescription: {
-    line: `Optional help under the label: one hint; at most ${T.help}.`,
+    line: `Optional help, only when needed: one hint, shown under its own field; at most ${T.help}.`,
     examples: ['Leave it as is to refund the full amount.'],
   },
   optionLabel: {
-    line: `The words shown for one choice: short; at most ${T.optionLabel}.`,
+    line: `The words shown for one choice: short, since a native picker may clip long options; put decision detail in a text or record on the page; at most ${T.optionLabel}.`,
     examples: ['Next Monday'],
   },
   actionLabel: {
@@ -103,6 +103,10 @@ export const TEXT_DOCS = Object.freeze({
     examples: ['Approve', 'Send refund'],
   },
 });
+
+/** How the page lays out components and fields (Sess form 2): the same wording as the MCP tools. */
+export const LAYOUT_DOCS =
+  'Shown in source order. Consecutive fields share one group; a heading or text starts a new one. Nothing is truncated: rows grow to fit.';
 
 const plainText = (max: number) =>
   ({ type: 'string', minLength: 1, maxLength: max, pattern: '\\S' }) as const;
@@ -200,6 +204,7 @@ export const INTERACTION_SCHEMA = {
         kind: { type: 'string', enum: ['sess_surface'] },
         components: {
           type: 'array',
+          description: LAYOUT_DOCS,
           minItems: 1,
           maxItems: LIMITS.components,
           items: {

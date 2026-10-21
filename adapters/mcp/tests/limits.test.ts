@@ -60,6 +60,32 @@ describe('tool schemas teach the limits', () => {
     expect([...ASK_EXAMPLE.question].length).toBeLessThan(40);
   });
 
+  it('teaches how form 2 lays out fields: source order, groups, short labels and options, rows grow', () => {
+    const components = (interactionSchema as Schema).properties.source.properties.components;
+    expect(components.description).toBe(
+      'Shown in source order. Consecutive fields share one group; a heading or text starts a new one. Nothing is truncated: rows grow to fit.',
+    );
+    for (const label of [component('field').label, ask.fields.items.properties.label])
+      expect(label.description).toBe(
+        'What the field asks for: a word or two, about 20 characters; at most 60.',
+      );
+    expect(component('field').description.description).toBe(
+      'Optional help, only when needed: one hint, shown under its own field; at most 160.',
+    );
+    for (const option of [
+      component('field').option_labels.additionalProperties,
+      ask.fields.items.properties.options.items,
+    ])
+      expect(option.description).toContain('a native picker may clip long options');
+    expect(ask.fields.description).toContain('as one group under details');
+    const labels = [
+      ...(INTERACTION_EXAMPLE.source.components as Schema[]).filter((c) => c.type === 'field'),
+      ...ASK_EXAMPLE.fields,
+    ].map((f) => f.label as string);
+    expect(labels.length).toBe(3);
+    for (const label of labels) expect([...label].length).toBeLessThanOrEqual(20);
+  });
+
   it('record fields bound string values (and say the key limit); button labels are verbs of 1-3 words', () => {
     const fields = component('record').fields;
     expect(fields.additionalProperties.maxLength).toBe(200);

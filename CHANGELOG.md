@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Documentation only: the JSDoc on Surface components and `sess.ask()` fields says how the page
+  lays out fields. Source order is kept; consecutive fields share one group and a heading or text
+  starts a new one. A field label is a word or two, about 20 characters; help only when needed,
+  under its own field; options short, with decision detail in a text or record on the page (a
+  native picker may clip long options). Nothing is truncated: rows grow. No runtime change.
+
 ## 0.1.0-rc.8 — 2026-10-22 (prepared, unpublished)
 
 - Link timing (Decision 0009 Amendment 10). On an interactive Sess link of 20 hours or less the

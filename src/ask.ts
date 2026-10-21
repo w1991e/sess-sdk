@@ -19,7 +19,7 @@ import { withSignal } from './internal/time.js';
 interface AskFieldBase {
   /** Key of this field in the answer: `^[a-z][a-z0-9_]{0,63}$`. */
   readonly name: string;
-  /** What the field asks for: short, a few words; at most 60. Example: `Refund amount` */
+  /** What the field asks for: a word or two, about 20 characters; at most 60. Example: `Refund amount` */
   readonly label: string;
   /** Default `true`, except boolean fields (default `false`). */
   readonly required?: boolean;
@@ -40,13 +40,19 @@ export type AskField =
   | (AskFieldBase & { readonly type: 'boolean'; readonly default?: boolean })
   | (AskFieldBase & {
       readonly type: 'choice';
-      /** 1–100 choices. The words shown for one choice: short; at most 60. Example: `Next Monday` */
+      /**
+       * 1–100 choices. The words shown for one choice: short, since a native picker may clip long
+       * options; put decision detail in `details`; at most 60. Example: `Next Monday`
+       */
       readonly options: readonly [string, ...string[]];
       readonly default?: string;
     })
   | (AskFieldBase & {
       readonly type: 'multi_choice';
-      /** 1–100 choices. The words shown for one choice: short; at most 60. Example: `Next Monday` */
+      /**
+       * 1–100 choices. The words shown for one choice: short, since a native picker may clip long
+       * options; put decision detail in `details`; at most 60. Example: `Next Monday`
+       */
       readonly options: readonly [string, ...string[]];
       readonly default?: readonly string[];
     });
@@ -66,7 +72,10 @@ export interface AskInput<F extends readonly AskField[] = readonly AskField[]> {
   readonly details?: string;
   /** A button: a verb, 1–3 words; at most 24. Default `Send`. Examples: `Approve`, `Send refund` */
   readonly submit_label?: string;
-  /** One to twelve fields with unique names. */
+  /**
+   * One to twelve fields with unique names, shown in this order as one group under `details`.
+   * Nothing is truncated: rows grow to fit.
+   */
   readonly fields: F;
   /**
    * Advanced: how long the link stays open, in whole seconds from creation: from 30 up to your

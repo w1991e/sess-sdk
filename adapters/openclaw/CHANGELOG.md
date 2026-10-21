@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The tool description and schema say how the page lays out fields: source order kept;
+  consecutive fields share one group, a heading or text starts a new one; field labels about 20
+  characters; help only when needed, under its own field; option labels short, with decision
+  detail in a text or record (a native picker may clip long options); never truncated, rows grow.
+  Descriptions only; validation is unchanged.
+
 - Sess's length limits for what a person reads, in Unicode code points (were UTF-16 units and
   200/1,000/4,000): title 80, description 280, heading 60, field and option labels 60, field
   description 160, action label 24, record caption 200, record key 40 and string value 200, text

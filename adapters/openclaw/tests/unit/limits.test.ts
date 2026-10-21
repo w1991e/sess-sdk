@@ -47,6 +47,21 @@ describe('the tool schema teaches the limits', () => {
       expect([...title].length).toBeLessThan(40);
   });
 
+  it('teaches how form 2 lays out fields, in the MCP tools’ words', () => {
+    expect(root.properties.source.properties.components.description).toBe(
+      'Shown in source order. Consecutive fields share one group; a heading or text starts a new one. Nothing is truncated: rows grow to fit.',
+    );
+    expect(component('field').label.description).toBe(
+      'What the field asks for: a word or two, about 20 characters; at most 60.',
+    );
+    expect(component('field').description.description).toBe(
+      'Optional help, only when needed: one hint, shown under its own field; at most 160.',
+    );
+    expect(component('field').option_labels.additionalProperties.description).toContain(
+      'a native picker may clip long options; put decision detail in a text or record on the page',
+    );
+  });
+
   it('the complete example passes the adapter’s own validation', () => {
     expect(parseRequestArgs({ interaction: EXAMPLE }).interaction).toEqual(EXAMPLE);
     expect(component('record').fields.description).toContain('at most 40');
