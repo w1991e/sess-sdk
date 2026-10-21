@@ -6,7 +6,11 @@
   still ask for more time until its horizon) is still open: `sess_response`, and so `sess_ask`,
   report `waiting`, never `expired`. `expired` is reported only once a read shows the link expired:
   past its end (its horizon while an extension is left, else its deadline) plus the two-second
-  grace, or at once when expired before that end (revoked). A wait that ends with `LINK_EXPIRED`
+  grace; or, when it expired before that end (revoked) or gives no end, once a read-once
+  (`wait_ms` 0) at least the grace after the first such read still shows it, as in the SDK wait,
+  so an answer accepted just before a revocation is never reported as `expired`. That first read is
+  remembered in memory only: a restart, or a hosted server's per-request adapter, starts the grace
+  again (a later read, or a waiting call, ends it). A wait that ends with `LINK_EXPIRED`
   is confirmed by one read, so an SDK that ends its wait at the deadline cannot report a lapsed
   link as expired. A runtime without link timing keeps the earlier rule.
 
