@@ -91,11 +91,11 @@ export const TEXT_DOCS = Object.freeze({
     examples: ['Refund amount'],
   },
   fieldDescription: {
-    line: `Optional help, only when needed: one hint, shown under its own field; at most ${T.help}.`,
+    line: `Optional help, shown under its own field: one hint, only when needed; at most ${T.help}.`,
     examples: ['Leave it as is to refund the full amount.'],
   },
   optionLabel: {
-    line: `The words shown for one choice: short, since a native picker may clip long options; put decision detail in a text or record on the page; at most ${T.optionLabel}.`,
+    line: `The words shown for one choice: short; at most ${T.optionLabel}. Put any detail the decision needs in a text or record on the page: a phone's picker may cut a long choice short. A choice without one shows its enum value, which is then held to the same ${T.optionLabel}.`,
     examples: ['Next Monday'],
   },
   actionLabel: {
@@ -104,9 +104,18 @@ export const TEXT_DOCS = Object.freeze({
   },
 });
 
-/** How the page lays out components and fields (Sess form 2): the same wording as the MCP tools. */
-export const LAYOUT_DOCS =
-  'Shown in source order. Consecutive fields share one group; a heading or text starts a new one. Nothing is truncated: rows grow to fit.';
+/**
+ * How the page lays out components and fields (Sess form 2): exactly Sess's SURFACE_LAYOUT_DOCS,
+ * the same sentences as the MCP tools, the SDK JSDoc and the API reference.
+ */
+export const LAYOUT_DOCS = Object.freeze([
+  'Fields keep the order you send them in.',
+  'Consecutive fields share one group; a heading or a text starts a new one.',
+  'Each label sits beside its answer, or above it when the two do not fit, so keep it to a word or two (about 20 characters).',
+  "A field's help shows under that field; give it only when it is needed.",
+  "Keep choice labels short, and put any detail the decision needs in a text or record on the page: a phone's picker may cut a long choice short.",
+  'Nothing is truncated: rows grow to fit their text.',
+]);
 
 const plainText = (max: number) =>
   ({ type: 'string', minLength: 1, maxLength: max, pattern: '\\S' }) as const;
@@ -204,7 +213,7 @@ export const INTERACTION_SCHEMA = {
         kind: { type: 'string', enum: ['sess_surface'] },
         components: {
           type: 'array',
-          description: LAYOUT_DOCS,
+          description: `The page's content, in order. How the page lays it out: ${LAYOUT_DOCS.join(' ')}`,
           minItems: 1,
           maxItems: LIMITS.components,
           items: {

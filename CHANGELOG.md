@@ -3,10 +3,13 @@
 ## Unreleased
 
 - Documentation only: the JSDoc on Surface components and `sess.ask()` fields says how the page
-  lays out fields. Source order is kept; consecutive fields share one group and a heading or text
-  starts a new one. A field label is a word or two, about 20 characters; help only when needed,
-  under its own field; options short, with decision detail in a text or record on the page (a
-  native picker may clip long options). Nothing is truncated: rows grow. No runtime change.
+  lays out fields, in Sess's words (`SURFACE_LAYOUT_DOCS`, `SURFACE_TEXT_DOCS`). Fields keep the
+  order you send them in. Consecutive fields share one group; a heading or a text starts a new
+  one. Each label sits beside its answer, or above it when the two do not fit, so keep it to a
+  word or two (about 20 characters). A field's help shows under that field; give it only when it
+  is needed. Keep choice labels short, and put any detail the decision needs in a text or record
+  on the page (for `sess.ask()`, in `details`): a phone's picker may cut a long choice short.
+  Nothing is truncated: rows grow to fit their text. No runtime change.
 
 ## 0.1.0-rc.8 — 2026-10-22 (prepared, unpublished)
 

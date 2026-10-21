@@ -21,10 +21,10 @@
   `sess_ask`'s description carries one complete good call. Lengths were counted in UTF-16 units
   before; they are now code points, as Sess counts them.
 - `sess-mcp-tools/4` (still unreleased) also says how the page lays out fields, in descriptions
-  only: components shown in source order; consecutive fields share one group, a heading or text
-  starts a new one; field labels about 20 characters; help only when needed, under its own field;
-  option labels short, with decision detail in a text or record (`sess_ask`: in `details`), since a
-  native picker may clip long options; never truncated, rows grow. Validation is unchanged.
+  only and in Sess's words: the components description is Sess's ("The page's content, in order.
+  How the page lays it out: " and its six layout sentences), and the field label, help and choice
+  lines are Sess's `SURFACE_TEXT_DOCS` lines. `sess_ask`, which builds its own page, says the same
+  keyed to `details`. Validation is unchanged.
 - A value over its limit is refused before anything is sent or saved, never truncated, with
   `INVALID_ARGUMENTS` plus `field` (a JSON pointer into the arguments), `limit` and `length`, and a
   message ending in the fix. A Sess length refusal on create returns the same fields when the SDK

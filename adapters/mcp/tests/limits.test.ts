@@ -62,22 +62,36 @@ describe('tool schemas teach the limits', () => {
 
   it('teaches how form 2 lays out fields: source order, groups, short labels and options, rows grow', () => {
     const components = (interactionSchema as Schema).properties.source.properties.components;
+    // Sess's SURFACE_LAYOUT_DOCS, verbatim, behind the API reference's components preface.
     expect(components.description).toBe(
-      'Shown in source order. Consecutive fields share one group; a heading or text starts a new one. Nothing is truncated: rows grow to fit.',
+      "The page's content, in order. How the page lays it out: " +
+        'Fields keep the order you send them in. ' +
+        'Consecutive fields share one group; a heading or a text starts a new one. ' +
+        'Each label sits beside its answer, or above it when the two do not fit, so keep it to a word or two (about 20 characters). ' +
+        "A field's help shows under that field; give it only when it is needed. " +
+        "Keep choice labels short, and put any detail the decision needs in a text or record on the page: a phone's picker may cut a long choice short. " +
+        'Nothing is truncated: rows grow to fit their text.',
     );
+    // Sess's SURFACE_TEXT_DOCS field lines, verbatim.
     for (const label of [component('field').label, ask.fields.items.properties.label])
       expect(label.description).toBe(
         'What the field asks for: a word or two, about 20 characters; at most 60.',
       );
     expect(component('field').description.description).toBe(
-      'Optional help, only when needed: one hint, shown under its own field; at most 160.',
+      'Optional help, shown under its own field: one hint, only when needed; at most 160.',
     );
-    for (const option of [
-      component('field').option_labels.additionalProperties,
-      ask.fields.items.properties.options.items,
-    ])
-      expect(option.description).toContain('a native picker may clip long options');
-    expect(ask.fields.description).toContain('as one group under details');
+    expect(component('field').option_labels.additionalProperties.description).toBe(
+      "The words shown for one choice: short; at most 60. Put any detail the decision needs in a text or record on the page: a phone's picker may cut a long choice short. A choice without one shows its enum value, which is then held to the same 60.",
+    );
+    // sess_ask builds its own page (question, details, fields): the same words, keyed to details.
+    expect(ask.fields.items.properties.options.items.description).toBe(
+      "The words shown for one choice: short; at most 60. Put any detail the decision needs in details: a phone's picker may cut a long choice short.",
+    );
+    expect(ask.fields.description).toBe(
+      'Fields keep the order you send them in and share one group, under details. ' +
+        'Each label sits beside its answer, or above it when the two do not fit, so keep it to a word or two (about 20 characters). ' +
+        'Nothing is truncated: rows grow to fit their text.',
+    );
     const labels = [
       ...(INTERACTION_EXAMPLE.source.components as Schema[]).filter((c) => c.type === 'field'),
       ...ASK_EXAMPLE.fields,

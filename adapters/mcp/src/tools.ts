@@ -64,11 +64,11 @@ export const TEXT_DOCS = {
     examples: ['Refund amount'],
   },
   fieldDescription: {
-    line: `Optional help, only when needed: one hint, shown under its own field; at most ${L.help}.`,
+    line: `Optional help, shown under its own field: one hint, only when needed; at most ${L.help}.`,
     examples: ['Leave it as is to refund the full amount.'],
   },
   optionLabel: {
-    line: `The words shown for one choice: short, since a native picker may clip long options; put decision detail in a text or record on the page; at most ${L.optionLabel}.`,
+    line: `The words shown for one choice: short; at most ${L.optionLabel}. Put any detail the decision needs in a text or record on the page: a phone's picker may cut a long choice short. A choice without one shows its enum value, which is then held to the same ${L.optionLabel}.`,
     examples: ['Next Monday'],
   },
   actionLabel: {
@@ -77,9 +77,27 @@ export const TEXT_DOCS = {
   },
 } as const satisfies Record<string, Docs>;
 
-/** How the page lays out components and fields (Sess form 2): the same wording as the SDK JSDoc. */
-export const LAYOUT_DOCS =
-  'Shown in source order. Consecutive fields share one group; a heading or text starts a new one. Nothing is truncated: rows grow to fit.';
+/**
+ * How the page lays out components and fields (Sess form 2): exactly Sess's SURFACE_LAYOUT_DOCS,
+ * the same sentences as the SDK JSDoc and the API reference's components description.
+ */
+export const LAYOUT_DOCS = [
+  'Fields keep the order you send them in.',
+  'Consecutive fields share one group; a heading or a text starts a new one.',
+  'Each label sits beside its answer, or above it when the two do not fit, so keep it to a word or two (about 20 characters).',
+  "A field's help shows under that field; give it only when it is needed.",
+  "Keep choice labels short, and put any detail the decision needs in a text or record on the page: a phone's picker may cut a long choice short.",
+  'Nothing is truncated: rows grow to fit their text.',
+] as const;
+
+/**
+ * sess_ask builds the page itself (the question, details as a text, then the fields), so its
+ * choices point at details instead of "a text or record on the page"; otherwise Sess's words.
+ */
+const ASK_OPTION_DOCS: Docs = {
+  line: `The words shown for one choice: short; at most ${L.optionLabel}. Put any detail the decision needs in details: a phone's picker may cut a long choice short.`,
+  examples: TEXT_DOCS.optionLabel.examples,
+};
 
 /** What a model needs to fix a refused value in one try. */
 const TOO_LONG =
@@ -198,7 +216,7 @@ export const interactionSchema = {
         kind: { const: 'sess_surface' },
         components: {
           type: 'array',
-          description: LAYOUT_DOCS,
+          description: `The page's content, in order. How the page lays it out: ${LAYOUT_DOCS.join(' ')}`,
           minItems: 1,
           maxItems: LIMITS.components,
           items: {
@@ -341,7 +359,7 @@ export const TOOLS = [
       'Create a hosted Sess form for a person and return immediately with a private link (interaction.humanUrl) and a handle. ' +
       'Give the link only to the intended person in this private conversation; anyone holding it can answer. ' +
       'Then call sess_response with the handle and revision. Do not call sess_request again for the same question. ' +
-      'Keep it short: a title of about 40 characters (at most 80), button labels a verb of 1-3 words (at most 24), field labels a word or two, about 20 characters (at most 60), help only when needed (at most 160), option labels short with decision detail in a text or record. ' +
+      'Keep it short: a title of about 40 characters (at most 80), button labels a verb of 1-3 words (at most 24), field labels a word or two, about 20 characters (at most 60), help only when it is needed (at most 160), choice labels short (at most 60) with any detail the decision needs in a text or record on the page.' +
       TOO_LONG,
     inputSchema: {
       type: 'object',
@@ -422,7 +440,7 @@ export const TOOLS = [
       'Shortcut for sess_request: give a question and up to 12 simple fields; it creates the same hosted form and returns ' +
       'immediately with a private link (interaction.humanUrl) and a handle, in state "waiting". It never waits and never returns an answer. ' +
       'Continue exactly as after sess_request: give the link only to the intended person, then call sess_response. Do not call it again for the same question. ' +
-      'Keep it short: the question is a short heading, about 40 characters (at most 80); the button a verb of 1-3 words (at most 24); labels about 20 characters and options short (each at most 60), with decision detail in details. ' +
+      'Keep it short: the question is a short heading, about 40 characters (at most 80); the button a verb of 1-3 words (at most 24); labels a word or two, about 20 characters (at most 60); choices short (at most 60), with any detail the decision needs in details.' +
       TOO_LONG +
       ` Example: ${JSON.stringify(ASK_EXAMPLE)}`,
     inputSchema: {
@@ -436,8 +454,7 @@ export const TOOLS = [
         submit_label: { ...buttonSchema, description: `${TEXT_DOCS.actionLabel.line} Default "Send".` },
         fields: {
           type: 'array',
-          description:
-            'Shown in this order, as one group under details. Nothing is truncated: rows grow to fit.',
+          description: `Fields keep the order you send them in and share one group, under details. ${LAYOUT_DOCS[2]} ${LAYOUT_DOCS[5]}`,
           minItems: 1,
           maxItems: ASK_LIMITS.fields,
           items: {
@@ -451,11 +468,10 @@ export const TOOLS = [
               required: { type: 'boolean', description: 'Default true, except boolean fields.' },
               options: {
                 type: 'array',
-                description:
-                  'The choices for choice and multi_choice fields. Keep each short; put the detail a choice needs in details.',
+                description: 'The choices for choice and multi_choice fields.',
                 minItems: 1,
                 maxItems: ASK_LIMITS.options,
-                items: shown(L.optionLabel, TEXT_DOCS.optionLabel),
+                items: shown(L.optionLabel, ASK_OPTION_DOCS),
                 examples: [['Next Monday', 'Next Friday']],
               },
               default: {

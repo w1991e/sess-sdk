@@ -41,8 +41,9 @@ export type AskField =
   | (AskFieldBase & {
       readonly type: 'choice';
       /**
-       * 1–100 choices. The words shown for one choice: short, since a native picker may clip long
-       * options; put decision detail in `details`; at most 60. Example: `Next Monday`
+       * 1–100 choices. The words shown for one choice: short; at most 60. Put any detail the
+       * decision needs in `details`: a phone's picker may cut a long choice short.
+       * Example: `Next Monday`
        */
       readonly options: readonly [string, ...string[]];
       readonly default?: string;
@@ -50,8 +51,9 @@ export type AskField =
   | (AskFieldBase & {
       readonly type: 'multi_choice';
       /**
-       * 1–100 choices. The words shown for one choice: short, since a native picker may clip long
-       * options; put decision detail in `details`; at most 60. Example: `Next Monday`
+       * 1–100 choices. The words shown for one choice: short; at most 60. Put any detail the
+       * decision needs in `details`: a phone's picker may cut a long choice short.
+       * Example: `Next Monday`
        */
       readonly options: readonly [string, ...string[]];
       readonly default?: readonly string[];
@@ -73,8 +75,10 @@ export interface AskInput<F extends readonly AskField[] = readonly AskField[]> {
   /** A button: a verb, 1–3 words; at most 24. Default `Send`. Examples: `Approve`, `Send refund` */
   readonly submit_label?: string;
   /**
-   * One to twelve fields with unique names, shown in this order as one group under `details`.
-   * Nothing is truncated: rows grow to fit.
+   * One to twelve fields with unique names. Fields keep the order you send them in and share one
+   * group, under `details`. Each label sits beside its answer, or above it when the two do not
+   * fit, so keep it to a word or two (about 20 characters). Nothing is truncated: rows grow to fit
+   * their text.
    */
   readonly fields: F;
   /**

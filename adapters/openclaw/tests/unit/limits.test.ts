@@ -47,18 +47,24 @@ describe('the tool schema teaches the limits', () => {
       expect([...title].length).toBeLessThan(40);
   });
 
-  it('teaches how form 2 lays out fields, in the MCP tools’ words', () => {
+  it('teaches how form 2 lays out fields, in Sess’s words (SURFACE_LAYOUT_DOCS, SURFACE_TEXT_DOCS)', () => {
     expect(root.properties.source.properties.components.description).toBe(
-      'Shown in source order. Consecutive fields share one group; a heading or text starts a new one. Nothing is truncated: rows grow to fit.',
+      "The page's content, in order. How the page lays it out: " +
+        'Fields keep the order you send them in. ' +
+        'Consecutive fields share one group; a heading or a text starts a new one. ' +
+        'Each label sits beside its answer, or above it when the two do not fit, so keep it to a word or two (about 20 characters). ' +
+        "A field's help shows under that field; give it only when it is needed. " +
+        "Keep choice labels short, and put any detail the decision needs in a text or record on the page: a phone's picker may cut a long choice short. " +
+        'Nothing is truncated: rows grow to fit their text.',
     );
     expect(component('field').label.description).toBe(
       'What the field asks for: a word or two, about 20 characters; at most 60.',
     );
     expect(component('field').description.description).toBe(
-      'Optional help, only when needed: one hint, shown under its own field; at most 160.',
+      'Optional help, shown under its own field: one hint, only when needed; at most 160.',
     );
-    expect(component('field').option_labels.additionalProperties.description).toContain(
-      'a native picker may clip long options; put decision detail in a text or record on the page',
+    expect(component('field').option_labels.additionalProperties.description).toBe(
+      "The words shown for one choice: short; at most 60. Put any detail the decision needs in a text or record on the page: a phone's picker may cut a long choice short. A choice without one shows its enum value, which is then held to the same 60.",
     );
   });
 

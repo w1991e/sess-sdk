@@ -62,10 +62,16 @@ export type FieldSchema = SchemaDocumentation &
 type WireComponent = Schemas['SurfaceComponent'];
 type Component<T extends WireComponent['type']> = Extract<WireComponent, { type: T }>;
 /**
- * One piece of an interactive Surface, shown in source order. Consecutive fields share one group;
- * a heading or text starts a new one. Lengths are Unicode code points; Sess never truncates (rows
- * grow to fit): a value over its limit is a 400 INVALID_SCHEMA whose `field`, `limit` and
- * `length` (on `SessError`) name the value and the most it may have.
+ * One piece of an interactive Surface: the page's content, in order. How the page lays it out:
+ * Fields keep the order you send them in. Consecutive fields share one group; a heading or a text
+ * starts a new one. Each label sits beside its answer, or above it when the two do not fit, so
+ * keep it to a word or two (about 20 characters). A field's help shows under that field; give it
+ * only when it is needed. Keep choice labels short, and put any detail the decision needs in a
+ * text or record on the page: a phone's picker may cut a long choice short. Nothing is truncated:
+ * rows grow to fit their text.
+ *
+ * Lengths are Unicode code points: a value over its limit is a 400 INVALID_SCHEMA whose `field`,
+ * `limit` and `length` (on `SessError`) name the value and the most it may have.
  */
 export type SurfaceComponent =
   | (Component<'heading'> & {
@@ -92,13 +98,14 @@ export type SurfaceComponent =
       /** What the field asks for: a word or two, about 20 characters; at most 60. Example: `Refund amount` */
       label: string;
       /**
-       * Optional help, only when needed: one hint, shown under its own field; at most 160.
+       * Optional help, shown under its own field: one hint, only when needed; at most 160.
        * Example: `Leave it as is to refund the full amount.`
        */
       description?: string;
       /**
-       * The words shown for one choice: short, since a native picker may clip long options; put
-       * decision detail in a text or record on the page; at most 60. Example: `Next Monday`
+       * The words shown for one choice: short; at most 60. Put any detail the decision needs in a
+       * text or record on the page: a phone's picker may cut a long choice short. A choice without
+       * one shows its enum value, which is then held to the same 60. Example: `Next Monday`
        */
       option_labels?: { [key: string]: string };
       schema: FieldSchema;

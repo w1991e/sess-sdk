@@ -58,10 +58,12 @@ Sess refuses anything longer and creates nothing; shorten it and run again.
 
 ### Fields on the page
 
-Sess shows a form's parts in the order you list them. Fields next to each other share one group;
-a heading or a text starts a new one. A field's help shows under that field. Keep choices short
-and put the detail behind them in a text or record on the page: a phone's picker may clip a long
-choice. Nothing is cut off; a long row grows to fit.
+Fields keep the order you send them in. Consecutive fields share one group; a heading or a text
+starts a new one. Each label sits beside its answer, or above it when the two do not fit, so keep
+it to a word or two (about 20 characters). A field's help shows under that field; give it only
+when it is needed. Keep choice labels short, and put any detail the decision needs in a text or
+record on the page: a phone's picker may cut a long choice short. Nothing is truncated: rows grow
+to fit their text.
 
 ### Weather data
 
