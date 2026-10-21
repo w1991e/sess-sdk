@@ -43,14 +43,49 @@ const LINK_EXPIRED = 'LINK_EXPIRED';
 const LINK_EXPIRY_GRACE_MS = 2000;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 
-/** Whether a read with no answer for the revision shows the link has expired for good. */
+function instant(value: unknown): number | undefined {
+  if (typeof value !== 'string' || !ISO_INSTANT.test(value)) return undefined;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : undefined;
+}
+
+/**
+ * Whether the read shows the link still open (Decision 0009 Amendment 10): `live`, or `lapsed`,
+ * past its deadline but still extendable by the person. Never expired while either.
+ */
+function stillOpen(session: object): boolean {
+  const state: unknown = (session as { link_state?: unknown }).link_state;
+  return state === 'live' || state === 'lapsed';
+}
+
+/**
+ * Whether a read with no answer for the revision shows the link has expired for good.
+ * - live or lapsed (link timing, Amendment 10): never; a lapsed link can still be extended.
+ * - expired: once the runtime clock is the grace past the link's end (its horizon while an
+ *   extension is left, else its deadline), or at once when that end is still ahead (revoked).
+ * - no link_state (a runtime before link timing): the deadline plus the grace, as before.
+ */
 function expiredAt(session: object, meta: object): boolean {
-  const value: unknown = (session as { action_expires_at?: unknown }).action_expires_at;
-  if (typeof value !== 'string' || !ISO_INSTANT.test(value)) return false;
-  const cutoff = Date.parse(value);
+  if (stillOpen(session)) return false;
+  const v = session as {
+    action_expires_at?: unknown;
+    action_expires_horizon?: unknown;
+    extensions_used?: unknown;
+    link_state?: unknown;
+  };
+  const deadline = instant(v.action_expires_at);
   const serverDate: unknown = (meta as { serverDate?: unknown }).serverDate;
   const observedAt = typeof serverDate === 'number' && Number.isFinite(serverDate) ? serverDate : Date.now();
-  return Number.isFinite(cutoff) && observedAt >= cutoff + LINK_EXPIRY_GRACE_MS;
+  if (v.link_state === 'expired') {
+    const horizon = instant(v.action_expires_horizon);
+    const extendable =
+      horizon !== undefined && typeof v.extensions_used === 'number' && v.extensions_used < 10;
+    const end = extendable && deadline !== undefined ? Math.max(horizon, deadline) : deadline;
+    return (
+      end === undefined || observedAt >= end + LINK_EXPIRY_GRACE_MS || end > observedAt + LINK_EXPIRY_GRACE_MS
+    );
+  }
+  return deadline !== undefined && observedAt >= deadline + LINK_EXPIRY_GRACE_MS;
 }
 export interface VerifiedResponseResult {
   eventId: string;
@@ -371,7 +406,25 @@ export class SessMcpAdapter {
       if (error instanceof AdapterError) throw error;
       if (error instanceof SessError && error.kind === 'wait_ended') {
         if (error.code === 'WAIT_TIMEOUT') return await this.#transition(record, 'needs_resume');
-        if (error.code === LINK_EXPIRED) return await this.#expire(record);
+        if (error.code === LINK_EXPIRED) {
+          // An SDK before link timing ends its wait at the deadline even when the link has only
+          // lapsed. One read decides: a live or lapsed link is still open (waiting); otherwise
+          // the link has expired.
+          let session: object;
+          try {
+            session = (await client.sessions.retrieve(sessionId, signal ? { signal } : {})).data;
+          } catch (readError) {
+            throw unavailable(readError);
+          }
+          const answered =
+            'responses' in session &&
+            (session as { responses: { revision: number }[] }).responses.some(
+              (r) => r.revision === args.revision,
+            );
+          // An answer that landed meanwhile is released by the next call.
+          if (answered || stillOpen(session)) return await this.#transition(record, 'waiting');
+          return await this.#expire(record);
+        }
         return await this.#block(record, error.code ?? 'WAIT_ENDED');
       }
       if (error instanceof SessError && error.kind === 'aborted') {

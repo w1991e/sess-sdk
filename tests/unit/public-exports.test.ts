@@ -94,7 +94,17 @@ const BEFORE = {
   './qr': [],
 };
 const ADDED = {
-  '.': ['AskAnswer', 'AskAnswerOptions', 'AskField', 'AskHandle', 'AskInput', 'AskOptions'],
+  '.': [
+    'AskAnswer',
+    'AskAnswerOptions',
+    'AskField',
+    'AskHandle',
+    'AskInput',
+    'AskOptions',
+    // Decision 0009 Amendment 10: the link timing types (rc.8).
+    'LinkExtension',
+    'LinkState',
+  ],
   './receipts': [],
   './webhooks': [],
   // S-07: the new optional QR entry point.
@@ -148,7 +158,7 @@ function declaredExports(): Record<keyof typeof ENTRIES, string[]> {
 }
 
 describe('public exports', () => {
-  it('are unchanged except for the added question types', () => {
+  it('are unchanged except for the added question and link timing types', () => {
     const actual = declaredExports();
     for (const entry of Object.keys(ENTRIES) as (keyof typeof ENTRIES)[])
       expect(actual[entry]).toEqual([...BEFORE[entry], ...ADDED[entry]].sort());

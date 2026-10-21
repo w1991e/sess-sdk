@@ -6,7 +6,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description RFC 9728 metadata of the remote MCP resource: the resource, its one authorization server and the one scope (the five Sess tools). Served at the root and with the resource path appended. Hosted MCP only; on the MCP host (mcp.sess.si). */
+    /** @description RFC 9728 metadata of the remote MCP resource: the resource, its one authorization server and the one scope (the five Sess tools). Served at the root and with the resource path appended. Hosted MCP only; on the MCP host. */
     get: operations['protectedResourceMetadata'];
     put?: never;
     post?: never;
@@ -23,7 +23,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description RFC 9728 metadata of the remote MCP resource: the resource, its one authorization server and the one scope (the five Sess tools). Served at the root and with the resource path appended. Hosted MCP only; on the MCP host (mcp.sess.si). */
+    /** @description RFC 9728 metadata of the remote MCP resource: the resource, its one authorization server and the one scope (the five Sess tools). Served at the root and with the resource path appended. Hosted MCP only; on the MCP host. */
     get: operations['protectedResourceMetadataForPath'];
     put?: never;
     post?: never;
@@ -40,7 +40,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description RFC 8414 metadata: authorization code with S256 PKCE only, public clients only (token_endpoint_auth_method none), client ID metadata documents preferred (client_id_metadata_document_supported) and dynamic registration as compatibility, refresh and revocation, RFC 9207 `iss` in every authorization response. The issuer and the token, registration and revocation endpoints are on the MCP host (mcp.sess.si); the authorization endpoint is the account pages’ consent page (app.sess.si). Hosted MCP only. */
+    /** @description RFC 8414 metadata: authorization code with S256 PKCE only, public clients only (token_endpoint_auth_method none), client ID metadata documents preferred (client_id_metadata_document_supported) and dynamic registration as compatibility, refresh and revocation, RFC 9207 `iss` in every authorization response. The issuer and the token, registration and revocation endpoints are on the MCP host; the authorization endpoint is the account pages’ consent page (app.sess.si). Hosted MCP only. */
     get: operations['authorizationServerMetadata'];
     put?: never;
     post?: never;
@@ -111,7 +111,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description grant_type=authorization_code: code, redirect_uri (as authorized), client_id, code_verifier (S256), resource (optional). grant_type=refresh_token: refresh_token, client_id, scope and resource (optional; never wider). Public clients: no client secret or HTTP authentication. A used code or refresh token presented again revokes every token of its family. Cache-Control: no-store. Body at most 16 KiB. Hosted MCP only; on the MCP host (mcp.sess.si). */
+    /** @description grant_type=authorization_code: code, redirect_uri (as authorized), client_id, code_verifier (S256), resource (optional). grant_type=refresh_token: refresh_token, client_id, scope and resource (optional; never wider). Public clients: no client secret or HTTP authentication. A used code or refresh token presented again revokes every token of its family. Cache-Control: no-store. Body at most 16 KiB. Hosted MCP only; on the MCP host. */
     post: operations['oauthToken'];
     delete?: never;
     options?: never;
@@ -128,7 +128,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description RFC 7591 dynamic registration of a public client (the compatibility path; client ID metadata documents are preferred). Redirect URIs: https, http on a loopback host, or a native app scheme; no fragment or user info. Registration grants nothing: every use needs the person’s consent. At most 10 registrations per client per hour and 500 in total. Hosted MCP only; on the MCP host (mcp.sess.si). */
+    /** @description RFC 7591 dynamic registration of a public client (the compatibility path; client ID metadata documents are preferred). Redirect URIs: https, http on a loopback host, or a native app scheme; no fragment or user info. Registration grants nothing: every use needs the person’s consent. At most 10 registrations per client per hour and 500 in total. Hosted MCP only; on the MCP host. */
     post: operations['oauthRegister'];
     delete?: never;
     options?: never;
@@ -145,7 +145,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description RFC 7009. Form fields: token, client_id (token_type_hint ignored). An access token ends with the API credentials minted under it; a refresh token ends its whole family. An unknown or another client’s token is answered the same (200). Hosted MCP only; on the MCP host (mcp.sess.si). */
+    /** @description RFC 7009. Form fields: token, client_id (token_type_hint ignored). An access token ends with the API credentials minted under it; a refresh token ends its whole family. An unknown or another client’s token is answered the same (200). Hosted MCP only; on the MCP host. */
     post: operations['oauthRevoke'];
     delete?: never;
     options?: never;
@@ -590,7 +590,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description Claims a no-signup trial for the signed-in developer account. Form fields: csrf (the page’s token) and management_credential (the trial’s sess_mg_… credential, in the form body only, never in a URL). Same-origin requests with the session’s CSRF token only; the human link can never claim. A claim records the account as the trial’s owner, once: nothing moves, the trial keeps its deadlines, limits and deletion time, its receipts stay as issued and its management credential keeps working. The account’s API keys can then read (only read) the trial’s Sessions with the owner read routes, each Session until its result_available_until (as with the management credential). Claiming the same trial again from the same account answers as the first claim. */
+    /** @description Claims a no-signup trial for the signed-in developer account. Form fields: csrf (the page’s token) and management_credential (the trial’s sess_mg_… credential, in the form body only, never in a URL). Same-origin requests with the session’s CSRF token only; the Sess link can never claim. A claim records the account as the trial’s owner, once: nothing moves, the trial keeps its deadlines, limits and deletion time, its receipts stay as issued and its management credential keeps working. The account’s API keys can then read (only read) the trial’s Sessions with the owner read routes, each Session until its result_available_until (as with the management credential). Claiming the same trial again from the same account answers as the first claim. */
     post: operations['claimTrial'];
     delete?: never;
     options?: never;
@@ -607,6 +607,40 @@ export interface paths {
     };
     /** @description P2-13 V6: the console page listing the signed-in developer workspace’s receipts as metadata only (receipt and Session IDs, workspace sequence, acceptance time, witness status, whether the answers are still kept, and the receipts held unverified in their own view). Query: custody (exception), from and to (UTC dates, to inclusive), target (a target ID), cursor. Never a receipt or an answer on the page. Without a live account session: 303 to /app/sign-in. Labelled "issued records in this defined scope/range". */
     get: operations['evidencePage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/sessions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description P2-19: the console page listing the signed-in developer workspace’s Sessions, read only, as metadata: title, Sent (created), Closes at (action_expires_at) and status (open, answered, expired, revoked or closed). Query: status (open, answered or expired; default all), sort (sent or closes; default sent), dir (asc or desc; default desc for sent, asc for closes), after or before (an opaque page key). An unknown or malformed value takes its default. Never a human link, token or answer on the page. Without a live account session: 303 to /app/sign-in. */
+    get: operations['sessionsPage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/app/sessions/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description P2-19: one Session of the signed-in developer workspace, read only: its status, Sent and Closes at, its event log as metadata (event, step, action, by, time; never the answer) and, for each accepted answer, its receipt’s event ID and time with a link to the Evidence page for that day while the receipt is kept and not restricted. Another workspace’s Session is the same 404 as an unknown one. */
+    get: operations['sessionPage'];
     put?: never;
     post?: never;
     delete?: never;
@@ -641,7 +675,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description The no-signup trial. Without Authorization: creates a trial workspace and its first interactive Session, and returns the management credential once, in the body. With `Authorization: Bearer <management credential>`: creates a further Session in that trial. Interactive Sessions only (mode interactive); no return channel, webhook or outbound endpoint exists for a trial. Trial limits (published, reversible): human link and action window 1 hour; result readable 24 hours after the action window; at most 3 active Sessions and 10 Sessions per trial within its 24-hour creation window; at most 3 new trials per client and 200 overall per rolling 24 hours. Any other credential, or a management credential that is unknown, expired, revoked or bound to one Session → 404 NOT_FOUND. An Idempotency-Key header is refused (400 INVALID_SCHEMA): the credential and the human link cannot be replayed. */
+    /** @description The no-signup trial. Without Authorization: creates a trial workspace and its first interactive Session, and returns the management credential once, in the body. With `Authorization: Bearer <management credential>`: creates a further Session in that trial. Interactive Sessions only (mode interactive); no return channel, webhook or outbound endpoint exists for a trial. Trial limits (published, reversible): human link and action window 1 hour; result readable 24 hours after the action window; at most 3 active Sessions and 10 Sessions per trial within its 24-hour creation window; at most 3 new trials per client and 200 overall per rolling 24 hours. Any other credential, or a management credential that is unknown, expired, revoked or bound to one Session → 404 NOT_FOUND. An Idempotency-Key header is refused (400 INVALID_SCHEMA): the credential and the Sess link cannot be replayed. */
     post: operations['createTrialSession'];
     delete?: never;
     options?: never;
@@ -656,7 +690,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description A trial Session and its accepted responses, read with the trial’s management credential, until result_available_until. Reading never consumes or changes it. A Session of another trial or workspace, an unknown, expired or revoked credential, a human link or an owner key → 404 NOT_FOUND (generic). */
+    /** @description A trial Session and its accepted responses, read with the trial’s management credential, until result_available_until. Reading never consumes or changes it. A Session of another trial or workspace, an unknown, expired or revoked credential, a Sess link or an owner key → 404 NOT_FOUND (generic). */
     get: operations['getTrialSession'];
     put?: never;
     post?: never;
@@ -675,7 +709,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description Creates a display Session (mode display, source.kind data) or an interactive one (mode interactive, source.kind sess_surface; components: SurfaceComponent). An unrecognized component type → 400 UNKNOWN_COMPONENT; a field-schema keyword outside the supported subset → 400 INVALID_SCHEMA. An Idempotency-Key header is refused (400 INVALID_SCHEMA): the human link cannot be replayed (it is stored only as a hash). Retention: the human link expires 720 hours after creation with the deployment owner key and 168 hours with a developer API key (free plan). The Session’s content, accepted results and receipts are purged 720 hours (owner key) or 168 hours (developer API key) after the earlier of its completion and its link’s expiry, and outstanding webhook deliveries are cancelled; afterwards every owner route answers 404 SESSION_NOT_FOUND. A webhook already delivered is not recalled. Advanced: expires_in (seconds from creation, at least 30, at most the plan’s live-link lifetime) sets a shorter human link; the Session’s retention then also ends sooner, because it counts from the earlier of completion and the link’s expiry. The response’s action_expires_at is the stored expiry, the same value GET /v1/sessions/{id} returns. Advanced: invocation_id ties the Session to the run of your registered agent that it serves; the archival core of each receipt it issues then binds that agent (target) and its version. */
+    /** @description Creates a display Session (mode display, source.kind data) or an interactive one (mode interactive, source.kind sess_surface; components: SurfaceComponent). An unrecognized component type → 400 UNKNOWN_COMPONENT; a field-schema keyword outside the supported subset → 400 INVALID_SCHEMA. An Idempotency-Key header is refused (400 INVALID_SCHEMA): the Sess link cannot be replayed (it is stored only as a hash). Retention: the Sess link expires 720 hours after creation with the deployment owner key and 168 hours with a developer API key (free plan). The Session’s content, accepted results and receipts are purged 720 hours (owner key) or 168 hours (developer API key) after the earlier of its completion and its link’s expiry, and outstanding webhook deliveries are cancelled; afterwards every owner route answers 404 SESSION_NOT_FOUND. A webhook already delivered is not recalled. Advanced: expires_in (seconds from creation, at least 30, at most the plan’s live-link lifetime) sets a shorter Sess link; the Session’s retention then also ends sooner, because it counts from the earlier of completion and the link’s end. An interactive link of 72000 seconds or less can be extended by the person, at most ten times, up to a fixed horizon (GET /v1/sessions/{id}: action_expires_horizon); its link ends at that horizon, or at the deadline once no extension is left. The response’s action_expires_at is the stored expiry, the same value GET /v1/sessions/{id} returns. Advanced: invocation_id ties the Session to the run of your registered agent that it serves; the archival core of each receipt it issues then binds that agent (target) and its version. */
     post: operations['createSession'];
     delete?: never;
     options?: never;
@@ -690,14 +724,14 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description The Session. Interactive Sessions return status, the current revision, its response_schema and every accepted response bound to its revision; repeated reads of an unchanged Session are byte-identical. Every Session carries action_expires_at, its human link’s stored expiry; a read never extends it. A developer API key also reads the Sessions of trials its account claimed (read-only), each until that Session’s result_available_until. */
+    /** @description The Session. Interactive Sessions return status, the current revision, its response_schema and every accepted response bound to its revision; repeated reads of an unchanged Session are byte-identical. Every Session carries action_expires_at, its Sess link’s stored deadline; a read never extends it. It also carries link_state (live, lapsed or expired, at the time of the read), action_expires_horizon and extensions_used: for an interactive link of 20 hours or less, the person may extend the deadline up to ten times, never past the fixed horizon. A lapsed link accepts no answer but can still be extended: the Session is still open, so keep waiting; revoke the link for a hard end at the deadline. extensions lists every accepted extension (old and new deadline, from lapsed, when; no answer value), in order. The ETag is the owner mutations’ concurrency token (the revision and the Event sequence), not a cache validator: it does not change with link timing. A developer API key also reads the Sessions of trials its account claimed (read-only), each until that Session’s result_available_until. */
     get: operations['getSession'];
     put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    /** @description Publishes the next immutable Surface revision of an interactive Session, from responded or active (superseding the unanswered revision). The Session returns to active on the same Session ID and human link; a submission against an older revision is then refused with SESSION_REVISION_CONFLICT. */
+    /** @description Publishes the next immutable Surface revision of an interactive Session, from responded or active (superseding the unanswered revision). The Session returns to active on the same Session ID and Sess link; a submission against an older revision is then refused with SESSION_REVISION_CONFLICT. */
     patch: operations['publishRevision'];
     trace?: never;
   };
@@ -725,7 +759,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description Every Event of the Session in sequence order: response.accepted (actor link_holder, the revision it was accepted on, action_id and the typed data), revision.published and session.completed (actor owner). Append-only: Event IDs and sequences never change, and every accepted result stays listed after later revisions and completion. Not paginated in P1 (a Session has a few Events per round). Display Sessions have none. Cache-Control: no-store, no-transform. */
+    /** @description Every Event of the Session in sequence order: response.accepted (actor link_holder, the revision it was accepted on, action_id and the typed data), revision.published and session.completed (actor owner). Append-only: Event IDs and sequences never change, and every accepted result stays listed after later revisions and completion. Not paginated in P1 (a Session has a few Events per round). Display Sessions have none. Beside the Events, link_extensions lists every accepted extension of the Sess link (its old and new deadline, whether it was asked for after the deadline, and when; no answer value), in order. Cache-Control: no-store, no-transform. */
     get: operations['listSessionEvents'];
     put?: never;
     post?: never;
@@ -761,8 +795,25 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description The human form submission (the human link is the capability; never log it). Accepted only from the page itself: Sec-Fetch-Site same-origin, or without Fetch Metadata an Origin equal to the public origin. The server resolves action_id from the exact stored revision and validates data against its response_schema. Success is a 303 redirect to the same link; refusals are HTML pages whose stable code is in a data-error-code attribute (422 and 409 re-render the form with the safe draft for explicit resubmit). */
+    /** @description The human form submission (the Sess link is the capability; never log it). Accepted only from the page itself: Sec-Fetch-Site same-origin, or without Fetch Metadata an Origin equal to the public origin. The server resolves action_id from the exact stored revision and validates data against its response_schema. Success is a 303 redirect to the same link; refusals are HTML pages whose stable code is in a data-error-code attribute (422 and 409 re-render the form with the safe draft for explicit resubmit). */
     post: operations['submitHumanAction'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/s/{token}/extend': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Asks for more time on a Sess link of 20 hours or less (the Sess link is the capability; never log it). It is the answer form’s second submitter, so the body is the form’s own entries without action_id; same-origin only, as for the answer. While the link is live the deadline (action_expires_at) moves to min(horizon, deadline + step); while it is lapsed (past the deadline, before the horizon, extensions left) to min(horizon, now + step), where step = min(original lifetime, 1 hour). At most ten extensions; never past the fixed horizon. A repeated client_event_id is answered as the original and never counted twice. It never accepts an answer, dispatches, completes the Session or signs a receipt, and never stores or logs a submitted value: the values are only used to re-render the same form. */
+    post: operations['extendHumanLink'];
     delete?: never;
     options?: never;
     head?: never;
@@ -795,7 +846,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description P2-13 V3 / P2-11, step 2: the kept-conversation file (DOCS/spec/keep-v1.md), the one bounded, versioned file the person saves — every authorized accepted round of the Session through the snapshot cutoff with its unchanged receipt and bundle (or content unavailable once purged), preservation status (the witness state at snapshot time, with the evidence attached by then), holder status and an inventory. Same request checks as the challenge. With `enrollment`, first enrolls one fresh holder key per receipt of the challenge’s exact batch (or only its final receipt: the disclosed fallback): every proof is checked, then all enrollments and the challenge’s consumption commit atomically; the same request again is an idempotent replay, a different one is refused, a receipt keeps its first holder and a key holds one receipt. Without `enrollment` (key generation or storage failed, or nothing to enrol) the file is exported with every round marked unenrolled: export never depends on enrollment. The file holds no private key, grant secret or human link. Content-Disposition: attachment. */
+    /** @description P2-13 V3 / P2-11, step 2: the kept-conversation file (DOCS/spec/keep-v1.md), the one bounded, versioned file the person saves — every authorized accepted round of the Session through the snapshot cutoff with its unchanged receipt and bundle (or content unavailable once purged), preservation status (the witness state at snapshot time, with the evidence attached by then), holder status and an inventory. Same request checks as the challenge. With `enrollment`, first enrolls one fresh holder key per receipt of the challenge’s exact batch (or only its final receipt: the disclosed fallback): every proof is checked, then all enrollments and the challenge’s consumption commit atomically; the same request again is an idempotent replay, a different one is refused, a receipt keeps its first holder and a key holds one receipt. Without `enrollment` (key generation or storage failed, or nothing to enrol) the file is exported with every round marked unenrolled: export never depends on enrollment. The file holds no private key, grant secret or Sess link. Content-Disposition: attachment. */
     post: operations['keepConversation'];
     delete?: never;
     options?: never;
@@ -812,7 +863,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description P2-15 PR-B, Save to Sess from a human page on another origin than /personal (DOCS/spec/personal-copies-v1.md §7). The human link is the capability; never log it. Sent by the receipt card’s same-origin script once the Save sheet on the personal origin is signed in and has sent its destination binding: Sec-Fetch-Site same-origin (or an Origin equal to the page’s), application/json, at most 65536 bytes, rate limited per link. Records one pending claim bound to the rounds the presented Keep grants authorize now, exactly as Keep reads them (restricted or deleted rounds never included; no client-chosen IDs), their cutoff, a fresh 256-bit transfer secret (stored as its hash), the purpose, the personal origin, the source verifier’s challenge and the destination binding. The claim expires in 5 minutes. Nothing is saved until the sheet redeems it. Headers as every /s/* response. */
+    /** @description P2-15 PR-B, Save to Sess from a human page on another origin than /personal (DOCS/spec/personal-copies-v1.md §7). The Sess link is the capability; never log it. Sent by the receipt card’s same-origin script once the Save sheet on the personal origin is signed in and has sent its destination binding: Sec-Fetch-Site same-origin (or an Origin equal to the page’s), application/json, at most 65536 bytes, rate limited per link. Records one pending claim bound to the rounds the presented Keep grants authorize now, exactly as Keep reads them (restricted or deleted rounds never included; no client-chosen IDs), their cutoff, a fresh 256-bit transfer secret (stored as its hash), the purpose, the personal origin, the source verifier’s challenge and the destination binding. The claim expires in 5 minutes. Nothing is saved until the sheet redeems it. Headers as every /s/* response. */
     post: operations['createSaveClaim'];
     delete?: never;
     options?: never;
@@ -827,7 +878,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description The read-only status of a human link, for its waiting page (S2): the current revision and the person’s view of the state, nothing else (no owner data, Event IDs, receipts, responses or Surface content). The human link is the capability; never log it. Nothing is written or consumed. The waiting page’s same-origin script calls it about every 4 s while the page waits, and navigates to the same link (a GET) once the revision or the state differs. A page with a form also calls it, about every 25 s while visible, only to keep its connection in use: it ignores the answer. Headers as every /s/* response: Cache-Control: no-store, Referrer-Policy: no-referrer, X-Robots-Tag: noindex, nofollow, no CORS. */
+    /** @description The read-only status of a Sess link, for its waiting page (S2): the current revision and the person’s view of the state, nothing else (no owner data, Event IDs, receipts, responses or Surface content). The Sess link is the capability; never log it. Nothing is written or consumed. The waiting page’s same-origin script calls it about every 4 s while the page waits, and navigates to the same link (a GET) once the revision or the state differs. A page with a form also calls it, about every 25 s while visible, only to keep its connection in use: it ignores the answer. Headers as every /s/* response: Cache-Control: no-store, Referrer-Policy: no-referrer, X-Robots-Tag: noindex, nofollow, no CORS. */
     get: operations['getHumanStatus'];
     put?: never;
     post?: never;
@@ -981,7 +1032,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description The deliberate export of one accepted response as a bundle-v1 disclosure (DOCS/spec/bundle-v1.md): its stored receipt exactly as issued, the complete normalized Surface of the revision it was accepted on, the accepted data, and the current public receipt keys. Never a private key, owner credential or human link. Anyone holding the bundle can verify it (POST /v1/receipts/verify, or offline with trusted keys); share it only with whom you mean to show the decision. Read-only. Cache-Control: no-store, no-transform; Referrer-Policy: no-referrer. */
+    /** @description The deliberate export of one accepted response as a bundle-v1 disclosure (DOCS/spec/bundle-v1.md): its stored receipt exactly as issued, the complete normalized Surface of the revision it was accepted on, the accepted data, and the current public receipt keys. Never a private key, owner credential or Sess link. Anyone holding the bundle can verify it (POST /v1/receipts/verify, or offline with trusted keys); share it only with whom you mean to show the decision. Read-only. Cache-Control: no-store, no-transform; Referrer-Policy: no-referrer. */
     get: operations['exportDecisionBundle'];
     put?: never;
     post?: never;
@@ -1000,7 +1051,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description Public, no credential. Verifies a disclosed bundle-v1 against this server's own receipt issuer and published keys (never keys in the bundle) at the current time: the receipt by the receipt-v1 rules, then that the disclosed Surface and input match the receipt hashes. It looks nothing up and stores nothing. The declared signed context is checked only against itself, so context is "unchecked" and application_purpose is "unchecked": check the event, Session and workspace you expect in your own application. A valid result means the issuer accepted this input from someone holding the human link; it never names a person or proves that anything was executed. An invalid bundle is a 200 result with valid false and a reason. Body: application/json, at most 2097152 bytes (413 above); 1 MiB canonical bundle bound (reason oversized). Rate limited per client and in total (429 RATE_LIMITED with Retry-After). An absolute 2-second deadline runs from the request's arrival and covers receiving the body as well as verifying it: an unanswered request then gets 503 SERVICE_UNAVAILABLE with Connection: close and the connection is closed. Cache-Control: no-store, no-transform; Referrer-Policy: no-referrer; CORS only for the product site origins. Never put a bundle or receipt in a URL. */
+    /** @description Public, no credential. Verifies a disclosed bundle-v1 against this server's own receipt issuer and published keys (never keys in the bundle) at the current time: the receipt by the receipt-v1 rules, then that the disclosed Surface and input match the receipt hashes. It looks nothing up and stores nothing. The declared signed context is checked only against itself, so context is "unchecked" and application_purpose is "unchecked": check the event, Session and workspace you expect in your own application. A valid result means the issuer accepted this input from someone holding the Sess link; it never names a person or proves that anything was executed. An invalid bundle is a 200 result with valid false and a reason. Body: application/json, at most 2097152 bytes (413 above); 1 MiB canonical bundle bound (reason oversized). Rate limited per client and in total (429 RATE_LIMITED with Retry-After). An absolute 2-second deadline runs from the request's arrival and covers receiving the body as well as verifying it: an unanswered request then gets 503 SERVICE_UNAVAILABLE with Connection: close and the connection is closed. Cache-Control: no-store, no-transform; Referrer-Policy: no-referrer; CORS only for the product site origins. Never put a bundle or receipt in a URL. */
     post: operations['verifyDecisionBundle'];
     delete?: never;
     options?: never;
@@ -1264,6 +1315,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/.well-known/sess-renderer-identities.json': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Decision 0009 Amendment 13: the renderer identities Sess signs receipts under (the values of a receipt’s surface.renderer_version), as one JWS signed with the receipt keys, in the RFC 7515 flattened JSON serialization {protected, payload, signature} (joined with dots they are its compact form). Protected header {alg EdDSA, kid, typ sess-renderer-identities+jwt}; payload the RFC 8785 canonical JSON {sess_renderer_identities: 1, iss: the receipt issuer, seq: the list edition (an integer, higher in every later published edition), iat: when this copy was signed (NumericDate), identities: [{renderer_version, since: the UTC date it was added}]}; the signature covers seq and iat. Order authentic lists by seq, with containment as the cross-check; an older list still proves the identities it contains. Verify it with GET /.well-known/sess-receipt-keys.json (the key its kid names) and the expected issuer; a receipt verifies when its renderer_version is on a list whose signature verifies. The list only grows: an identity is never removed, reordered or reused, so every receipt issued keeps verifying (sess-html-form-1 is always on it). DOCS/spec/receipt-v1.md §10. No credential. 503 SERVICE_UNAVAILABLE while the receipt keys are not configured. Cache-Control: no-store, no-transform. */
+    get: operations['rendererIdentities'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/.well-known/sess-witness-keys.json': {
     parameters: {
       query?: never;
@@ -1394,7 +1462,7 @@ export interface webhooks {
     };
     get?: never;
     put?: never;
-    /** @description POSTed to the exact registered target endpoint once per admitted Invocation, through the same egress safeguards as webhooks (HTTPS on port 443, every connection resolved and refused for non-public addresses, no redirects followed, 10-second timeout, response read up to 64 KiB). Headers: content-type, User-Agent Sess-Target/1 and sess-invocation-id (deduplicate on it); never an owner key, human link or caller header. Answer 2xx with TargetDispatchAnswer naming the same invocation_id and target_version: accepted (report later on callback.url with callback.credential), completed with result, or failed. An answer that does not bind, a timeout, a dropped connection or a 5xx leaves the Invocation unknown: it is never treated as success and never sent again. Only a DNS failure or an explicit 429/503 is retried (at most 3 attempts within the Invocation lifetime); 3xx and other 4xx fail it. */
+    /** @description POSTed to the exact registered target endpoint once per admitted Invocation, through the same egress safeguards as webhooks (HTTPS on port 443, every connection resolved and refused for non-public addresses, no redirects followed, 10-second timeout, response read up to 64 KiB). Headers: content-type, User-Agent Sess-Target/1 and sess-invocation-id (deduplicate on it); never an owner key, Sess link or caller header. Answer 2xx with TargetDispatchAnswer naming the same invocation_id and target_version: accepted (report later on callback.url with callback.credential), completed with result, or failed. An answer that does not bind, a timeout, a dropped connection or a 5xx leaves the Invocation unknown: it is never treated as success and never sent again. Only a DNS failure or an explicit 429/503 is retried (at most 3 attempts within the Invocation lifetime); 3xx and other 4xx fail it. */
     post: operations['targetDispatch'];
     delete?: never;
     options?: never;
@@ -1410,6 +1478,11 @@ export interface components {
         | {
             /** @constant */
             mode: 'display';
+            /**
+             * @description The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+             * @example Approve the refund?
+             * @example Pick a delivery date
+             */
             title: string;
             description?: string;
             source: {
@@ -1430,8 +1503,22 @@ export interface components {
         | {
             /** @constant */
             mode: 'interactive';
+            /**
+             * @description The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+             * @example Approve the refund?
+             * @example Pick a delivery date
+             */
             title: string;
+            /**
+             * @description Optional context under the title: what the person decides and why, in one or two plain sentences; at most 280. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+             * @example The customer was charged twice for order 1042.
+             */
             description?: string;
+            /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+            progress?: {
+              step: number;
+              total: number;
+            };
             source: {
               /** @constant */
               kind: 'sess_surface';
@@ -1443,6 +1530,11 @@ export interface components {
             };
             actions: {
               id: string;
+              /**
+               * @description A button: a verb, 1–3 words; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+               * @example Approve
+               * @example Send refund
+               */
               label: string;
               intent?: 'submit' | 'continue' | 'approve' | 'reject' | 'request_change';
             }[];
@@ -1452,7 +1544,7 @@ export interface components {
              */
             response_policy?: 'first';
           };
-      /** @description Advanced. How long the human link stays open, in seconds from creation: at least 30 and at most the plan’s live-link lifetime (Free 604800, Starter and Pro 2592000; the deployment owner key 2592000). Absent: the plan’s lifetime. Out of range → 400 INVALID_SCHEMA, whose message names both bounds. Completion never moves the expiry. */
+      /** @description Advanced. How long the Sess link stays open, in seconds from creation: at least 30 and at most the plan’s live-link lifetime (Free 604800, Starter and Pro 2592000; the deployment owner key 2592000). Absent: the plan’s lifetime. Out of range → 400 INVALID_SCHEMA, whose message names both bounds. Completion never moves the expiry. */
       expires_in?: number;
       /** @description Advanced. The invocation_id of the run your registered agent received, when this Session serves that run. Sess then records the agent and its version with every receipt it keeps for this Session. The run must be in your workspace and still open: an unknown run → 422 VALIDATION_FAILED (reason unknown_invocation); a run that has ended → 409 INVOCATION_TERMINAL. Absent: the Session is not tied to a run. */
       invocation_id?: string;
@@ -1461,14 +1553,33 @@ export interface components {
       id: string;
       revision: number;
       human_url: string;
-      /** @description When the Session’s human link expires: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Fixed when the Session is created and never extended by a read; never null. A link revoked by the operator stops earlier; this field does not report revocation. */
+      /** @description The Sess link’s current deadline for answers: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Set when the Session is created and never extended by a read; never null. For an interactive link of 20 hours or less the person may move it forward by asking for more time, never past action_expires_horizon (see link_state). A link revoked by the operator stops earlier; this field does not report revocation. */
       action_expires_at: string;
     };
     SessionResponse: {
       id: string;
       revision: number;
-      /** @description When the Session’s human link expires: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Fixed when the Session is created and never extended by a read; never null. A link revoked by the operator stops earlier; this field does not report revocation. */
+      /** @description The Sess link’s current deadline for answers: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Set when the Session is created and never extended by a read; never null. For an interactive link of 20 hours or less the person may move it forward by asking for more time, never past action_expires_horizon (see link_state). A link revoked by the operator stops earlier; this field does not report revocation. */
       action_expires_at: string;
+      /** @description For an interactive Sess link of 20 hours or less (created with expires_in of 72000 or less, or a trial): the fixed instant after which the link can never be extended or reopened, set when the Session is created: creation + the original lifetime + 10 × min(original lifetime, 1 hour). It never moves. null for a link longer than 20 hours, a display Session, or a Session created before link extensions existed: their links end at action_expires_at. */
+      action_expires_horizon: string | null;
+      /** @description How many times the person extended the link (at most 10). Each extension moves action_expires_at forward by min(original lifetime, 1 hour), never past action_expires_horizon. Always 0 when action_expires_horizon is null. */
+      extensions_used: number;
+      /** @description The Sess link’s state at the time of this read. live: it opens and accepts answers (before action_expires_at). lapsed: past action_expires_at, but the person can still ask for more time until action_expires_horizon; it accepts no answer and does not open, and the Session is still open for your agent: keep waiting. expired: it will never accept an answer (at the horizon, once the deadline passes with no extensions left, on revocation, or after the deadline of a completed Session). Revoke the link when you need a hard end at the deadline. An answer accepted while live stays the result. */
+      link_state: 'live' | 'lapsed' | 'expired';
+      /** @description Every accepted extension of the Sess link, in order: at most ten, empty when none (always empty when action_expires_horizon is null). Recorded atomically with each extension; a repeated request is never recorded twice. No answer or field value is recorded. */
+      extensions: {
+        /** @description Its number, 1 to 10, in order. */
+        number: number;
+        /** @description The deadline (action_expires_at) before this extension. */
+        previous_action_expires_at: string;
+        /** @description The deadline this extension set. */
+        action_expires_at: string;
+        /** @description True when the person asked after the deadline (lapsed): the new deadline is counted from that moment; false when asked in time: it is counted from the old deadline. */
+        from_lapsed: boolean;
+        /** @description When the extension was accepted. */
+        extended_at: string;
+      }[];
       interaction: {
         /** @constant */
         mode: 'display';
@@ -1495,13 +1606,37 @@ export interface components {
       status: 'active' | 'responded' | 'completed';
       /** @description The current Surface revision. */
       revision: number;
-      /** @description When the Session’s human link expires: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Fixed when the Session is created and never extended by a read; never null. A link revoked by the operator stops earlier; this field does not report revocation. */
+      /** @description The Sess link’s current deadline for answers: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Set when the Session is created and never extended by a read; never null. For an interactive link of 20 hours or less the person may move it forward by asking for more time, never past action_expires_horizon (see link_state). A link revoked by the operator stops earlier; this field does not report revocation. */
       action_expires_at: string;
+      /** @description For an interactive Sess link of 20 hours or less (created with expires_in of 72000 or less, or a trial): the fixed instant after which the link can never be extended or reopened, set when the Session is created: creation + the original lifetime + 10 × min(original lifetime, 1 hour). It never moves. null for a link longer than 20 hours, a display Session, or a Session created before link extensions existed: their links end at action_expires_at. */
+      action_expires_horizon: string | null;
+      /** @description How many times the person extended the link (at most 10). Each extension moves action_expires_at forward by min(original lifetime, 1 hour), never past action_expires_horizon. Always 0 when action_expires_horizon is null. */
+      extensions_used: number;
+      /** @description The Sess link’s state at the time of this read. live: it opens and accepts answers (before action_expires_at). lapsed: past action_expires_at, but the person can still ask for more time until action_expires_horizon; it accepts no answer and does not open, and the Session is still open for your agent: keep waiting. expired: it will never accept an answer (at the horizon, once the deadline passes with no extensions left, on revocation, or after the deadline of a completed Session). Revoke the link when you need a hard end at the deadline. An answer accepted while live stays the result. */
+      link_state: 'live' | 'lapsed' | 'expired';
+      /** @description Every accepted extension of the Sess link, in order: at most ten, empty when none (always empty when action_expires_horizon is null). Recorded atomically with each extension; a repeated request is never recorded twice. No answer or field value is recorded. */
+      extensions: {
+        /** @description Its number, 1 to 10, in order. */
+        number: number;
+        /** @description The deadline (action_expires_at) before this extension. */
+        previous_action_expires_at: string;
+        /** @description The deadline this extension set. */
+        action_expires_at: string;
+        /** @description True when the person asked after the deadline (lapsed): the new deadline is counted from that moment; false when asked in time: it is counted from the old deadline. */
+        from_lapsed: boolean;
+        /** @description When the extension was accepted. */
+        extended_at: string;
+      }[];
       interaction: {
         /** @constant */
         mode: 'interactive';
         title: string;
         description?: string;
+        /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+        progress?: {
+          step: number;
+          total: number;
+        };
         source: {
           /** @constant */
           kind: 'sess_surface';
@@ -1576,7 +1711,7 @@ export interface components {
         };
         /** @description ISO 8601 UTC time of acceptance. */
         accepted_at: string;
-        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its human link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
+        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its Sess link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
         receipt: string | null;
       }[];
     };
@@ -1588,6 +1723,11 @@ export interface components {
         mode: 'interactive';
         title: string;
         description?: string;
+        /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+        progress?: {
+          step: number;
+          total: number;
+        };
         source: {
           /** @constant */
           kind: 'sess_surface';
@@ -1693,8 +1833,21 @@ export interface components {
         };
         /** @description ISO 8601 UTC time the Event was recorded. */
         created_at: string;
-        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its human link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
+        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its Sess link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
         receipt?: string | null;
+      }[];
+      /** @description Decision 0009 Amendment 10: every accepted extension of the Sess link, in order (the same records as the Session read’s extensions). Listed beside the Events, not as an Event type, so readers of the Event types above are unaffected. Present only where the deployment has enabled link extensions. */
+      link_extensions?: {
+        /** @description Its number, 1 to 10, in order. */
+        number: number;
+        /** @description The deadline (action_expires_at) before this extension. */
+        previous_action_expires_at: string;
+        /** @description The deadline this extension set. */
+        action_expires_at: string;
+        /** @description True when the person asked after the deadline (lapsed): the new deadline is counted from that moment; false when asked in time: it is counted from the old deadline. */
+        from_lapsed: boolean;
+        /** @description When the extension was accepted. */
+        extended_at: string;
       }[];
     };
     ReceiptKeysResponse: {
@@ -1733,7 +1886,7 @@ export interface components {
         valid_to: string | null;
       }[];
     };
-    /** @description A deliberate disclosure of one accepted decision: the receipt, the accepted record and the issuer's public keys. Never a private key, owner credential or human link. At most 1 MiB canonical, depth 32, 1000 items per array and members per object, 100000 values. */
+    /** @description A deliberate disclosure of one accepted decision: the receipt, the accepted record and the issuer’s public keys. Never a private key, owner credential or Sess link. At most 1 MiB canonical, depth 32, 1000 items per array and members per object, 100000 values. */
     DecisionBundle: {
       /** @constant */
       type: 'sess.decision-bundle';
@@ -1984,6 +2137,8 @@ export interface components {
     KeepRequest: {
       /** @description The Keep grant secrets this browser holds for this link: each the 32-byte secret whose domain-separated SHA-256 was the client_event_id of a round it submitted (`kg-` + hash). A round is authorized only by its own grant. Sent in the body only, never in a URL. */
       grants: string[];
+      /** @description S-04: `pdf` answers the same kept conversation as a receipt PDF (application/pdf; PDF/A-3b and PDF/UA-1, the exact file embedded unchanged as its one associated file), named "Sess receipt – <title> – <d Mon yyyy>.pdf". A file outside the PDF profile is answered as the JSON instead, whole. Default `json`: the file itself, unchanged. */
+      format?: 'json' | 'pdf';
       enrollment?: {
         challenge_id: string;
         /** @description Exactly the challenge's batch in order, or only its final receipt (the disclosed fallback). One distinct key per receipt. */
@@ -2003,7 +2158,7 @@ export interface components {
         }[];
       };
     };
-    /** @description The kept conversation (DOCS/spec/keep-v1.md): every authorized accepted round of the Session through the snapshot cutoff, each with its unchanged receipt-v1, its bundle-v1 while the content is retained (else unavailable, never reconstructed), its preservation status and holder status, plus an inventory. No private key, grant secret or human link. Each extracted bundle verifies with the unchanged bundle-v1 verifier. */
+    /** @description The kept conversation (DOCS/spec/keep-v1.md): every authorized accepted round of the Session through the snapshot cutoff, each with its unchanged receipt-v1, its bundle-v1 while the content is retained (else unavailable, never reconstructed), its preservation status and holder status, plus an inventory. No private key, grant secret or Sess link. Each extracted bundle verifies with the unchanged bundle-v1 verifier. */
     KeptConversation: {
       /** @constant */
       type: 'sess.kept-conversation';
@@ -2041,7 +2196,7 @@ export interface components {
           | {
               /** @constant */
               status: 'included';
-              /** @description A deliberate disclosure of one accepted decision: the receipt, the accepted record and the issuer's public keys. Never a private key, owner credential or human link. At most 1 MiB canonical, depth 32, 1000 items per array and members per object, 100000 values. */
+              /** @description A deliberate disclosure of one accepted decision: the receipt, the accepted record and the issuer’s public keys. Never a private key, owner credential or Sess link. At most 1 MiB canonical, depth 32, 1000 items per array and members per object, 100000 values. */
               bundle: {
                 /** @constant */
                 type: 'sess.decision-bundle';
@@ -2326,8 +2481,22 @@ export interface components {
       interaction: {
         /** @constant */
         mode: 'interactive';
+        /**
+         * @description The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+         * @example Approve the refund?
+         * @example Pick a delivery date
+         */
         title: string;
+        /**
+         * @description Optional context under the title: what the person decides and why, in one or two plain sentences; at most 280. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+         * @example The customer was charged twice for order 1042.
+         */
         description?: string;
+        /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+        progress?: {
+          step: number;
+          total: number;
+        };
         source: {
           /** @constant */
           kind: 'sess_surface';
@@ -2339,6 +2508,11 @@ export interface components {
         };
         actions: {
           id: string;
+          /**
+           * @description A button: a verb, 1–3 words; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Approve
+           * @example Send refund
+           */
           label: string;
           intent?: 'submit' | 'continue' | 'approve' | 'reject' | 'request_change';
         }[];
@@ -2353,16 +2527,28 @@ export interface components {
       | {
           /** @constant */
           type: 'heading';
+          /**
+           * @description A section heading: a few words; at most 60. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Order details
+           */
           text: string;
         }
       | {
           /** @constant */
           type: 'text';
+          /**
+           * @description A paragraph of plain text (never markup): what the person needs to know; at most 4000. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example The refund goes back to the card used for the order.
+           */
           text: string;
         }
       | {
           /** @constant */
           type: 'record';
+          /**
+           * @description Optional caption above the record: a few words; at most 200. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Order 1042
+           */
           label?: string;
           fields: {
             [key: string]: string | number | boolean | null;
@@ -2372,7 +2558,15 @@ export interface components {
           /** @constant */
           type: 'field';
           name: string;
+          /**
+           * @description What the field asks for: short, a few words; at most 60. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Refund amount
+           */
           label: string;
+          /**
+           * @description Optional help under the label: one hint; at most 160. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Leave it as is to refund the full amount.
+           */
           description?: string;
           required?: boolean;
           /** @description A string field rendered as a multi-line text area. */
@@ -2392,6 +2586,12 @@ export interface components {
       client_event_id: string;
       surface_revision: string;
       action_id: string;
+    } & {
+      [key: string]: string;
+    };
+    HumanExtensionForm: {
+      client_event_id: string;
+      surface_revision: string;
     } & {
       [key: string]: string;
     };
@@ -2432,10 +2632,17 @@ export interface components {
           | 'EVIDENCE_RESTRICTED'
           | 'EVIDENCE_DELETED'
           | 'CUSTODY_HOLD_ACTIVE';
+        /** @description Plain words for people; clients read code, field, limit and length, never this text. For a value over its length limit it names the value, its length and the limit, and says how to fix it: "Shorten it to at most <limit> characters." */
         message: string;
         request_id: string;
         /** @description A stable machine-readable refinement of some codes (P1 A4 webhook errors; P2 target, admission and limit errors). */
         reason?: string;
+        /** @description INVALID_SCHEMA for a value over its length limit only (Decision 0009 Amendment 12): a JSON pointer to that value in the request body, for example /interaction/title (for a record key, the pointer names that key). Other schema errors carry no field, limit or length. */
+        field?: string;
+        /** @description With field: the most the value may have, in Unicode code points. Interactive Surface: title 80, description 280, heading 60, text 4,000, record caption 200, record key 40, record string value 200, field label 60, field description 160, option label 60, action label 24. Display Session: title 80, description 4,000. */
+        limit?: number;
+        /** @description With field: the value’s length in Unicode code points. */
+        length?: number;
       };
     };
     HealthOk: {
@@ -2460,8 +2667,22 @@ export interface components {
       interaction: {
         /** @constant */
         mode: 'interactive';
+        /**
+         * @description The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+         * @example Approve the refund?
+         * @example Pick a delivery date
+         */
         title: string;
+        /**
+         * @description Optional context under the title: what the person decides and why, in one or two plain sentences; at most 280. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+         * @example The customer was charged twice for order 1042.
+         */
         description?: string;
+        /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+        progress?: {
+          step: number;
+          total: number;
+        };
         source: {
           /** @constant */
           kind: 'sess_surface';
@@ -2473,6 +2694,11 @@ export interface components {
         };
         actions: {
           id: string;
+          /**
+           * @description A button: a verb, 1–3 words; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Approve
+           * @example Send refund
+           */
           label: string;
           intent?: 'submit' | 'continue' | 'approve' | 'reject' | 'request_change';
         }[];
@@ -2486,13 +2712,13 @@ export interface components {
     TrialCreateSessionResponse: {
       id: string;
       revision: number;
-      /** @description The human link (a capability): share it only with the responder. */
+      /** @description The Sess link (a capability): share it only with the responder. */
       human_url: string;
       /** @description The trial workspace this Session belongs to. */
       workspace_id: string;
       /** @description Returned once, only when this request created the trial (no Authorization header). It reads this trial’s results and creates further Sessions in it; it is never retrievable again. Keep it secret; never put it in a URL. */
       management_credential?: string;
-      /** @description After this instant the human link accepts no response. */
+      /** @description After this instant the Sess link accepts no response. */
       action_expires_at: string;
       /** @description Until this instant the result can be read with the management credential. */
       result_available_until: string;
@@ -2504,11 +2730,35 @@ export interface components {
       status: 'active' | 'responded' | 'completed';
       /** @description The current Surface revision. */
       revision: number;
+      /** @description For an interactive Sess link of 20 hours or less (created with expires_in of 72000 or less, or a trial): the fixed instant after which the link can never be extended or reopened, set when the Session is created: creation + the original lifetime + 10 × min(original lifetime, 1 hour). It never moves. null for a link longer than 20 hours, a display Session, or a Session created before link extensions existed: their links end at action_expires_at. */
+      action_expires_horizon: string | null;
+      /** @description How many times the person extended the link (at most 10). Each extension moves action_expires_at forward by min(original lifetime, 1 hour), never past action_expires_horizon. Always 0 when action_expires_horizon is null. */
+      extensions_used: number;
+      /** @description The Sess link’s state at the time of this read. live: it opens and accepts answers (before action_expires_at). lapsed: past action_expires_at, but the person can still ask for more time until action_expires_horizon; it accepts no answer and does not open, and the Session is still open for your agent: keep waiting. expired: it will never accept an answer (at the horizon, once the deadline passes with no extensions left, on revocation, or after the deadline of a completed Session). Revoke the link when you need a hard end at the deadline. An answer accepted while live stays the result. */
+      link_state: 'live' | 'lapsed' | 'expired';
+      /** @description Every accepted extension of the Sess link, in order: at most ten, empty when none (always empty when action_expires_horizon is null). Recorded atomically with each extension; a repeated request is never recorded twice. No answer or field value is recorded. */
+      extensions: {
+        /** @description Its number, 1 to 10, in order. */
+        number: number;
+        /** @description The deadline (action_expires_at) before this extension. */
+        previous_action_expires_at: string;
+        /** @description The deadline this extension set. */
+        action_expires_at: string;
+        /** @description True when the person asked after the deadline (lapsed): the new deadline is counted from that moment; false when asked in time: it is counted from the old deadline. */
+        from_lapsed: boolean;
+        /** @description When the extension was accepted. */
+        extended_at: string;
+      }[];
       interaction: {
         /** @constant */
         mode: 'interactive';
         title: string;
         description?: string;
+        /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+        progress?: {
+          step: number;
+          total: number;
+        };
         source: {
           /** @constant */
           kind: 'sess_surface';
@@ -2583,12 +2833,12 @@ export interface components {
         };
         /** @description ISO 8601 UTC time of acceptance. */
         accepted_at: string;
-        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its human link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
+        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its Sess link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
         receipt: string | null;
       }[];
       trial: {
         workspace_id: string;
-        /** @description After this instant the human link accepts no response. */
+        /** @description After this instant the Sess link accepts no response. */
         action_expires_at: string;
         /** @description Until this instant this result remains readable. */
         result_available_until: string;
@@ -2681,7 +2931,7 @@ export interface components {
       nonce: string;
     };
     SaveDirectRequest: {
-      /** @description The human link token of the page on this same origin (read from its path; sent only in this body, never in a URL). */
+      /** @description The Sess link token of the page on this same origin (read from its path; sent only in this body, never in a URL). */
       link: string;
       /** @description The Keep grant secrets this browser holds for this link: each the 32-byte secret whose domain-separated SHA-256 was the client_event_id of a round it submitted (`kg-` + hash). A round is authorized only by its own grant. Sent in the body only, never in a URL. */
       grants: string[];
@@ -2726,7 +2976,7 @@ export interface components {
       status: 'removed';
     };
     ProtectedResourceMetadata: {
-      /** @description The MCP resource (RFC 8707), e.g. https://mcp.sess.si/mcp. */
+      /** @description The MCP resource (RFC 8707): the deployment’s MCP endpoint, the /mcp path on its MCP host. */
       resource: string;
       authorization_servers: string[];
       scopes_supported: 'sess:interact'[];
@@ -2822,7 +3072,7 @@ export interface components {
       };
       /** @description Default true. */
       enabled?: boolean;
-      /** @description Advanced. The human link lifetime, in seconds, the target’s agent is asked to give each Session it creates for a run: at least 30 and at most the workspace plan’s live-link lifetime (Free 604800, Starter and Pro 2592000; the deployment owner key 2592000); out of range → 400 INVALID_SCHEMA, whose message names both bounds. Advisory: Sess does not create the target’s Sessions. It is copied into each admitted run and sent in the dispatch message as limits.expires_in; an agent that sets its own expires_in, calls the API directly or uses an SDK that does not apply it is not governed by it, and the Session’s create checks the value against the creating key’s plan again. Not part of the versioned binding: changing it changes no version and leaves grants and admitted runs as they are. */
+      /** @description Advanced. The Sess link lifetime, in seconds, the target’s agent is asked to give each Session it creates for a run: at least 30 and at most the workspace plan’s live-link lifetime (Free 604800, Starter and Pro 2592000; the deployment owner key 2592000); out of range → 400 INVALID_SCHEMA, whose message names both bounds. Advisory: Sess does not create the target’s Sessions. It is copied into each admitted run and sent in the dispatch message as limits.expires_in; an agent that sets its own expires_in, calls the API directly or uses an SDK that does not apply it is not governed by it, and the Session’s create checks the value against the creating key’s plan again. Not part of the versioned binding: changing it changes no version and leaves grants and admitted runs as they are. */
       default_expires_in?: number;
     };
     TargetUpdateRequest: {
@@ -4331,7 +4581,7 @@ export interface operations {
           'application/json': components['schemas']['PersonalCopiesResponse'];
         };
       };
-      /** @description UNAUTHORIZED: no live personal session (a developer session, owner key or human link never counts). */
+      /** @description UNAUTHORIZED: no live personal session (a developer session, owner key or Sess link never counts). */
       401: {
         headers: {
           [name: string]: unknown;
@@ -4393,7 +4643,7 @@ export interface operations {
           'application/json': components['schemas']['Error'];
         };
       };
-      /** @description UNAUTHORIZED: no live personal session (a developer session, owner key or human link never counts). */
+      /** @description UNAUTHORIZED: no live personal session (a developer session, owner key or Sess link never counts). */
       401: {
         headers: {
           [name: string]: unknown;
@@ -4491,7 +4741,7 @@ export interface operations {
           'application/json': components['schemas']['Error'];
         };
       };
-      /** @description UNAUTHORIZED: no live personal session (a developer session, owner key or human link never counts). */
+      /** @description UNAUTHORIZED: no live personal session (a developer session, owner key or Sess link never counts). */
       401: {
         headers: {
           [name: string]: unknown;
@@ -5351,6 +5601,80 @@ export interface operations {
       };
     };
   };
+  sessionsPage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The Sessions page. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description To /app/sign-in. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The Sessions could not be read. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  sessionPage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The Session page. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description To /app/sign-in. */
+      303: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description NOT_FOUND: no such Session in this workspace. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
   evidenceExportDownload: {
     parameters: {
       query?: never;
@@ -6036,7 +6360,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description See Other (Post/Redirect/Get): accepted (with a signed decision receipt stored with its Event, returned by the owner GET and the Event log), or a repeated client_event_id with the same request (the original Event and the same receipt, never re-signed). No body. Location is the same human link path, relative, with no query: never an Event ID, receipt or submitted data. A GET there renders the Session as it is then: waiting for the agent (responded), the next revision’s form (active) or the completion (completed). */
+      /** @description See Other (Post/Redirect/Get): accepted (with a signed decision receipt stored with its Event, returned by the owner GET and the Event log), or a repeated client_event_id with the same request (the original Event and the same receipt, never re-signed). No body. Location is the same Sess link path, relative, with no query: never an Event ID, receipt or submitted data. A GET there renders the Session as it is then: waiting for the agent (responded), the next revision’s form (active) or the completion (completed). */
       303: {
         headers: {
           /** @description The same /s/{token} path. */
@@ -6063,7 +6387,7 @@ export interface operations {
           'text/html': unknown;
         };
       };
-      /** @description Unknown, expired or revoked link (generic). */
+      /** @description Unknown, lapsed, expired or revoked link (generic): an answer is accepted only while the link is live. */
       404: {
         headers: {
           [name: string]: unknown;
@@ -6119,6 +6443,95 @@ export interface operations {
       };
       /** @description SERVICE_UNAVAILABLE: the receipt keys are not configured; nothing is accepted. */
       503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+    };
+  };
+  extendHumanLink: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/x-www-form-urlencoded': components['schemas']['HumanExtensionForm'];
+      };
+    };
+    responses: {
+      /** @description Extended (or a repeated request for an extension already made): the current page, its form re-rendered with the submitted values. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description INVALID_SCHEMA: not the form’s exact shape, or values that do not decode. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: not a same-origin request. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description Unknown, expired, revoked or purged link (the one generic page). Nothing changes. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description ACTION_NOT_ALLOWED: a display Session. */
+      405: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description Nothing changed: SESSION_REVISION_CONFLICT (the current revision, prefilled with the safe draft), SESSION_COMPLETED, or no extension left (none for this link, all ten used, or the deadline already at the horizon; the link stays live until its deadline). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description PAYLOAD_TOO_LARGE. */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': unknown;
+        };
+      };
+      /** @description INVALID_SCHEMA: not application/x-www-form-urlencoded. */
+      415: {
         headers: {
           [name: string]: unknown;
         };
@@ -6224,13 +6637,14 @@ export interface operations {
       };
     };
     responses: {
-      /** @description The kept conversation. */
+      /** @description The kept conversation (JSON; Content-Disposition attachment). With `format: pdf`, the receipt PDF of the same snapshot (S-04; Content-Disposition with an ASCII `filename` and the exact `filename*`, header Sess-Keep-Summary `rounds=<n>; coverage=<every_accepted_round|partial>; unenrolled=<0|1>`), or the JSON when the file is outside the PDF profile. */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
           'application/json': components['schemas']['KeptConversation'];
+          'application/pdf': string;
         };
       };
       /** @description INVALID_SCHEMA */
@@ -7937,6 +8351,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ReceiptKeysResponse'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  rendererIdentities: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The signed list (flattened JWS JSON serialization). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            protected: string;
+            payload: string;
+            signature: string;
+          };
         };
       };
       /** @description SERVICE_UNAVAILABLE */

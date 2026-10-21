@@ -1,6 +1,6 @@
 {
   "name": "@sess.si/sdk",
-  "version": "0.1.0-rc.7",
+  "version": "0.1.0-rc.8",
   "description": "Ask a person from your server and continue with their verified answer. Sess API client with receipt and webhook verification.",
   "type": "module",
   "license": "Apache-2.0",
