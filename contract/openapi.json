@@ -52,8 +52,10 @@
                   },
                   "title": {
                     "minLength": 1,
-                    "maxLength": 200,
+                    "maxLength": 80,
                     "pattern": "\\S",
+                    "description": "The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                    "examples": ["Approve the refund?", "Pick a delivery date"],
                     "type": "string"
                   },
                   "description": {
@@ -156,13 +158,35 @@
                   },
                   "title": {
                     "minLength": 1,
-                    "maxLength": 200,
+                    "maxLength": 80,
                     "pattern": "\\S",
+                    "description": "The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                    "examples": ["Approve the refund?", "Pick a delivery date"],
                     "type": "string"
                   },
                   "description": {
-                    "maxLength": 4000,
+                    "maxLength": 280,
+                    "description": "Optional context under the title: what the person decides and why, in one or two plain sentences; at most 280. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                    "examples": ["The customer was charged twice for order 1042."],
                     "type": "string"
+                  },
+                  "progress": {
+                    "additionalProperties": false,
+                    "description": "Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter (\"1/2\"). Anything else fails with 400 INVALID_SCHEMA.",
+                    "type": "object",
+                    "required": ["step", "total"],
+                    "properties": {
+                      "step": {
+                        "minimum": 1,
+                        "maximum": 20,
+                        "type": "integer"
+                      },
+                      "total": {
+                        "minimum": 1,
+                        "maximum": 20,
+                        "type": "integer"
+                      }
+                    }
                   },
                   "source": {
                     "additionalProperties": false,
@@ -208,8 +232,10 @@
                         },
                         "label": {
                           "minLength": 1,
-                          "maxLength": 200,
+                          "maxLength": 24,
                           "pattern": "\\S",
+                          "description": "A button: a verb, 1–3 words; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                          "examples": ["Approve", "Send refund"],
                           "type": "string"
                         },
                         "intent": {
@@ -626,6 +652,24 @@
                 "maxLength": 4000,
                 "type": "string"
               },
+              "progress": {
+                "additionalProperties": false,
+                "description": "Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter (\"1/2\"). Anything else fails with 400 INVALID_SCHEMA.",
+                "type": "object",
+                "required": ["step", "total"],
+                "properties": {
+                  "step": {
+                    "minimum": 1,
+                    "maximum": 20,
+                    "type": "integer"
+                  },
+                  "total": {
+                    "minimum": 1,
+                    "maximum": 20,
+                    "type": "integer"
+                  }
+                }
+              },
               "source": {
                 "additionalProperties": false,
                 "type": "object",
@@ -933,6 +977,24 @@
               "description": {
                 "maxLength": 4000,
                 "type": "string"
+              },
+              "progress": {
+                "additionalProperties": false,
+                "description": "Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter (\"1/2\"). Anything else fails with 400 INVALID_SCHEMA.",
+                "type": "object",
+                "required": ["step", "total"],
+                "properties": {
+                  "step": {
+                    "minimum": 1,
+                    "maximum": 20,
+                    "type": "integer"
+                  },
+                  "total": {
+                    "minimum": 1,
+                    "maximum": 20,
+                    "type": "integer"
+                  }
+                }
               },
               "source": {
                 "additionalProperties": false,
@@ -2685,6 +2747,19 @@
               "type": "string"
             }
           },
+          "format": {
+            "description": "S-04: `pdf` answers the same kept conversation as a receipt PDF (application/pdf; PDF/A-3b and PDF/UA-1, the exact file embedded unchanged as its one associated file), named \"Sess receipt – <title> – <d Mon yyyy>.pdf\". A file outside the PDF profile is answered as the JSON instead, whole. Default `json`: the file itself, unchanged.",
+            "anyOf": [
+              {
+                "const": "json",
+                "type": "string"
+              },
+              {
+                "const": "pdf",
+                "type": "string"
+              }
+            ]
+          },
           "enrollment": {
             "additionalProperties": false,
             "type": "object",
@@ -4134,13 +4209,35 @@
               },
               "title": {
                 "minLength": 1,
-                "maxLength": 200,
+                "maxLength": 80,
                 "pattern": "\\S",
+                "description": "The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                "examples": ["Approve the refund?", "Pick a delivery date"],
                 "type": "string"
               },
               "description": {
-                "maxLength": 4000,
+                "maxLength": 280,
+                "description": "Optional context under the title: what the person decides and why, in one or two plain sentences; at most 280. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                "examples": ["The customer was charged twice for order 1042."],
                 "type": "string"
+              },
+              "progress": {
+                "additionalProperties": false,
+                "description": "Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter (\"1/2\"). Anything else fails with 400 INVALID_SCHEMA.",
+                "type": "object",
+                "required": ["step", "total"],
+                "properties": {
+                  "step": {
+                    "minimum": 1,
+                    "maximum": 20,
+                    "type": "integer"
+                  },
+                  "total": {
+                    "minimum": 1,
+                    "maximum": 20,
+                    "type": "integer"
+                  }
+                }
               },
               "source": {
                 "additionalProperties": false,
@@ -4186,8 +4283,10 @@
                     },
                     "label": {
                       "minLength": 1,
-                      "maxLength": 200,
+                      "maxLength": 24,
                       "pattern": "\\S",
+                      "description": "A button: a verb, 1–3 words; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                      "examples": ["Approve", "Send refund"],
                       "type": "string"
                     },
                     "intent": {
@@ -4240,8 +4339,10 @@
               },
               "text": {
                 "minLength": 1,
-                "maxLength": 200,
+                "maxLength": 60,
                 "pattern": "\\S",
+                "description": "A section heading: a few words; at most 60. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                "examples": ["Order details"],
                 "type": "string"
               }
             }
@@ -4259,6 +4360,8 @@
               "text": {
                 "minLength": 1,
                 "maxLength": 4000,
+                "description": "A paragraph of plain text (never markup): what the person needs to know; at most 4000. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                "examples": ["The refund goes back to the card used for the order."],
                 "type": "string"
               }
             }
@@ -4277,12 +4380,17 @@
                 "minLength": 1,
                 "maxLength": 200,
                 "pattern": "\\S",
+                "description": "Optional caption above the record: a few words; at most 200. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                "examples": ["Order 1042"],
                 "type": "string"
               },
               "fields": {
                 "additionalProperties": {
                   "anyOf": [
                     {
+                      "maxLength": 200,
+                      "description": "A row's value, shown verbatim: a string of at most 200, or a number, boolean or null. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                      "examples": ["$120.00"],
                       "type": "string"
                     },
                     {
@@ -4295,6 +4403,12 @@
                       "type": "null"
                     }
                   ]
+                },
+                "propertyNames": {
+                  "maxLength": 40,
+                  "description": "A row's name, shown verbatim: a word or two; at most 40. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                  "examples": ["Amount"],
+                  "type": "string"
                 },
                 "minProperties": 1,
                 "maxProperties": 50,
@@ -4319,12 +4433,16 @@
               },
               "label": {
                 "minLength": 1,
-                "maxLength": 200,
+                "maxLength": 60,
                 "pattern": "\\S",
+                "description": "What the field asks for: short, a few words; at most 60. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                "examples": ["Refund amount"],
                 "type": "string"
               },
               "description": {
-                "maxLength": 1000,
+                "maxLength": 160,
+                "description": "Optional help under the label: one hint; at most 160. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                "examples": ["Leave it as is to refund the full amount."],
                 "type": "string"
               },
               "required": {
@@ -4337,8 +4455,10 @@
               "option_labels": {
                 "additionalProperties": {
                   "minLength": 1,
-                  "maxLength": 200,
+                  "maxLength": 60,
                   "pattern": "\\S",
+                  "description": "The words shown for one choice: short; at most 60. A choice without one shows its enum value, which is then held to the same 60. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                  "examples": ["Next Monday"],
                   "type": "string"
                 },
                 "maxProperties": 100,
@@ -4554,6 +4674,7 @@
                 ]
               },
               "message": {
+                "description": "Plain words for people; clients read code, field, limit and length, never this text. For a value over its length limit it names the value, its length and the limit, and says how to fix it: \"Shorten it to at most <limit> characters.\"",
                 "type": "string"
               },
               "request_id": {
@@ -4564,6 +4685,20 @@
                 "pattern": "^[a-z_]{1,40}$",
                 "description": "A stable machine-readable refinement of some codes (P1 A4 webhook errors; P2 target, admission and limit errors).",
                 "type": "string"
+              },
+              "field": {
+                "description": "INVALID_SCHEMA for a value over its length limit only (Decision 0009 Amendment 12): a JSON pointer to that value in the request body, for example /interaction/title (for a record key, the pointer names that key). Other schema errors carry no field, limit or length.",
+                "type": "string"
+              },
+              "limit": {
+                "minimum": 0,
+                "description": "With field: the most the value may have, in Unicode code points. Interactive Surface: title 80, description 280, heading 60, text 4,000, record caption 200, record key 40, record string value 200, field label 60, field description 160, option label 60, action label 24. Display Session: title 80, description 4,000.",
+                "type": "integer"
+              },
+              "length": {
+                "minimum": 0,
+                "description": "With field: the value’s length in Unicode code points.",
+                "type": "integer"
               }
             }
           }
@@ -4654,13 +4789,35 @@
               },
               "title": {
                 "minLength": 1,
-                "maxLength": 200,
+                "maxLength": 80,
                 "pattern": "\\S",
+                "description": "The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                "examples": ["Approve the refund?", "Pick a delivery date"],
                 "type": "string"
               },
               "description": {
-                "maxLength": 4000,
+                "maxLength": 280,
+                "description": "Optional context under the title: what the person decides and why, in one or two plain sentences; at most 280. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                "examples": ["The customer was charged twice for order 1042."],
                 "type": "string"
+              },
+              "progress": {
+                "additionalProperties": false,
+                "description": "Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter (\"1/2\"). Anything else fails with 400 INVALID_SCHEMA.",
+                "type": "object",
+                "required": ["step", "total"],
+                "properties": {
+                  "step": {
+                    "minimum": 1,
+                    "maximum": 20,
+                    "type": "integer"
+                  },
+                  "total": {
+                    "minimum": 1,
+                    "maximum": 20,
+                    "type": "integer"
+                  }
+                }
               },
               "source": {
                 "additionalProperties": false,
@@ -4706,8 +4863,10 @@
                     },
                     "label": {
                       "minLength": 1,
-                      "maxLength": 200,
+                      "maxLength": 24,
                       "pattern": "\\S",
+                      "description": "A button: a verb, 1–3 words; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                      "examples": ["Approve", "Send refund"],
                       "type": "string"
                     },
                     "intent": {
@@ -4928,6 +5087,24 @@
               "description": {
                 "maxLength": 4000,
                 "type": "string"
+              },
+              "progress": {
+                "additionalProperties": false,
+                "description": "Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter (\"1/2\"). Anything else fails with 400 INVALID_SCHEMA.",
+                "type": "object",
+                "required": ["step", "total"],
+                "properties": {
+                  "step": {
+                    "minimum": 1,
+                    "maximum": 20,
+                    "type": "integer"
+                  },
+                  "total": {
+                    "minimum": 1,
+                    "maximum": 20,
+                    "type": "integer"
+                  }
+                }
               },
               "source": {
                 "additionalProperties": false,
@@ -10493,8 +10670,8 @@
                   "value": {
                     "interaction": {
                       "mode": "interactive",
-                      "title": "Review three synthetic invoices",
-                      "description": "Synthetic data. Correct the amount if needed and select the invoices to approve.",
+                      "title": "Review three sample invoices",
+                      "description": "Sample data. Correct the amount if needed and select the invoices to approve.",
                       "source": {
                         "kind": "sess_surface",
                         "components": [
@@ -10723,8 +10900,8 @@
                       "extensions": [],
                       "interaction": {
                         "mode": "interactive",
-                        "title": "Review three synthetic invoices",
-                        "description": "Synthetic data. Correct the amount if needed and select the invoices to approve.",
+                        "title": "Review three sample invoices",
+                        "description": "Sample data. Correct the amount if needed and select the invoices to approve.",
                         "source": {
                           "kind": "sess_surface",
                           "components": [
@@ -10925,8 +11102,8 @@
                   "value": {
                     "interaction": {
                       "mode": "interactive",
-                      "title": "Review three synthetic invoices",
-                      "description": "Synthetic data. Correct the amount if needed and select the invoices to approve.",
+                      "title": "Review three sample invoices",
+                      "description": "Sample data. Correct the amount if needed and select the invoices to approve.",
                       "source": {
                         "kind": "sess_surface",
                         "components": [
@@ -10999,8 +11176,8 @@
                   "value": {
                     "interaction": {
                       "mode": "interactive",
-                      "title": "Review three synthetic invoices",
-                      "description": "Synthetic data. Correct the amount if needed and select the invoices to approve.",
+                      "title": "Review three sample invoices",
+                      "description": "Sample data. Correct the amount if needed and select the invoices to approve.",
                       "source": {
                         "kind": "sess_surface",
                         "components": [
@@ -11249,8 +11426,8 @@
                       "extensions": [],
                       "interaction": {
                         "mode": "interactive",
-                        "title": "Review three synthetic invoices",
-                        "description": "Synthetic data. Correct the amount if needed and select the invoices to approve.",
+                        "title": "Review three sample invoices",
+                        "description": "Sample data. Correct the amount if needed and select the invoices to approve.",
                         "source": {
                           "kind": "sess_surface",
                           "components": [
@@ -12186,11 +12363,17 @@
         },
         "responses": {
           "200": {
-            "description": "The kept conversation.",
+            "description": "The kept conversation (JSON; Content-Disposition attachment). With `format: pdf`, the receipt PDF of the same snapshot (S-04; Content-Disposition with an ASCII `filename` and the exact `filename*`, header Sess-Keep-Summary `rounds=<n>; coverage=<every_accepted_round|partial>; unenrolled=<0|1>`), or the JSON when the file is outside the PDF profile.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/KeptConversation"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
@@ -14463,6 +14646,50 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReceiptKeysResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/sess-renderer-identities.json": {
+      "get": {
+        "operationId": "rendererIdentities",
+        "description": "Decision 0009 Amendment 13: the renderer identities Sess signs receipts under (the values of a receipt’s surface.renderer_version), as one JWS signed with the receipt keys, in the RFC 7515 flattened JSON serialization {protected, payload, signature} (joined with dots they are its compact form). Protected header {alg EdDSA, kid, typ sess-renderer-identities+jwt}; payload the RFC 8785 canonical JSON {sess_renderer_identities: 1, iss: the receipt issuer, seq: the list edition (an integer, higher in every later published edition), iat: when this copy was signed (NumericDate), identities: [{renderer_version, since: the UTC date it was added}]}; the signature covers seq and iat. Order authentic lists by seq, with containment as the cross-check; an older list still proves the identities it contains. Verify it with GET /.well-known/sess-receipt-keys.json (the key its kid names) and the expected issuer; a receipt verifies when its renderer_version is on a list whose signature verifies. The list only grows: an identity is never removed, reordered or reused, so every receipt issued keeps verifying (sess-html-form-1 is always on it). DOCS/spec/receipt-v1.md §10. No credential. 503 SERVICE_UNAVAILABLE while the receipt keys are not configured. Cache-Control: no-store, no-transform.",
+        "responses": {
+          "200": {
+            "description": "The signed list (flattened JWS JSON serialization).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["protected", "payload", "signature"],
+                  "properties": {
+                    "protected": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "payload": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "signature": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
                 }
               }
             }

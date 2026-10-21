@@ -1315,6 +1315,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/.well-known/sess-renderer-identities.json': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Decision 0009 Amendment 13: the renderer identities Sess signs receipts under (the values of a receipt’s surface.renderer_version), as one JWS signed with the receipt keys, in the RFC 7515 flattened JSON serialization {protected, payload, signature} (joined with dots they are its compact form). Protected header {alg EdDSA, kid, typ sess-renderer-identities+jwt}; payload the RFC 8785 canonical JSON {sess_renderer_identities: 1, iss: the receipt issuer, seq: the list edition (an integer, higher in every later published edition), iat: when this copy was signed (NumericDate), identities: [{renderer_version, since: the UTC date it was added}]}; the signature covers seq and iat. Order authentic lists by seq, with containment as the cross-check; an older list still proves the identities it contains. Verify it with GET /.well-known/sess-receipt-keys.json (the key its kid names) and the expected issuer; a receipt verifies when its renderer_version is on a list whose signature verifies. The list only grows: an identity is never removed, reordered or reused, so every receipt issued keeps verifying (sess-html-form-1 is always on it). DOCS/spec/receipt-v1.md §10. No credential. 503 SERVICE_UNAVAILABLE while the receipt keys are not configured. Cache-Control: no-store, no-transform. */
+    get: operations['rendererIdentities'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/.well-known/sess-witness-keys.json': {
     parameters: {
       query?: never;
@@ -1461,6 +1478,11 @@ export interface components {
         | {
             /** @constant */
             mode: 'display';
+            /**
+             * @description The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+             * @example Approve the refund?
+             * @example Pick a delivery date
+             */
             title: string;
             description?: string;
             source: {
@@ -1481,8 +1503,22 @@ export interface components {
         | {
             /** @constant */
             mode: 'interactive';
+            /**
+             * @description The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+             * @example Approve the refund?
+             * @example Pick a delivery date
+             */
             title: string;
+            /**
+             * @description Optional context under the title: what the person decides and why, in one or two plain sentences; at most 280. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+             * @example The customer was charged twice for order 1042.
+             */
             description?: string;
+            /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+            progress?: {
+              step: number;
+              total: number;
+            };
             source: {
               /** @constant */
               kind: 'sess_surface';
@@ -1494,6 +1530,11 @@ export interface components {
             };
             actions: {
               id: string;
+              /**
+               * @description A button: a verb, 1–3 words; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+               * @example Approve
+               * @example Send refund
+               */
               label: string;
               intent?: 'submit' | 'continue' | 'approve' | 'reject' | 'request_change';
             }[];
@@ -1591,6 +1632,11 @@ export interface components {
         mode: 'interactive';
         title: string;
         description?: string;
+        /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+        progress?: {
+          step: number;
+          total: number;
+        };
         source: {
           /** @constant */
           kind: 'sess_surface';
@@ -1677,6 +1723,11 @@ export interface components {
         mode: 'interactive';
         title: string;
         description?: string;
+        /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+        progress?: {
+          step: number;
+          total: number;
+        };
         source: {
           /** @constant */
           kind: 'sess_surface';
@@ -2086,6 +2137,8 @@ export interface components {
     KeepRequest: {
       /** @description The Keep grant secrets this browser holds for this link: each the 32-byte secret whose domain-separated SHA-256 was the client_event_id of a round it submitted (`kg-` + hash). A round is authorized only by its own grant. Sent in the body only, never in a URL. */
       grants: string[];
+      /** @description S-04: `pdf` answers the same kept conversation as a receipt PDF (application/pdf; PDF/A-3b and PDF/UA-1, the exact file embedded unchanged as its one associated file), named "Sess receipt – <title> – <d Mon yyyy>.pdf". A file outside the PDF profile is answered as the JSON instead, whole. Default `json`: the file itself, unchanged. */
+      format?: 'json' | 'pdf';
       enrollment?: {
         challenge_id: string;
         /** @description Exactly the challenge's batch in order, or only its final receipt (the disclosed fallback). One distinct key per receipt. */
@@ -2428,8 +2481,22 @@ export interface components {
       interaction: {
         /** @constant */
         mode: 'interactive';
+        /**
+         * @description The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+         * @example Approve the refund?
+         * @example Pick a delivery date
+         */
         title: string;
+        /**
+         * @description Optional context under the title: what the person decides and why, in one or two plain sentences; at most 280. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+         * @example The customer was charged twice for order 1042.
+         */
         description?: string;
+        /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+        progress?: {
+          step: number;
+          total: number;
+        };
         source: {
           /** @constant */
           kind: 'sess_surface';
@@ -2441,6 +2508,11 @@ export interface components {
         };
         actions: {
           id: string;
+          /**
+           * @description A button: a verb, 1–3 words; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Approve
+           * @example Send refund
+           */
           label: string;
           intent?: 'submit' | 'continue' | 'approve' | 'reject' | 'request_change';
         }[];
@@ -2455,16 +2527,28 @@ export interface components {
       | {
           /** @constant */
           type: 'heading';
+          /**
+           * @description A section heading: a few words; at most 60. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Order details
+           */
           text: string;
         }
       | {
           /** @constant */
           type: 'text';
+          /**
+           * @description A paragraph of plain text (never markup): what the person needs to know; at most 4000. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example The refund goes back to the card used for the order.
+           */
           text: string;
         }
       | {
           /** @constant */
           type: 'record';
+          /**
+           * @description Optional caption above the record: a few words; at most 200. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Order 1042
+           */
           label?: string;
           fields: {
             [key: string]: string | number | boolean | null;
@@ -2474,7 +2558,15 @@ export interface components {
           /** @constant */
           type: 'field';
           name: string;
+          /**
+           * @description What the field asks for: short, a few words; at most 60. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Refund amount
+           */
           label: string;
+          /**
+           * @description Optional help under the label: one hint; at most 160. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Leave it as is to refund the full amount.
+           */
           description?: string;
           required?: boolean;
           /** @description A string field rendered as a multi-line text area. */
@@ -2540,10 +2632,17 @@ export interface components {
           | 'EVIDENCE_RESTRICTED'
           | 'EVIDENCE_DELETED'
           | 'CUSTODY_HOLD_ACTIVE';
+        /** @description Plain words for people; clients read code, field, limit and length, never this text. For a value over its length limit it names the value, its length and the limit, and says how to fix it: "Shorten it to at most <limit> characters." */
         message: string;
         request_id: string;
         /** @description A stable machine-readable refinement of some codes (P1 A4 webhook errors; P2 target, admission and limit errors). */
         reason?: string;
+        /** @description INVALID_SCHEMA for a value over its length limit only (Decision 0009 Amendment 12): a JSON pointer to that value in the request body, for example /interaction/title (for a record key, the pointer names that key). Other schema errors carry no field, limit or length. */
+        field?: string;
+        /** @description With field: the most the value may have, in Unicode code points. Interactive Surface: title 80, description 280, heading 60, text 4,000, record caption 200, record key 40, record string value 200, field label 60, field description 160, option label 60, action label 24. Display Session: title 80, description 4,000. */
+        limit?: number;
+        /** @description With field: the value’s length in Unicode code points. */
+        length?: number;
       };
     };
     HealthOk: {
@@ -2568,8 +2667,22 @@ export interface components {
       interaction: {
         /** @constant */
         mode: 'interactive';
+        /**
+         * @description The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+         * @example Approve the refund?
+         * @example Pick a delivery date
+         */
         title: string;
+        /**
+         * @description Optional context under the title: what the person decides and why, in one or two plain sentences; at most 280. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+         * @example The customer was charged twice for order 1042.
+         */
         description?: string;
+        /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+        progress?: {
+          step: number;
+          total: number;
+        };
         source: {
           /** @constant */
           kind: 'sess_surface';
@@ -2581,6 +2694,11 @@ export interface components {
         };
         actions: {
           id: string;
+          /**
+           * @description A button: a verb, 1–3 words; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Approve
+           * @example Send refund
+           */
           label: string;
           intent?: 'submit' | 'continue' | 'approve' | 'reject' | 'request_change';
         }[];
@@ -2636,6 +2754,11 @@ export interface components {
         mode: 'interactive';
         title: string;
         description?: string;
+        /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+        progress?: {
+          step: number;
+          total: number;
+        };
         source: {
           /** @constant */
           kind: 'sess_surface';
@@ -6514,13 +6637,14 @@ export interface operations {
       };
     };
     responses: {
-      /** @description The kept conversation. */
+      /** @description The kept conversation (JSON; Content-Disposition attachment). With `format: pdf`, the receipt PDF of the same snapshot (S-04; Content-Disposition with an ASCII `filename` and the exact `filename*`, header Sess-Keep-Summary `rounds=<n>; coverage=<every_accepted_round|partial>; unenrolled=<0|1>`), or the JSON when the file is outside the PDF profile. */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
           'application/json': components['schemas']['KeptConversation'];
+          'application/pdf': string;
         };
       };
       /** @description INVALID_SCHEMA */
@@ -8227,6 +8351,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ReceiptKeysResponse'];
+        };
+      };
+      /** @description SERVICE_UNAVAILABLE */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  rendererIdentities: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The signed list (flattened JWS JSON serialization). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            protected: string;
+            payload: string;
+            signature: string;
+          };
         };
       };
       /** @description SERVICE_UNAVAILABLE */

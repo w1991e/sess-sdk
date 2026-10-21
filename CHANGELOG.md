@@ -20,8 +20,11 @@ Builds on `0.1.0-rc.7` below, which is published; the registry goes from `0.1.0-
   revocation, a later read at least the grace after the first expired read; a short `intervalMs`
   reads again sooner but never ends the wait inside the grace). A live read never ends the wait.
   Without `link_state` the deadline stays final, as in rc.7.
-- Contract snapshot from Sess runtime commit `ee777ab` (w1991e/sess PR #431's head, not yet merged
-  there; see `contract/contract-lock.json`).
+- Contract snapshot from Sess runtime commit `2f8500e` (w1991e/sess master, PR #431's merge commit;
+  see `contract/contract-lock.json`). Besides link timing it carries what Sess master already
+  describes: the interactive text limits with `field`, `limit` and `length` on a length error,
+  `progress`, the receipt `format` and the renderer identities list. The generated wire types gain
+  them; the SDK's public types and behavior change only where an entry here says so.
 
 ### Renderer identities on the issuer's signed list (Decision 0009 Amendment 13)
 
@@ -48,8 +51,8 @@ Builds on `0.1.0-rc.7` below, which is published; the registry goes from `0.1.0-
 - `sess verify --renderers <file>`: with the issuer's signed list (verified under `--keys` and
   `--issuer`; a list that does not verify exits 2), the bundle's renderer identity must be known
   or listed (otherwise invalid, exit 1). Without it, bundle verification is unchanged.
-- The receipt-v1 specification copy is from Sess commit `9c22385` (§10, renderer identities with
-  `seq` and `iat`; Sess PR #444's head, not yet merged: re-pin to the merged commit).
+- The receipt-v1 specification copy is from Sess commit `a60ca69` (§10, renderer identities with
+  `seq` and `iat`; Sess PR #444's merge commit).
 
 ### Archival verifier
 
@@ -69,7 +72,7 @@ Builds on `0.1.0-rc.7` below, which is published; the registry goes from `0.1.0-
   refused with `--archival` (exit 2).
 - Verbatim archival-core-v1 and witness-evidence-v1 specifications, the archival-v1 corpus, the
   witness renewal vector and the recorded Sigstore staging run in the source repository, pinned by
-  SHA-256 to one Sess commit (`9c22385`, with receipt-v1 above) and checked by
+  SHA-256 to one Sess commit (`a60ca69`, with receipt-v1 above) and checked by
   `npm run check:spec`.
 
 ## 0.1.0-rc.7 — 2026-10-18 (published 2026-10-18)
