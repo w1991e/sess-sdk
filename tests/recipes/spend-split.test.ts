@@ -48,7 +48,7 @@ async function qualify(
       sleep: async () => {},
     },
     workflow: { weatherFor: dryWeather, showLink: () => {} },
-    sdkVersion: '0.1.0-rc.7',
+    sdkVersion: '0.1.0-rc.8',
     billingSettleMs: 0,
     billingFetch: async (url: string, init: Any) => {
       billingCalls.push({ url, auth: init?.headers?.authorization });

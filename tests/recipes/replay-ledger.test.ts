@@ -200,7 +200,7 @@ describe('RECIPE-BUDGET-LEDGER-01: the ledger across processes', { timeout: 30_0
   it('refuses a second concurrent run; a lock left by a process that has exited is taken over and released at the end', async () => {
     const { dryRun } = await load('qualify.mjs');
     const dir = scratch('sess-ledger-run-');
-    const quiet = { out: dir, Sess, sdkVersion: '0.1.0-rc.7', env: {}, stdout: () => {}, stderr: () => {} };
+    const quiet = { out: dir, Sess, sdkVersion: '0.1.0-rc.8', env: {}, stdout: () => {}, stderr: () => {} };
     writeFileSync(join(dir, 'run.lock'), JSON.stringify({ pid: process.pid, host: hostname() }));
     expect(await dryRun('anthropic', quiet)).toEqual({ ok: false, code: 'run_in_progress' });
     const gone = spawnSync(process.execPath, ['-e', 'process.stdout.write(String(process.pid))'], {
@@ -220,7 +220,7 @@ describe('qualify.mjs --dry-run (free pre-flight)', { timeout: 30_000 }, () => {
     const result = await dryRun('gemini', {
       out: dir,
       Sess,
-      sdkVersion: '0.1.0-rc.7',
+      sdkVersion: '0.1.0-rc.8',
       env: {},
       stdout: (line: string) => out.push(line),
       stderr: () => {},
@@ -319,7 +319,7 @@ describe('the recipe commit in every record', { timeout: 30_000 }, () => {
     const dry = await dryRun('gemini', {
       out: scratch('sess-nosha-dry-'),
       Sess,
-      sdkVersion: '0.1.0-rc.7',
+      sdkVersion: '0.1.0-rc.8',
       env: {},
       gitState: { git_sha: null, dirty: null, sha_source: null },
       stdout: () => {},

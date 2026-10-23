@@ -1,5 +1,6 @@
 // The single SDK candidate pin: release/sdk-candidate.json (not packed into the SDK tarball).
-// Every consumer (adapters, quickstart, create-agent starter) installs exactly this version.
+// Every consumer (adapters, quickstart, create-agent starter, provider recipes) installs exactly this
+// version, and the OpenClaw compatibility record's current SDK evidence names exactly these bytes.
 //
 // A prepared successor that is not yet published is recorded separately, in
 // release/sdk-next-candidate.json (same shape). While that file exists, the root packs the
@@ -15,13 +16,16 @@
 //   node scripts/sdk-pin.mjs verify
 //       Part of `npm run check` (after check:package): the packed root bytes recorded in
 //       .artifacts/package-result.json equal the prepared successor record when one exists,
-//       otherwise the pin, and every consumer (adapter manifests,
-//       lockfiles, compatibility records, quickstart, create-agent starter) agrees with it. Any packed-file change
-//       therefore fails until the pin is deliberately updated.
+//       otherwise the pin, and every consumer (adapter manifests, lockfiles, compatibility records,
+//       quickstart, create-agent starter, provider recipes) agrees with it. Any packed-file change
+//       therefore fails until the pin is deliberately updated. The OpenClaw record's current
+//       sdk.evidence must name the pinned version, SHA-256 and integrity (evidenceDrift).
 //   node scripts/sdk-pin.mjs update            (npm run pin:update)
 //       Deliberate repin after a reviewed packed-file change: builds and packs the current root,
 //       writes the pin, and updates every consumer consistently. Review the diff, then run
 //       `npm run check` and the adapter checks. A successor record whose bytes it pinned is removed.
+//       It does not write the OpenClaw sdk.evidence: that names the release run that read the
+//       version back, so it is written by hand, and verify fails until it matches the pin.
 //   node scripts/sdk-pin.mjs prepare
 //       Record the current root's packed bytes as the prepared successor (a new version that is not
 //       yet published) without touching the pin or any consumer.
@@ -123,6 +127,9 @@ const OPENCLAW = join(root, 'adapters', 'openclaw');
 const QUICKSTART = join(root, 'examples', 'quickstart-node');
 // The starter agent written by `npm create @sess.si/agent@next` (and the public starter template).
 const STARTER = join(root, 'create-agent', 'template');
+// The provider recipes (private, never published; installed with npm install and no lockfile).
+const RECIPES = join(root, 'examples', 'recipes');
+const CONSUMERS = [MCP, OPENCLAW, QUICKSTART, STARTER, RECIPES];
 const SDK_DEPENDENCY_FIELDS = ['dependencies', 'engines', 'license'];
 
 /** Returns a list of drift descriptions (empty when every consumer agrees with the pin). */
@@ -137,6 +144,7 @@ export function consumerDrift(pin = readPin()) {
     ['adapters/openclaw', OPENCLAW],
     ['examples/quickstart-node', QUICKSTART],
     ['create-agent/template', STARTER],
+    ['examples/recipes', RECIPES],
   ]) {
     expect(
       `${label} package.json dependency`,
@@ -171,6 +179,27 @@ export function consumerDrift(pin = readPin()) {
   return drift;
 }
 
+/**
+ * The OpenClaw compatibility record's current SDK evidence (sdk.evidence) must name the pinned
+ * version, SHA-256 and integrity, and no other version of the SDK; earlier versions belong in
+ * sdk.history. Returns drift descriptions (empty when it agrees with the pin).
+ */
+export function evidenceDrift(pin = readPin(), record = readJson(join(OPENCLAW, 'compatibility.json'))) {
+  const label = 'adapters/openclaw compatibility sdk.evidence';
+  const evidence = record?.sdk?.evidence;
+  if (typeof evidence !== 'string') return [`${label}: missing`];
+  const drift = [];
+  const named = `${pin.name}@${pin.version}`;
+  if (!evidence.startsWith(`REGISTRY: ${named} `))
+    drift.push(`${label} does not begin with "REGISTRY: ${named} "`);
+  if (!evidence.includes(pin.sha256)) drift.push(`${label} does not name sha256 ${pin.sha256}`);
+  if (!evidence.includes(pin.integrity)) drift.push(`${label} does not name integrity ${pin.integrity}`);
+  for (const [, version] of evidence.matchAll(/@sess\.si\/sdk@([0-9A-Za-z.+-]*[0-9A-Za-z])/g))
+    if (version !== pin.version)
+      drift.push(`${label} names ${pin.name}@${version}; earlier versions belong in sdk.history`);
+  return drift;
+}
+
 /** verify: packed root bytes (from check:package) and every consumer equal the pin. */
 export function verify() {
   const pin = readPin();
@@ -195,11 +224,18 @@ export function verify() {
   const drift = consumerDrift(pin);
   if (drift.length)
     refuse(`consumers disagree with the pin (run npm run pin:update):\n  ${drift.join('\n  ')}`);
+  const evidence = evidenceDrift(pin);
+  if (evidence.length)
+    refuse(
+      `the OpenClaw SDK evidence is not the pinned ${pin.version}: after the registry readback, update ` +
+        'adapters/openclaw/compatibility.json sdk.evidence and keep earlier versions in sdk.history:\n  ' +
+        evidence.join('\n  '),
+    );
   log(
     next
       ? `root bytes match the prepared ${next.name}@${next.version} (sha256 ${next.sha256}); ` +
-          `${['mcp', 'openclaw', 'quickstart', 'starter'].length} consumers match the published pin ${pin.version} (sha256 ${pin.sha256})`
-      : `root bytes and ${['mcp', 'openclaw', 'quickstart', 'starter'].length} consumers match ${pin.name}@${pin.version} (sha256 ${pin.sha256})`,
+          `${CONSUMERS.length} consumers and the OpenClaw SDK evidence match the published pin ${pin.version} (sha256 ${pin.sha256})`
+      : `root bytes, ${CONSUMERS.length} consumers and the OpenClaw SDK evidence match ${pin.name}@${pin.version} (sha256 ${pin.sha256})`,
   );
 }
 
@@ -264,7 +300,7 @@ export function update() {
     );
   writeJson(PIN_PATH, pin);
   if (next) rmSync(NEXT_PATH);
-  for (const dir of [MCP, OPENCLAW, QUICKSTART, STARTER]) {
+  for (const dir of CONSUMERS) {
     const path = join(dir, 'package.json');
     const text = readFileSync(path, 'utf8');
     const current = readJson(path).dependencies?.[pin.name];
@@ -310,16 +346,21 @@ export function update() {
       '--write',
       PIN_PATH,
       compatibilityPath,
-      ...[MCP, OPENCLAW, QUICKSTART, STARTER].map((dir) => join(dir, 'package.json')),
+      ...CONSUMERS.map((dir) => join(dir, 'package.json')),
     ],
     { cwd: root, stdio: 'ignore' },
   );
   const drift = consumerDrift(pin);
   if (drift.length) refuse(`update left drift:\n  ${drift.join('\n  ')}`);
   log(
-    `pinned ${pin.name}@${pin.version} sha256 ${pin.sha256}; updated MCP, OpenClaw, quickstart and starter. ` +
+    `pinned ${pin.name}@${pin.version} sha256 ${pin.sha256}; updated MCP, OpenClaw, quickstart, starter and recipes. ` +
       'Next: review the diff, run npm run check, then npm run setup + npm run check in adapters/mcp and the OpenClaw checks.',
   );
+  if (evidenceDrift(pin).length)
+    log(
+      `after the registry readback of ${pin.version}, write it into adapters/openclaw/compatibility.json ` +
+        'sdk.evidence (the previous evidence moves to sdk.history); npm run check:pin fails until then.',
+    );
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
