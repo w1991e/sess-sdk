@@ -2,9 +2,49 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { checkRelease } from './release-guard.mjs';
+import { checkCompatibilityStatus, checkRelease } from './release-guard.mjs';
 
 const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+const compatibility = JSON.parse(readFileSync(new URL('../compatibility.json', import.meta.url), 'utf8'));
+
+test('compatibility.json never calls the unpublished package version published', () => {
+  // The committed record passes as it stands.
+  checkCompatibilityStatus({ manifest, compatibility });
+  const recorded = compatibility.publication.version;
+  const candidate = { ...structuredClone(manifest), version: '9.9.9-rc.1' };
+  const record = (status, publication = recorded) => ({
+    ...structuredClone(compatibility),
+    version: candidate.version,
+    status,
+    publication: { ...compatibility.publication, version: publication },
+  });
+  const prepared = `${candidate.version} prepared, unpublished; ${recorded} published on npm dist-tag next`;
+  checkCompatibilityStatus({ manifest: candidate, compatibility: record(prepared) });
+  for (const status of [
+    'published (next)',
+    `${recorded} published on npm dist-tag next`,
+    `published (next); ${candidate.version} prepared, unpublished`,
+    undefined,
+  ])
+    assert.throws(
+      () => checkCompatibilityStatus({ manifest: candidate, compatibility: record(status) }),
+      /compatibility status/,
+    );
+  assert.throws(
+    () => checkCompatibilityStatus({ manifest: candidate, compatibility }),
+    /compatibility version/,
+  );
+  // Once publication is recorded for this version, calling it prepared is refused.
+  assert.throws(
+    () =>
+      checkCompatibilityStatus({ manifest: candidate, compatibility: record(prepared, candidate.version) }),
+    /published version called prepared/,
+  );
+  checkCompatibilityStatus({
+    manifest: candidate,
+    compatibility: record('published on npm dist-tag next', candidate.version),
+  });
+});
 const good = () => ({
   manifest: structuredClone(manifest),
   ref: `refs/tags/openclaw-v${manifest.version}`,

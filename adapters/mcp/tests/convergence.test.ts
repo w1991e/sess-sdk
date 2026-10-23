@@ -88,6 +88,38 @@ describe('verification configuration errors', () => {
   });
 });
 
+describe('renderer identities (SDK 0.1.0-rc.8)', () => {
+  it.each(['sess-html-form-1', 'sess-html-form-2'])(
+    'a %s receipt verifies offline with the identity the SDK bundles',
+    async (rendererVersion) => {
+      const fake = new FakeSess();
+      const adapter = adapterWith(dir.path, fake); // real SDK verifier
+      const { interaction } = await adapter.request(request());
+      const eventId = fake.answerSigned(ANSWER_1.data, ANSWER_1.action_id, { rendererVersion });
+      const result = await adapter.response({ handle: interaction.handle, revision: 1, waitMs: 0 });
+      expect(result.interaction.state).toBe('answered');
+      expect(result.interaction.response).toMatchObject({ eventId, verified: true });
+      expect(record(interaction.handle).state).toBe('answered');
+      // Bundled identities never fetch the issuer's signed renderer list.
+      expect(fake.calls.map((c) => c.path)).not.toContain('/.well-known/sess-renderer-identities.json');
+    },
+  );
+
+  it('an identity outside the bundled list is not released as verified when the issuer list cannot be read', async () => {
+    const fake = new FakeSess();
+    const adapter = adapterWith(dir.path, fake);
+    const { interaction } = await adapter.request(request());
+    fake.answerSigned(ANSWER_1.data, ANSWER_1.action_id, { rendererVersion: 'sess-html-form-9' });
+    const before = JSON.stringify(record(interaction.handle));
+    // The fake issuer serves no list (404): a retryable read failure that records nothing.
+    const error = await failure(adapter.response({ handle: interaction.handle, revision: 1, waitMs: 0 }));
+    expect(error.code).toBe('SESS_UNAVAILABLE');
+    expect(error.retryable).toBe(true);
+    expect(JSON.stringify(record(interaction.handle))).toBe(before);
+    expect(fake.calls.map((c) => c.path)).toContain('/.well-known/sess-renderer-identities.json');
+  });
+});
+
 describe('response while a mutation is pending', () => {
   it('returns a conflict telling the caller to repeat the pending complete', async () => {
     const fake = new FakeSess();

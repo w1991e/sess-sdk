@@ -78,7 +78,7 @@ export class FakeSess {
   answerSigned(
     data: Json,
     actionId = 'submit',
-    options: { kid?: string; privateKey?: import('node:crypto').KeyObject } = {},
+    options: { kid?: string; privateKey?: import('node:crypto').KeyObject; rendererVersion?: string } = {},
   ): string {
     const s = this.session!;
     const eventId = `evt_0000000000000000000000000${s.responses.length + 1}`;
@@ -100,7 +100,11 @@ export class FakeSess {
       session_id: s.id,
       step_id: `rev_${s.revision}`,
       event_id: eventId,
-      surface: { revision: s.revision, hash: digest(s.interaction), renderer_version: 'sess-html-form-1' },
+      surface: {
+        revision: s.revision,
+        hash: digest(s.interaction),
+        renderer_version: options.rendererVersion ?? 'sess-html-form-1',
+      },
       action: { id: action.id, label: action.label, summary: action.intent ?? '' },
       input_hash: digest(data),
       actor: { assurance: 'link_holder', subject: `${workspace}:human_link:${s.id}` },

@@ -8,13 +8,13 @@
     "source": "github",
     "subfolder": "adapters/mcp"
   },
-  "version": "0.1.0-rc.2",
+  "version": "0.1.0-rc.3",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@sess.si/mcp",
-      "version": "0.1.0-rc.2",
+      "version": "0.1.0-rc.3",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

@@ -41,6 +41,30 @@ export function checkRelease(facts) {
   return { version: manifest.version, distTag: 'next' };
 }
 
+/**
+ * compatibility.json describes this package version truthfully: a version that is not the
+ * recorded publication (`publication`) has a status saying "<version> prepared ... unpublished"
+ * that does not open with a publication claim; the recorded publication is never called prepared.
+ * @param {{ manifest: any, compatibility: any }} input
+ */
+export function checkCompatibilityStatus({ manifest, compatibility }) {
+  const version = manifest?.version;
+  const status = compatibility?.status;
+  const failures = [];
+  if (compatibility?.version !== version) failures.push('compatibility version');
+  if (typeof status !== 'string') failures.push('compatibility status');
+  else if (compatibility?.publication?.version === version) {
+    if (status.includes(`${version} prepared`))
+      failures.push('compatibility status (published version called prepared)');
+  } else if (
+    !status.includes(`${version} prepared`) ||
+    !status.includes('unpublished') ||
+    /^published\b/.test(status)
+  )
+    failures.push(`compatibility status (${version} must be prepared and unpublished)`);
+  if (failures.length) throw new Error(`Release guard failed: ${failures.join(', ')}.`);
+}
+
 function gatherFacts(cwd) {
   const manifest = JSON.parse(readFileSync(`${cwd}/package.json`, 'utf8'));
   const lock = JSON.parse(readFileSync(`${cwd}/package-lock.json`, 'utf8'));
@@ -75,7 +99,12 @@ function gatherFacts(cwd) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { version, distTag } = checkRelease(gatherFacts(process.cwd()));
+  const facts = gatherFacts(process.cwd());
+  const { version, distTag } = checkRelease(facts);
+  checkCompatibilityStatus({
+    manifest: facts.manifest,
+    compatibility: JSON.parse(readFileSync(`${process.cwd()}/compatibility.json`, 'utf8')),
+  });
   if (process.env.GITHUB_OUTPUT)
     appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\ndist-tag=${distTag}\n`);
   console.log(`Release guard passed: ${PACKAGE_NAME}@${version} -> ${distTag}`);

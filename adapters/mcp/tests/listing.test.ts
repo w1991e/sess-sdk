@@ -113,7 +113,7 @@ describe('listing.json artifacts', () => {
       'Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.',
     );
     expect(i.listing.providers.mcpRegistry.version).toBeUndefined();
-    for (const version of ['0.1.0-rc.3', '0.1.0']) {
+    for (const version of ['0.1.0-rc.4', '0.1.0']) {
       const next = inputs();
       next.manifest.version = version;
       const generated = JSON.parse(generate(next).get('server.json')!);

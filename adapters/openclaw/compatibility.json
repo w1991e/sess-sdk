@@ -1,9 +1,26 @@
 {
   "schemaVersion": 1,
   "package": "@sess.si/openclaw",
-  "version": "0.1.0-rc.2",
-  "status": "0.1.0-rc.2 prepared, unpublished; 0.1.0-rc.1 published on npm dist-tag next (2026-10-17); G0/G1 qualification as recorded below; not independently verified",
+  "version": "0.1.0-rc.3",
+  "status": "0.1.0-rc.3 prepared on @sess.si/sdk 0.1.0-rc.8, unpublished; 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; G0/G1 qualification as recorded below; not independently verified",
   "publication": {
+    "version": "0.1.0-rc.2",
+    "distTag": "next",
+    "publishedAt": "2026-10-19",
+    "workflow": ".github/workflows/openclaw-release.yml",
+    "tag": "openclaw-v0.1.0-rc.2",
+    "environment": "npm-openclaw-release",
+    "tarball": "https://registry.npmjs.org/@sess.si/openclaw/-/openclaw-0.1.0-rc.2.tgz",
+    "sha256": "7c77cd1a80843646163e24af1a0469728074d7a14a5f778dd29b1f5bd7fe3710",
+    "integrity": "sha512-ysTmKH8R60n6UwIT7u0ydDqSUMSuXCCcjTALbCJ3joLBBnb3KIJPTyCMA+hI3WwH9jdxelaaHKrE/1Rn5IdPnQ==",
+    "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
+    "sourceCommit": "0fde9cd2858c6a7c2ded319aa81dd2e850610067",
+    "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/39189334190",
+    "sessSdk": "0.1.0-rc.7, whose receipt verifier rejects the sess-html-form-2 renderer identity; 0.1.0-rc.3 depends on 0.1.0-rc.8, which bundles it",
+    "latest": "0.0.0-stage placeholder, deprecated with a pointer to @next",
+    "registryInstall": "not yet qualified: openclaw plugins install npm:@sess.si/openclaw@0.1.0-rc.2 has not been run as a recorded test"
+  },
+  "earlierPublication": {
     "version": "0.1.0-rc.1",
     "distTag": "next",
     "publishedAt": "2026-10-17",

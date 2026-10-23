@@ -49,6 +49,34 @@ export function checkIdentity({ manifest, server, ref, repository }) {
   return { version: manifest.version, distTag: manifest.version.includes('-rc.') ? 'next' : 'latest' };
 }
 
+/**
+ * compatibility.json describes this package version truthfully: a version that is not the
+ * recorded publication (release.published) is "<version> prepared ... unpublished" in both the
+ * top-level and the release status, and neither claims it is published; the recorded publication
+ * is never called prepared.
+ */
+export function checkCompatibilityStatus({ manifest, compatibility }) {
+  const version = manifest.version;
+  if (compatibility.package?.version !== version)
+    refuse('compatibility.json package.version must equal the package version');
+  const statuses = { status: compatibility.status, 'release.status': compatibility.release?.status };
+  const published = compatibility.release?.published?.version === version;
+  for (const [field, status] of Object.entries(statuses)) {
+    if (typeof status !== 'string') refuse(`compatibility.json ${field} is missing`);
+    if (published) {
+      if (status.includes(`${version} prepared`))
+        refuse(`compatibility.json ${field} calls the published ${version} prepared`);
+    } else if (
+      !status.includes(`${version} prepared`) ||
+      !status.includes('unpublished') ||
+      /^published\b/.test(status)
+    )
+      refuse(
+        `compatibility.json ${field} must say ${version} is prepared and unpublished (release.published records ${compatibility.release?.published?.version})`,
+      );
+  }
+}
+
 /** A release requires the genuine registry SDK, never the local candidate tarball. */
 export function checkRegistrySdk({ manifest, lock, compatibility }) {
   const pinned = compatibility.sessSdk;
@@ -148,11 +176,9 @@ async function main() {
       ref: process.env.GITHUB_REF,
       repository: process.env.GITHUB_REPOSITORY,
     });
-    checkRegistrySdk({
-      manifest,
-      lock: readJson(join(adapter, 'package-lock.json')),
-      compatibility: readJson(join(adapter, 'compatibility.json')),
-    });
+    const compatibility = readJson(join(adapter, 'compatibility.json'));
+    checkRegistrySdk({ manifest, lock: readJson(join(adapter, 'package-lock.json')), compatibility });
+    checkCompatibilityStatus({ manifest, compatibility });
     const sha = checkGit({ cwd: adapter });
     output({ version: identity.version, 'dist-tag': identity.distTag });
     console.log(

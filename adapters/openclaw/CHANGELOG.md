@@ -1,7 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.3 (candidate, unpublished)
 
+- Depends on `@sess.si/sdk` 0.1.0-rc.8 (was 0.1.0-rc.7), resolved from the registry (sha256
+  `b533935b…4c95`). Form-2 receipts verify: rc.8 bundles the renderer identities
+  `sess-html-form-1` and `sess-html-form-2`, so `sess_response`, and the re-verification before
+  `sess_publish` and `sess_complete`, accept an answer given on Sess's form-2 renderer and verify
+  it offline. With rc.7 (in 0.1.0-rc.2) every such answer failed verification. Any other identity
+  is checked against the issuer's signed renderer list (Decision 0009 Amendment 13); a list that
+  cannot be read is a retryable `UNAVAILABLE`, never a verified answer.
 - Sess's length limits for what a person reads, in Unicode code points (were UTF-16 units and
   200/1,000/4,000): title 80, description 280, heading 60, field and option labels 60, field
   description 160, action label 24, record caption 200, record key 40 and string value 200, text
@@ -11,8 +18,10 @@
 - A value over its limit fails with `INVALID_ARGUMENTS` plus `field` (a JSON pointer), `limit` and
   `length`, and a message ending with the fix; nothing is truncated. A Sess length refusal on
   create carries the same fields when the SDK reports them.
+- `compatibility.json` records the publication of `0.1.0-rc.2` on the npm dist-tag `next`
+  (2026-10-19): registry SHA-256 and integrity, SLSA provenance and release run 39189334190.
 
-## 0.1.0-rc.2 (candidate, unpublished)
+## 0.1.0-rc.2 (published 2026-10-19)
 
 - Depends on `@sess.si/sdk` 0.1.0-rc.7 (was 0.1.0-rc.5).
 - Prose and printed strings say "Sess", not "SESS": tool descriptions, errors, notes, setup and
@@ -27,7 +36,7 @@
 - `compatibility.json` records the publication of `0.1.0-rc.1` on the npm dist-tag `next`
   (2026-10-17): registry SHA-256 and integrity, SLSA provenance and release run 38990667691.
 
-## 0.1.0-rc.1 (unreleased)
+## 0.1.0-rc.1 (published 2026-10-17)
 
 - Native OpenClaw plugin `sess` with four optional tools: `sess_request`, `sess_response`,
   `sess_publish`, `sess_complete` (tool schema version 1, closed schemas).

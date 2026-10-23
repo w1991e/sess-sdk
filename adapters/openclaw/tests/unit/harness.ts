@@ -69,7 +69,7 @@ export class FakeSess {
     revision: number,
     actionId: string,
     data: Record<string, unknown>,
-    opts: { tamper?: boolean; noReceipt?: boolean } = {},
+    opts: { tamper?: boolean; noReceipt?: boolean; rendererVersion?: string } = {},
   ) {
     const acceptedAt = new Date(Date.now() - 1000).toISOString();
     const eventId = `evt_01JABCDEFGHJKMNPQRSTVWXY${String(this.responses.length + 1).padStart(2, '0')}`;
@@ -92,7 +92,11 @@ export class FakeSess {
       session_id: this.sessionId,
       step_id: `rev_${revision}`,
       event_id: eventId,
-      surface: { revision, hash: digest(interaction), renderer_version: 'sess-html-form-1' },
+      surface: {
+        revision,
+        hash: digest(interaction),
+        renderer_version: opts.rendererVersion ?? 'sess-html-form-1',
+      },
       action: { id: actionId, label: action.label, summary: action.intent ?? '' },
       input_hash: digest(data),
       actor: { assurance: 'link_holder', subject: `${WORKSPACE}:human_link:${this.sessionId}` },

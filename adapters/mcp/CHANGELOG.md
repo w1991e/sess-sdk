@@ -1,7 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.3 (candidate, unpublished)
 
+- Depends on `@sess.si/sdk` 0.1.0-rc.8 (was 0.1.0-rc.7), resolved from the registry (sha256
+  `b533935b…4c95`). Form-2 receipts verify: rc.8 bundles the renderer identities
+  `sess-html-form-1` and `sess-html-form-2`, so `sess_response` and `sess_ask` accept an answer
+  given on Sess's form-2 renderer and verify it offline. With rc.7 (in 0.1.0-rc.2) every such
+  answer failed verification. Any other identity is checked against the issuer's signed renderer
+  list (Decision 0009 Amendment 13); a list that cannot be read is a retryable `SESS_UNAVAILABLE`
+  that records nothing, never a verified answer.
 - Link timing (Decision 0009 Amendment 10). A lapsed link (past its deadline, but the person can
   still ask for more time until its horizon) is still open: `sess_response`, and so `sess_ask`,
   report `waiting`, never `expired`. `expired` is reported only once a read shows the link expired:
@@ -26,8 +33,10 @@
   reports them.
 - `server.json` names `package.json`'s exact version and stays in step with it on every release
   candidate; the listing check, a test and the release guard fail when they differ.
+- `compatibility.json` records the publication of `0.1.0-rc.2` on the npm dist-tag `next`
+  (2026-10-19): registry SHA-256 and integrity, SLSA provenance and release run 39189334311.
 
-## 0.1.0-rc.2 (candidate, unpublished)
+## 0.1.0-rc.2 (published 2026-10-19)
 
 - Tool schemas `sess-mcp-tools/3`. Advanced: `sess_request` and `sess_ask` take an optional
   `expires_in` (whole seconds from creation, from 30 up to the plan's link lifetime; the same name
@@ -49,7 +58,7 @@
 - `compatibility.json` records the publication of `0.1.0-rc.1` on the npm dist-tag `next`
   (2026-10-17): registry SHA-256 and integrity, SLSA provenance and release run 38990432638.
 
-## 0.1.0-rc.1 (candidate, unpublished)
+## 0.1.0-rc.1 (published 2026-10-17)
 
 - First candidate of the local stdio MCP server for SESS.
 - Four tools with closed, versioned schemas (`sess-mcp-tools/1`): `sess_request`, `sess_response`,

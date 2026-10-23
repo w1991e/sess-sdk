@@ -2,7 +2,7 @@
   "id": "sess",
   "name": "Sess",
   "description": "Agents request structured human decisions through hosted Sess interfaces and receive verified answers. Maintained by Sess; not an official OpenClaw plugin.",
-  "version": "0.1.0-rc.2",
+  "version": "0.1.0-rc.3",
   "categories": ["productivity"],
   "configSchema": {
     "type": "object",

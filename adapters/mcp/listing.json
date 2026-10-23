@@ -56,7 +56,7 @@
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
     "status": "unpublished",
-    "note": "Only the release candidate 0.1.0-rc.1 is on npm (dist-tag next); the version server.json names (package.json's) is not published yet, and the stdio entries work only after it is.",
+    "note": "Only the release candidates 0.1.0-rc.1 and 0.1.0-rc.2 are on npm (dist-tag next); the version server.json names (package.json's) is not published yet, and the stdio entries work only after it is.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {

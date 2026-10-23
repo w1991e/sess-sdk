@@ -158,6 +158,49 @@ describe('receipt failures never become verified answers', () => {
   }
 });
 
+describe('renderer identities (SDK 0.1.0-rc.8)', () => {
+  const LIST_PATH = '/.well-known/sess-renderer-identities.json';
+
+  for (const rendererVersion of ['sess-html-form-1', 'sess-html-form-2']) {
+    it(`a ${rendererVersion} receipt verifies offline with the identity the SDK bundles, and publish re-verifies it`, async () => {
+      const host = await registerPlugin();
+      const conv = conversation();
+      const { handle } = (await call(host, 'sess_request', conv, { interaction: round1() })).details
+        .interaction;
+      const answer = answer1();
+      const eventId = sess.answer(1, answer.action_id, answer.data, { rendererVersion });
+      const answered = await call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 });
+      expect(answered.details.interaction).toMatchObject({
+        state: 'answered',
+        response: { eventId, verified: true },
+      });
+      const published = await call(host, 'sess_publish', conv, {
+        handle,
+        expected_revision: 1,
+        response_event_id: eventId,
+        interaction: fixtures('round-2.json'),
+      });
+      expect(published.details.interaction).toEqual({ handle, revision: 2, state: 'waiting' });
+      // Bundled identities never fetch the issuer's signed renderer list.
+      expect(sess.requests.map((r) => r.path)).not.toContain(LIST_PATH);
+    });
+  }
+
+  it('an identity outside the bundled list is never released as verified when the issuer list cannot be read', async () => {
+    const host = await registerPlugin();
+    const conv = conversation();
+    const { handle } = (await call(host, 'sess_request', conv, { interaction: round1() })).details
+      .interaction;
+    sess.answer(1, 'submit', { activity: 'cafe', hours: 2 }, { rendererVersion: 'sess-html-form-9' });
+    // The fake issuer serves no list (404): a retryable read failure, never a verified answer.
+    await expect(call(host, 'sess_response', conv, { handle, revision: 1, wait_ms: 0 })).rejects.toThrow(
+      /^UNAVAILABLE: /,
+    );
+    expect(sess.requests.map((r) => r.path)).toContain(LIST_PATH);
+    expect(sess.status).not.toBe('completed');
+  });
+});
+
 describe("model input cannot select credentials, origin or someone else's interaction", () => {
   it('other conversations, agents and incarnations see NOT_FOUND for the same handle', async () => {
     const host = await registerPlugin();

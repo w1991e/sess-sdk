@@ -13,6 +13,7 @@ import {
   GuardError,
   checkArtifact,
   checkArtifactPath,
+  checkCompatibilityStatus,
   checkGit,
   checkIdentity,
   checkPublished,
@@ -28,6 +29,50 @@ const version = manifest.version;
 const good = { manifest, server, ref: `refs/tags/mcp-v${version}`, repository: 'w1991e/sess-sdk' };
 const refuses = (fn, pattern) => assert.throws(fn, (e) => e instanceof GuardError && pattern.test(e.message));
 const clone = (value) => structuredClone(value);
+
+test('compatibility.json never calls the unpublished package version published', () => {
+  // The committed record passes as it stands.
+  checkCompatibilityStatus({ manifest, compatibility });
+  const recorded = compatibility.release.published.version;
+  // A candidate whose top-level or release status claims publication is refused.
+  const candidate = clone(manifest);
+  candidate.version = '9.9.9-rc.1';
+  const record = (status, releaseStatus) => {
+    const c = clone(compatibility);
+    c.package.version = candidate.version;
+    c.status = status;
+    c.release.status = releaseStatus;
+    return c;
+  };
+  const prepared = `${candidate.version} prepared, unpublished; ${recorded} published (next)`;
+  checkCompatibilityStatus({ manifest: candidate, compatibility: record(prepared, prepared) });
+  for (const [status, releaseStatus] of [
+    ['published (next)', prepared],
+    [prepared, `@sess.si/mcp@${recorded} published on npm dist-tag next`],
+    [`published (next); ${candidate.version} prepared, unpublished`, prepared],
+    [undefined, prepared],
+  ])
+    refuses(
+      () => checkCompatibilityStatus({ manifest: candidate, compatibility: record(status, releaseStatus) }),
+      /compatibility.json (status|release.status)/,
+    );
+  // The record's version must be the package's.
+  refuses(
+    () => checkCompatibilityStatus({ manifest: candidate, compatibility }),
+    /package.version must equal/,
+  );
+  // Once publication is recorded for this version, calling it prepared is refused.
+  const done = record(prepared, prepared);
+  done.release.published.version = candidate.version;
+  refuses(
+    () => checkCompatibilityStatus({ manifest: candidate, compatibility: done }),
+    /calls the published/,
+  );
+  checkCompatibilityStatus({
+    manifest: candidate,
+    compatibility: { ...done, status: 'published (next)', release: { ...done.release, status: 'published' } },
+  });
+});
 
 test('identity: the exact tag for this package version passes; rc maps to next', () => {
   assert.deepEqual(checkIdentity(good), { version, distTag: version.includes('-rc.') ? 'next' : 'latest' });
