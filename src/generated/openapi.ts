@@ -829,7 +829,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description P2-13 V3 / P2-11, step 1 of "Keep your receipt" (DOCS/spec/keep-v1.md). The human link is the capability; never log it. Sent by the receipt card’s same-origin script after the person taps Keep: Sec-Fetch-Site same-origin (or, without Fetch Metadata, an Origin equal to the page’s origin), application/json, at most 65536 bytes, at most 128 grants. Each round is authorized only by its own receipt-scoped Keep grant: the Session, a receipt list or another round’s grant never authorize it. Reads one Session snapshot (its Event sequence cutoff) and, when some authorized receipt in custody has no holder yet, records one fresh challenge (5 minutes) bound to exactly that batch. Headers as every /s/* response (no-store, no-referrer, noindex, no CORS). */
+    /** @description P2-13 V3 / P2-11, step 1 of "Keep your receipt" (the Sess keep-v1 specification). The human link is the capability; never log it. Sent by the receipt card’s same-origin script after the person taps Keep: Sec-Fetch-Site same-origin (or, without Fetch Metadata, an Origin equal to the page’s origin), application/json, at most 65536 bytes, at most 128 grants. Each round is authorized only by its own receipt-scoped Keep grant: the Session, a receipt list or another round’s grant never authorize it. Reads one Session snapshot (its Event sequence cutoff) and, when some authorized receipt in custody has no holder yet, records one fresh challenge (5 minutes) bound to exactly that batch. Headers as every /s/* response (no-store, no-referrer, noindex, no CORS). */
     post: operations['createKeepChallenge'];
     delete?: never;
     options?: never;
@@ -846,7 +846,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description P2-13 V3 / P2-11, step 2: the kept-conversation file (DOCS/spec/keep-v1.md), the one bounded, versioned file the person saves — every authorized accepted round of the Session through the snapshot cutoff with its unchanged receipt and bundle (or content unavailable once purged), preservation status (the witness state at snapshot time, with the evidence attached by then), holder status and an inventory. Same request checks as the challenge. With `enrollment`, first enrolls one fresh holder key per receipt of the challenge’s exact batch (or only its final receipt: the disclosed fallback): every proof is checked, then all enrollments and the challenge’s consumption commit atomically; the same request again is an idempotent replay, a different one is refused, a receipt keeps its first holder and a key holds one receipt. Without `enrollment` (key generation or storage failed, or nothing to enrol) the file is exported with every round marked unenrolled: export never depends on enrollment. The file holds no private key, grant secret or Sess link. Content-Disposition: attachment. */
+    /** @description P2-13 V3 / P2-11, step 2: the kept-conversation file (the Sess keep-v1 specification), the one bounded, versioned file the person saves — every authorized accepted round of the Session through the snapshot cutoff with its unchanged receipt and bundle (or content unavailable once purged), preservation status (the witness state at snapshot time, with the evidence attached by then), holder status and an inventory. Same request checks as the challenge. With `enrollment`, first enrolls one fresh holder key per receipt of the challenge’s exact batch (or only its final receipt: the disclosed fallback): every proof is checked, then all enrollments and the challenge’s consumption commit atomically; the same request again is an idempotent replay, a different one is refused, a receipt keeps its first holder and a key holds one receipt. Without `enrollment` (key generation or storage failed, or nothing to enrol) the file is exported with every round marked unenrolled: export never depends on enrollment. The file holds no private key, grant secret or Sess link. Content-Disposition: attachment. */
     post: operations['keepConversation'];
     delete?: never;
     options?: never;
@@ -863,7 +863,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description P2-15 PR-B, Save to Sess from a human page on another origin than /personal (DOCS/spec/personal-copies-v1.md §7). The Sess link is the capability; never log it. Sent by the receipt card’s same-origin script once the Save sheet on the personal origin is signed in and has sent its destination binding: Sec-Fetch-Site same-origin (or an Origin equal to the page’s), application/json, at most 65536 bytes, rate limited per link. Records one pending claim bound to the rounds the presented Keep grants authorize now, exactly as Keep reads them (restricted or deleted rounds never included; no client-chosen IDs), their cutoff, a fresh 256-bit transfer secret (stored as its hash), the purpose, the personal origin, the source verifier’s challenge and the destination binding. The claim expires in 5 minutes. Nothing is saved until the sheet redeems it. Headers as every /s/* response. */
+    /** @description P2-15 PR-B, Save to Sess from a human page on another origin than /personal (the Sess personal-copies-v1 specification §7). The Sess link is the capability; never log it. Sent by the receipt card’s same-origin script once the Save sheet on the personal origin is signed in and has sent its destination binding: Sec-Fetch-Site same-origin (or an Origin equal to the page’s), application/json, at most 65536 bytes, rate limited per link. Records one pending claim bound to the rounds the presented Keep grants authorize now, exactly as Keep reads them (restricted or deleted rounds never included; no client-chosen IDs), their cutoff, a fresh 256-bit transfer secret (stored as its hash), the purpose, the personal origin, the source verifier’s challenge and the destination binding. The claim expires in 5 minutes. Nothing is saved until the sheet redeems it. Headers as every /s/* response. */
     post: operations['createSaveClaim'];
     delete?: never;
     options?: never;
@@ -931,7 +931,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description P2-12: the payment provider’s signed asynchronous events (provider-to-Sess only; DOCS/spec/billing-provider-v1.md). The signature header is verified over the exact raw body (at most 256 KiB, timestamp within 300 s) before the body is parsed. Each event id is processed once (a duplicate is acknowledged without effect); older subscription states never replace newer ones; unknown event types are acknowledged and ignored. Not configured → 404. */
+    /** @description P2-12: the payment provider’s signed asynchronous events (provider-to-Sess only; the Sess billing-provider-v1 specification). The signature header is verified over the exact raw body (at most 256 KiB, timestamp within 300 s) before the body is parsed. Each event id is processed once (a duplicate is acknowledged without effect); older subscription states never replace newer ones; unknown event types are acknowledged and ignored. Not configured → 404. */
     post: operations['receiveBillingProviderEvent'];
     delete?: never;
     options?: never;
@@ -1032,7 +1032,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description The deliberate export of one accepted response as a bundle-v1 disclosure (DOCS/spec/bundle-v1.md): its stored receipt exactly as issued, the complete normalized Surface of the revision it was accepted on, the accepted data, and the current public receipt keys. Never a private key, owner credential or Sess link. Anyone holding the bundle can verify it (POST /v1/receipts/verify, or offline with trusted keys); share it only with whom you mean to show the decision. Read-only. Cache-Control: no-store, no-transform; Referrer-Policy: no-referrer. */
+    /** @description The deliberate export of one accepted response as a bundle-v1 disclosure (the Sess bundle-v1 specification): its stored receipt exactly as issued, the complete normalized Surface of the revision it was accepted on, the accepted data, and the current public receipt keys. Never a private key, owner credential or Sess link. Anyone holding the bundle can verify it (POST /v1/receipts/verify, or offline with trusted keys); share it only with whom you mean to show the decision. Read-only. Cache-Control: no-store, no-transform; Referrer-Policy: no-referrer. */
     get: operations['exportDecisionBundle'];
     put?: never;
     post?: never;
@@ -1068,7 +1068,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description Public, no credential. Verifies an archival envelope (DOCS/spec/archival-core-v1.md §3) with the successor archival verifier against this server's own configuration only: its published receipt keys, its receipt issuer as the expected context issuer, its published witness key set (/.well-known/sess-witness-keys.json) and, when configured, its TUF-verified witness trusted root. Nothing in the request is trusted. It reports the independent dimensions of archival-core-v1 §5 (signature, contents, context, witness, key_trust, live_expiry) with the same statuses and reasons as @sess.si/sdk/archival, and their presentation. The body is the envelope only: contents is therefore unverifiable: content_unavailable (verify a bundle-v1 at /v1/receipts/verify for content), and context is at most incomplete (application_context_unchecked). Without a witness trusted root, attached evidence is indeterminate: witness_trust_unavailable. It looks nothing up and stores nothing. A malformed or oversized envelope is a 200 result. The bundle route is unchanged. Body: application/json, at most 2097152 bytes (413 above); 65,536 bytes envelope bound (reason oversized). The same per-client and total rate limits as /v1/receipts/verify, shared with it (429 RATE_LIMITED with Retry-After), and the same absolute 2-second deadline from the request's arrival (503 SERVICE_UNAVAILABLE with Connection: close). Cache-Control: no-store, no-transform; Referrer-Policy: no-referrer; CORS only for the product site origins. Never put an envelope or receipt in a URL. */
+    /** @description Public, no credential. Verifies an archival envelope (the Sess archival-core-v1 specification §3) with the successor archival verifier against this server's own configuration only: its published receipt keys, its receipt issuer as the expected context issuer, its published witness key set (/.well-known/sess-witness-keys.json) and, when configured, its TUF-verified witness trusted root. Nothing in the request is trusted. It reports the independent dimensions of archival-core-v1 §5 (signature, contents, context, witness, key_trust, live_expiry) with the same statuses and reasons as @sess.si/sdk/archival, and their presentation. The body is the envelope only: contents is therefore unverifiable: content_unavailable (verify a bundle-v1 at /v1/receipts/verify for content), and context is at most incomplete (application_context_unchecked). Without a witness trusted root, attached evidence is indeterminate: witness_trust_unavailable. It looks nothing up and stores nothing. A malformed or oversized envelope is a 200 result. The bundle route is unchanged. Body: application/json, at most 2097152 bytes (413 above); 65,536 bytes envelope bound (reason oversized). The same per-client and total rate limits as /v1/receipts/verify, shared with it (429 RATE_LIMITED with Retry-After), and the same absolute 2-second deadline from the request's arrival (503 SERVICE_UNAVAILABLE with Connection: close). Cache-Control: no-store, no-transform; Referrer-Policy: no-referrer; CORS only for the product site origins. Never put an envelope or receipt in a URL. */
     post: operations['verifyArchivalEnvelope'];
     delete?: never;
     options?: never;
@@ -1288,7 +1288,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description P2-13 V5: the status of one custody record of the owner workspace (from the credential only), never its content: available, restricted (with its reason code and since when) or deleted (with its reason code and deletion time). A restricted or deleted record is excluded from the list, the export, its bundle and every other receipt-scoped fetch; a restricted one stays verifiable for preservation integrity. Restriction, holds and deletion are decided by the operator through the recorded procedure (DOCS/spec/custody-restriction-deletion-v1.md); holds are not shown here. A deletion does not recall exported copies or files people already kept, and the public witness commitment (an aggregate batch root) remains. Another workspace’s record, or an unknown event ID, is 404. Cache-Control: no-store, no-transform. */
+    /** @description P2-13 V5: the status of one custody record of the owner workspace (from the credential only), never its content: available, restricted (with its reason code and since when) or deleted (with its reason code and deletion time). A restricted or deleted record is excluded from the list, the export, its bundle and every other receipt-scoped fetch; a restricted one stays verifiable for preservation integrity. Restriction, holds and deletion are decided by the operator through the recorded procedure (the Sess custody-restriction-deletion-v1 specification); holds are not shown here. A deletion does not recall exported copies or files people already kept, and the public witness commitment (an aggregate batch root) remains. Another workspace’s record, or an unknown event ID, is 404. Cache-Control: no-store, no-transform. */
     get: operations['getEvidenceRecordStatus'];
     put?: never;
     post?: never;
@@ -1322,7 +1322,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description Decision 0009 Amendment 13: the renderer identities Sess signs receipts under (the values of a receipt’s surface.renderer_version), as one JWS signed with the receipt keys, in the RFC 7515 flattened JSON serialization {protected, payload, signature} (joined with dots they are its compact form). Protected header {alg EdDSA, kid, typ sess-renderer-identities+jwt}; payload the RFC 8785 canonical JSON {sess_renderer_identities: 1, iss: the receipt issuer, seq: the list edition (an integer, higher in every later published edition), iat: when this copy was signed (NumericDate), identities: [{renderer_version, since: the UTC date it was added}]}; the signature covers seq and iat. Order authentic lists by seq, with containment as the cross-check; an older list still proves the identities it contains. Verify it with GET /.well-known/sess-receipt-keys.json (the key its kid names) and the expected issuer; a receipt verifies when its renderer_version is on a list whose signature verifies. The list only grows: an identity is never removed, reordered or reused, so every receipt issued keeps verifying (sess-html-form-1 is always on it). DOCS/spec/receipt-v1.md §10. No credential. 503 SERVICE_UNAVAILABLE while the receipt keys are not configured. Cache-Control: no-store, no-transform. */
+    /** @description Decision 0009 Amendment 13: the renderer identities Sess signs receipts under (the values of a receipt’s surface.renderer_version), as one JWS signed with the receipt keys, in the RFC 7515 flattened JSON serialization {protected, payload, signature} (joined with dots they are its compact form). Protected header {alg EdDSA, kid, typ sess-renderer-identities+jwt}; payload the RFC 8785 canonical JSON {sess_renderer_identities: 1, iss: the receipt issuer, seq: the list edition (an integer, higher in every later published edition), iat: when this copy was signed (NumericDate), identities: [{renderer_version, since: the UTC date it was added}]}; the signature covers seq and iat. Order authentic lists by seq, with containment as the cross-check; an older list still proves the identities it contains. Verify it with GET /.well-known/sess-receipt-keys.json (the key its kid names) and the expected issuer; a receipt verifies when its renderer_version is on a list whose signature verifies. The list only grows: an identity is never removed, reordered or reused, so every receipt issued keeps verifying (sess-html-form-1 is always on it). the Sess receipt-v1 specification §10. No credential. 503 SERVICE_UNAVAILABLE while the receipt keys are not configured. Cache-Control: no-store, no-transform. */
     get: operations['rendererIdentities'];
     put?: never;
     post?: never;
@@ -1339,7 +1339,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description The issuer’s published witness key set (DOCS/spec/witness-evidence-v1.md §5.1): the public ECDSA P-256 keys that sign witness checkpoints, each with its validity window. The current key has valid_to null; a rotated-out key is kept with its closed window, so evidence it signed stays verifiable. Read with parseWitnessKeySet and pass as the witnessKeys anchor of verifyWitnessEvidence, beside an independently distributed trusted root. Public keys only. No credential. Empty keys when no witness key is configured; 503 SERVICE_UNAVAILABLE when a configured key set is unusable (it is never trimmed or served empty). Cache-Control: no-store, no-transform. */
+    /** @description The issuer’s published witness key set (the Sess witness-evidence-v1 specification §5.1): the public ECDSA P-256 keys that sign witness checkpoints, each with its validity window. The current key has valid_to null; a rotated-out key is kept with its closed window, so evidence it signed stays verifiable. Read with parseWitnessKeySet and pass as the witnessKeys anchor of verifyWitnessEvidence, beside an independently distributed trusted root. Public keys only. No credential. Empty keys when no witness key is configured; 503 SERVICE_UNAVAILABLE when a configured key set is unusable (it is never trimmed or served empty). Cache-Control: no-store, no-transform. */
     get: operations['witnessKeys'];
     put?: never;
     post?: never;
@@ -2153,12 +2153,12 @@ export interface components {
             x: string;
             y: string;
           };
-          /** @description base64url of the 64-byte ECDSA P-256 SHA-256 signature (IEEE P1363) over the holder proof message (DOCS/spec/keep-v1.md §3). */
+          /** @description base64url of the 64-byte ECDSA P-256 SHA-256 signature (IEEE P1363) over the holder proof message (the Sess keep-v1 specification §3). */
           proof: string;
         }[];
       };
     };
-    /** @description The kept conversation (DOCS/spec/keep-v1.md): every authorized accepted round of the Session through the snapshot cutoff, each with its unchanged receipt-v1, its bundle-v1 while the content is retained (else unavailable, never reconstructed), its preservation status and holder status, plus an inventory. No private key, grant secret or Sess link. Each extracted bundle verifies with the unchanged bundle-v1 verifier. */
+    /** @description The kept conversation (the Sess keep-v1 specification): every authorized accepted round of the Session through the snapshot cutoff, each with its unchanged receipt-v1, its bundle-v1 while the content is retained (else unavailable, never reconstructed), its preservation status and holder status, plus an inventory. No private key, grant secret or Sess link. Each extracted bundle verifies with the unchanged bundle-v1 verifier. */
     KeptConversation: {
       /** @constant */
       type: 'sess.kept-conversation';
@@ -2241,7 +2241,7 @@ export interface components {
               status: 'preserved';
               /** @description The witness state at snapshot time (the custody witness job: `pending` until a witness attaches, then e.g. `witnessed`); the envelope carries the evidence attached by then. */
               witness: string;
-              /** @description The archival envelope (DOCS/spec/archival-core-v1.md). */
+              /** @description The archival envelope (the Sess archival-core-v1 specification). */
               archival_envelope: {
                 [key: string]: unknown;
               };

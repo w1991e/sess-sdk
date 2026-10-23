@@ -14,6 +14,7 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { assertPackedHygiene } from '../../../scripts/check-packed-hygiene.mjs';
 import { installPacked } from './lib/install-packed.mjs';
 import { connectStdio } from './lib/mcp-client.mjs';
 
@@ -78,6 +79,9 @@ assert(packed.id === `${manifest.name}@${manifest.version}`, 'npm pack identity 
 const allowed =
   /^(?:dist\/(?:internal\/)?[a-z-]+\.(?:js|d\.ts)|README\.md|CHANGELOG\.md|LICENSE|NOTICE|compatibility\.json|package\.json)$/;
 for (const file of packed.files) assert(allowed.test(file.path), `unexpected tarball file: ${file.path}`);
+// Hygiene of the exact packed bytes: no maps, fixtures, non-public hosts, credential-shaped
+// strings or internal references (repository root scripts/check-packed-hygiene.mjs).
+assertPackedHygiene(tarball);
 for (const required of [
   'dist/bin.js',
   'dist/server.js',
@@ -332,6 +336,7 @@ process.stdout.write(JSON.stringify({
     tools: tools.map((t) => t.name),
     checks: [
       'tarball allowlist and no lifecycle hooks',
+      'packed hygiene: no maps, fixtures, non-public hosts, credential shapes or internal references',
       `offline --ignore-scripts install of packed adapter + ${install.sdkMode} SDK`,
       'no import-time network/timers/output/file reads/SESS env reads',
       'installed bin initialize + tools/list via official MCP client',

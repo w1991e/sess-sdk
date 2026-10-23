@@ -5,8 +5,9 @@
 //   node create-agent/scripts/release-guard.mjs prepare   tag/version/identity, the template's SDK
 //                                                         pin is published, master ancestry, clean
 //                                                         tree; writes version and dist-tag outputs
-//   node create-agent/scripts/release-guard.mjs pack      packs once into create-agent/.artifacts and
-//                                                         records the tested bytes
+//   node create-agent/scripts/release-guard.mjs pack      packs once into create-agent/.artifacts,
+//                                                         checks packed hygiene and records the
+//                                                         tested bytes
 //   node create-agent/scripts/release-guard.mjs exercised the clean-install check passed on exactly
 //                                                         the packed candidate's bytes
 //   node create-agent/scripts/release-guard.mjs artifact  the downloaded artifact is the tested one
@@ -17,6 +18,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, write
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { checkTarball, formatFinding } from '../../scripts/check-packed-hygiene.mjs';
 
 export const REPOSITORY = 'w1991e/sess-sdk';
 export const PACKAGE = '@sess.si/create-agent';
@@ -204,6 +206,9 @@ async function main() {
     );
     if (rest.length) refuse('npm pack produced more than one package');
     checkPackEntry({ entry, version: manifest.version });
+    // No maps, fixtures, non-public hosts, credential-shaped strings or internal references.
+    const { findings } = checkTarball(join(dir, entry.filename));
+    if (findings.length) refuse(`packed hygiene:\n  ${findings.map(formatFinding).join('\n  ')}`);
     const bytes = readFileSync(join(dir, entry.filename));
     const sha256 = createHash('sha256').update(bytes).digest('hex');
     const integrity = `sha512-${createHash('sha512').update(bytes).digest('base64')}`;

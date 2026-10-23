@@ -36,6 +36,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { assertPackedHygiene } from '../../scripts/check-packed-hygiene.mjs';
 
 const BUDGET_MS = 60_000;
 const PUBLIC_REGISTRY = 'https://registry.npmjs.org/';
@@ -105,6 +106,8 @@ try {
     console.log('exercising the given release candidate (no repack)');
   }
   const exercisedSha256 = createHash('sha256').update(readFileSync(tarball)).digest('hex');
+  // No maps, fixtures, non-public hosts, credential-shaped strings or internal references.
+  console.log(`packed hygiene: ${assertPackedHygiene(tarball)} files clean`);
 
   // --- 2. npm create -> npm install -> npm start, timed. ---
   const project = join(work, 'project');

@@ -205,7 +205,7 @@
     "Tool enablement guidance uses tools.alsoAllow (additive) rather than tools.allow (restrictive)"
   ],
   "contract": {
-    "source": "adapters/CONTRACT.md (convergence, sess-sdk PR #10)",
+    "source": "adapters/CONTRACT.md (the shared adapter contract in the sess-sdk repository)",
     "sharedCore": "src/internal/shared.ts, byte-identical to adapters/shared/core.ts (tested)",
     "errorClasses": "README.md Errors table (tested)",
     "answerRelease": "After receipt verification, an authenticated current-revision read precedes any answer release; failed read -> unavailable; progress -> blocked; concurrent local change -> conflict; no answer data released (review R-01, tests/unit/r01-r02.test.ts).",
@@ -218,15 +218,15 @@
       "adapter": "@sess.si/openclaw 0.1.0-rc.1 packed from sess-sdk 3dbd7fd239a9a91c9e7b97b55d99dd1e413e8d2b, sha256 ddfd1374acc93bc37da00dbcb5bca3517f02306b142d5bc0f0b8db8ccb9f7f73",
       "sdk": "@sess.si/sdk 0.1.0-rc.3 CANDIDATE bytes, sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502 (rc.4, the first planned publication, sha256 ccdc01216bdff99f5ac07ef1a7d0bd47134984869071fc2b2792401f3641fb2c, was packed from the pin and compared file by file: dist/ (72 files) and src/ are byte-identical; only CHANGELOG.md, NOTICE, README.md and package.json differ, and package.json differs only in version and the check/check:pin/pin:update scripts; dependencies identical)",
       "host": "openclaw@2026.10.3 (59cb447), integrity sha512-ncl6LntMlf76K39LFhVrDXQTbaGNAG5j52f7PL5P8vIn0knWmCrvfAe9DHMslFq+47HeOWBH2CBYQH8zEb+UAA==",
-      "runtime": "isolated local SESS runtime from sess e63d007485d225e9038b51452b4167de7921e6a0 (port 18082, synthetic keys, disposable Postgres 16.15)",
-      "knownIssue": "FIXED by sess-sdk #27 (setup preview reads the authored config snapshot the apply mutates; asserted by check-package --host). At the time of this run the preview omitted plugins.entries.sess.enabled when the authored value was unset (apply still wrote it); the plugin was re-enabled with `openclaw plugins enable sess` after setup had already been applied"
+      "runtime": "isolated local SESS runtime (synthetic keys, disposable Postgres 16.15)",
+      "knownIssue": "Since fixed (setup preview reads the authored config snapshot the apply mutates; asserted by check-package --host). At the time of this run the preview omitted plugins.entries.sess.enabled when the authored value was unset (apply still wrote it); the plugin was re-enabled with `openclaw plugins enable sess` after setup had already been applied"
     },
     "model": {
       "requested": "anthropic/claude-sonnet-5-5",
       "used": "anthropic/claude-sonnet-5-5 (host receipt: requested = effective = responseModel claude-sonnet-5-5; not rerouted)",
       "availability": "listed in the host catalog without credentials; available=true with credentials (catalog read, no inference)",
       "thinking": "low",
-      "credential": "API key from the macOS Keychain placed only in the throwaway gateway process environment; never printed or persisted"
+      "credential": "API key placed only in the throwaway gateway process environment; never printed or persisted"
     },
     "profile": "disposable OpenClaw profile; dashboard conversations (Control UI / webchat surface) created with sessions.create; turns run with `openclaw agent --session-key` through the Gateway; cron, heartbeat, utility model, memory-core and bonjour disabled so only explicit turns call the model",
     "hostToolMode": "Code Mode: the model reaches plugin tools through the host's catalog bridge (exec + catalog.search), not as direct tools; long tool calls yield and the model awaits them with the host `wait` tool",
@@ -323,8 +323,7 @@
       "estimatedUsd": 0.2583,
       "estimateMethod": "tokens x published prices from the qualified host's documentation (openclaw 2026.10.3 docs/providers/anthropic.md, citing Anthropic's Sonnet 5.5 specification): $2/M input, $10/M output, $0.20/M cache read, $2.50/M five-minute cache write",
       "hostReportedUsd": 0.2583051,
-      "hostReportedSource": "openclaw gateway usage-cost (host-computed from session logs; equals the per-turn agentMeta cost totals)",
-      "providerReportedCharges": "to be read from the Anthropic console by the owner"
+      "hostReportedSource": "openclaw gateway usage-cost (host-computed from session logs; equals the per-turn agentMeta cost totals)"
     }
   }
 }

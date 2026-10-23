@@ -20,6 +20,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { checkTarball, formatFinding } from '../../../scripts/check-packed-hygiene.mjs';
 import { SDK_PIN, sdkDrift } from './registry-sdk.mjs';
 
 const args = process.argv.slice(2);
@@ -123,6 +124,15 @@ assert(
   'packed content references runtime or MCP sources',
 );
 pass('pack-allowlist', { files: files.length });
+
+// Hygiene of the exact packed bytes: no maps, fixtures, non-public hosts, credential-shaped
+// strings or internal references (repository root scripts/check-packed-hygiene.mjs).
+const hygiene = checkTarball(tarball);
+assert(
+  hygiene.findings.length === 0,
+  `packed hygiene:\n  ${hygiene.findings.map(formatFinding).join('\n  ')}`,
+);
+pass('packed-hygiene', { files: hygiene.files });
 
 // No import leaves the package: compiled modules may import only relative files inside dist/,
 // node: built-ins, the SDK dependency and the one public host entry subpath (no sibling adapter,

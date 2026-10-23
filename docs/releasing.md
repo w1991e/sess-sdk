@@ -19,7 +19,7 @@ or if any consumer (adapter dependency, lockfile entry and integrity, MCP compat
 quickstart dependency, `create-agent` starter template dependency) disagrees with it.
 
 Changing a packed file (for example `NOTICE`, `LICENSE`, `README.md`, `CHANGELOG.md`, `package.json`
-or `src/`) therefore requires a deliberate repin:
+or `dist/`, the build of `src/`) therefore requires a deliberate repin:
 
 ```sh
 npm run pin:update   # build + pack the root, rewrite release/sdk-candidate.json and every consumer

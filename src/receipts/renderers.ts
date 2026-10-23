@@ -3,7 +3,7 @@
 // with the issuer's trusted receipt keys, so a future Sess page change needs no SDK update.
 //
 // The issuer publishes the list at `<issuer>/.well-known/sess-renderer-identities.json`
-// (DOCS/spec/receipt-v1.md §10): one JWS in the RFC 7515 flattened JSON serialization
+// (receipt-v1 §10, docs/spec/receipt-v1.md in this repository): one JWS in the RFC 7515 flattened JSON serialization
 // {"protected", "payload", "signature"}, protected header {"alg": "EdDSA", "kid",
 // "typ": "sess-renderer-identities+jwt"}, payload the RFC 8785 canonical JSON
 // {"iat", "identities": [{"renderer_version", "since"}, …], "iss", "seq",

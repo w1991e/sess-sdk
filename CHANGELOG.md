@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- The package ships compiled output only: no source maps (`*.js.map`, `*.d.ts.map`) or
+  `sourceMappingURL` comments, and no `src/` TypeScript sources (every export and types path is in
+  `dist/`). The generated wire types' JSDoc names Sess specifications instead of runtime-repository
+  document paths. Every published package's packed bytes now pass a hygiene check (no maps,
+  fixtures, non-public hosts, credential-shaped strings or internal references).
+
 ## 0.1.0-rc.8 — 2026-10-22 (prepared, unpublished)
 
 - Link timing (Decision 0009 Amendment 10). On an interactive Sess link of 20 hours or less the
@@ -15,8 +23,7 @@
   revocation, a later read at least the grace after the first expired read; a short `intervalMs`
   reads again sooner but never ends the wait inside the grace). A live read never ends the wait. Without `link_state` the
   deadline stays final, as in rc.7.
-- Contract snapshot from Sess runtime commit `2f8500e` (w1991e/sess master, PR #431's merge commit;
-  see `contract/contract-lock.json`). Besides link timing it carries what Sess master already
+- Contract snapshot from Sess runtime commit `2f8500e` (see `contract/contract-lock.json`). Besides link timing it carries what Sess master already
   describes: the interactive text limits with `field`, `limit` and `length` on a length error,
   `progress`, the receipt `format` and the renderer identities list. The generated wire types gain
   them; the SDK's public types and behavior in this change are link timing only.
@@ -44,7 +51,7 @@
   `--issuer`; a list that does not verify exits 2), the bundle's renderer identity must be known
   or listed (otherwise invalid, exit 1). Without it, bundle verification is unchanged.
 - The receipt-v1 specification copy is from Sess commit `a60ca69` (§10, renderer identities with
-  `seq` and `iat`; Sess PR #444's merge commit).
+  `seq` and `iat`).
 - Sess's length limits, in Unicode code points and never truncated: title 80, description 280,
   heading 60, field and option labels 60, field description 160, action label 24, record caption
   200, record key 40 and string value 200, text 4,000; at most 5 actions. The types' JSDoc gives each field its

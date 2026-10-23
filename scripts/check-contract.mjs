@@ -13,7 +13,12 @@ if (digest !== lock.snapshot_sha256 || gitBlob !== lock.source_git_blob_sha1)
 const version = JSON.parse(await readFile('node_modules/openapi-typescript/package.json', 'utf8')).version;
 if (version !== lock.generator_version) throw new Error('Contract generator version drift.');
 const config = await prettier.resolveConfig('src/generated/openapi.ts');
-const generated = await prettier.format(astToString(await openapiTS(JSON.parse(bytes))), {
+// The snapshot's descriptions cite the runtime repository's internal document paths
+// (DOCS/spec/<name>.md). The generated JSDoc ships in the package's .d.ts, so it names the
+// specification instead (scripts/check-packed-hygiene.mjs refuses internal paths). Types are unchanged.
+const publicDescriptions = (text) =>
+  text.replace(/DOCS\/spec\/([a-z0-9-]+)\.md/g, 'the Sess $1 specification');
+const generated = await prettier.format(publicDescriptions(astToString(await openapiTS(JSON.parse(bytes)))), {
   ...config,
   parser: 'typescript',
 });

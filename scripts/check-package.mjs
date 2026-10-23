@@ -3,9 +3,10 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
+import { assertPackedHygiene } from './check-packed-hygiene.mjs';
 import { readmeExamples } from './readme-examples.mjs';
 
 const root = process.cwd();
@@ -72,12 +73,17 @@ for (const required of ['README.md', 'LICENSE', 'NOTICE', 'CHANGELOG.md', 'packa
   if (!packed.files.some((file) => file.path === required))
     throw new Error(`Missing required package file: ${required}`);
 }
+// Compiled output only: no TypeScript sources (every export and types path is in dist/) and no maps.
 for (const file of packed.files) {
-  if (!/^(?:dist\/|src\/|README\.md$|LICENSE$|NOTICE$|CHANGELOG\.md$|package\.json$)/.test(file.path))
+  if (!/^(?:dist\/|README\.md$|LICENSE$|NOTICE$|CHANGELOG\.md$|package\.json$)/.test(file.path))
     throw new Error(`Unexpected tarball file: ${file.path}`);
+  if (/\.map$/.test(file.path)) throw new Error(`Source map in package: ${file.path}`);
   if (/(?:^|\/)(?:\.env|node_modules|tests|\.git|checkpoints)(?:\/|\.|$)/.test(file.path))
     throw new Error('Private or development content in package.');
 }
+// Hygiene of the exact packed bytes: no maps, fixtures, non-public hosts, credential-shaped
+// strings or internal references (scripts/check-packed-hygiene.mjs).
+assertPackedHygiene(tarball);
 for (const entry of Object.values(manifest.exports)) {
   if (
     !packed.files.some((f) => `./${f.path}` === entry.import) ||
@@ -134,14 +140,6 @@ try {
   const installedManifest = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'));
   if (installedManifest.name !== manifest.name || installedManifest.version !== manifest.version)
     throw new Error('Installed tarball identity drift.');
-  const files = new Set(packed.files.map((f) => resolve(installed, f.path)));
-  for (const file of packed.files.filter((f) => f.path.endsWith('.map'))) {
-    const map = JSON.parse(await readFile(join(installed, file.path), 'utf8'));
-    for (const source of map.sources) {
-      if (!files.has(resolve(dirname(join(installed, file.path)), map.sourceRoot ?? '', source)))
-        throw new Error('Source map points outside included public source.');
-    }
-  }
   await writeFile(
     join(consumer, 'smoke.mjs'),
     `
@@ -349,7 +347,7 @@ if (typeof verifyDecisionReceipt !== 'function' || typeof verifyWebhook !== 'fun
       'no former-name alias',
       'TypeScript 5.9.3 and 7.0.2',
       'Node server bundle',
-      'included source maps',
+      'packed hygiene: no maps, fixtures, non-public hosts, credential shapes or internal references',
       'no import/constructor network/timers/output',
       'sess executable linked, usage and exit status',
       'README first block (sess.ask) from the packed README against a synthetic runtime',
