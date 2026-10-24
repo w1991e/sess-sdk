@@ -199,6 +199,27 @@ function sessLength(error: unknown): LengthDetail | undefined {
     : undefined;
 }
 
+/** The fixed text of a plan refusal; Sess's own message (owner wording and a URL) is never relayed. */
+const PLAN_LIMIT_MESSAGE =
+  'Sess did not create the interaction: the workspace has reached a limit of its plan. Nothing was created.';
+
+/**
+ * A create that Sess refused with 429 PLAN_LIMIT_REACHED: a definite refusal, nothing created.
+ * An SDK with the plan limit in its rejection table reports it as `rejected`; an earlier SDK
+ * (0.1.0-rc.8, the current pin) reports it as `unknown_outcome`, but a create is attempted exactly
+ * once, so its single coded 429 answer is the whole outcome. A plain rate limit (no code or
+ * RATE_LIMITED) and any other status stay uncertain.
+ */
+function planLimitRefusal(error: unknown): boolean {
+  return (
+    error instanceof SessError &&
+    error.code === 'PLAN_LIMIT_REACHED' &&
+    error.status === 429 &&
+    error.getRecoveryResult() === undefined &&
+    (error.outcome === 'rejected' || (error.outcome === 'unknown' && error.attempts === 1))
+  );
+}
+
 function sessCode(error: unknown): string {
   if (error instanceof SessError) return `${error.kind}${safeCode(error) ? `/${safeCode(error)}` : ''}`;
   return 'unexpected';
@@ -343,6 +364,12 @@ export class SessMcpAdapter {
       // No abort signal: cancelling an in-flight create would only make its outcome unknown.
       created = await client.sessions.create(body as unknown as CreateSessionRequest);
     } catch (error) {
+      if (planLimitRefusal(error)) {
+        // A definite refusal: nothing was created, so nothing is kept and nothing is uncertain.
+        await store.discard(record.handle);
+        this.#options.diagnostics('create_rejected', { code: sessCode(error) });
+        throw new AdapterError('PLAN_LIMIT_REACHED', PLAN_LIMIT_MESSAGE);
+      }
       if (error instanceof SessError && (error.outcome === 'not_sent' || error.outcome === 'rejected')) {
         await store.discard(record.handle);
         this.#options.diagnostics('create_rejected', { code: sessCode(error) });

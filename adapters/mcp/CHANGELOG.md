@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- A create that Sess refuses under the workspace's plan (HTTP 429 `PLAN_LIMIT_REACHED`) is now a
+  definite refusal: `sess_request` and `sess_ask` return the tool error `PLAN_LIMIT_REACHED`
+  (class `create_rejected`, `retryable: false`) with a fixed message, and keep no record. Before,
+  it was reported as `CREATE_OUTCOME_UNKNOWN` ("a Session may exist") and kept as
+  `create_unknown`, though nothing had been created. Sess's own message and its link are not
+  relayed. A plain rate limit (429 without that code) is still an unknown create outcome.
+
 ## 0.1.0-rc.3 (candidate, unpublished)
 
 - Depends on `@sess.si/sdk` 0.1.0-rc.8 (was 0.1.0-rc.7), resolved from the registry (sha256

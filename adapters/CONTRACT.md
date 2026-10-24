@@ -101,6 +101,12 @@ observation reports a conflict.
   before dispatch, the adapter cannot write under that revoked authority, so the intent stays
   `create_intent` and a redelivery reports create-outcome-unknown. This is the conservative
   direction; nothing is ever created twice.
+- HTTP 429 `PLAN_LIMIT_REACHED` is Sess refusing the create under the workspace's plan: no Session
+  exists. It is a `create_rejected` with its own stable code `PLAN_LIMIT_REACHED`, not retryable,
+  and a fixed message that states only the limit (Sess's owner text and its link are not relayed).
+  An SDK that predates this rejection reports it as `unknown_outcome`; a create is attempted
+  exactly once, so a single-attempt coded 429 is still that refusal. A 429 without that code (a
+  rate limit, `RATE_LIMITED` or none) remains `create_unknown`.
 - Any other failure is `create_unknown`, unless the original create call's error yields a validated
   `SessError.getRecoveryResult()` body, which is a confirmed create (the adapter still reports the
   protocol defect). A later call cannot resolve `create_unknown`.

@@ -1,10 +1,21 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { SessError } from '@sess.si/sdk';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AdapterError } from '../src/errors.js';
-import type { SessMcpAdapter } from '../src/operations.js';
+import { SessMcpAdapter } from '../src/operations.js';
 import { parseRequestArgs } from '../src/validate.js';
-import { ANSWER_1, FakeSess, ROUND_1, ROUND_2, acceptingVerifier, adapterWith, tempDir } from './helpers.js';
+import {
+  ANSWER_1,
+  FakeSess,
+  ROUND_1,
+  ROUND_2,
+  acceptingVerifier,
+  adapterWith,
+  clientFor,
+  env,
+  tempDir,
+} from './helpers.js';
 
 let dir: ReturnType<typeof tempDir>;
 beforeEach(() => {
@@ -83,6 +94,80 @@ describe('sess_request', () => {
       'CREATE_OUTCOME_UNKNOWN',
     );
     expect(records()[0]!.state).toBe('create_unknown');
+  });
+
+  it('reports a plan-limit refusal as PLAN_LIMIT_REACHED and keeps no record', async () => {
+    const fake = new FakeSess();
+    fake.createFailure = 'plan_limit';
+    const lines: string[] = [];
+    const adapter = adapterWith(dir.path, fake, { lines });
+    const error = await adapter.request(request()).then(
+      () => {
+        throw new Error('expected an AdapterError');
+      },
+      (e: unknown) => e as AdapterError,
+    );
+    expect(error).toBeInstanceOf(AdapterError);
+    expect(error.toJSON()).toEqual({
+      code: 'PLAN_LIMIT_REACHED',
+      message:
+        'Sess did not create the interaction: the workspace has reached a limit of its plan. Nothing was created.',
+      retryable: false,
+    });
+    expect(fake.calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+    expect(records()).toHaveLength(0);
+    expect(lines.some((l) => l.startsWith('create_unknown'))).toBe(false);
+    expect(lines.some((l) => l.startsWith('create_rejected') && l.includes('PLAN_LIMIT_REACHED'))).toBe(true);
+  });
+
+  it('keeps a rate-limited create (429 RATE_LIMITED) an unknown outcome, as before', async () => {
+    const fake = new FakeSess();
+    fake.createFailure = 'rate_limit';
+    const adapter = adapterWith(dir.path, fake);
+    expect(await code(adapter.request(request()))).toBe('CREATE_OUTCOME_UNKNOWN');
+    expect(fake.calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+    expect(records()[0]!.state).toBe('create_unknown');
+  });
+
+  it.each([
+    [
+      'an SDK that reports it rejected',
+      { kind: 'api', outcome: 'rejected', attempts: 1 },
+      'PLAN_LIMIT_REACHED',
+    ],
+    [
+      'a single unknown attempt',
+      { kind: 'unknown_outcome', outcome: 'unknown', attempts: 1 },
+      'PLAN_LIMIT_REACHED',
+    ],
+    [
+      'an unknown outcome after more than one attempt',
+      { kind: 'unknown_outcome', outcome: 'unknown', attempts: 2 },
+      'CREATE_OUTCOME_UNKNOWN',
+    ],
+  ] as const)('a 429 PLAN_LIMIT_REACHED from %s maps to %s', async (_label, shape, expected) => {
+    const fake = new FakeSess();
+    const real = clientFor(fake);
+    const adapter = new SessMcpAdapter({
+      env: env(dir.path),
+      diagnostics: () => {},
+      createClient: (config) => {
+        const client = real(config);
+        const create = async () => {
+          throw new SessError(shape.kind, 'Sess refused the request.', {
+            code: 'PLAN_LIMIT_REACHED',
+            reason: 'active_sessions',
+            status: 429,
+            outcome: shape.outcome,
+            attempts: shape.attempts,
+          });
+        };
+        return { ...client, sessions: Object.assign(Object.create(client.sessions), { create }) };
+      },
+    });
+    expect(await code(adapter.request(request()))).toBe(expected);
+    if (expected === 'PLAN_LIMIT_REACHED') expect(records()).toHaveLength(0);
+    else expect(records()[0]!.state).toBe('create_unknown');
   });
 
   it('discards the intent of an authoritatively rejected create', async () => {

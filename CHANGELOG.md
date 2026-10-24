@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- A plan limit is a refusal, not an uncertain outcome. Sess answers a create over the workspace's
+  plan with HTTP 429 `PLAN_LIMIT_REACHED`, and nothing is created. The SDK now reports it as
+  `kind: 'api'`, `outcome: 'rejected'`, with `code`, `reason` (`monthly_allowance` or
+  `active_sessions`), `status: 429` and, for `monthly_allowance`, `retryAfterMs` from
+  `Retry-After` (time until the period resets); it is never retried. Before, it was
+  `unknown_outcome` ("may have succeeded"). Any other 429 (no code, or `RATE_LIMITED`) is unchanged:
+  transient, retried where retries are allowed, and uncertain for a write.
 - The package ships compiled output only: no source maps (`*.js.map`, `*.d.ts.map`) or
   `sourceMappingURL` comments, and no `src/` TypeScript sources (every export and types path is in
   `dist/`). The generated wire types' JSDoc names Sess specifications instead of runtime-repository

@@ -144,6 +144,7 @@ one class of the shared adapter contract:
 | `NOT_FOUND`                | `not_found`           | No interaction with this handle belongs to this conversation           |
 | `STATE_CONFLICT`           | `conflict`            | Wrong revision/answer, a pending or different mutation, or a lost race |
 | `CREATE_REJECTED`          | `create_rejected`     | No Session was created; do not retry unchanged                         |
+| `PLAN_LIMIT_REACHED`       | `create_rejected`     | No Session was created: the workspace reached a limit of its plan      |
 | `CREATE_OUTCOME_UNKNOWN`   | `create_unknown`      | A Session may exist; never created again automatically                 |
 | `CREATED_NOT_SAVED`        | `created_not_saved`   | A Session was created but not saved locally; do not repeat the request |
 | `MUTATION_OUTCOME_UNKNOWN` | `outcome_unknown`     | Retryable: repeat the same call to replay the saved request            |

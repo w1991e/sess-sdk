@@ -64,6 +64,8 @@ async function owned(deps: InvocationDeps, handle: string): Promise<RecoveryReco
     );
   if (record.state === 'blocked' && record.blockedReason === 'create_not_created')
     fail('CREATE_REJECTED', 'No Session was created for this request; it is closed and nothing was sent.');
+  if (record.state === 'blocked' && record.blockedReason === 'plan_limit_reached')
+    fail('PLAN_LIMIT_REACHED', PLAN_LIMIT_MESSAGE);
   if (record.state === 'blocked')
     fail('RECOVERY_BLOCKED', 'This interaction is blocked and needs explicit operator resolution.');
   if (record.state === 'create_intent' || record.state === 'create_unknown')
@@ -108,6 +110,27 @@ const LINK_NOTE =
 
 function asSessError(error: unknown): SessError | undefined {
   return error instanceof SessError ? error : undefined;
+}
+
+/** The fixed text of a plan refusal; Sess's own message (owner wording and a URL) is never relayed. */
+const PLAN_LIMIT_MESSAGE =
+  'Sess did not create the Session: the workspace has reached a limit of its plan. Nothing was created.';
+
+/**
+ * A create that Sess refused with 429 PLAN_LIMIT_REACHED: a definite refusal, nothing created.
+ * An SDK with the plan limit in its rejection table reports it as `rejected`; an earlier SDK
+ * (0.1.0-rc.8, the current pin) reports it as `unknown_outcome`, but a create is attempted exactly
+ * once, so its single coded 429 answer is the whole outcome. A plain rate limit (no code or
+ * RATE_LIMITED) and any other status stay uncertain.
+ */
+function planLimitRefusal(error: SessError | undefined): boolean {
+  return (
+    error !== undefined &&
+    error.code === 'PLAN_LIMIT_REACHED' &&
+    error.status === 429 &&
+    error.getRecoveryResult() === undefined &&
+    (error.outcome === 'rejected' || (error.outcome === 'unknown' && error.attempts === 1))
+  );
 }
 
 /**
@@ -236,6 +259,11 @@ export async function sessRequest(deps: InvocationDeps, args: RequestArgs): Prom
     ).data;
   } catch (error) {
     const sessError = asSessError(error);
+    if (planLimitRefusal(sessError)) {
+      // Remembered so a redelivery of this host call reports the same refusal and sends nothing.
+      await block(deps, record, 'plan_limit_reached').catch(() => undefined);
+      fail('PLAN_LIMIT_REACHED', PLAN_LIMIT_MESSAGE);
+    }
     const neverSent = deps.client.dispatched() === 0 && deps.client.refused();
     const notCreated = neverSent || sessError?.outcome === 'not_sent' || sessError?.outcome === 'rejected';
     if (notCreated) {

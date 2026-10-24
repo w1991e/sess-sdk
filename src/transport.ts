@@ -36,6 +36,9 @@ const rejections: Record<number, readonly string[]> = {
   413: ['PAYLOAD_TOO_LARGE'],
   422: ['VALIDATION_FAILED', 'WEBHOOK_VERIFICATION_FAILED'],
   428: ['PRECONDITION_REQUIRED'],
+  // A plan limit refuses the create before anything is written: nothing is created. It is not a
+  // rate limit; a plain 429 (no code, or RATE_LIMITED) stays transient and its outcome uncertain.
+  429: ['PLAN_LIMIT_REACHED'],
 };
 
 function credential(value: unknown): string {
@@ -403,7 +406,8 @@ export class Transport {
             const reason = safeText(remote.reason, /^[a-z_]{1,40}$/, key);
             const remoteId = safeText(remote.request_id, /^[A-Za-z0-9._:-]{1,128}$/, key, true) ?? requestId;
             const rejected = code !== undefined && rejections[response.status]?.includes(code);
-            retryable = transientStatuses.has(response.status);
+            // A definite coded refusal is final: repeating it cannot succeed, so it is never retried.
+            retryable = transientStatuses.has(response.status) && !rejected;
             const length = lengthDetail(remote, code, key);
             const message =
               length.field !== undefined

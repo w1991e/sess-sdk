@@ -190,6 +190,11 @@ Authorized/public-key GETs and keyed publish/complete can retry transport failur
 Retry-After. If the delay cannot fit, the operation ends with timing metadata instead of sending
 early. Invalid success schemas, 409/412 and other authoritative client errors are not retried.
 
+A 429 with code `PLAN_LIMIT_REACHED` is not a rate limit: Sess refused the create under the
+workspace's plan and created nothing. It is `outcome: 'rejected'`, never retried, with `reason`
+(`monthly_allowance` or `active_sessions`) and, for `monthly_allowance`, `retryAfterMs` until the
+period resets. Any other 429 is transient as above.
+
 `SessError.kind` is `configuration`, `api`, `transport`, `timeout`, `aborted`, `protocol`,
 `unknown_outcome`, `receipt_verification` or `wait_ended`. Inspect fields rather than parsing messages.
 A 400 `INVALID_SCHEMA` for a value over its length limit also keeps `field`, `limit` and `length`

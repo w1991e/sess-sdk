@@ -96,6 +96,74 @@ describe('Create outcomes', () => {
     ).rejects.toThrow(/^CREATE_REJECTED: /);
     expect(sess.requests.length).toBe(before);
   });
+
+  const PLAN_LIMIT =
+    'PLAN_LIMIT_REACHED: Sess did not create the Session: the workspace has reached a limit of its plan. Nothing was created.';
+  const interactionRows = (host: Awaited<ReturnType<typeof registerPlugin>>) =>
+    [...host.store.rows.entries(), ...host.archive.rows.entries()]
+      .filter(([key]) => key.startsWith('i:'))
+      .map(([, raw]) => JSON.parse(raw));
+
+  it('a plan-limit refusal (429 PLAN_LIMIT_REACHED) is a definite create_rejected, never create_unknown', async () => {
+    const host = await registerPlugin();
+    const conv = conversation();
+    sess.intercept = (method, path) =>
+      method === 'POST' && path === '/v1/sessions'
+        ? new Response(
+            JSON.stringify({
+              error: {
+                code: 'PLAN_LIMIT_REACHED',
+                reason: 'monthly_allowance',
+                request_id: 'req_1',
+                message: 'Owner text. To raise the limit, see Usage: https://sess.si/app/usage',
+              },
+            }),
+            { status: 429, headers: { 'content-type': 'application/json', 'retry-after': '3600' } },
+          )
+        : undefined;
+    const error = await call(
+      host,
+      'sess_request',
+      conv,
+      { interaction: round1() },
+      { toolCallId: 'p' },
+    ).catch((e) => e);
+    expect(error.code).toBe('PLAN_LIMIT_REACHED');
+    expect(error.errorClass).toBe('create_rejected');
+    expect(error.message).toBe(PLAN_LIMIT);
+    expect(error.message).not.toContain('sess.si');
+    expect(sess.requests.filter((r) => r.path === '/v1/sessions')).toHaveLength(1);
+    expect(interactionRows(host).map((r) => [r.state, r.blockedReason])).toEqual([
+      ['blocked', 'plan_limit_reached'],
+    ]);
+    // A redelivery of the same host call reports the same refusal and sends nothing.
+    const before = sess.requests.length;
+    const again = await call(
+      host,
+      'sess_request',
+      conv,
+      { interaction: round1() },
+      { toolCallId: 'p' },
+    ).catch((e) => e);
+    expect(again.message).toBe(PLAN_LIMIT);
+    expect(sess.requests.length).toBe(before);
+  });
+
+  it('a rate-limited create (429 RATE_LIMITED) stays create_unknown, as before', async () => {
+    const host = await registerPlugin();
+    sess.intercept = (method, path) =>
+      method === 'POST' && path === '/v1/sessions'
+        ? new Response('{"error":{"code":"RATE_LIMITED","message":"slow down"}}', {
+            status: 429,
+            headers: { 'content-type': 'application/json' },
+          })
+        : undefined;
+    await expect(call(host, 'sess_request', conversation(), { interaction: round1() })).rejects.toThrow(
+      /^CREATE_OUTCOME_UNKNOWN: /,
+    );
+    expect(sess.requests.filter((r) => r.path === '/v1/sessions')).toHaveLength(1);
+    expect(interactionRows(host).map((r) => r.state)).toEqual(['create_unknown']);
+  });
 });
 
 describe('Response outcomes', () => {

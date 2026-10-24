@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
@@ -95,6 +95,53 @@ describe('MCP server', () => {
     expect(JSON.parse((bad.content as any)[0].text).error.code).toBe('INVALID_ARGUMENTS');
     await expect(client.callTool({ name: 'sess_unknown', arguments: {} })).rejects.toThrow();
   });
+
+  it.each(['sess_request', 'sess_ask'] as const)(
+    '%s refused by a plan limit is a definite, non-retryable PLAN_LIMIT_REACHED tool error',
+    async (tool) => {
+      const fake = new FakeSess();
+      fake.createFailure = 'plan_limit';
+      const { client, lines } = await connect(fake);
+      const result = await client.callTool({
+        name: tool,
+        arguments:
+          tool === 'sess_request'
+            ? { interaction: ROUND_1 }
+            : {
+                question: 'Plan an afternoon',
+                fields: [
+                  {
+                    name: 'hours',
+                    label: 'Hours available',
+                    type: 'integer',
+                    minimum: 1,
+                    maximum: 6,
+                    default: 2,
+                  },
+                ],
+              },
+      });
+      expect(result.isError).toBe(true);
+      const text = (result.content as any)[0].text as string;
+      expect(JSON.parse(text)).toEqual({
+        error: {
+          code: 'PLAN_LIMIT_REACHED',
+          message:
+            'Sess did not create the interaction: the workspace has reached a limit of its plan. Nothing was created.',
+          retryable: false,
+        },
+      });
+      // Sess's owner text and its URL are not relayed; nothing is kept as an unknown create.
+      expect(text).not.toContain('sess.si');
+      expect(text).not.toContain('Usage');
+      expect(fake.calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+      expect(lines.join('')).toContain('sess-mcp: create_rejected');
+      expect(lines.join('')).not.toContain('create_unknown');
+      expect(
+        readdirSync(join(dir.path, 'profiles', 'default', 'handles')).filter((n) => n.endsWith('.json')),
+      ).toEqual([]);
+    },
+  );
 
   it('MCP request cancellation ends sess_response as needs_resume without touching the Session', async () => {
     const fake = new FakeSess();

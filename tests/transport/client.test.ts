@@ -145,6 +145,69 @@ describe('single attempt create and secret-safe failure', () => {
     const init = (fetch.mock.calls as unknown as [unknown, RequestInit][])[0]?.[1];
     expect(new Headers(init?.headers).has('idempotency-key')).toBe(false);
   });
+  it('reports a 429 PLAN_LIMIT_REACHED create as a definite refusal with its reason and Retry-After', async () => {
+    const fetch = vi.fn(async () =>
+      json(
+        {
+          error: {
+            code: 'PLAN_LIMIT_REACHED',
+            reason: 'monthly_allowance',
+            request_id: 'request-123',
+            message: 'remote upgrade text https://sess.si/usage must not be shown',
+          },
+        },
+        429,
+        { 'retry-after': '3600' },
+      ),
+    );
+    const error = await client(fetch, { maxRetries: 10 })
+      .sessions.create({ interaction: INTERACTION })
+      .then(
+        () => {
+          throw new Error('Expected rejection');
+        },
+        (error: unknown) => {
+          if (!(error instanceof SessError)) throw error;
+          return error;
+        },
+      );
+    expect(error).toMatchObject({
+      kind: 'api',
+      code: 'PLAN_LIMIT_REACHED',
+      reason: 'monthly_allowance',
+      status: 429,
+      requestId: 'request-123',
+      retryAfterMs: 3_600_000,
+      outcome: 'rejected',
+      attempts: 1,
+    });
+    expect(error.getRecoveryResult()).toBeUndefined();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(error)).not.toContain('upgrade');
+    expect(inspect(error)).not.toContain('sess.si/usage');
+  });
+  it('keeps a 429 active_sessions plan limit definite without Retry-After', async () => {
+    const fetch = vi.fn(async () => apiError(429, 'PLAN_LIMIT_REACHED', { reason: 'active_sessions' }));
+    await expect(client(fetch).sessions.create({ interaction: INTERACTION })).rejects.toMatchObject({
+      kind: 'api',
+      code: 'PLAN_LIMIT_REACHED',
+      reason: 'active_sessions',
+      outcome: 'rejected',
+      retryAfterMs: undefined,
+      attempts: 1,
+    });
+  });
+  it.each([
+    ['429 RATE_LIMITED', () => apiError(429, 'RATE_LIMITED')],
+    ['429 without a code', () => new Response('', { status: 429 })],
+    ['PLAN_LIMIT_REACHED on a 503', () => apiError(503, 'PLAN_LIMIT_REACHED')],
+  ])('keeps %s uncertain on create', async (_label, reply) => {
+    const fetch = vi.fn(async () => reply());
+    await expect(
+      client(fetch, { maxRetries: 10 }).sessions.create({ interaction: INTERACTION }),
+    ).rejects.toMatchObject({ kind: 'unknown_outcome', outcome: 'unknown', attempts: 1 });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
   it('does not offer create idempotency options to JS callers', async () => {
     const fetch = vi.fn();
     await expect(
@@ -293,6 +356,46 @@ describe('request snapshots, retry identity and concurrent mutation', () => {
       'Idempotency-Key': 'persisted-key',
       Authorization: `Bearer ${API_KEY}`,
     });
+  });
+  it('never retries a keyed mutation refused with 429 PLAN_LIMIT_REACHED', async () => {
+    const fetch = vi.fn(async () => apiError(429, 'PLAN_LIMIT_REACHED', { reason: 'active_sessions' }));
+    await expect(
+      client(fetch, { maxRetries: 10 }).sessions.publish(
+        SESSION_ID,
+        { interaction: INTERACTION },
+        { ifMatch: '"one"' },
+      ),
+    ).rejects.toMatchObject({
+      kind: 'api',
+      code: 'PLAN_LIMIT_REACHED',
+      status: 429,
+      attempts: 1,
+      outcome: 'rejected',
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    ['RATE_LIMITED', () => apiError(429, 'RATE_LIMITED')],
+    ['no code', () => new Response('', { status: 429, headers: { 'retry-after': '0' } })],
+  ])('still retries a keyed mutation after a 429 rate limit (%s)', async (_label, reply) => {
+    const fetch = vi
+      .fn()
+      .mockImplementationOnce(async () => reply())
+      .mockImplementationOnce(async () =>
+        json(session({ status: 'completed' }), 200, { etag: '"completed"' }),
+      );
+    const result = await client(fetch).sessions.complete(SESSION_ID, { ifMatch: '"one"' });
+    expect(result.meta.attempts).toBe(2);
+  });
+  it('keeps a plan limit after an uncertain earlier attempt uncertain and does not retry it', async () => {
+    const fetch = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('lost response'))
+      .mockImplementation(async () => apiError(429, 'PLAN_LIMIT_REACHED'));
+    await expect(
+      client(fetch, { maxRetries: 10 }).sessions.complete(SESSION_ID, { ifMatch: '"one"' }),
+    ).rejects.toMatchObject({ code: 'PLAN_LIMIT_REACHED', attempts: 2, outcome: 'unknown' });
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
   it.each([409, 412])('surfaces %i without rebasing', async (status) => {
     const fetch = vi.fn(async () =>

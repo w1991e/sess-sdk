@@ -59,7 +59,7 @@ export class FakeSess {
   #replays = new Map<string, { status: number; body: Json; etag: string }>();
   /** Set to make the next matching request fail at the network level after (or before) applying. */
   failNext: { method: string; pathSuffix: string; apply: boolean } | undefined;
-  createFailure: 'network' | 'reject' | undefined;
+  createFailure: 'network' | 'reject' | 'plan_limit' | 'rate_limit' | undefined;
   /** An older runtime does not return the authenticated Sess-Workspace-Id header. */
   workspaceHeader = true;
   /** Answer the next matching request with this HTTP error, without applying it. */
@@ -190,6 +190,23 @@ export class FakeSess {
       if (this.createFailure === 'network') throw new TypeError('fetch failed');
       if (this.createFailure === 'reject')
         return this.#json(400, { error: { code: 'INVALID_SCHEMA', request_id: 'req_1', message: 'x' } });
+      // Sess's plan refusal (nothing created): reason, owner text with a URL, Retry-After.
+      if (this.createFailure === 'plan_limit')
+        return this.#json(
+          429,
+          {
+            error: {
+              code: 'PLAN_LIMIT_REACHED',
+              reason: 'monthly_allowance',
+              request_id: 'req_1',
+              message: 'Owner text. To raise the limit, see Usage: https://sess.si/app/usage',
+            },
+          },
+          { 'retry-after': '3600' },
+        );
+      // A rate limit: may be transient, says nothing definite about the create.
+      if (this.createFailure === 'rate_limit')
+        return this.#json(429, { error: { code: 'RATE_LIMITED', request_id: 'req_1', message: 'x' } });
       const body = JSON.parse(String(init.body)) as Json;
       // A Session created with expires_in carries its link's expiry, as the runtime does.
       const expiry =

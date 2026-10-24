@@ -15,6 +15,7 @@ export type AdapterErrorCode =
   | 'STORE_UNAVAILABLE'
   | 'RECOVERY_BLOCKED'
   | 'CREATE_REJECTED'
+  | 'PLAN_LIMIT_REACHED'
   | 'CREATE_OUTCOME_UNKNOWN'
   | 'CREATED_NOT_SAVED'
   | 'MUTATION_OUTCOME_UNKNOWN'
@@ -46,6 +47,7 @@ export const ERROR_CLASSES: Readonly<Record<AdapterErrorCode, ErrorClass>> = Obj
   NOT_FOUND: 'not_found',
   STATE_CONFLICT: 'conflict',
   CREATE_REJECTED: 'create_rejected',
+  PLAN_LIMIT_REACHED: 'create_rejected',
   CREATE_OUTCOME_UNKNOWN: 'create_unknown',
   CREATED_NOT_SAVED: 'created_not_saved',
   MUTATION_OUTCOME_UNKNOWN: 'outcome_unknown',
