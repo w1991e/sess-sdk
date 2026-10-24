@@ -21,6 +21,10 @@ for `verifyWebhook` and incoming-message types. No wildcard/deep imports are sup
 | `expectedWorkspaceId`    | Optional independent trusted expected receipt audience                         |
 | `allowInsecureLocalhost` | `false`; explicit HTTP loopback development only                               |
 | `onRequestEvent`         | Optional redacted outcome callback; exceptions are isolated                    |
+| `userAgent`              | Optional product tokens (`my-app/1.2.0`) sent before the SDK's own User-Agent  |
+
+Every request carries `User-Agent: sess-sdk/<version> node/<version>`, with `userAgent`'s tokens
+first when set (`my-app/1.2.0 sess-sdk/<version> node/<version>`).
 
 Durations are positive integer milliseconds no greater than 2,147,483,647. Every network helper
 uses the configured transport. Keys come only from the configured API origin's public receipt-key

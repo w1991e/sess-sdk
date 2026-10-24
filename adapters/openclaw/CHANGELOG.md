@@ -3,6 +3,9 @@
 ## 0.1.0-rc.4 (candidate, unpublished)
 
 - Still depends on `@sess.si/sdk` 0.1.0-rc.8 (sha256 `b533935b…4c95`); no dependency changes.
+- Every request to Sess carries `User-Agent: sess-openclaw/0.1.0-rc.4`, set by the plugin's
+  guarded fetch (rc.8 sends no User-Agent of its own). An SDK that sends its own token keeps it
+  after this one.
 - A create that Sess refuses under the workspace's plan (HTTP 429 `PLAN_LIMIT_REACHED`) is now a
   definite refusal: `sess_request` fails with `PLAN_LIMIT_REACHED` (class `create_rejected`) and a
   fixed message, and a redelivery of the same host call reports the same and sends nothing. Before,

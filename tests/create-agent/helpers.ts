@@ -45,6 +45,8 @@ export function npm(args: string[], cwd: string): string {
 
 export interface WorldRecord {
   sess: string[];
+  /** The User-Agent header of each Sess API request, in the order of `sess`. */
+  userAgents: (string | null)[];
   unauthorized: number;
   creates: number;
   publishes: { ifMatch: string | null; key: string | null; current: string }[];

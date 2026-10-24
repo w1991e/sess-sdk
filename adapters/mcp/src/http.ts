@@ -17,6 +17,7 @@ import { UNSAFE_KEY_MESSAGE, isUnsafeToolCall } from './guard.js';
 import { SessMcpAdapter, type OperationContext, type SessClient } from './operations.js';
 import { SERVER_NAME, buildToolServer, failure } from './server.js';
 import { grantBinding, sameBinding, type GrantBinding, type HandleStore } from './store.js';
+import { userAgentFetch } from './user-agent.js';
 import { VERSION } from './version.js';
 
 export {
@@ -234,6 +235,7 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
       apiKey: scope.principal.credential,
       baseUrl: apiOrigin,
       allowInsecureLocalhost: options.allowInsecureLocalhost === true,
+      fetch: userAgentFetch(),
       // Receipts and responses must belong to the server-resolved workspace.
       expectedWorkspaceId: scope.principal.workspaceId,
       ...(options.receiptIssuer ? { receiptIssuer: options.receiptIssuer } : {}),

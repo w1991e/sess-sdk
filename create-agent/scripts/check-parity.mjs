@@ -56,6 +56,13 @@ export function checkParity(starter) {
   if (JSON.stringify(template.scripts) !== JSON.stringify({ start: 'node agent.mjs' }))
     problems.push('template scripts must be exactly { "start": "node agent.mjs" }');
   if (initializer.scripts !== undefined) problems.push('create-agent package.json must have no scripts');
+  // The agent names itself to Sess with the initializer's version (User-Agent product token).
+  if (
+    !readFileSync(join(TEMPLATE, 'agent.mjs'), 'utf8').includes(
+      `const USER_AGENT = 'sess-create-agent/${initializer.version}';`,
+    )
+  )
+    problems.push(`template agent.mjs must send User-Agent sess-create-agent/${initializer.version}`);
   if (!initializer.files?.includes('template/')) problems.push('create-agent must pack template/');
 
   if (starter !== undefined) {

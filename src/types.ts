@@ -206,6 +206,12 @@ export interface SessOptions {
   expectedWorkspaceId?: string;
   allowInsecureLocalhost?: boolean;
   onRequestEvent?: (event: Readonly<RequestEvent>) => void;
+  /**
+   * Product tokens of a client built on this SDK, sent before the SDK's own in the User-Agent
+   * header: `'my-app/1.2.0'` sends `my-app/1.2.0 sess-sdk/<version> node/<version>`. One or more
+   * `name` or `name/version` tokens separated by single spaces, at most 256 characters.
+   */
+  userAgent?: string;
 }
 
 /** Narrow a retrieved display/interactive Session without asserting business data. */
