@@ -20,7 +20,7 @@ The `0.1.0-rc.8` entry in [`CHANGELOG.md`](../CHANGELOG.md) covers it in full. I
   - the receipt-v1 copy from Sess `a60ca69`.
 - **#75:** Sess's interactive length limits in the types and in `sess.ask()`, with `field`, `limit` and `length` on `SessError`, plus the self-teaching tool schemas in MCP and OpenClaw.
 
-The archival verifier (#36) is **not** in rc.8; the founder decides whether it ships in a later rc. Runtime dependencies are unchanged (`canonicalize` 5.1.0, `jose` 6.2.12, `standardwebhooks` 1.1.1).
+The archival verifier (#36) is **not** in rc.8; the maintainer decides whether it ships in a later rc. Runtime dependencies are unchanged (`canonicalize` 5.1.0, `jose` 6.2.12, `standardwebhooks` 1.1.1).
 
 ## Expected tarball
 
@@ -64,7 +64,7 @@ This packet changes no packed file. If a packed change lands before the tag, run
    npm view @sess.si/sdk dist-tags --json     # next: 0.1.0-rc.8; latest unchanged
    ```
 
-## After publication (the registry transition, orchestrator)
+## After publication (the registry transition)
 
 `npm run pin:update` rewrites `sdk-candidate.json` to rc.8 and removes the successor record. It is followed by:
 
