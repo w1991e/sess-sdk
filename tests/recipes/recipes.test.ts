@@ -789,7 +789,7 @@ describe('models and the weekly check', () => {
     const cheapest = Object.fromEntries(
       Object.entries<Any>(models.providers).map(([id, e]) => [id, cheapestModel(e)]),
     );
-    // Gemini's default is the current Flash by founder choice (models.json note), not the cheapest.
+    // Gemini's default is the current Flash by choice (models.json note), not the cheapest.
     expect(cheapest).toEqual({
       ...DEFAULT_MODEL,
       gemini: 'gemini-3.1-flash-lite',

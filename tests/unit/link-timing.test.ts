@@ -176,7 +176,7 @@ describe('link timing: the wait', () => {
     }
   });
 
-  // ASTRA A10-SDK-GRACE-01: a short polling interval reads again inside the grace, and that read
+  // A short polling interval reads again inside the grace, and that read
   // must not end the wait. An answer accepted before the end whose write becomes visible inside
   // the grace is returned.
   const shortInterval = async (opts: {

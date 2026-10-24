@@ -114,7 +114,7 @@ function serverJson({ listing, manifest }) {
       source: listing.repository.source,
       subfolder: manifest.repository.directory,
     },
-    // In step with the package on every release candidate (founder, 2026-10-20): package.json's
+    // In step with the package on every release candidate (2026-10-20): package.json's
     // exact version, for the server and the package; never a dist-tag.
     version: manifest.version,
     packages: [

@@ -6,7 +6,7 @@
       "source": "https://developers.openai.com/api/docs/pricing",
       "default": "gpt-5.4-nano",
       "fallback": "gpt-4.1-mini",
-      "note": "Founder choice: gpt-5.4-nano, then gpt-4.1-mini, both available to the existing project key. gpt-6-luna lists cheaper (0.10 / 0.50) but is not confirmed on that key.",
+      "note": "Chosen: gpt-5.4-nano, then gpt-4.1-mini, both available to the existing project key. gpt-6-luna lists cheaper (0.10 / 0.50) but is not confirmed on that key.",
       "models": {
         "gpt-5.4-nano": {
           "input": 0.2,
@@ -25,7 +25,7 @@
     "anthropic": {
       "source": "https://platform.claude.com/docs/en/about-claude/pricing",
       "default": "claude-haiku-5-5",
-      "note": "Founder choice; also the cheapest current model. The input rate is for prompts up to 100,000 tokens (a call here stays under 80,000).",
+      "note": "Chosen; also the cheapest current model. The input rate is for prompts up to 100,000 tokens (a call here stays under 80,000).",
       "models": {
         "claude-haiku-5-5": {
           "input": 0.1,
@@ -41,7 +41,7 @@
       "source": "https://ai.google.dev/gemini-api/docs/pricing",
       "default": "gemini-3.8-flash",
       "fallback": "gemini-3.5-flash-lite",
-      "note": "Founder 2026-10-19: the current Flash, with Flash-Lite as the fallback. models.list on the qualification key (free, 2026-10-19) lists gemini-3.5-flash, but Google deprecated it (it routes to gemini-3.6-flash and has no price on the pricing page); the newest listed Flash is gemini-3.8-flash, stable, function calling supported (model page), which Google recommends for new projects. gemini-3.5-flash-lite is the fallback if the default answers 404 before any tool ran. gemini-2.5-flash-lite answers 404 'no longer available to new users' and is not listed. Gemini 3.8 Flash rates are introductory through 2026-12-31 (then 1.50 / 7.50).",
+      "note": "2026-10-19: the current Flash, with Flash-Lite as the fallback. models.list on the qualification key (free, 2026-10-19) lists gemini-3.5-flash, but Google deprecated it (it routes to gemini-3.6-flash and has no price on the pricing page); the newest listed Flash is gemini-3.8-flash, stable, function calling supported (model page), which Google recommends for new projects. gemini-3.5-flash-lite is the fallback if the default answers 404 before any tool ran. gemini-2.5-flash-lite answers 404 'no longer available to new users' and is not listed. Gemini 3.8 Flash rates are introductory through 2026-12-31 (then 1.50 / 7.50).",
       "models": {
         "gemini-3.1-flash-lite": {
           "input": 0.25,

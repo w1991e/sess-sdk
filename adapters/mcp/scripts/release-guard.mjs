@@ -39,7 +39,7 @@ export function checkIdentity({ manifest, server, ref, repository }) {
     refuse(`tag ${ref} does not equal refs/tags/mcp-v${manifest.version}`);
   if (!server || manifest.mcpName !== server.name) refuse('package.json mcpName must equal server.json name');
   // server.json, the MCP Registry entry, stays in step with the package on every release
-  // candidate (founder, 2026-10-20): the server and its npm package name exactly this version.
+  // candidate (2026-10-20): the server and its npm package name exactly this version.
   // Submitting the entry to the registry remains a separate owner action.
   if (server.version !== manifest.version) refuse('server.json version must equal the package version');
   const npmPackage = server.packages?.find((p) => p.registryType === 'npm');

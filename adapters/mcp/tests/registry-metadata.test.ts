@@ -6,7 +6,7 @@ import { ENV } from '../src/config.js';
 const read = (name: string) => JSON.parse(readFileSync(join(import.meta.dirname, '..', name), 'utf8'));
 const manifest = read('package.json');
 const server = read('server.json');
-/** The registry entry stays in step with the package on every release candidate (founder 2026-10-20). */
+/** The registry entry stays in step with the package on every release candidate (2026-10-20). */
 const stable = manifest.version as string;
 
 describe('MCP registry metadata (server.json, schema 2025-12-11)', () => {

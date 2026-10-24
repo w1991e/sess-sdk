@@ -123,7 +123,7 @@
     "mcpRegistry": {
       "mapping": 1,
       "output": "server.json",
-      "versionNote": "server.json names package.json's exact version, for the server and for the npm package, and stays in step with it on every release candidate (founder, 2026-10-20); never a dist-tag. Submitting it is an owner action, after that version is on npm and https://mcp.sess.si/mcp is read back.",
+      "versionNote": "server.json names package.json's exact version, for the server and for the npm package, and stays in step with it on every release candidate (2026-10-20); never a dist-tag. Submitting it is an owner action, after that version is on npm and https://mcp.sess.si/mcp is read back.",
       "schema": {
         "id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
         "vendored": "listings/schemas/mcp-registry-server-2025-12-11.schema.json",

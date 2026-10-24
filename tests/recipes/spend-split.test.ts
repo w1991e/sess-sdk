@@ -1,5 +1,4 @@
-// Billed and estimated spend, reported separately (founder: "Report billed and estimated spend
-// separately from now on"). Mocked only. A record carries usage_cost_usd (reported usage × rates,
+// Billed and estimated spend, reported separately. Mocked only. A record carries usage_cost_usd (reported usage × rates,
 // null if no attempt reported usage), ceiling_reserved_usd (attempts charged at their ceiling),
 // estimated_total_usd (their sum; the cap and the ledger use it) and billed_usd with billed_source
 // (a free provider readback where an ordinary key has one: OpenRouter GET /api/v1/key; otherwise

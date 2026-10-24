@@ -80,7 +80,7 @@ authentication always grants the personal namespace `io.github.<username>/*` (an
 namespace would need org ownership). No other account is needed.
 
 `server.json` names `package.json`'s exact version for the server and for the npm package, and
-stays in step with it on every release candidate (founder, 2026-10-20): `npm run listing` writes
+stays in step with it on every release candidate (2026-10-20): `npm run listing` writes
 it, and `npm run check:listing`, the registry-metadata test and the release guard fail when they
 differ. It never names a dist-tag. The registry checks the npm package's `mcpName` against the
 server name, so that version must be on npm first. It also does not verify the remote URL, so

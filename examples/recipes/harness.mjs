@@ -20,7 +20,7 @@ import { CHECKS, createWorkflow, observed, SYSTEM, TASK } from './workflow.mjs';
 export const RECORD_SCHEMA = 'sess.recipe-qualification/3';
 export const LEDGER_SCHEMA = 'sess.recipe-spend-ledger/1';
 export const RUNNER_VERSION = '2.1.0';
-/** The total ceiling for provider qualification spend (founder amendment 3), US dollars. */
+/** The total ceiling for provider qualification spend, US dollars. */
 export const CEILING_USD = 100;
 export const DEFAULT_BUDGET_USD = 15;
 const HERE = fileURLToPath(new URL('.', import.meta.url));
@@ -106,7 +106,7 @@ export async function runRecipe(provider, plan, options = {}) {
       fallbackRates ? maxRunCost(fallbackRates, bounds) : 0,
     );
     ledger = openLedger(options.out ?? QUALIFICATION_DIR);
-    // One qualification run at a time (founder rule): a second concurrent run is refused.
+    // One qualification run at a time: a second concurrent run is refused.
     runLock = await ledger.lockRun();
     if (!runLock) {
       err(`Another qualification run is in progress (${ledger.dir}/run.lock). Wait for it to finish.`);
@@ -238,7 +238,7 @@ export async function runRecipe(provider, plan, options = {}) {
       estimated_total_usd: spend.estimated_total_usd,
       billed_usd: billed.billed_usd,
       billed_source: billed.billed_source,
-      // Three figures (founder 2026-10-19 ~02:00Z): the estimate (usage_cost_usd), the conservative
+      // Three figures (2026-10-19): the estimate (usage_cost_usd), the conservative
       // reservation (booked_usd, what the cap counts) and the provider-reported charge (billed_usd,
       // with billed_source and billed_reconciliation). An unknown charge stays null, never zero.
       booked_usd: charge.booked_usd,
@@ -321,7 +321,7 @@ async function billedSpend(billing, before, { apiKey, fetch, options }) {
     };
   // The key's usage is a cumulative counter: delayed accounting, a decrease or other use of the same
   // key all change it, so the difference is not this run's charge. It is kept as a diagnostic only,
-  // unclamped; the run's provider charge stays unknown (ASTRA RECIPE-BILLED-ATTRIBUTION-01).
+  // unclamped; the run's provider charge stays unknown.
   return {
     billed_usd: null,
     billed_source: `not attributable to this run (${billing.source} is a cumulative key counter)`,

@@ -39,14 +39,14 @@ The private link prints in your terminal. Open it on your phone and answer there
   - 20 minutes in all.
 - [models.json](models.json) holds each provider's default model and rates: the cheapest current model with tool calling, with the exceptions explained in its notes. The rates are dated, with source URLs:
 
-  | Provider   | Default model                                                                                                     | USD per 1M tokens, input / output | Most a run can cost |
-  | ---------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------- |
-  | OpenAI     | `gpt-5.4-nano`; if the key is not offered it, `gpt-4.1-mini`                                                      | 0.20 / 1.25 (0.40 / 1.60)         | US$0.041 (US$0.064) |
-  | Anthropic  | `claude-haiku-5-5`                                                                                                | 0.10 / 0.50                       | US$0.018            |
-  | Gemini     | `gemini-3.8-flash` (the current Flash, founder 2026-10-19); if the key is not offered it, `gemini-3.5-flash-lite` | 0.75 / 3.75 (0.30 / 2.50)         | US$0.135 (US$0.074) |
-  | xAI        | `grok-4.3`                                                                                                        | 1.25 / 2.50                       | US$0.150            |
-  | Meta       | `muse-spark-1.3`, Standard mode                                                                                   | 1.25 / 4.25                       | US$0.185            |
-  | OpenRouter | `anthropic/claude-haiku-5.5`                                                                                      | 0.10 / 0.50                       | US$0.018            |
+  | Provider   | Default model                                                                                             | USD per 1M tokens, input / output | Most a run can cost |
+  | ---------- | --------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------- |
+  | OpenAI     | `gpt-5.4-nano`; if the key is not offered it, `gpt-4.1-mini`                                              | 0.20 / 1.25 (0.40 / 1.60)         | US$0.041 (US$0.064) |
+  | Anthropic  | `claude-haiku-5-5`                                                                                        | 0.10 / 0.50                       | US$0.018            |
+  | Gemini     | `gemini-3.8-flash` (the current Flash, 2026-10-19); if the key is not offered it, `gemini-3.5-flash-lite` | 0.75 / 3.75 (0.30 / 2.50)         | US$0.135 (US$0.074) |
+  | xAI        | `grok-4.3`                                                                                                | 1.25 / 2.50                       | US$0.150            |
+  | Meta       | `muse-spark-1.3`, Standard mode                                                                           | 1.25 / 4.25                       | US$0.185            |
+  | OpenRouter | `anthropic/claude-haiku-5.5`                                                                              | 0.10 / 0.50                       | US$0.018            |
 
   "Most a run can cost" is the run's token caps at these rates.
 
@@ -77,7 +77,7 @@ The private link prints in your terminal. Open it on your phone and answer there
   - the provider, the model requested, and the model id or ids the API returned;
   - the resolved `@sess.si/sdk` version (null if it is not installed), the recipe's git SHA with a dirty flag (read on a branch or a detached HEAD alike; a real run whose SHA cannot be determined is refused), the runner version and the UTC time;
   - the scenario and outcome, the usage (reported and charged at ceiling), calls, requests and retries, the maximum cost, and the rates with their source and date;
-  - **three spend figures** (founder, 2026-10-19):
+  - **three spend figures** (2026-10-19):
     - the **estimate**, `usage_cost_usd`: reported usage × rates. It is null, printed as unknown, if no attempt reported usage.
     - the **conservative reservation**, `booked_usd`: `estimated_total_usd` (`usage_cost_usd` plus `ceiling_reserved_usd`, the attempts charged at their ceiling). This is the figure the cap and the ledger count, beside the run's `max_cost_usd` reserved before it.
     - the **provider-reported charge**, `billed_usd`, with `billed_source` and `billed_reconciliation`. No provider gives an ordinary key a charge attributable to one run. So `billed_usd` is null, printed as "unknown", never zero:
@@ -132,4 +132,4 @@ npm ci --ignore-scripts && npm run build && npx vitest run tests/recipes
 - A provider without a key is skipped, and the check stops at the first budget refusal.
 - Every run still needs a person to answer its link.
 - At the rates above, one weekly round can cost at most about US$0.46.
-- Nothing schedules it. Scheduling is a separate founder decision.
+- Nothing schedules it. Scheduling is a separate decision.

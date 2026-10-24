@@ -14,4 +14,4 @@ node gemini/agent.mjs
 
 **What you'll see:** a private link to open on your phone. After your two answers, the plan, and the usage and cost of the run.
 
-The default model is `gemini-3.8-flash`, the current Flash (founder 2026-10-19), falling back to `gemini-3.5-flash-lite` on a 404 (rates and source in [../models.json](../models.json)); set `RECIPE_MODEL` to change it. The model's content goes back unchanged, so its thought signatures stay with their function calls. Each `functionResponse` carries the call's name and id.
+The default model is `gemini-3.8-flash`, the current Flash (2026-10-19), falling back to `gemini-3.5-flash-lite` on a 404 (rates and source in [../models.json](../models.json)); set `RECIPE_MODEL` to change it. The model's content goes back unchanged, so its thought signatures stay with their function calls. Each `functionResponse` carries the call's name and id.
