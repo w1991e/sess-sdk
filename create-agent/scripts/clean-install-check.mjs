@@ -18,6 +18,14 @@
 //    template parity check.
 // 4. Lets the agent finish both rounds against the offline fake world (create-agent/test/
 //    fake-world.mjs: fake SESS API with genuinely signed receipts, fake MET Norway and NWS).
+// 5. The one command: runs the packed initializer again in a new project with SESS_API_KEY and
+//    SESS_DEMO_CONTACT in its environment and no terminal, so it scaffolds, installs and runs the
+//    agent itself. Timed the same way; the agent completes both rounds in the fake world and the
+//    initializer exits with the agent's code.
+// 6. The packed initializer's own bytes (index.mjs from the exercised tarball) run once more with
+//    create-agent/test/fake-npm standing in for npm: the install call receives neither SESS_API_KEY
+//    nor SESS_DEMO_CONTACT from the environment, and only the start call receives them
+//    (ASTRA-SDK-86-01). The fake records the key only as a SHA-256.
 //
 // Network: only the npm install of the SDK and its pinned dependencies (npm's cache is preferred;
 // --offline forbids the network and fails if the cache lacks them). No SESS or weather traffic.
@@ -114,7 +122,12 @@ try {
   mkdirSync(project);
   const app = join(project, 'my-agent');
   const started = performance.now();
-  const created = npm(['exec', '--yes', `--package=${tarball}`, '--', 'create-agent', 'my-agent'], project);
+  // Without SESS_API_KEY and SESS_DEMO_CONTACT and without a terminal, the initializer only scaffolds.
+  const unset = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => key !== 'SESS_API_KEY' && key !== 'SESS_DEMO_CONTACT'),
+  );
+  const createAgent = ['exec', '--yes', `--package=${tarball}`, '--', 'create-agent', 'my-agent'];
+  const created = npm(createAgent, project, unset);
   const afterCreate = performance.now();
   if (!created.includes('npm install --ignore-scripts')) fail('the initializer did not print next steps');
   const install = ['install', '--ignore-scripts', '--no-audit', '--no-fund'];
@@ -145,14 +158,7 @@ try {
   const toRunning = run.runningAt - started;
 
   // --- 3. The install is the pinned, published SDK; the files are the template. ---
-  const lock = JSON.parse(readFileSync(join(app, 'package-lock.json'), 'utf8'));
-  const entry = lock.packages?.[`node_modules/${pin.name}`] ?? {};
-  if (entry.version !== pin.version) fail(`installed ${pin.name}@${entry.version}, not ${pin.version}`);
-  if (entry.resolved !== `${PUBLIC_REGISTRY}${pin.name}/-/sdk-${pin.version}.tgz`)
-    fail(`${pin.name} was resolved from ${entry.resolved}`);
-  if (entry.integrity !== pin.integrity) fail(`${pin.name} integrity ${entry.integrity} is not the pin`);
-  const scripts = Object.entries(lock.packages ?? {}).filter(([, value]) => value.hasInstallScript);
-  if (scripts.length) fail(`dependencies with install scripts: ${scripts.map(([key]) => key).join(', ')}`);
+  checkInstall(app);
 
   // --- 4. Both rounds, completion and the receipt summary. ---
   const world = JSON.parse(readFileSync(record, 'utf8'));
@@ -171,6 +177,62 @@ try {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
+  // --- 5. The one command: scaffold, install and run, with both values in its environment. ---
+  const oneProject = join(work, 'one-command');
+  mkdirSync(oneProject);
+  const oneRecord = join(work, 'one-command-record.json');
+  const oneEnv = {
+    ...env,
+    [offline ? 'npm_config_offline' : 'npm_config_prefer_offline']: 'true',
+    SESS_FAKE_WORLD: JSON.stringify({ ...JSON.parse(env.SESS_FAKE_WORLD), record: oneRecord }),
+  };
+  const oneStarted = performance.now();
+  const one = await start(oneProject, oneEnv, createAgent);
+  const oneToRunning = one.runningAt === undefined ? Infinity : one.runningAt - oneStarted;
+  const oneWorld = existsSync(oneRecord) ? JSON.parse(readFileSync(oneRecord, 'utf8')) : {};
+  if (one.code === 0) checkInstall(join(oneProject, 'my-agent'));
+  expect(one.code === 0, `the one command exits with the agent's 0 (got ${one.code})`);
+  expect(one.stdout.includes('Installing the agent…'), 'the one command shows its progress line');
+  expect(!one.stdout.includes('Next:'), 'the one command runs the agent instead of printing next steps');
+  expect(oneWorld.creates === 1 && oneWorld.status === 'completed', 'the one command completes the Session');
+  expect(/· verified ✓\n/.test(one.stdout), 'the one command prints the receipt summary');
+  expect(!`${one.stdout}${one.stderr}`.includes(oneEnv.SESS_API_KEY), 'the one command never prints the key');
+  expect(oneToRunning <= BUDGET_MS, `one command -> agent running within ${seconds(BUDGET_MS)}`);
+
+  // --- 6. The packed bytes: the install child never receives the key or the contact. ---
+  const unpacked = join(work, 'unpacked');
+  mkdirSync(unpacked);
+  execFileSync('tar', ['-xzf', tarball, '-C', unpacked], { stdio: 'ignore' });
+  const envProject = join(work, 'env-project');
+  mkdirSync(envProject);
+  const npmRecord = join(work, 'fake-npm.jsonl');
+  const envKey = 'test-only-install-env-key';
+  execFileSync(process.execPath, [join(unpacked, 'package', 'index.mjs'), 'my-agent'], {
+    cwd: envProject,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: {
+      PATH: process.env.PATH ?? '',
+      npm_execpath: join(here, '..', 'test', 'fake-npm', 'npm-cli.mjs'),
+      FAKE_NPM: JSON.stringify({ record: npmRecord }),
+      SESS_API_KEY: envKey,
+      SESS_DEMO_CONTACT: 'https://example.test/clean-install',
+    },
+  });
+  const calls = readFileSync(npmRecord, 'utf8')
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line));
+  const keyDigest = createHash('sha256').update(envKey).digest('hex');
+  expect(
+    calls.length === 2 && calls[0].argv[0] === 'install' && calls[1].argv[0] === 'start',
+    'the packed initializer installs, then starts',
+  );
+  expect(
+    calls[0]?.keySha256 === null && calls[0]?.contact === null,
+    'the install child receives neither SESS_API_KEY nor SESS_DEMO_CONTACT',
+  );
+  expect(calls[1]?.keySha256 === keyDigest, 'only the start child receives the key');
+
   console.log(parity.trim());
   console.log(
     `installed ${pin.name}@${pin.version} from ${PUBLIC_REGISTRY} (integrity equals the pin; ` +
@@ -180,6 +242,9 @@ try {
     `timing: npm create ${seconds(afterCreate - started)} + npm install ${seconds(afterInstall - afterCreate)} ` +
       `+ npm start to "Agent running." ${seconds(run.runningAt - afterInstall)} = ${seconds(toRunning)} ` +
       `(budget ${seconds(BUDGET_MS)}); both rounds and completion took ${seconds(run.endedAt - run.runningAt)} more`,
+  );
+  console.log(
+    `timing: one command to "Agent running." ${seconds(oneToRunning)} (budget ${seconds(BUDGET_MS)})`,
   );
   for (const message of failures) console.log(`FAIL: ${message}`);
   if (failures.length) console.log('CREATE-AGENT CLEAN INSTALL CHECK FAILED');
@@ -202,12 +267,27 @@ try {
 }
 process.exit(exitCode);
 
-/** `npm start` in `cwd`; records when "Agent running." appears and when the process ends. */
-function start(cwd, env) {
+/** The install in `app` is the pinned, published SDK, with no install scripts anywhere. */
+function checkInstall(app) {
+  const lock = JSON.parse(readFileSync(join(app, 'package-lock.json'), 'utf8'));
+  const entry = lock.packages?.[`node_modules/${pin.name}`] ?? {};
+  if (entry.version !== pin.version) fail(`installed ${pin.name}@${entry.version}, not ${pin.version}`);
+  if (entry.resolved !== `${PUBLIC_REGISTRY}${pin.name}/-/sdk-${pin.version}.tgz`)
+    fail(`${pin.name} was resolved from ${entry.resolved}`);
+  if (entry.integrity !== pin.integrity) fail(`${pin.name} integrity ${entry.integrity} is not the pin`);
+  const scripts = Object.entries(lock.packages ?? {}).filter(([, value]) => value.hasInstallScript);
+  if (scripts.length) fail(`dependencies with install scripts: ${scripts.map(([key]) => key).join(', ')}`);
+}
+
+/**
+ * `npm start` (or the given npm command) in `cwd`; records when "Agent running." appears and when the
+ * process ends.
+ */
+function start(cwd, env, argv = ['start', '--silent']) {
   const cli = process.env.npm_execpath;
   const child = cli
-    ? spawn(process.execPath, [cli, 'start', '--silent'], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] })
-    : spawn('npm', ['start', '--silent'], {
+    ? spawn(process.execPath, [cli, ...argv], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] })
+    : spawn('npm', argv, {
         cwd,
         env,
         stdio: ['ignore', 'pipe', 'pipe'],

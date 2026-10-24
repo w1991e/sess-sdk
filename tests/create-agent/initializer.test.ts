@@ -111,9 +111,13 @@ describe('@sess.si/create-agent initializer', { timeout: 30_000 }, () => {
     expect(initialize(cwd, '--help').stdout).toContain('npm create @sess.si/agent@next <directory>');
   });
 
-  it('never collects secrets and has no lifecycle scripts in either package', () => {
+  it('writes only the template and has no lifecycle scripts in either package', () => {
+    // Since rc.5 the initializer asks for the key and runs the agent (one-command.test.ts proves the
+    // key reaches only the agent's environment). Its one file write is the template copy.
     const source = readFileSync(INITIALIZER, 'utf8');
-    expect(source).not.toMatch(/process\.env|process\.stdin|readline|child_process/);
+    expect(
+      source.match(/\b(?:writeFileSync|writeFile|appendFileSync|appendFile|createWriteStream)\(/g),
+    ).toEqual(['writeFileSync(']);
     const initializer = json(join(ROOT, 'create-agent', 'package.json'));
     const template = json(join(ROOT, 'create-agent', 'template', 'package.json'));
     expect(initializer.scripts).toBeUndefined();

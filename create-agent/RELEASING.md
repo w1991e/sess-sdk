@@ -11,8 +11,8 @@ version with npm 2FA. Release candidates (`-rc.N`) go to `next`, never to `lates
 makes GitHub create it automatically, without protection rules, and the publish job would then run
 without maintainer approval.
 
-The current candidate, `0.1.0-rc.4`, has its contents, expected tarball digests and exact maintainer
-steps in [release/rc4-packet.md](release/rc4-packet.md). `0.1.0-rc.3`
+The current candidate, `0.1.0-rc.5`, has its contents, expected tarball digests and exact maintainer
+steps in [release/rc5-packet.md](release/rc5-packet.md). `0.1.0-rc.4`: [release/rc4-packet.md](release/rc4-packet.md). `0.1.0-rc.3`
 ([release/rc3-packet.md](release/rc3-packet.md)) is published. Each candidate gets such a packet,
 `release/rc<N>-packet.md`, updated in the same PR as any packed change.
 
