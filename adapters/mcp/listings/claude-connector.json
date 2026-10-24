@@ -1,11 +1,12 @@
 {
-  "about": "Values for Anthropic's custom connector submission form, generated from listing.json. There is no published schema; listing.mjs checks the documented requirements. Generation is not submission.",
+  "about": "Values for Anthropic's connector submission form, generated from listing.json. There is no published schema; listing.mjs checks the documented requirements. Generation is not submission.",
   "name": "Sess",
-  "tagline": "Ask a person, get the answer",
+  "oneLiner": "Your agent sends a Sess link, a person answers on any device, and the agent continues with their typed, receipt-checked answer.",
   "description": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
+  "categories": ["Productivity", "Developer Tools"],
   "serverUrl": "https://mcp.sess.si/mcp",
   "transport": "streamable-http",
-  "status": "not-deployed",
+  "status": "unqualified",
   "authentication": {
     "type": "oauth",
     "authorizationServer": "https://mcp.sess.si",
@@ -14,6 +15,8 @@
   },
   "websiteUrl": "https://sess.si",
   "documentationUrl": "https://docs.sess.si/add-to-your-agent/",
+  "privacyPolicyUrl": "https://sess.si/privacy/",
+  "supportContact": "support@sess.si",
   "supportUrl": "https://docs.sess.si/support/",
   "tools": [
     {

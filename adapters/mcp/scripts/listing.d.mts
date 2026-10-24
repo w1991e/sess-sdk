@@ -15,6 +15,9 @@ export interface SchemaTexts {
 export const LISTING_SCHEMA: string;
 export const FORBIDDEN_WORDS: RegExp[];
 export const OVERCLAIMS: RegExp[];
+export const PRICING_WORDS: RegExp[];
+export const PRODUCTION_REMOTE: string;
+export function registryListsPackage(listing: any): boolean;
 export function formatJson(value: unknown): string;
 export function cursorDeeplink(name: string, config: unknown): string;
 export function generate(inputs: ListingInputs): Map<string, string>;

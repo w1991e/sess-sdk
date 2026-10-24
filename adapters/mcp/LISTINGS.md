@@ -7,32 +7,47 @@ Tool names, titles and annotations come from `src/tools.ts`, and the version and
 **Generating a file is not submitting it, and submitting is not acceptance.** A generated
 `server.json` or plugin bundle is never evidence of an accepted listing. Submissions are owner
 actions; record "submitted" and "accepted" separately, with the provider's own confirmation. The
-descriptions and test cases in `listing.json` are proposed copy and wait for a maintainer's
-line-by-line sign-off.
+descriptions, categories and test cases in `listing.json` are **proposed** copy and wait for the
+founder's line-by-line sign-off (`copy.status` becomes `approved` only after it).
 
 ## Commands
 
 - `npm run listing` builds the server and regenerates every artifact from `listing.json`.
 - `npm run check:listing` (also part of `npm run check`) fails when an artifact is missing, stale or
   hand-edited, fails its pinned schema or the documented provider rules, or uses a forbidden word
-  ("marketplace", "directory", "app store", "catalog") or an overclaim (guarantees, identity or
-  proof claims). It then prints the open submission blockers; those never fail the check.
+  ("marketplace", "directory", "app store", "catalog"), an overclaim (guarantees, identity or
+  proof claims) or pricing, plan, trial, discount, promotion or upgrade text. It then prints the
+  open submission blockers; those never fail the check.
+
+The provider rules it enforces (read 2026-10-23):
+
+| Provider     | Enforced                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenAI       | display name and subtitle 30, long description 4,000, at most 3 unique default prompts of 128 with no @mentions; no "MCP" or "Plugin" in the name; website, support, privacy and terms URLs all HTTPS; exactly 5 positive cases (description, prompt, tools, expected result) and 3 negative cases (why not to act, prompt, expected refusal); no credentials or reviewer instructions in the package |
+| Claude       | name 100, one-liner 200, description 2,000, 1-5 distinct categories, HTTPS documentation and privacy policy URLs, a support contact (email or HTTPS URL), OAuth over HTTPS, a title and hints on every tool                                                                                                                                                                                           |
+| MCP Registry | the pinned 2025-12-11 schema; the name in the `si.sess/*` namespace that DNS authentication of `sess.si` grants; exactly one `streamable-http` remote, the production URL; while the npm package is deferred, no packages (remote-only); once listed, exactly one npm stdio package (this package, at `package.json`'s version) and the name equal to `mcpName`                                       |
+
+Sources: https://developers.openai.com/apps-sdk/deploy/submission.md,
+https://developers.openai.com/apps-sdk/app-submission-guidelines.md,
+https://claude.com/docs/connectors/building/submission.md and
+https://modelcontextprotocol.io/registry/authentication.
 
 ## Artifacts
 
 | File                                    | For                                                 | Validated against                                          |
 | --------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------- |
-| `server.json`                           | MCP Registry (npm stdio package and the remote)     | MCP Registry `server.schema.json` 2025-12-11               |
+| `server.json`                           | MCP Registry (the remote; remote-only for now)      | MCP Registry `server.schema.json` 2025-12-11               |
 | `listings/plugin/` (`plugin.json`, ...) | OpenAI (ChatGPT and Codex) and Cursor plugin bundle | Agent Plugins 1.0.0 `plugin` and `mcp` schemas, plus rules |
 | `listings/cursor-install.json`          | Cursor install links (remote and stdio)             | decodes to its config; no secret in it                     |
-| `listings/claude-connector.json`        | Values for Anthropic's custom connector form        | documented requirements (no published schema)              |
+| `listings/claude-connector.json`        | Values for Anthropic's connector submission form    | documented requirements (no published schema)              |
 
 The plugin bundle holds `plugin.json`, `mcp.json` (exactly one server: the remote endpoint), a
 `README.md` and one skill stub, `skills/ask-a-person/SKILL.md`. No ZIP is checked in; build one
 when submitting.
 
 Vendored schemas in `listings/schemas/` are byte-identical to their sources and pinned by SHA-256
-in `listing.json`; the check refuses a modified copy. Retrieved 2026-10-15:
+in `listing.json`; the check refuses a modified copy. Retrieved 2026-10-15; the registry schema was
+rechecked on 2026-10-23 (still the version the registry pages name, same SHA-256):
 
 | Schema                                                                       | SHA-256                                                            |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -41,10 +56,9 @@ in `listing.json`; the check refuses a modified copy. Retrieved 2026-10-15:
 | https://agent-plugins.org/schemas/1.0.0/mcp.schema.json                      | `6539175bfcdf43085855183e86da40ea94b166547a72b47ae9a0a390516d3acb` |
 
 OpenAI publishes no JSON schema for `extensions.com.openai`; `scripts/listing.mjs` encodes the
-limits from https://developers.openai.com/plugins/deploy/submission.md (read 2026-10-15). Recheck
-them, and the schema versions, before each submission.
+limits above. Recheck them, and the schema versions, before each submission.
 
-## Tool annotations (audit, 2026-10-15)
+## Tool annotations (audit 2026-10-15, rechecked 2026-10-23)
 
 | Tool            | read-only | destructive | idempotent | open world | Why                                                                                                  |
 | --------------- | --------- | ----------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------------- |
@@ -60,13 +74,19 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
 
 `npm run check:listing` lists what is still open. Today:
 
-- a maintainer signs off the copy and the test cases in `listing.json`;
-- `https://mcp.sess.si/mcp` is deployed and read back. Until then every remote entry
-  describes an endpoint that does not answer;
-- `@sess.si/mcp` is published on npm (`RELEASING.md`) for the stdio entries;
-- privacy policy and terms of service pages exist; set `urls.privacy` and `urls.terms`;
-- the setup page exists at `urls.docs`;
-- an icon (square, at least 48x48) is committed under `listings/plugin/assets/` and referenced.
+- the founder signs off the proposed copy, categories and test cases in `listing.json`;
+- `https://mcp.sess.si/mcp` passes production host qualification (it is deployed: `/version` was
+  read back on 2026-10-23); then set `remote.status` to `qualified`;
+- to list the npm stdio package in the MCP Registry entry (today it is remote-only): a successor
+  `@sess.si/mcp` candidate declaring `mcpName` `si.sess/sess` (0.1.0-rc.3 declares
+  `io.github.w1991e/sess`), after the re-pin freeze ends on 3 Nov; then set
+  `providers.mcpRegistry.npmPackage.status` to `listed`;
+- `https://sess.si/privacy/` and `https://sess.si/terms/` answer on production (they are built by
+  the Sess site and served on preview; production follows the apex cutover);
+- **an icon: open blocker.** No PNG icon exists yet. A square PNG of at least 48x48 is committed
+  under `listings/plugin/assets/` and referenced; none is generated in its place;
+- a demo recording URL (OpenAI), and a reviewer test account entered in each portal, never in the
+  package. OpenAI requires one that signs in without email or SMS codes or magic links.
 
 After any change to `listing.json`, run `npm run listing` and commit the result.
 
@@ -74,24 +94,32 @@ After any change to `listing.json`, run `npm run listing` and commit the result.
 
 ### MCP Registry
 
-Official registry only (`registry.modelcontextprotocol.io`), under the GitHub namespace of the
-`w1991e` account: `io.github.w1991e/sess`. `w1991e` is a personal account, and GitHub
-authentication always grants the personal namespace `io.github.<username>/*` (an organization
-namespace would need org ownership). No other account is needed.
+Official registry only (`registry.modelcontextprotocol.io`), under the domain namespace
+`si.sess/*`: the server is `si.sess/sess`. DNS authentication of `sess.si` grants `si.sess/*`
+(the reverse-DNS form of the domain). It needs no GitHub account; it needs the TXT record on
+`sess.si` (`v=MCPv1; k=ed25519; p=<public key>`, already in place) and its Ed25519 private key,
+which the owner keeps in the macOS Keychain item `sess-mcp-registry-ed25519`. The key never goes
+into this repository, a file, a log, a chat or an agent prompt.
 
-`server.json` names `package.json`'s exact version for the server and for the npm package, and
+**The entry is remote-only for now.** `server.json` lists the one `streamable-http` remote
+`https://mcp.sess.si/mcp` and no `packages`. The registry checks a listed npm package's `mcpName`
+against the server name, and the published `@sess.si/mcp@0.1.0-rc.3` declares
+`io.github.w1991e/sess`; `package.json` keeps that value so the published package's identity is
+unchanged. Listing the stdio package (`providers.mcpRegistry.npmPackage.status` `listed`) needs a
+successor candidate declaring `mcpName` `si.sess/sess`; the checks and the release guard then
+require the two to be equal again.
+
+`server.json` names `package.json`'s exact version (and, once listed, the npm package's), and
 stays in step with it on every release candidate (2026-10-20): `npm run listing` writes
 it, and `npm run check:listing`, the registry-metadata test and the release guard fail when they
-differ. It never names a dist-tag. The registry checks the npm package's `mcpName` against the
-server name, so that version must be on npm first. It also does not verify the remote URL, so
-publish only after the `mcp.sess.si` readback.
+differ. It never names a dist-tag. The registry does not verify the remote URL, so publish only
+after `https://mcp.sess.si/mcp` passes production host qualification.
 
 `npm run check:listing` validates `server.json` against the pinned 2025-12-11 schema, and CI also
 runs the registry's own validator (`mcp-publisher validate`, pinned v1.8.1 by SHA-256; no login,
 no publish).
 
-Owner commands, after `@sess.si/mcp` at the version `server.json` names is on npm and
-`https://mcp.sess.si/mcp` answers:
+Owner commands, in the owner's own terminal, after production host qualification has passed:
 
 1. Install the pinned publisher (macOS arm64 shown; other platforms from the same release):
    `curl -fsSLO https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_darwin_arm64.tar.gz`,
@@ -100,10 +128,24 @@ Owner commands, after `@sess.si/mcp` at the version `server.json` names is on np
    `tar -xzf mcp-publisher_darwin_arm64.tar.gz mcp-publisher`.
 2. From `adapters/mcp` at the released commit: `../../mcp-publisher validate server.json` (or the
    path you extracted it to).
-3. `mcp-publisher login github`, and authorize as `w1991e` in the browser (device code).
-4. `mcp-publisher publish`.
-5. Read the entry back:
-   `curl -s 'https://registry.modelcontextprotocol.io/v0/servers?search=io.github.w1991e/sess'`.
+3. Check the TXT record is still served: `dig +short TXT sess.si` shows a `v=MCPv1; k=ed25519;`
+   entry.
+4. Log in with DNS authentication. The key is read from the Keychain into a shell variable and
+   never printed (`mcp-publisher` takes the hex private key):
+
+   ```sh
+   PRIVATE_KEY="$(security find-generic-password -s sess-mcp-registry-ed25519 -w)"
+   mcp-publisher login dns --domain sess.si --private-key "$PRIVATE_KEY"
+   unset PRIVATE_KEY
+   ```
+
+   If the Keychain item holds the PEM key rather than the hex key, derive the hex form inside the
+   same substitution, as the registry documents:
+   `PRIVATE_KEY="$(security find-generic-password -s sess-mcp-registry-ed25519 -w | openssl pkey -noout -text | grep -A3 'priv:' | tail -n +2 | tr -d ' :\n')"`.
+
+5. `mcp-publisher publish`.
+6. Read the entry back:
+   `curl -s 'https://registry.modelcontextprotocol.io/v0/servers?search=si.sess/sess'`.
    Record its version and date as submitted, and as listed only after the readback shows it.
 
 ### OpenAI (ChatGPT and Codex)
@@ -113,7 +155,8 @@ so the stdio package is not eligible. Needs a verified developer identity in the
 organization and the Apps Management Write role.
 
 1. Complete the blockers above, add `demoRecordingUrl`, and run the five positive and three
-   negative test cases against a dedicated Sess test account.
+   negative test cases against a dedicated Sess test account. OpenAI's reviewers must be able to
+   sign in to it without MFA, email or SMS codes or magic links.
 2. Serve the portal's domain challenge token at `https://mcp.sess.si/.well-known/openai-apps-challenge`
    (a hosted-runtime change).
 3. Build the ZIP from the bundle (from `adapters/mcp`):
@@ -132,12 +175,14 @@ organization and the Apps Management Write role.
   Confirm that a subfolder (`adapters/mcp/listings/plugin`) is accepted; otherwise the owner decides
   whether to mirror it into its own repository.
 
-### Claude (custom connector review)
+### Claude (connector directory review)
 
 Eligible for the remote endpoint with OAuth; Anthropic no longer accepts MCPB bundles there. Every
-tool has a title and read-only/destructive hints. Use the values in
-`listings/claude-connector.json` in Anthropic's submission form, add the privacy policy URL and a
-test account, and submit.
+tool has a title and read-only/destructive hints. Submit at claude.ai/directory/manage (Submit new,
+MCP connector) with the values in `listings/claude-connector.json`: name, one-liner, description,
+categories, documentation and privacy policy URLs, support contact `support@sess.si`. Add the icon,
+the permanent slug (the owner's choice), a test account with every step, the data-handling answers
+and the acknowledgements in the portal.
 
 ### ClawHub
 

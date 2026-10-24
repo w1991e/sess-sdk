@@ -1,5 +1,12 @@
 # Release packet: `@sess.si/mcp@0.1.0-rc.3`
 
+> **Historical: executed; do not re-run.** `0.1.0-rc.3` was tagged (`mcp-v0.1.0-rc.3`, commit
+> `ade8f83`) and published by the release workflow
+> (https://github.com/w1991e/sess-sdk/actions/runs/39995114814) on npm dist-tag `next` on
+> 2026-10-23 (18:03:37Z). Read back on 2026-10-23: the registry tarball's SHA-256 and integrity
+> equal the expected values below, which are left as recorded. The maintainer steps below are
+> kept as the record of what was done.
+
 Maintainer document; not packed. Preparing this candidate publishes nothing. The tag, the
 `npm-mcp-release` environment approval and the npm 2FA stage approval are a maintainer's actions.
 
@@ -42,7 +49,7 @@ bytes it tested. If another packed change (`dist/` sources, `README.md`, `CHANGE
 `NOTICE`, `compatibility.json` or `package.json`) lands before the tag, re-run `npm run check` and
 update this table in the same PR.
 
-## Maintainer steps
+## Maintainer steps (historical: executed 2026-10-23; do not re-run)
 
 1. Confirm the reviewed PR carrying this packet is merged and its CI is green on master. Note the
    merged master commit `<sha>` and check that it is still version `0.1.0-rc.3`:

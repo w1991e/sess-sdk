@@ -33,9 +33,24 @@ export const OVERCLAIMS = [
   /\bblockchain\b/i,
   /\bon-chain\b/i,
 ];
+// Pricing, plans and promotions. OpenAI's guidelines forbid advertising "pricing, subscriptions,
+// free trials, discounts, or promotions" and promoting upgrades; no listing carries them.
+export const PRICING_WORDS = [
+  /\bpric(e|es|ed|ing)\b/i,
+  /\bsubscri(be|bes|bed|ption|ptions)\b/i,
+  /\btrials?\b/i,
+  /\bupgrad(e|es|ed|ing)\b/i,
+  /\bdiscounts?\b/i,
+  /\bpromo(s|tion|tions|tional)?\b/i,
+  /\bfree(mium)?\b/i,
+  /\bpremium\b/i,
+  /\b(paid|pro|team|business|enterprise|starter) (plans?|tiers?)\b/i,
+  /[$€£]\s?\d/,
+];
 
-// Documented submission limits (https://developers.openai.com/plugins/deploy/submission.md, read
-// 2026-10-15). No published JSON schema covers extensions.com.openai.
+// Documented submission limits (https://developers.openai.com/apps-sdk/deploy/submission.md and
+// app-submission-guidelines.md, read 2026-10-23). No published JSON schema covers
+// extensions.com.openai.
 const OPENAI = {
   displayName: 30,
   shortDescription: 30,
@@ -46,7 +61,20 @@ const OPENAI = {
   url: 1024,
   positive: 5,
   negative: 3,
+  // "Do not append “MCP,” “MCP Server,” or “Plugin” to a company or product name."
+  nameSuffix: /\b(mcp|plugin)\b/i,
 };
+
+// Anthropic's connector submission form (https://claude.com/docs/connectors/building/submission.md,
+// read 2026-10-23): "server name up to 100 characters, one-liner up to 200 characters, description
+// up to 2,000 characters, one to five categories, documentation URL, privacy policy URL, support
+// contact". No published schema.
+const CLAUDE = { name: 100, oneLiner: 200, description: 2000, categories: { min: 1, max: 5 } };
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Every listing names the production hosted endpoint, never a preview or local one. */
+export const PRODUCTION_REMOTE = 'https://mcp.sess.si/mcp';
 
 // ---------------------------------------------------------------------------------------------
 // Prettier-compatible JSON (objects expanded, primitive arrays inline when they fit), so the
@@ -102,6 +130,17 @@ export function cursorDeeplink(name, config) {
   return `cursor://anysphere.cursor-deeplink/mcp/install?name=${encodeURIComponent(name)}&config=${encodeURIComponent(encoded)}`;
 }
 
+/**
+ * Whether server.json lists the npm stdio package. `providers.mcpRegistry.npmPackage.status` is
+ * `listed` or `deferred` (remote-only entry); nothing else is accepted.
+ */
+export function registryListsPackage(listing) {
+  const status = listing.providers.mcpRegistry.npmPackage?.status;
+  if (status !== 'listed' && status !== 'deferred')
+    throw new Error('providers.mcpRegistry.npmPackage.status must be listed or deferred');
+  return status === 'listed';
+}
+
 function serverJson({ listing, manifest }) {
   const registry = listing.providers.mcpRegistry;
   return {
@@ -117,17 +156,21 @@ function serverJson({ listing, manifest }) {
     // In step with the package on every release candidate (2026-10-20): package.json's
     // exact version, for the server and the package; never a dist-tag.
     version: manifest.version,
-    packages: [
-      {
-        registryType: 'npm',
-        registryBaseUrl: 'https://registry.npmjs.org',
-        identifier: manifest.name,
-        version: manifest.version,
-        runtimeHint: listing.stdio.runtimeHint,
-        transport: { type: 'stdio' },
-        environmentVariables: listing.stdio.environmentVariables,
-      },
-    ],
+    // Remote-only while the npm package is deferred: the registry then cross-checks no published
+    // package's mcpName, so the published @sess.si/mcp keeps its identity unchanged.
+    packages: registryListsPackage(listing)
+      ? [
+          {
+            registryType: 'npm',
+            registryBaseUrl: 'https://registry.npmjs.org',
+            identifier: manifest.name,
+            version: manifest.version,
+            runtimeHint: listing.stdio.runtimeHint,
+            transport: { type: 'stdio' },
+            environmentVariables: listing.stdio.environmentVariables,
+          },
+        ]
+      : undefined,
     remotes: [{ type: listing.remote.type, url: listing.remote.url }],
   };
 }
@@ -135,13 +178,15 @@ function serverJson({ listing, manifest }) {
 function pluginJson({ listing, manifest, tools }) {
   const ap = listing.providers.agentPlugin;
   const openai = ap.openai;
+  // A negative case's description says why the plugin should not act; its expected_behavior is the
+  // expected refusal or safe fallback.
   const cases = (list, positive) =>
     list.map((c) =>
       defined({
         description: c.description,
         prompt: c.prompt,
         tools_triggered: positive ? c.tools.join(', ') : undefined,
-        expected_behavior: positive ? c.expected_behavior : undefined,
+        expected_behavior: c.expected_behavior,
       }),
     );
   return {
@@ -163,7 +208,7 @@ function pluginJson({ listing, manifest, tools }) {
           developerName: listing.publisher.name,
           category: openai.category,
           capabilities: tools.map((t) => t.title),
-          websiteURL: listing.homepage,
+          websiteURL: url(listing.urls.website),
           supportURL: url(listing.urls.support),
           privacyPolicyURL: url(listing.urls.privacy),
           termsOfServiceURL: url(listing.urls.terms),
@@ -279,10 +324,11 @@ function cursorInstall({ listing, manifest }) {
 function claudeConnector({ listing, tools }) {
   return defined({
     about:
-      "Values for Anthropic's custom connector submission form, generated from listing.json. There is no published schema; listing.mjs checks the documented requirements. Generation is not submission.",
+      "Values for Anthropic's connector submission form, generated from listing.json. There is no published schema; listing.mjs checks the documented requirements. Generation is not submission.",
     name: listing.displayName,
-    tagline: listing.copy.short,
+    oneLiner: listing.copy.oneLiner,
     description: listing.copy.long,
+    categories: listing.categories,
     serverUrl: listing.remote.url,
     transport: listing.remote.type,
     status: listing.remote.status,
@@ -292,10 +338,11 @@ function claudeConnector({ listing, tools }) {
       scopes: listing.remote.auth.scopes,
       clientRegistration: listing.remote.auth.clientRegistration,
     },
-    websiteUrl: listing.homepage,
+    websiteUrl: url(listing.urls.website),
     documentationUrl: url(listing.urls.docs),
-    supportUrl: url(listing.urls.support),
     privacyPolicyUrl: url(listing.urls.privacy),
+    supportContact: listing.supportContact,
+    supportUrl: url(listing.urls.support),
     tools: toolRows(tools),
   });
 }
@@ -357,6 +404,8 @@ export function scanText(file, content) {
     for (const re of FORBIDDEN_WORDS)
       if (re.test(s)) problems.push(`${file}${path}: forbidden word ${re.exec(s)[0]}`);
     for (const re of OVERCLAIMS) if (re.test(s)) problems.push(`${file}${path}: overclaim ${re.exec(s)[0]}`);
+    for (const re of PRICING_WORDS)
+      if (re.test(s)) problems.push(`${file}${path}: pricing or upgrade text ${re.exec(s)[0]}`);
   }
   return problems;
 }
@@ -382,8 +431,10 @@ export function validate(inputs, files, schemaTexts) {
   const json = (path) => JSON.parse(files.get(path));
   const ap = listing.providers.agentPlugin;
 
-  // Source: names, copy limits and tool metadata.
-  if (listing.registryName !== manifest.mcpName)
+  // Source: names, copy limits and tool metadata. The registry cross-checks the npm package's
+  // mcpName only when server.json lists the package.
+  const listsPackage = registryListsPackage(listing);
+  if (listsPackage && listing.registryName !== manifest.mcpName)
     errors.push('listing.json registryName must equal package.json mcpName');
   if (listing.copy.short.length > OPENAI.shortDescription) errors.push('copy.short is over 30 characters');
   if (listing.copy.registry.length > 100) errors.push('copy.registry is over 100 characters');
@@ -405,8 +456,10 @@ export function validate(inputs, files, schemaTexts) {
     if (entry.value !== null && !httpsUrl(entry.value))
       errors.push(`urls.${key} must be an HTTPS URL or null`);
   if (!httpsUrl(listing.remote.url)) errors.push('remote.url must be HTTPS');
+  if (listing.remote.url !== PRODUCTION_REMOTE)
+    errors.push(`remote.url must be the production endpoint ${PRODUCTION_REMOTE}`);
 
-  // Every generated text: no forbidden words, no overclaims.
+  // Every generated text: no forbidden words, no overclaims, no pricing or upgrade text.
   for (const [file, content] of files) errors.push(...scanText(file, content));
 
   // MCP Registry server.json against the pinned 2025-12-11 schema.
@@ -419,7 +472,39 @@ export function validate(inputs, files, schemaTexts) {
     'server.json',
   );
   if (server.$schema !== registry.schema.id) errors.push('server.json $schema is not the pinned schema');
-  if (server.name !== manifest.mcpName) errors.push('server.json name drifts from package.json mcpName');
+  if (server.name !== listing.registryName)
+    errors.push('server.json name drifts from listing.json registryName');
+  if (listsPackage && server.name !== manifest.mcpName)
+    errors.push('server.json name drifts from package.json mcpName');
+  // Domain namespace: DNS authentication for a domain grants its reverse-DNS form (sess.si → si.sess/*).
+  const ns = registry.namespace;
+  if (ns?.auth !== 'dns' || typeof ns.domain !== 'string')
+    errors.push('providers.mcpRegistry.namespace must name DNS authentication and its domain');
+  else {
+    const reversed = ns.domain.split('.').reverse().join('.');
+    if (!server.name?.startsWith(`${reversed}/`))
+      errors.push(
+        `server.json name must be in the ${reversed}/* namespace that DNS authentication of ${ns.domain} grants`,
+      );
+  }
+  // The hosted endpoint, exactly once; the npm stdio package beside it only when listed.
+  if (
+    server.remotes?.length !== 1 ||
+    server.remotes[0].type !== 'streamable-http' ||
+    server.remotes[0].url !== listing.remote.url ||
+    !httpsUrl(server.remotes[0].url)
+  )
+    errors.push('server.json must declare exactly one HTTPS streamable-http remote, the listing remote URL');
+  if (!listsPackage) {
+    if (server.packages !== undefined && server.packages.length !== 0)
+      errors.push('server.json must declare no packages while the npm package is deferred (remote-only)');
+  } else if (
+    server.packages?.length !== 1 ||
+    server.packages[0].registryType !== 'npm' ||
+    server.packages[0].identifier !== manifest.name ||
+    server.packages[0].transport?.type !== 'stdio'
+  )
+    errors.push('server.json must declare exactly one npm stdio package, this package');
   // In step with the package on every release candidate: package.json's exact version, for the
   // server and its npm package alike.
   if (server.version !== manifest.version || server.packages?.some((p) => p.version !== manifest.version))
@@ -453,7 +538,10 @@ export function validate(inputs, files, schemaTexts) {
   limit('longDescription', OPENAI.longDescription);
   limit('developerName', OPENAI.developerName);
   limit('category', 200);
+  if (OPENAI.nameSuffix.test(ui.displayName ?? '') || OPENAI.nameSuffix.test(listing.displayName))
+    errors.push('plugin.json interface.displayName must not include “MCP” or “Plugin”');
   if (
+    !Array.isArray(ui.capabilities) ||
     ui.capabilities.length > OPENAI.capabilities.count ||
     ui.capabilities.some((c) => c.length > OPENAI.capabilities.length)
   )
@@ -466,8 +554,9 @@ export function validate(inputs, files, schemaTexts) {
     errors.push('plugin.json interface.defaultPrompt: at most 3 prompts of 128 characters, no @mentions');
   if (new Set(prompts).size !== prompts.length)
     errors.push('plugin.json interface.defaultPrompt must be unique');
+  // MCP review requires all four listing URLs.
   for (const field of ['websiteURL', 'supportURL', 'privacyPolicyURL', 'termsOfServiceURL'])
-    if (ui[field] !== undefined && (!httpsUrl(ui[field]) || ui[field].length > OPENAI.url))
+    if (!httpsUrl(ui[field]) || ui[field].length > OPENAI.url)
       errors.push(`plugin.json interface.${field} must be an HTTPS URL of at most 1024 characters`);
   if (ui.brandColor !== undefined && !/^#[0-9A-Fa-f]{6}$/.test(ui.brandColor))
     errors.push('brandColor must be #RRGGBB');
@@ -484,8 +573,20 @@ export function validate(inputs, files, schemaTexts) {
     for (const name of (c.tools_triggered ?? '').split(', '))
       if (!toolNames.includes(name)) errors.push(`test case names unknown tool ${name}`);
   }
-  for (const c of review.test_cases.negative)
-    if (!c.description || !c.prompt) errors.push('every negative test case needs description and prompt');
+  // A negative case: why the plugin should not act (description) and the expected refusal.
+  for (const c of review.test_cases.negative) {
+    if (!c.description || !c.prompt || !c.expected_behavior)
+      errors.push(
+        'every negative test case needs description (why not to act), prompt and expected_behavior (the refusal)',
+      );
+    if ('tools_triggered' in c) errors.push('a negative test case must not name tools');
+  }
+  // Initial MCP review needs exactly five positive and three negative cases.
+  if (
+    review.test_cases.positive.length !== OPENAI.positive ||
+    review.test_cases.negative.length !== OPENAI.negative
+  )
+    errors.push('plugin.json review needs exactly five positive and three negative test cases');
   const skillPath = `${PLUGIN_DIR}/skills/${ap.skill.name}/SKILL.md`;
   const front = /^---\nname: ([^\n]+)\ndescription: ([^\n]+)\n---\n/.exec(files.get(skillPath) ?? '');
   if (
@@ -518,28 +619,63 @@ export function validate(inputs, files, schemaTexts) {
     errors.push('claude-connector.json needs an HTTPS server URL and OAuth');
   if (JSON.stringify(claude.tools) !== JSON.stringify(toolRows(tools)))
     errors.push('claude-connector.json tools drift');
+  const claudeText = (field, max) => {
+    if (typeof claude[field] !== 'string' || claude[field].length === 0 || claude[field].length > max)
+      errors.push(`claude-connector.json ${field} must be 1-${max} characters`);
+  };
+  claudeText('name', CLAUDE.name);
+  claudeText('oneLiner', CLAUDE.oneLiner);
+  claudeText('description', CLAUDE.description);
+  const categories = claude.categories;
+  if (
+    !Array.isArray(categories) ||
+    categories.length < CLAUDE.categories.min ||
+    categories.length > CLAUDE.categories.max ||
+    categories.some((c) => typeof c !== 'string' || c.length === 0) ||
+    new Set(categories).size !== categories.length
+  )
+    errors.push('claude-connector.json categories must be 1-5 distinct names');
+  for (const field of ['documentationUrl', 'privacyPolicyUrl'])
+    if (!httpsUrl(claude[field])) errors.push(`claude-connector.json ${field} must be an HTTPS URL`);
+  if (
+    typeof claude.supportContact !== 'string' ||
+    !(EMAIL.test(claude.supportContact) || httpsUrl(claude.supportContact))
+  )
+    errors.push('claude-connector.json supportContact must be an email address or an HTTPS URL');
 
   // Owner actions before any submission. These never fail the check.
   if (listing.copy.status !== 'approved')
-    blockers.push('all: listing copy is proposed and awaits maintainer sign-off');
-  if (listing.remote.status !== 'deployed')
+    blockers.push('all: listing copy is PROPOSED and awaits the founder’s line-by-line sign-off');
+  if (listing.remote.status !== 'qualified')
     blockers.push(
-      `all remote entries: ${listing.remote.url} is ${listing.remote.status} (deployment and /version readback pending)`,
+      `all remote entries: ${listing.remote.url} is ${listing.remote.status} (production host qualification pending)`,
     );
   if (listing.stdio.status !== 'published')
     blockers.push(`MCP Registry and Cursor stdio: ${manifest.name} is ${listing.stdio.status} on npm`);
+  const npmPackage = registry.npmPackage;
+  if (!listsPackage)
+    blockers.push(
+      `MCP Registry npm package: deferred (remote-only entry); adding ${manifest.name} needs a successor candidate whose mcpName is ${listing.registryName} (${manifest.name}@${npmPackage.publishedVersion} on npm declares ${npmPackage.publishedMcpName})`,
+    );
+  else if (
+    npmPackage.publishedMcpName !== listing.registryName ||
+    npmPackage.publishedVersion !== manifest.version
+  )
+    blockers.push(
+      `MCP Registry: ${manifest.name}@${npmPackage.publishedVersion} on npm declares mcpName ${npmPackage.publishedMcpName}; publish a version whose mcpName is ${listing.registryName} and name it in server.json first`,
+    );
   for (const [key, entry] of Object.entries(listing.urls))
     if (entry.status !== 'live')
       blockers.push(`urls.${key}: ${entry.status}${entry.note ? ` (${entry.note})` : ''}`);
   if (listing.icons.value === null)
-    blockers.push('OpenAI and Cursor: no icon yet (OpenAI requires a primary icon)');
+    blockers.push(
+      `all: icon ${listing.icons.status}: no PNG icon yet (square, at least 48x48; OpenAI's primary icon, Claude's icon, the MCP Registry icons); the owner supplies it`,
+    );
   if (ap.openai.demoRecordingUrl === null) blockers.push('OpenAI: no demo recording URL');
-  if (
-    review.test_cases.positive.length !== OPENAI.positive ||
-    review.test_cases.negative.length !== OPENAI.negative
-  )
-    blockers.push('OpenAI: initial review needs exactly five positive and three negative test cases');
   blockers.push(`OpenAI: test cases are ${ap.openai.testCasesStatus}`);
+  blockers.push(
+    'OpenAI and Claude: a reviewer test account is needed (for OpenAI it must sign in without email or SMS codes or magic links); enter it in the portal, never in the package',
+  );
   return { errors, blockers };
 }
 

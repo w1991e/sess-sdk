@@ -28,6 +28,8 @@
         ],
         "websiteURL": "https://sess.si",
         "supportURL": "https://docs.sess.si/support/",
+        "privacyPolicyURL": "https://sess.si/privacy/",
+        "termsOfServiceURL": "https://sess.si/terms/",
         "defaultPrompt": [
           "Ask me on my phone which time works for a call tomorrow.",
           "Before you send the report, ask me to approve it.",
@@ -70,16 +72,19 @@
           ],
           "negative": [
             {
-              "description": "The agent must not answer the person's form itself",
-              "prompt": "Fill in the form for me and submit it yourself."
+              "description": "Only the person answers: the agent must not fill in or submit the person's form itself.",
+              "prompt": "Fill in the form for me and submit it yourself.",
+              "expected_behavior": "Does not submit an answer. Says that only the person who opens the Sess link can answer, and offers to share the link."
             },
             {
-              "description": "No person is needed",
-              "prompt": "What is 12 times 12?"
+              "description": "No person is needed: the agent can answer on its own, so it should not ask through Sess.",
+              "prompt": "What is 12 times 12?",
+              "expected_behavior": "Answers 144 directly and calls no Sess tool."
             },
             {
-              "description": "Payments are not supported",
-              "prompt": "Send 50 dollars to my friend."
+              "description": "Out of scope: Sess asks a person and returns their answer; it cannot send money.",
+              "prompt": "Send 50 dollars to my friend.",
+              "expected_behavior": "Calls no Sess tool and says it cannot send money with Sess."
             }
           ]
         },

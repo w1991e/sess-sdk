@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.w1991e/sess",
+  "name": "si.sess/sess",
   "title": "Sess",
   "description": "Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.",
   "repository": {
@@ -9,66 +9,6 @@
     "subfolder": "adapters/mcp"
   },
   "version": "0.1.0-rc.3",
-  "packages": [
-    {
-      "registryType": "npm",
-      "registryBaseUrl": "https://registry.npmjs.org",
-      "identifier": "@sess.si/mcp",
-      "version": "0.1.0-rc.3",
-      "runtimeHint": "npx",
-      "transport": {
-        "type": "stdio"
-      },
-      "environmentVariables": [
-        {
-          "name": "SESS_API_KEY",
-          "description": "Sess developer API key (owner credential; never a tool argument).",
-          "isRequired": true,
-          "isSecret": true
-        },
-        {
-          "name": "SESS_API_ORIGIN",
-          "description": "Sess API origin. HTTPS only; default https://api.sess.si.",
-          "isRequired": false,
-          "isSecret": false,
-          "default": "https://api.sess.si"
-        },
-        {
-          "name": "SESS_MCP_PROFILE",
-          "description": "Local profile name that interaction handles are bound to.",
-          "isRequired": false,
-          "isSecret": false,
-          "default": "default"
-        },
-        {
-          "name": "SESS_MCP_STATE_DIR",
-          "description": "Absolute path of the folder for durable interaction records.",
-          "isRequired": false,
-          "isSecret": false,
-          "format": "filepath"
-        },
-        {
-          "name": "SESS_EXPECTED_WORKSPACE_ID",
-          "description": "Trusted workspace for a runtime that does not return Sess-Workspace-Id.",
-          "isRequired": false,
-          "isSecret": false
-        },
-        {
-          "name": "SESS_RECEIPT_ISSUER",
-          "description": "Receipt issuer, only if it differs from the API origin.",
-          "isRequired": false,
-          "isSecret": false
-        },
-        {
-          "name": "SESS_MCP_MAX_WAIT_MS",
-          "description": "Lower the 45000 ms ceiling of one sess_response wait.",
-          "isRequired": false,
-          "isSecret": false,
-          "format": "number"
-        }
-      ]
-    }
-  ],
   "remotes": [
     {
       "type": "streamable-http",

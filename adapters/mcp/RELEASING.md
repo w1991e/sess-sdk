@@ -7,10 +7,11 @@ tarball only after a maintainer approves the protected environment, and nothing 
 until a maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`) go to
 `next`, never to `latest`.
 
-The current candidate, `0.1.0-rc.3`, has its contents, expected tarball digests and exact
-maintainer steps in [release/rc3-packet.md](release/rc3-packet.md). `0.1.0-rc.2`
-([release/rc2-packet.md](release/rc2-packet.md)) and `0.1.0-rc.1`
-([release/rc1-packet.md](release/rc1-packet.md)) are published.
+The current published candidate is `0.1.0-rc.3` (npm `next`, 2026-10-23; integrity and SHA-256 as
+recorded in [release/rc3-packet.md](release/rc3-packet.md) and `compatibility.json`). No unpublished
+candidate is pending. `0.1.0-rc.2` ([release/rc2-packet.md](release/rc2-packet.md)) and
+`0.1.0-rc.1` ([release/rc1-packet.md](release/rc1-packet.md)) are published as well. The packets'
+maintainer steps are historical: they were executed and are not re-run.
 
 ## Prerequisites (owner actions)
 
@@ -33,7 +34,7 @@ maintainer steps in [release/rc3-packet.md](release/rc3-packet.md). `0.1.0-rc.2`
      approval of the staged version;
    - deployment rule restricted to tags matching `mcp-v*`;
    - no secrets: publishing uses npm trusted publishing (OIDC), not a token.
-3. **npm package — exists; no release version is published.** A never-approved bootstrap stage
+3. **npm package — exists; release candidates rc.1–rc.3 are published on `next`.** A never-approved bootstrap stage
    created `@sess.si/mcp` so that a trusted publisher can be configured. Only once a public
    `0.0.0-stage` placeholder exists (npm publishes one with the bootstrap stage), and if `latest`
    lands on it, deprecate it with a pointer to `@next` (`latest` never points at a prerelease). The
@@ -43,12 +44,16 @@ maintainer steps in [release/rc3-packet.md](release/rc3-packet.md). `0.1.0-rc.2`
    permitted. Do not reject the bootstrap stage yet (see "Cutting a release", step 5).
    Consult the current [npm trusted-publisher guide](https://docs.npmjs.com/trusted-publishers/) when configuring it and
    match every OIDC identity field exactly. Do not install an automation token as a workaround.
-5. **MCP registry namespace — approved.** The owner approved `io.github.w1991e/sess` on
-   2026-10-14. `server.json` `name` and `package.json` `mcpName` both use it (a test keeps them
-   equal). Submitting `server.json` to the official registry is still a separate owner action; it
-   needs GitHub authentication as `w1991e` with `mcp-publisher`. The registry checks that the
-   published package's `mcpName` equals the server name, so changing it later needs a new package
-   version.
+5. **MCP registry namespace — `si.sess/sess`, remote-only.** The owner chose the domain namespace
+   `si.sess/*` (DNS authentication of `sess.si`) for the registry entry, replacing
+   `io.github.w1991e/sess` (approved 2026-10-14). The entry lists only the remote
+   `https://mcp.sess.si/mcp` and no npm package, so the registry cross-checks no published
+   `mcpName`, and `package.json` `mcpName` stays `io.github.w1991e/sess`, the published
+   0.1.0-rc.3's (its identity is unchanged). Listing the stdio package needs a successor candidate
+   whose `mcpName` is `si.sess/sess`; then set `providers.mcpRegistry.npmPackage.status` to
+   `listed` in `listing.json`, and the checks and the release guard require `mcpName` to equal the
+   server name again. Submitting `server.json` is a separate owner action, with
+   `mcp-publisher login dns` and the owner's key (`LISTINGS.md`).
 
 ## Cutting a release
 

@@ -37,14 +37,27 @@ export function checkIdentity({ manifest, server, ref, repository }) {
   if (!VERSION.test(manifest.version)) refuse(`unsupported version ${manifest.version}`);
   if (ref !== `refs/tags/mcp-v${manifest.version}`)
     refuse(`tag ${ref} does not equal refs/tags/mcp-v${manifest.version}`);
-  if (!server || manifest.mcpName !== server.name) refuse('package.json mcpName must equal server.json name');
+  if (!server) refuse('server.json is missing');
   // server.json, the MCP Registry entry, stays in step with the package on every release
-  // candidate (2026-10-20): the server and its npm package name exactly this version.
-  // Submitting the entry to the registry remains a separate owner action.
+  // candidate (2026-10-20): the server (and its npm package, when listed) name exactly this
+  // version. Submitting the entry to the registry remains a separate owner action.
   if (server.version !== manifest.version) refuse('server.json version must equal the package version');
-  const npmPackage = server.packages?.find((p) => p.registryType === 'npm');
-  if (npmPackage?.identifier !== PACKAGE || npmPackage.version !== manifest.version)
-    refuse('server.json npm package identifier/version drift');
+  const packages = server.packages ?? [];
+  if (packages.length === 0) {
+    // A remote-only entry (the npm package deferred) lists no package, so the registry checks no
+    // published mcpName against it; it must still declare its remote.
+    if (!Array.isArray(server.remotes) || server.remotes.length === 0)
+      refuse('server.json must list the npm package or a remote');
+  } else {
+    if (manifest.mcpName !== server.name) refuse('package.json mcpName must equal server.json name');
+    const npmPackage = packages.find((p) => p.registryType === 'npm');
+    if (
+      packages.length !== 1 ||
+      npmPackage?.identifier !== PACKAGE ||
+      npmPackage.version !== manifest.version
+    )
+      refuse('server.json npm package identifier/version drift');
+  }
   // Release candidates never take the default dist-tag.
   return { version: manifest.version, distTag: manifest.version.includes('-rc.') ? 'next' : 'latest' };
 }

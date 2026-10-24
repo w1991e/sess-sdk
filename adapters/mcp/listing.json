@@ -3,11 +3,13 @@
   "about": "Single source for the generated listing artifacts (npm run listing; checked by npm run check:listing). Tool names, titles and annotations come from src/tools.ts; version and package from package.json. Generating or validating an artifact is not a submission, and a submission is not an accepted listing. Copy marked proposed awaits a maintainer's line-by-line sign-off.",
   "name": "sess",
   "displayName": "Sess",
-  "registryName": "io.github.w1991e/sess",
+  "registryName": "si.sess/sess",
   "copy": {
     "status": "proposed",
+    "note": "PROPOSED copy: every string under copy, the categories, the test cases and the skill text await the founder's line-by-line sign-off; set status to approved only after it.",
     "short": "Ask a person, get the answer",
     "registry": "Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.",
+    "oneLiner": "Your agent sends a Sess link, a person answers on any device, and the agent continues with their typed, receipt-checked answer.",
     "long": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
     "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp"],
     "defaultPrompts": [
@@ -28,35 +30,39 @@
   },
   "license": "Apache-2.0",
   "urls": {
+    "website": {
+      "value": "https://sess.si",
+      "status": "live"
+    },
     "docs": {
       "value": "https://docs.sess.si/add-to-your-agent/",
-      "status": "placeholder",
-      "note": "The setup page; not deployed yet."
+      "status": "live"
     },
     "support": {
       "value": "https://docs.sess.si/support/",
       "status": "live"
     },
     "privacy": {
-      "value": null,
-      "status": "placeholder",
-      "note": "No public privacy policy page exists yet; the owner supplies it."
+      "value": "https://sess.si/privacy/",
+      "status": "pending-cutover",
+      "note": "Built by the Sess site (apps/site/content/privacy.html) and served on preview; https://sess.si/privacy/ answers only after the apex cutover."
     },
     "terms": {
-      "value": null,
-      "status": "placeholder",
-      "note": "No public terms of service page exists yet; the owner supplies it."
+      "value": "https://sess.si/terms/",
+      "status": "pending-cutover",
+      "note": "Built by the Sess site (apps/site/content/terms.html) and served on preview; https://sess.si/terms/ answers only after the apex cutover."
     }
   },
+  "supportContact": "support@sess.si",
   "icons": {
     "value": null,
-    "status": "placeholder",
-    "note": "A square PNG or SVG of at least 48x48, committed under listings/plugin/assets/ and hosted over HTTPS for the MCP Registry; the owner supplies the brand asset."
+    "status": "missing",
+    "note": "No PNG icon exists yet. Needs a square PNG of at least 48x48 (OpenAI primary icon, Claude icon, MCP Registry icons over HTTPS), committed under listings/plugin/assets/; the owner supplies the brand asset."
   },
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
-    "status": "unpublished",
-    "note": "Only the release candidates 0.1.0-rc.1 and 0.1.0-rc.2 are on npm (dist-tag next); the version server.json names (package.json's) is not published yet, and the stdio entries work only after it is.",
+    "status": "published",
+    "note": "0.1.0-rc.3 (package.json's version) is on npm, dist-tag next, published 2026-10-23T18:03:37Z. Its mcpName is io.github.w1991e/sess, so the MCP Registry entry lists no npm package for now; see providers.mcpRegistry.npmPackage.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {
@@ -108,8 +114,8 @@
     ]
   },
   "remote": {
-    "status": "not-deployed",
-    "note": "Until https://mcp.sess.si/mcp is deployed and its /version is read back, the remote entries describe an endpoint that does not answer.",
+    "status": "unqualified",
+    "note": "Production endpoint. https://mcp.sess.si/version read back 2026-10-23 (git_sha f52406976880b49500319d48d6045382e617e007, built 2026-10-22T15:50:44Z); production host qualification has not passed yet. Set qualified only after it does.",
     "type": "streamable-http",
     "url": "https://mcp.sess.si/mcp",
     "auth": {
@@ -123,12 +129,25 @@
     "mcpRegistry": {
       "mapping": 1,
       "output": "server.json",
-      "versionNote": "server.json names package.json's exact version, for the server and for the npm package, and stays in step with it on every release candidate (2026-10-20); never a dist-tag. Submitting it is an owner action, after that version is on npm and https://mcp.sess.si/mcp is read back.",
+      "versionNote": "server.json names package.json's exact version, for the server (and for the npm package when it is listed), and stays in step with it on every release candidate (2026-10-20); never a dist-tag. Submitting it is an owner action, after https://mcp.sess.si/mcp passes production host qualification.",
+      "namespace": {
+        "auth": "dns",
+        "domain": "sess.si",
+        "note": "Domain namespace si.sess/* (founder decision). DNS authentication: the TXT record v=MCPv1; k=ed25519 is on sess.si; the private key stays in the owner's Keychain item sess-mcp-registry-ed25519."
+      },
+      "npmPackage": {
+        "status": "deferred",
+        "publishedVersion": "0.1.0-rc.3",
+        "publishedMcpName": "io.github.w1991e/sess",
+        "read": "2026-10-23",
+        "note": "Remote-only entry: server.json lists no npm package, so the registry cross-checks no published package's mcpName and the published @sess.si/mcp keeps its identity (package.json mcpName stays io.github.w1991e/sess, rc.3's published value). Adding the stdio package (status listed) needs a successor @sess.si/mcp candidate whose mcpName is si.sess/sess, after the re-pin freeze ends on 3 Nov."
+      },
       "schema": {
         "id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
         "vendored": "listings/schemas/mcp-registry-server-2025-12-11.schema.json",
         "sha256": "3fba09590c99f61735d234822279f4223fab9e300c0a81e81c91ab62a4114de0",
-        "retrieved": "2026-10-15"
+        "retrieved": "2026-10-15",
+        "rechecked": "2026-10-23: still the version the registry quickstart and remote-servers pages name, byte-identical (same SHA-256)"
       }
     },
     "agentPlugin": {
@@ -150,9 +169,10 @@
         }
       },
       "openaiRules": {
-        "source": "https://developers.openai.com/plugins/deploy/submission.md",
-        "retrieved": "2026-10-15",
-        "note": "No published JSON schema covers extensions.com.openai; listing.mjs encodes the documented submission limits."
+        "source": "https://developers.openai.com/apps-sdk/deploy/submission.md",
+        "guidelines": "https://developers.openai.com/apps-sdk/app-submission-guidelines.md",
+        "retrieved": "2026-10-23",
+        "note": "No published JSON schema covers extensions.com.openai; listing.mjs encodes the documented submission limits and the guidelines' name and no-pricing rules."
       },
       "skill": {
         "name": "ask-a-person",
@@ -197,16 +217,19 @@
         ],
         "negative": [
           {
-            "description": "The agent must not answer the person's form itself",
-            "prompt": "Fill in the form for me and submit it yourself."
+            "description": "Only the person answers: the agent must not fill in or submit the person's form itself.",
+            "prompt": "Fill in the form for me and submit it yourself.",
+            "expected_behavior": "Does not submit an answer. Says that only the person who opens the Sess link can answer, and offers to share the link."
           },
           {
-            "description": "No person is needed",
-            "prompt": "What is 12 times 12?"
+            "description": "No person is needed: the agent can answer on its own, so it should not ask through Sess.",
+            "prompt": "What is 12 times 12?",
+            "expected_behavior": "Answers 144 directly and calls no Sess tool."
           },
           {
-            "description": "Payments are not supported",
-            "prompt": "Send 50 dollars to my friend."
+            "description": "Out of scope: Sess asks a person and returns their answer; it cannot send money.",
+            "prompt": "Send 50 dollars to my friend.",
+            "expected_behavior": "Calls no Sess tool and says it cannot send money with Sess."
           }
         ]
       }
@@ -220,7 +243,9 @@
     "claudeConnector": {
       "mapping": 1,
       "output": "listings/claude-connector.json",
-      "note": "Values for Anthropic's custom connector submission form; there is no published schema, so listing.mjs checks the documented requirements (HTTPS URL, OAuth, a title and read-only/destructive hints on every tool, a privacy policy URL)."
+      "note": "Values for Anthropic's connector submission form; there is no published schema, so listing.mjs checks the documented requirements (HTTPS URL, OAuth, a title and read-only/destructive hints on every tool; name 100, one-liner 200, description 2000 characters, 1-5 categories, documentation and privacy policy URLs, a support contact).",
+      "source": "https://claude.com/docs/connectors/building/submission.md",
+      "retrieved": "2026-10-23"
     },
     "clawhub": {
       "status": "not-applicable",

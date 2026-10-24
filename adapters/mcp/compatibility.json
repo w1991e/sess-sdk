@@ -5,7 +5,7 @@
     "version": "0.1.0-rc.3",
     "toolSchema": "sess-mcp-tools/4"
   },
-  "status": "0.1.0-rc.3 prepared on @sess.si/sdk 0.1.0-rc.8, unpublished; 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next",
+  "status": "0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next is 0.1.0-rc.3, on @sess.si/sdk 0.1.0-rc.8",
   "recordedAt": "2026-10-23",
   "node": {
     "engines": ">=22.14.0 <25",
@@ -138,7 +138,7 @@
       "notTested": [
         "any model-invoked tool call through Claude Code (cost not authorized)",
         "macOS host: the qualification machine has an enterprise managed-mcp.json with exclusive control, so servers cannot be added there",
-        "registry npx -y @sess.si/mcp@<version> (package unpublished)",
+        "registry npx -y @sess.si/mcp@<version> (not yet run as a recorded test)",
         "environment inheritance when an interactive Claude Code session starts the server"
       ]
     }
@@ -158,40 +158,58 @@
   "registry": {
     "serverJson": "server.json",
     "schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-    "name": "io.github.w1991e/sess",
-    "validated": "2026-10-14 with ajv against the downloaded 2025-12-11 schema (sha256 3fba09590c99f61735d234822279f4223fab9e300c0a81e81c91ab62a4114de0). Since Q-2 (2026-10-15) server.json is generated from listing.json and npm run check validates it against that schema, vendored at listings/schemas/ with the same SHA-256.",
-    "remote": "https://mcp.sess.si/mcp (streamable-http) is declared in server.json and is not deployed; see LISTINGS.md before submitting",
-    "status": "namespace io.github.w1991e/sess approved by the owner (2026-10-14); not submitted"
+    "name": "si.sess/sess",
+    "validated": "2026-10-14 with ajv against the downloaded 2025-12-11 schema (sha256 3fba09590c99f61735d234822279f4223fab9e300c0a81e81c91ab62a4114de0). Since Q-2 (2026-10-15) server.json is generated from listing.json and npm run check validates it against that schema, vendored at listings/schemas/ with the same SHA-256 (rechecked 2026-10-23: still current).",
+    "remote": "https://mcp.sess.si/mcp (streamable-http) is the entry's one remote; production host qualification has not passed; see LISTINGS.md before submitting",
+    "packages": "none: the entry is remote-only while the npm package is deferred, so the registry cross-checks no published mcpName. package.json mcpName stays io.github.w1991e/sess, the published 0.1.0-rc.3's; listing the stdio package needs a successor candidate whose mcpName is si.sess/sess",
+    "status": "domain namespace si.sess/sess (DNS authentication of sess.si) chosen by the owner for the registry entry, replacing io.github.w1991e/sess; remote-only; not submitted"
   },
   "release": {
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "0.1.0-rc.3 prepared on @sess.si/sdk 0.1.0-rc.8, unpublished. @sess.si/mcp@0.1.0-rc.2 published on npm dist-tag next on 2026-10-19 and 0.1.0-rc.1 on 2026-10-17 (each staged by the release workflow, approved by a maintainer with npm 2FA); latest stays on the deprecated 0.0.0-stage placeholder. The SDK dependency is in registry mode.",
+    "status": "@sess.si/mcp@0.1.0-rc.3 published on npm dist-tag next on 2026-10-23, on @sess.si/sdk 0.1.0-rc.8; 0.1.0-rc.2 on 2026-10-19 and 0.1.0-rc.1 on 2026-10-17 (each staged by the release workflow, approved by a maintainer with npm 2FA); latest stays on the deprecated 0.0.0-stage placeholder. No unpublished candidate is pending. The SDK dependency is in registry mode.",
     "published": {
-      "version": "0.1.0-rc.2",
+      "version": "0.1.0-rc.3",
       "distTag": "next",
-      "publishedAt": "2026-10-19",
-      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0-rc.2.tgz",
-      "sha256": "e9dede5176974ec0ab20d6f39033cac8ac01e57d90d6490532870879046f2d88",
-      "integrity": "sha512-Q75jW27FwOxjvDMzLC16fll2q7krZqh/vejLlYPjO4BBMk2F+wqgGqHl9CZrK8RUr858ptJaoL+tu5qBJMu+ow==",
+      "publishedAt": "2026-10-23T18:03:37.669Z",
+      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0-rc.3.tgz",
+      "sha256": "d6b5d3d71205c4fcf7884d317a6e0c74806907ac32c5beb9778c2aa1446bc837",
+      "integrity": "sha512-Gc/hUu0H+gDvp0PSnNytCsTojolfpJ6ZkNlkMu0JLYH0IIYXl4oFwFvGBoJwQRekEnnstrOX5rQ7SEOJRa+Cvw==",
       "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
-      "sourceCommit": "0fde9cd2858c6a7c2ded319aa81dd2e850610067",
-      "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/39189334311",
-      "sessSdk": "0.1.0-rc.7, whose receipt verifier rejects the sess-html-form-2 renderer identity; 0.1.0-rc.3 depends on 0.1.0-rc.8, which bundles it",
-      "registryInstall": "not yet qualified: npx -y @sess.si/mcp@0.1.0-rc.2 has not been run as a recorded test"
+      "sourceCommit": "ade8f835a6eeebba4090b13a26c9817028807657",
+      "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/39995114814",
+      "mcpName": "io.github.w1991e/sess",
+      "sessSdk": "0.1.0-rc.8, which bundles the sess-html-form-1 and sess-html-form-2 renderer identities",
+      "readBack": "2026-10-23: npm view time, dist.integrity and dist-tags.next; the registry tarball's SHA-256 and integrity equal release/rc3-packet.md",
+      "registryInstall": "not yet qualified: npx -y @sess.si/mcp@0.1.0-rc.3 has not been run as a recorded test"
     },
-    "earlier": {
-      "version": "0.1.0-rc.1",
-      "distTag": "next",
-      "publishedAt": "2026-10-17",
-      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0-rc.1.tgz",
-      "sha256": "189907304cf1275892e9be8ba93bf80517b14f92303c8a33a9f7684306123180",
-      "integrity": "sha512-X6i8Ws44XlL2Ki9RupQd57e7yGuSh0z94GboziPKFUzKahLEVWi/7phWoudzQ1hto1Qb9tT5U6a4DRAvd0aNCw==",
-      "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
-      "sourceCommit": "7eebb0e8e8a5b22c56f93ae79d82f392eb5f65d6",
-      "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/38990432638",
-      "registryInstall": "not yet qualified: npx -y @sess.si/mcp@0.1.0-rc.1 has not been run as a recorded test"
-    }
+    "earlier": [
+      {
+        "version": "0.1.0-rc.2",
+        "distTag": "next",
+        "publishedAt": "2026-10-19",
+        "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0-rc.2.tgz",
+        "sha256": "e9dede5176974ec0ab20d6f39033cac8ac01e57d90d6490532870879046f2d88",
+        "integrity": "sha512-Q75jW27FwOxjvDMzLC16fll2q7krZqh/vejLlYPjO4BBMk2F+wqgGqHl9CZrK8RUr858ptJaoL+tu5qBJMu+ow==",
+        "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
+        "sourceCommit": "0fde9cd2858c6a7c2ded319aa81dd2e850610067",
+        "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/39189334311",
+        "sessSdk": "0.1.0-rc.7, whose receipt verifier rejects the sess-html-form-2 renderer identity; 0.1.0-rc.3 depends on 0.1.0-rc.8, which bundles it",
+        "registryInstall": "not yet qualified: npx -y @sess.si/mcp@0.1.0-rc.2 has not been run as a recorded test"
+      },
+      {
+        "version": "0.1.0-rc.1",
+        "distTag": "next",
+        "publishedAt": "2026-10-17",
+        "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0-rc.1.tgz",
+        "sha256": "189907304cf1275892e9be8ba93bf80517b14f92303c8a33a9f7684306123180",
+        "integrity": "sha512-X6i8Ws44XlL2Ki9RupQd57e7yGuSh0z94GboziPKFUzKahLEVWi/7phWoudzQ1hto1Qb9tT5U6a4DRAvd0aNCw==",
+        "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
+        "sourceCommit": "7eebb0e8e8a5b22c56f93ae79d82f392eb5f65d6",
+        "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/38990432638",
+        "registryInstall": "not yet qualified: npx -y @sess.si/mcp@0.1.0-rc.1 has not been run as a recorded test"
+      }
+    ]
   }
 }

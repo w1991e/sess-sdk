@@ -23,7 +23,22 @@ import {
 const adapter = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (name) => JSON.parse(readFileSync(join(adapter, name), 'utf8'));
 const manifest = read('package.json');
-const server = read('server.json');
+// The committed entry is remote-only while the npm package is deferred; the identity tests below
+// exercise the listed form (the npm package beside the remote, under the package's mcpName).
+const remoteOnly = read('server.json');
+const server = {
+  ...remoteOnly,
+  name: manifest.mcpName,
+  packages: [
+    {
+      registryType: 'npm',
+      registryBaseUrl: 'https://registry.npmjs.org',
+      identifier: manifest.name,
+      version: manifest.version,
+      transport: { type: 'stdio' },
+    },
+  ],
+};
 const compatibility = read('compatibility.json');
 const version = manifest.version;
 const good = { manifest, server, ref: `refs/tags/mcp-v${version}`, repository: 'w1991e/sess-sdk' };
@@ -89,6 +104,28 @@ test('identity: wrong tag, version, prefix or repository refuses', () => {
     () => checkIdentity({ ...good, manifest: bad, ref: 'refs/tags/mcp-v0.1.0-beta.1' }),
     /unsupported version/,
   );
+});
+
+test('identity: a remote-only entry checks no mcpName but needs its remote and version', () => {
+  assert.deepEqual(remoteOnly.packages, undefined);
+  assert.notEqual(remoteOnly.name, manifest.mcpName);
+  assert.deepEqual(checkIdentity({ ...good, server: remoteOnly }), {
+    version,
+    distTag: version.includes('-rc.') ? 'next' : 'latest',
+  });
+  const noRemote = clone(remoteOnly);
+  delete noRemote.remotes;
+  refuses(() => checkIdentity({ ...good, server: noRemote }), /npm package or a remote/);
+  const stale = clone(remoteOnly);
+  stale.version = '0.0.1';
+  refuses(() => checkIdentity({ ...good, server: stale }), /server.json version/);
+  // Listing a package brings the mcpName and package checks back.
+  const listed = clone(remoteOnly);
+  listed.packages = clone(server.packages);
+  refuses(() => checkIdentity({ ...good, server: listed }), /mcpName/);
+  const two = clone(server);
+  two.packages.push(clone(server.packages[0]));
+  refuses(() => checkIdentity({ ...good, server: two }), /identifier\/version/);
 });
 
 test('identity: wrong package name, path, visibility or registry metadata refuses', () => {

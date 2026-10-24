@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- MCP Registry entry `si.sess/sess` (`server.json`), the `sess.si` domain namespace authenticated by
+  DNS, replacing `io.github.w1991e/sess`. The entry is remote-only (`https://mcp.sess.si/mcp`): it
+  lists no npm package, so `package.json` `mcpName` stays `io.github.w1991e/sess`, the published
+  0.1.0-rc.3's. Listing metadata only; no runtime or package change.
 - A create that Sess refuses under the workspace's plan (HTTP 429 `PLAN_LIMIT_REACHED`) is now a
   definite refusal: `sess_request` and `sess_ask` return the tool error `PLAN_LIMIT_REACHED`
   (class `create_rejected`, `retryable: false`) with a fixed message, and keep no record. Before,
@@ -9,7 +13,9 @@
   `create_unknown`, though nothing had been created. Sess's own message and its link are not
   relayed. A plain rate limit (429 without that code) is still an unknown create outcome.
 
-## 0.1.0-rc.3 (candidate, unpublished)
+## 0.1.0-rc.3 (published 2026-10-23, npm dist-tag `next`)
+
+Integrity `sha512-Gc/hUu0H…Ra+Cvw==`, SHA-256 `d6b5d3d7…6bc837`, as in `release/rc3-packet.md`.
 
 - Depends on `@sess.si/sdk` 0.1.0-rc.8 (was 0.1.0-rc.7), resolved from the registry (sha256
   `b533935b…4c95`). Form-2 receipts verify: rc.8 bundles the renderer identities
