@@ -1,15 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.4 (candidate, unpublished)
 
+- Still depends on `@sess.si/sdk` 0.1.0-rc.8 (sha256 `b533935b…4c95`); no dependency changes.
 - A create that Sess refuses under the workspace's plan (HTTP 429 `PLAN_LIMIT_REACHED`) is now a
   definite refusal: `sess_request` fails with `PLAN_LIMIT_REACHED` (class `create_rejected`) and a
   fixed message, and a redelivery of the same host call reports the same and sends nothing. Before,
   it was `CREATE_OUTCOME_UNKNOWN` ("a Session may exist") and kept as `create_unknown`, though
   nothing had been created. Sess's own message and its link are not relayed. A plain rate limit
   (429 without that code) is still an unknown create outcome.
+- The packed check also checks the exact tarball's hygiene (no source maps, test fixtures,
+  non-public hosts, credential-shaped strings or internal references), and `compatibility.json`
+  no longer carries internal references.
+- `compatibility.json` records the publication of `0.1.0-rc.3` on the npm dist-tag `next`
+  (2026-10-23): registry SHA-256 and integrity, SLSA provenance and release run 39995130479.
+  Earlier publications are listed under `earlierPublications`.
 
-## 0.1.0-rc.3 (candidate, unpublished)
+## 0.1.0-rc.3 (published 2026-10-23)
 
 - Depends on `@sess.si/sdk` 0.1.0-rc.8 (was 0.1.0-rc.7), resolved from the registry (sha256
   `b533935b…4c95`). Form-2 receipts verify: rc.8 bundles the renderer identities
