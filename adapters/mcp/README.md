@@ -135,6 +135,12 @@ line breaks are kept in multiline fields.
 | `sess_complete` | `handle`, `expected_revision`, `response_event_id`                            | `completed`                                                   |
 | `sess_ask`      | `question`, `fields` (1–12), optional `details`, `submit_label`, `expires_in` | `waiting`, with `humanUrl` and `expiresAt`                    |
 
+After an answer, `sess_complete` is the rule, not an option: when `sess_response` returns state
+`answered` and the agent has no follow-up question for the person, it must call `sess_complete`
+next, so the person's page shows that the agent has their answer. Until then the page keeps waiting
+for the next step. Only to show a follow-up does the agent call `sess_publish` instead. The server
+instructions and both tool descriptions say this.
+
 `sess_ask` is a shortcut for `sess_request`: it turns a question and up to 12 simple fields
 (`text`, `number`, `integer`, `boolean`, `choice`, `multi_choice`) into an ordinary interaction,
 checks it with the same rules and limits, and runs the same request operation. It creates exactly

@@ -54,6 +54,20 @@ describe('MCP server', () => {
     expect(client.getServerCapabilities()).toEqual({ tools: { listChanged: false } });
   });
 
+  it('makes sess_complete the rule after an answer, in the server instructions and the sess_response description', async () => {
+    const rule =
+      'When sess_response returns state "answered" and you have no follow-up question for the person, you must call sess_complete next, so their page shows that you have their answer. ' +
+      'Call sess_publish instead only to show them a follow-up.';
+    const { client } = await connect(new FakeSess());
+    expect(client.getInstructions()).toContain(rule);
+    const { tools } = await client.listTools();
+    const descriptionOf = (name: string) => tools.find((t) => t.name === name)!.description;
+    expect(descriptionOf('sess_response')).toContain(rule);
+    expect(descriptionOf('sess_complete')).toMatch(/^Required once you are done with the person’s answer/);
+    // The earlier optional wording is gone.
+    expect(client.getInstructions()).not.toContain('Finish with sess_complete, or');
+  });
+
   it('request → response → complete through the protocol, with client-side output schema validation', async () => {
     const fake = new FakeSess();
     const { client, lines } = await connect(fake, { verify: true });
