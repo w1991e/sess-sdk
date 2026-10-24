@@ -1,20 +1,27 @@
 # Sess SDK
 
-Ask a person a question from your server and continue with their verified answer. `@sess.si/sdk`
-creates a hosted Sess page, waits for the answer, checks its signed receipt and continues the same
-Session.
+Ask a person a question from your server and continue with their verified answer.
 
-**Install** from npm:
+**Create** a small agent:
+
+```sh
+npx @sess.si/create-agent@next my-agent
+```
+
+**Run** it (with `SESS_API_KEY` and `SESS_DEMO_CONTACT` set in your environment):
+
+```sh
+cd my-agent && npm install --ignore-scripts && npm start
+```
+
+**What you'll see:** a Sess link. Answer two questions on your phone and your plan prints in the
+terminal with a verified receipt.
+
+**Install** the SDK in your own server project:
 
 ```sh
 npm install --save-exact @sess.si/sdk@next
 ```
-
-**Run** the [plain-Node quickstart](examples/quickstart-node/README.md), a complete program that
-needs only `SESS_API_KEY`.
-
-**What you'll see:** a Sess link, printed before the program starts waiting. Open it on any
-device and answer; the program prints the verified answer and completes the Session.
 
 ## Ask a person
 
