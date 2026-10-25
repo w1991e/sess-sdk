@@ -104,8 +104,10 @@ const ADDED = {
     // Decision 0009 Amendment 10: the link timing types (rc.8).
     'LinkExtension',
     'LinkState',
-    // P2-22 Commerce B (rc.9): money, the items builder and their types.
+    // P2-22 Commerce B (rc.9): money, the items builder, the five builders and their types.
     'Amount',
+    'BillInput',
+    'COMMERCE_DEFAULTS',
     'ITEMS_DEFAULT_LABELS',
     'ITEMS_LIMITS',
     'ItemLineInput',
@@ -115,8 +117,14 @@ const ADDED = {
     'ItemsComponent',
     'ItemsInput',
     'Money',
+    'RefundInput',
+    'invoice',
     'items',
     'money',
+    'purchaseOrder',
+    'quote',
+    'receipt',
+    'refund',
   ],
   // Decision 0009 Amendment 13 (rc.8): renderer identities on a signed list.
   './receipts': [
@@ -189,14 +197,20 @@ describe('public exports', () => {
   it('add no runtime value exports beyond the Commerce builders', () => {
     // Commerce B adds only its pure builders and their constants (no client or network).
     expect(Object.keys(root).sort()).toEqual([
+      'COMMERCE_DEFAULTS',
       'ITEMS_DEFAULT_LABELS',
       'ITEMS_LIMITS',
       'Sess',
       'SessError',
+      'invoice',
       'isInteractiveSession',
       'isInteractiveSurface',
       'items',
       'money',
+      'purchaseOrder',
+      'quote',
+      'receipt',
+      'refund',
     ]);
     expect(Object.keys(receipts).sort()).toEqual([
       'BUNDLED_RENDERER_IDENTITIES',
