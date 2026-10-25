@@ -74,7 +74,7 @@ function interaction(value: unknown, mode: 'display' | 'interactive'): void {
   if (source.kind !== 'sess_surface' || v.response_policy !== 'first') protocol();
   for (const item of array(source.components)) {
     const c = object(item);
-    oneOf(c.type, ['heading', 'text', 'record', 'field']);
+    oneOf(c.type, ['heading', 'text', 'record', 'field', 'items']);
     if (c.type === 'heading') string(c.text, undefined, 200);
     if (c.type === 'text') string(c.text, undefined, 4000);
     if (c.type === 'record') object(c.fields);
@@ -82,6 +82,12 @@ function interaction(value: unknown, mode: 'display' | 'interactive'): void {
       string(c.name, /^[a-z][a-z0-9_]{0,63}$/);
       string(c.label, undefined, 200);
       oneOf(object(c.schema).type, ['string', 'number', 'integer', 'boolean', 'array']);
+    }
+    // Commerce: line items in one ISO 4217 currency (Sess checks rows and totals on create).
+    if (c.type === 'items') {
+      string(c.currency, /^[A-Z]{3}$/, 3);
+      if (!array(c.rows).length) protocol();
+      if (c.totals !== undefined) array(c.totals);
     }
   }
   const seen = new Set<string>();

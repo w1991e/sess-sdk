@@ -61,6 +61,51 @@ export type FieldSchema = SchemaDocumentation &
   );
 type WireComponent = Schemas['SurfaceComponent'];
 type Component<T extends WireComponent['type']> = Extract<WireComponent, { type: T }>;
+/** The role of a totals line: how Sess checks the arithmetic, never a colour. */
+export type ItemTotalRole =
+  | 'subtotal'
+  | 'tax'
+  | 'discount'
+  | 'shipping'
+  | 'fee'
+  | 'tip'
+  | 'paid'
+  | 'due'
+  | 'adjustment'
+  | 'total'
+  | 'other';
+/**
+ * Line items with amounts and totals (Commerce): the runtime's `items` component, as sent. Amounts
+ * are whole numbers in the currency's minor unit (cents for USD, yen for JPY, fils for BHD), one
+ * ISO 4217 currency per component; Sess never rounds, converts or computes them, and checks a
+ * stated subtotal, total and amount due exactly. Build one with `items()` or a Commerce builder.
+ */
+export interface ItemsComponent {
+  type: 'items';
+  /** Optional caption: what the list is, a few words; at most 200. Example: `Invoice 2041` */
+  label?: string;
+  /** ISO 4217 code with known minor units, such as `CAD`, `JPY` or `BHD`. */
+  currency: string;
+  /** The person may choose rows: one (radios) or many (checkboxes). Needs `name`. */
+  select?: 'one' | 'many';
+  /** The person may change the quantity of rows that carry one. Needs `name` and a `request_change` action. */
+  editable?: ['quantity'];
+  /** The answer's name, `^[a-z][a-z0-9_]{0,55}$`, with `select` or `editable` only. */
+  name?: string;
+  /** 1–100 rows, in order. */
+  rows: {
+    /** What one line is: at most 80. Example: `Design retainer, October` */
+    name: string;
+    /** Optional second line: quantity, unit price or a reference; at most 160. Example: `3 × $150.00` */
+    detail?: string;
+    /** An editable quantity (with `editable`): an integer 0–1,000,000 within `min` and `max`. */
+    quantity?: { value: number; unit?: string; min?: number; max?: number };
+    /** Minor units, |amount| ≤ 10^15, or null for a line with no amount. */
+    amount: number | null;
+  }[];
+  /** Up to 8 totals lines, in order, as stated. A label: a word or two; at most 40. */
+  totals?: { label: string; amount: number; role: ItemTotalRole; included?: boolean }[];
+}
 /**
  * One piece of an interactive Surface, shown in order. Lengths are Unicode code points; Sess
  * never truncates: a value over its limit is a 400 INVALID_SCHEMA whose `field`, `limit` and
@@ -98,7 +143,8 @@ export type SurfaceComponent =
       /** The words shown for one choice: short; at most 60. Example: `Next Monday` */
       option_labels?: { [key: string]: string };
       schema: FieldSchema;
-    });
+    })
+  | ItemsComponent;
 type DocumentedAction = RawPublishSessionRequest['interaction']['actions'][number] & {
   /** A button: a verb, 1–3 words; at most 24. Examples: `Approve`, `Send refund` */
   label: string;
@@ -120,6 +166,11 @@ export type InteractiveInteraction = Omit<RawPublishSessionRequest['interaction'
    * sentences; at most 280. Example: `The customer was charged twice for order 1042.`
    */
   description?: string;
+  /**
+   * Advanced: one BCP 47 locale for formatting this page's amounts (default: the page's language,
+   * `en`). It does not translate the page. Example: `en-CA`
+   */
+  locale?: string;
   source: { kind: 'sess_surface'; components: SurfaceComponent[] };
   /** The buttons, 1–5. A button: a verb, 1–3 words; at most 24. */
   actions: DocumentedAction[];
