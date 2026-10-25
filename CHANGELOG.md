@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Commerce: bills as ordinary Surfaces, for Sess's `items` component. Sess takes no payment.
+  `money(amount, currency)` checks a whole number of minor units (cents for USD, yen for JPY, fils
+  for BHD) and an ISO 4217 code Sess accepts; it never rounds or converts. `items()` builds the
+  component with its subtotal, total and amount due computed exactly from the rows, lines and
+  payments, so Sess's arithmetic check passes. `invoice()`, `receipt()`, `quote()`, `refund()` and
+  `purchaseOrder()` return an `interaction` for `sessions.create()`: the card, the document's
+  reference in a record under a plain name, and the buttons Sess requires (Request changes
+  whenever a quantity is editable). `refund()` states positive amounts under "Refund total" and
+  never a negative total. `lintText()` finds Markdown pipe tables in text and says whether to send
+  an items component or a record. Limits match Sess's and reject, never truncate: row name 80,
+  detail 160, totals label 40, caption 200, rows 100, totals lines 8 (`ITEMS_LIMITS`); a refusal is
+  a `SessError` with code `INVALID_SCHEMA`, outcome `not_sent`, and the value's JSON pointer in
+  `field`. New types `ItemsComponent` and `ItemTotalRole` (`SurfaceComponent` includes items) and
+  the Advanced `locale` on an interactive interaction. Session reads now accept an items component,
+  and a 400 for too many rows or totals lines carries Sess's sentence.
 - A plan limit is a refusal, not an uncertain outcome. Sess answers a create over the workspace's
   plan with HTTP 429 `PLAN_LIMIT_REACHED`, and nothing is created. The SDK now reports it as
   `kind: 'api'`, `outcome: 'rejected'`, with `code`, `reason` (`monthly_allowance` or

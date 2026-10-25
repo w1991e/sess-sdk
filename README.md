@@ -108,6 +108,60 @@ dist-tag. There is no stable release yet: do not install the bare name, whose `l
 deprecated `0.0.0-stage` placeholder. The [changelog](CHANGELOG.md) describes each version;
 `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
 
+## Commerce
+
+Sess takes no payment: the person approves a bill on a Sess page, and moving the money stays with
+you and your payment processor.
+
+```ts
+import { Sess, invoice } from '@sess.si/sdk';
+const sess = new Sess({ apiKey: process.env.SESS_API_KEY });
+const created = await sess.sessions.create({
+  interaction: invoice({
+    currency: 'CAD', // whole cents: 420000 is $4,200.00
+    reference: 'INV-2041',
+    rows: [{ name: 'Design retainer, October', amount: 420000 }],
+    lines: [{ label: 'GST 5%', amount: 21000, role: 'tax' }],
+  }),
+});
+console.log(`Send this Sess link to the person: ${created.data.human_url}`);
+```
+
+Three things you will meet first:
+
+- **Short rows.** A row name has at most 80 characters and its detail at most 160. A longer value
+  is refused, never trimmed: the `SessError` names it by its pointer, such as
+  `/interaction/source/components/1/rows/0/name`, with `limit` and `length`.
+- **Whole minor units.** Amounts are integers in the currency's smallest unit: cents for USD, yen
+  for JPY, fils for BHD. `money(1250, 'USD')` is $12.50; `money(12.5, 'USD')` throws, because Sess
+  never rounds or converts.
+- **Exact totals.** The builders compute the subtotal, total and amount due from your rows and
+  lines. An items component you write by hand whose subtotal is not the sum of its rows is refused
+  with HTTP 400:
+
+```json
+{
+  "error": {
+    "code": "INVALID_SCHEMA",
+    "field": "/interaction/source/components/0/totals/0/amount",
+    "expected": 441250,
+    "actual": 451248
+  }
+}
+```
+
+`invoice()`, `receipt()`, `quote()`, `refund()` and `purchaseOrder()` each return an ordinary
+interactive Surface for `sess.sessions.create({ interaction })`: the bill as an `items` card, the
+document's `reference` under a plain name, and the buttons the person needs (Approve and Decline;
+Continue on a receipt; Accept on a quote). `refund()` states positive amounts under "Refund total".
+A row `quantity` lets the person change it and adds a Request changes button; your agent replies
+with a new revision and updated amounts. `items()` builds just the card, and `lintText()` finds a
+Markdown table in text, which the person would see as pipes. See the
+[API reference](docs/api.md#commerce).
+
+What Sess does not do: take or move payment, convert currencies, compute tax or prices, show your
+logo or branding, or let another site frame the page (`frame-ancestors 'none'`).
+
 ## Advanced: the full Surface API
 
 <!-- example:quickstart -->

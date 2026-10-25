@@ -6,6 +6,7 @@
 // Sess takes no payment: nothing here charges, captures or moves money.
 import type { ItemsComponent, InteractiveInteraction, SurfaceComponent } from '../types.js';
 import { buildItems, refuse, text, token, tooLong, type ItemsInput } from './items.js';
+import { lintText } from './lint.js';
 
 type Action = InteractiveInteraction['actions'][number];
 type RecordValue = string | number | boolean | null;
@@ -172,6 +173,15 @@ function bill(
       refuse('/interaction/description', 'must be a well-formed string');
     const length = [...input.description].length;
     if (length > LIMITS.description) tooLong('/interaction/description', LIMITS.description, length);
+    // A table drawn in the description reaches the person as pipes: the bill is the items card.
+    const table = lintText(input.description)[0];
+    if (table !== undefined)
+      refuse(
+        '/interaction/description',
+        table.use === 'items'
+          ? 'contains a Markdown table, which the person would see as pipes; put prices in the rows'
+          : 'contains a Markdown table, which the person would see as pipes; put the rows in record',
+      );
     description = input.description;
   }
   if (

@@ -183,6 +183,51 @@ Concurrent calls on one handle share one verification and one completion. A time
 only that caller’s local wait; it never cancels the Session or the shared completion. The handle is
 in memory only; see [Integration](integration.md#one-question-with-sessask) for recovery.
 
+## Commerce
+
+Sess takes no payment. A bill is an ordinary interactive Surface with one `items` component; there
+is no invoice endpoint. The builders are pure functions: no credential, network or clock.
+
+| Function                  | Returns                                                     |
+| ------------------------- | ----------------------------------------------------------- |
+| `money(amount, currency)` | `{ amount, currency }`, checked; never rounded or converted |
+| `items(input)`            | One `items` component with its totals computed              |
+| `invoice(input)`          | An `interaction`: Decline, Approve                          |
+| `receipt(input)`          | An `interaction`: Continue                                  |
+| `quote(input)`            | An `interaction`: Decline, Accept                           |
+| `refund(input)`           | An `interaction`: Decline, Approve; positive amounts only   |
+| `purchaseOrder(input)`    | An `interaction`: Decline, Request changes, Approve         |
+| `lintText(text)`          | The Markdown pipe tables in a text, each with what to send  |
+
+`items()` takes `currency` (an ISO 4217 code with known minor units), `rows` (1–100:
+`{ name, detail?, reference?, amount, quantity? }`, `amount` in minor units, a `money()` in the same
+currency, or `null`), optional `lines` (`{ label, amount, role, included? }` with role `tax`,
+`discount`, `shipping`, `fee`, `tip`, `adjustment` or `other`), `payments` (`{ label, amount }`,
+negative), `labels` (`subtotal`, `total`, `due`), `label` (the caption), `select` (`one` or
+`many`), `name` and `totals: false`. It states `Subtotal` (when there are lines), the lines and
+`Total`, then the payments and `Amount due`: the subtotal is the sum of the rows, the total adds
+every line not `included`, and the amount due adds the payments to the total, computed exactly as
+Sess checks them. A discount and a payment must be negative. A `reference` is appended to the
+row's detail. A row `quantity` (`{ value, unit?, min?, max? }`, integers 0–1,000,000) makes the
+quantity editable and needs `name`; Sess never recomputes the amount, so a changed quantity
+arrives as a change request and your agent answers with a new revision.
+
+The builders take the same input plus `title`, `description`, `locale` (Advanced: the amounts'
+BCP 47 formatting locale), `reference` (shown in a record under `Invoice`, `Receipt`, `Quote`,
+`Refund` or `Purchase order`), `record` (other facts beside the bill, such as `Valid until`) and
+`actions` (replaces the buttons). A bill with an editable quantity needs an action with intent
+`request_change`; the builders add `Request changes`, and replaced actions without one are
+refused. `refund()` refuses a negative row, a negative total and payments; a deduction is a
+negative line. A description containing a Markdown table is refused.
+
+The limits are Sess's (`ITEMS_LIMITS`): row name 80, detail 160 (with the reference), totals label
+40, caption 200, quantity unit 16, rows 100, totals lines 8, every amount and every sum within
+±10^15. Over a limit, the builders throw `SessError` kind `configuration`, code `INVALID_SCHEMA`,
+outcome `not_sent`, with `field` (a JSON pointer: within the component for `items()`, within the
+request for the builders), `limit` and `length`, and Sess's sentence, such as "/rows has 101 rows;
+the limit is 100. Send at most 100, in more than one items component if you need more." Other
+refusals name the pointer and the fix; your values never enter the message.
+
 ## Safe retries and errors
 
 Authorized/public-key GETs and keyed publish/complete can retry transport failures and HTTP
