@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Every request to Sess, from the local stdio server and the hosted HTTP handler, carries
+  `User-Agent: sess-mcp/<version>` (this package's version). On `@sess.si/sdk` 0.1.0-rc.8 that is
+  the whole header; an SDK that sends its own token keeps it after this one.
+
 - MCP Registry entry `si.sess/sess` (`server.json`), the `sess.si` domain namespace authenticated by
   DNS, replacing `io.github.w1991e/sess`. The entry is remote-only (`https://mcp.sess.si/mcp`): it
   lists no npm package, so `package.json` `mcpName` stays `io.github.w1991e/sess`, the published

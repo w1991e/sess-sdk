@@ -10,7 +10,8 @@ const CONTACT = process.env.SESS_DEMO_CONTACT?.trim() ?? '';
 if (!process.env.SESS_API_KEY) stop('Set SESS_API_KEY in your environment first.');
 if (!w.isContact(CONTACT))
   stop('Set SESS_DEMO_CONTACT to a project URL or team email. The weather services ask for one.');
-const sess = new Sess({ apiKey: process.env.SESS_API_KEY });
+const USER_AGENT = 'sess-create-agent/0.1.0-rc.5';
+const sess = new Sess({ apiKey: process.env.SESS_API_KEY, fetch: withUserAgent });
 
 console.log('Agent running. Asking where and when.');
 try {
@@ -99,6 +100,13 @@ function field(name, label, choices, description) {
     option_labels: choices,
     value: values[0],
   };
+}
+/** Tells Sess this agent came from create-agent (User-Agent), before any token the SDK sends. */
+function withUserAgent(url, init = {}) {
+  const headers = new Headers(init.headers);
+  const sdk = headers.get('user-agent');
+  headers.set('user-agent', sdk ? `${USER_AGENT} ${sdk}` : USER_AGENT);
+  return fetch(url, { ...init, headers });
 }
 function stop(message) {
   console.error(message);

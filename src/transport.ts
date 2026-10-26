@@ -5,6 +5,7 @@ import type { ApiResult, CreateSessionResponse, RequestOptions, ResponseMeta, Se
 import { isLoopback } from './internal/decode.js';
 import { serializeBody } from './internal/json.js';
 import { abortError, boundedNumber, deadline, delay, withSignal } from './internal/time.js';
+import { SDK_VERSION } from './internal/version.js';
 
 export interface Operation<T> {
   name: string;
@@ -40,6 +41,26 @@ const rejections: Record<number, readonly string[]> = {
   // rate limit; a plain 429 (no code, or RATE_LIMITED) stays transient and its outcome uncertain.
   429: ['PLAN_LIMIT_REACHED'],
 };
+
+/** RFC 9110 product tokens (`name` or `name/version`), separated by single spaces. */
+const PRODUCT = "[!#$%&'*+.^_`|~0-9A-Za-z-]+(?:/[!#$%&'*+.^_`|~0-9A-Za-z-]+)?";
+const PRODUCTS = new RegExp(`^${PRODUCT}(?: ${PRODUCT})*$`);
+/**
+ * The User-Agent: a wrapping client's tokens, then `sess-sdk/<version>`, then the runtime's
+ * `node/<version>` when there is one. Sess classifies the creating client by these tokens.
+ */
+function userAgent(prefix: unknown): string {
+  if (prefix !== undefined && (typeof prefix !== 'string' || prefix.length > 256 || !PRODUCTS.test(prefix)))
+    throw new SessError(
+      'configuration',
+      'userAgent must be one or more product tokens such as my-app/1.2.0, separated by single spaces.',
+      { outcome: 'not_sent' },
+    );
+  const node = typeof process === 'undefined' ? undefined : process.versions?.node;
+  return [prefix, `sess-sdk/${SDK_VERSION}`, typeof node === 'string' ? `node/${node}` : undefined]
+    .filter((token) => token !== undefined)
+    .join(' ');
+}
 
 function credential(value: unknown): string {
   if (typeof value !== 'string' || !/^[\x21-\x7e]{1,4096}$/.test(value)) {
@@ -213,6 +234,7 @@ export class Transport {
   #maxRetries: number;
   #maxResponseBytes: number;
   #onRequestEvent?: SessOptions['onRequestEvent'];
+  #userAgent: string;
 
   constructor(options: SessOptions) {
     if (!options || typeof options !== 'object')
@@ -254,6 +276,7 @@ export class Transport {
       1,
       256 * 1024 * 1024,
     );
+    this.#userAgent = userAgent(options.userAgent);
     this.#onRequestEvent = options.onRequestEvent;
     if (this.#onRequestEvent !== undefined && typeof this.#onRequestEvent !== 'function')
       throw new SessError('configuration', 'onRequestEvent must be a function.', { outcome: 'not_sent' });
@@ -290,7 +313,7 @@ export class Transport {
       op.path.includes('?')
     )
       throw new SessError('configuration', 'Invalid API resource path.', { outcome: 'not_sent' });
-    const headers: Record<string, string> = { Accept: 'application/json' };
+    const headers: Record<string, string> = { Accept: 'application/json', 'User-Agent': this.#userAgent };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     let idempotencyKey: string | undefined;
     if (op.retry === 'mutation') {

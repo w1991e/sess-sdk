@@ -17,6 +17,7 @@ import {
   type PendingMutation,
 } from './store.js';
 import { bodyDigest, canonicalJson, classifyVerification } from './internal/shared.js';
+import { userAgentFetch } from './user-agent.js';
 import {
   plainJson,
   type CompleteArgs,
@@ -169,6 +170,7 @@ function defaultClient(config: AdapterConfig): SessClient {
     apiKey: config.apiKey,
     baseUrl: config.origin,
     allowInsecureLocalhost: config.allowInsecureLocalhost,
+    fetch: userAgentFetch(),
     ...(config.receiptIssuer ? { receiptIssuer: config.receiptIssuer } : {}),
     ...(config.expectedWorkspaceId ? { expectedWorkspaceId: config.expectedWorkspaceId } : {}),
   });

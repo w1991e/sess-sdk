@@ -3,8 +3,8 @@
 // It replaces fetch with an offline world: a fake SESS API that keeps one Session, signs genuine
 // Ed25519 receipts and serves its key set; a scripted person who answers each revision after the
 // agent has polled it unanswered once; MET Norway and NWS. Any other origin is refused and recorded.
-// On exit it writes what the agent sent (paths, weather request headers, published interactions,
-// counts) to the JSON file named in SESS_FAKE_WORLD.record, so tests assert behavior, not prose.
+// On exit it writes what the agent sent (paths, the Sess requests' User-Agent headers, weather
+// request headers, published interactions, counts) to the JSON file named in SESS_FAKE_WORLD.record, so tests assert behavior, not prose.
 //
 // SESS_FAKE_WORLD (JSON): { apiKey, answers: [round1Data, round2Data], met, nws, record }
 //   met: 'ok' | 'busy' (one 429, then ok) | 'outage' (503 every time) | 'revalidate' (304 when asked)
@@ -47,6 +47,7 @@ const keySet = {
 
 const record = {
   sess: [],
+  userAgents: [],
   unauthorized: 0,
   creates: 0,
   publishes: [],
@@ -198,6 +199,7 @@ async function sessApi(url, init, headers) {
   const path = url.pathname;
   const method = init.method;
   record.sess.push(`${method} ${path}`);
+  record.userAgents.push(headers.get('user-agent'));
   if (method === 'GET' && path === '/.well-known/sess-receipt-keys.json') return json(200, keySet);
   if (method === 'GET' && path === '/.well-known/sess-renderer-identities.json')
     return json(200, rendererList());
