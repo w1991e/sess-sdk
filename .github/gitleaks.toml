@@ -20,6 +20,13 @@ regexes = ['''^\s*"management_credential": "sess_mg_(?:SYNTHETICxEXAMPLExNOTxAxC
 id = "generic-api-key"
 
 [[rules.allowlists]]
+description = "The Commerce contract fixture's git blob SHA-1 digests of the runtime's openapi.json and currency source: public content hashes, not credentials"
+condition = "AND"
+paths = ['''(?:^|/)tests/fixtures/runtime-items-contract\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"(?:openapi|currency)_git_blob_sha1": "[0-9a-f]{40}",?\s*$''']
+
+[[rules.allowlists]]
 description = "Public synthetic replay identity exercises preserved punctuation bytes, not authentication"
 condition = "AND"
 paths = ['''(?:^|/)tests/unit/checkpoint-corrections\.test\.ts$''']
