@@ -13,7 +13,15 @@ actions. It ships in Monday 26 October's release with openclaw 0.1.0-rc.4.
   the agent (`npm install --ignore-scripts`), runs it once so the Sess link prints, and exits with the
   agent's exit code. Without a terminal and with values missing, or with `-- --no-run`, it scaffolds
   and prints the next steps as rc.4 did. Ctrl-C at a prompt leaves the files and stops.
-- The template is unchanged from rc.4 and still pins `@sess.si/sdk@0.1.0-rc.8` (published on `next`):
+- **User-Agent.** The agent's requests to Sess carry `User-Agent: sess-create-agent/0.1.0-rc.5`,
+  the product token Sess classifies a creating client by. `template/agent.mjs` passes the SDK a
+  small `fetch` (`withUserAgent`) that sets it: rc.8 accepts a `fetch` option but sends no
+  User-Agent of its own and has no option to prepend one; an SDK that sends its own token keeps it
+  after the agent's. The parity check requires the token to name the initializer's version; the
+  clean-install check asserts the exact header on every Sess request with the registry rc.8, and
+  `tests/create-agent/agent.test.ts` at a local HTTP server. This is the template's only change from
+  rc.4.
+- The template still pins `@sess.si/sdk@0.1.0-rc.8` (published on `next`):
 
   | Field     | Value                                                                                             |
   | --------- | ------------------------------------------------------------------------------------------------- |
@@ -28,16 +36,19 @@ actions. It ships in Monday 26 October's release with openclaw 0.1.0-rc.4.
 ## Expected tarball
 
 Computed by the workflow's own pack step, `node create-agent/scripts/release-guard.mjs pack`
-(`npm pack --json --ignore-scripts`, recorded in `create-agent/.artifacts/package-result.json`). It ran
-at clean commit `d84847b` on Node 24.21.0 and npm 11.19.0, the versions the workflow pins. Then
-`clean-install-check.mjs --tarball` exercised exactly these bytes (registry SDK rc.8 with the pinned
-integrity, both rounds against the offline fake world, through the one command with both values in its environment and no terminal), and `release-guard.mjs exercised` bound them.
+(`npm pack --json --ignore-scripts`, recorded in `create-agent/.artifacts/package-result.json`).
+Re-prepared for the User-Agent change, it ran at clean commit `7aca9e7` on Node 24.21.0 and npm
+11.19.0, the versions the workflow pins. Then `clean-install-check.mjs --tarball` exercised exactly
+these bytes (registry SDK rc.8 with the pinned integrity, both rounds against the offline fake world,
+every Sess request with `User-Agent: sess-create-agent/0.1.0-rc.5`, through the one command with both values in its environment and no terminal), and `release-guard.mjs exercised` bound them. These
+bytes replace the earlier rc.5 table (SHA-256 `a013ccd3…603c4347`), which was never tagged or
+published.
 
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | Filename  | `sess.si-create-agent-0.1.0-rc.5.tgz`                                                             |
-| SHA-256   | `a013ccd33d23e481c7a3008d60152fc9eab0d8f19bb10e0d6ea7e328603c4347`                                |
-| Integrity | `sha512-ss8OKiuvz1Pqt8fmSYESQ6FSMfWZAQNVrWkOjNBlUKkFJLxxn8QItUdHDfw3KxCuvgIe9648/aVj2m3AW1dWUg==` |
+| SHA-256   | `b08368648379bb428446aa36680e2ecc19a362f2291a87b3d19416967ef0409b`                                |
+| Integrity | `sha512-GmfJDi0fPb8wACLVWv7c6pHZeQ05TK0AODrJrRF+42W5Wxiw7ojyzudfVKtqpAsMEkmbe6hWd5vP1ooGBNu7cg==` |
 
 The release workflow does not read this table. The prepare job's run summary (SHA-256 and integrity)
 is the record of the bytes it tested. If another packed change (`index.mjs`, `template/`,

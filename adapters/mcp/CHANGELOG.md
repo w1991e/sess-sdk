@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Every request to Sess, from the local stdio server and the hosted HTTP handler, carries
+  `User-Agent: sess-mcp/<version>` (this package's version). On `@sess.si/sdk` 0.1.0-rc.8 that is
+  the whole header; an SDK that sends its own token keeps it after this one.
 - Calling `sess_complete` after an answer is now the rule, not an option. The server instructions
   and the `sess_response` description carry one sentence: when `sess_response` returns state
   `answered` and the agent has no follow-up question, it must call `sess_complete` next, so the
