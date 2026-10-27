@@ -274,9 +274,13 @@ describe("host log redaction (OpenClaw's redactSensitiveText)", () => {
         expect(line.trimStart()).not.toMatch(/^(credential|key|token|secret|password)\b/i);
       }
     }
-    expect(outputs[0]).toContain(
+    const keyLine = (text: string) => text.split('\n').filter((line) => line.startsWith('API key source:'));
+    expect(keyLine(outputs[0]!)).toEqual([
       'API key source: SESS_API_KEY, set in this CLI process (the running Gateway must also have it)',
-    );
+    ]);
+    expect(keyLine(outputs[1]!)).toEqual([
+      'API key source: SESS_API_KEY is not set in this CLI process; the running Gateway needs it in its own environment.',
+    ]);
     expect(outputs[2]).toContain(
       "API key source: SESS_API_KEY in the Gateway's own environment (for example $OPENCLAW_STATE_DIR/.env or the service definition). Setup never stores the key.",
     );

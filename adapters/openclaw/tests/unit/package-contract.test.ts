@@ -114,8 +114,13 @@ describe('import and registration have no network, timer, state or secret side e
       { openKeyedStore: () => undefined },
       { [API_KEY_ENV]: API_KEY },
     );
-    expect(report).toContain(`API key source: ${API_KEY_ENV}, set in this CLI process`);
+    expect(report.split('\n')).toContain(
+      `API key source: ${API_KEY_ENV}, set in this CLI process (the running Gateway must also have it)`,
+    );
     expect(report).not.toContain(API_KEY);
+    expect(doctorReport({ apiKeyEnv: API_KEY_ENV }, undefined, {}).split('\n')).toContain(
+      `API key source: ${API_KEY_ENV} is not set in this CLI process; the running Gateway needs it in its own environment.`,
+    );
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

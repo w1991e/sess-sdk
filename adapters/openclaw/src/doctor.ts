@@ -63,7 +63,9 @@ export function doctorReport(
     if (config.allowInsecureLocalhost) lines.push('warning: allowInsecureLocalhost is a test-only setting');
     const present = typeof env[config.apiKeyEnv] === 'string' && env[config.apiKeyEnv]!.length > 0;
     lines.push(
-      `API key source: ${config.apiKeyEnv}, ${present ? 'set' : 'NOT set'} in this CLI process (the running Gateway must also have it)`,
+      present
+        ? `API key source: ${config.apiKeyEnv}, set in this CLI process (the running Gateway must also have it)`
+        : `API key source: ${config.apiKeyEnv} is not set in this CLI process; the running Gateway needs it in its own environment.`,
     );
   } catch (error) {
     lines.push(`config: invalid (${error instanceof SessAdapterError ? error.message : 'unreadable'})`);

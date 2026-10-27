@@ -7,14 +7,17 @@
 - Setup and doctor no longer print a line starting with `credential:`. OpenClaw's log redaction
   masks the rest of such a line ("credential: \*\*\*"), so the variable name was hidden. The lines
   now start with `API key source:` and still show only the variable name and whether it is set,
-  never the key.
+  never the key. When it is not set, doctor says so in a sentence: "API key source: SESS_API_KEY
+  is not set in this CLI process; the running Gateway needs it in its own environment."
 - Doctor reads the authored config that setup writes and reports the four tools as allowed when
   `tools.alsoAllow` (or a restrictive `tools.allow`) lists them; it lists only the missing ones when
   some are, and asks to add them only when none are. Before, it always said "optional; add ...".
 - README: the four tools have no consent prompt of their own; allowing them is
-  `openclaw sess setup --yes`. OpenClaw's capability review (tools, `sess` command, skill) is shown
-  on a first install and not again for an update that declares nothing new. The README also says
-  what to answer when OpenClaw warns that the package comes from npm, not ClawHub.
+  `openclaw sess setup --yes`. It says what the install asks, as reproduced on OpenClaw 2026.10.3
+  and 2026.10.7: with the Gateway running, only the npm question (the Gateway accepts the
+  capabilities without listing them); with it stopped, also the capability list and a second
+  question. The README also says what to answer when OpenClaw warns that the package comes from
+  npm, not ClawHub.
 - Skill: when the model reports the person's answer, it says the answer is verified (Sess checked
   its signed receipt).
 - The OpenClaw peer is now `2026.10.3 || 2026.10.7`, and `openclaw sess doctor` no longer warns on
