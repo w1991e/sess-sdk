@@ -46,15 +46,15 @@ The full list of changes is in [CHANGELOG.md](../CHANGELOG.md) (the rc.4 entry).
 
 Computed by the package's own packed-consumer check (`npm run check`, step `check:package`, which
 runs the same `npm pack` the release workflow records in `.artifacts/package-result.json`) on
-Node 24.21.0 and npm 11.19.0, the versions the workflow pins, at clean commit `c5cfa8a` (registry
+Node 24.21.0 and npm 11.19.0, the versions the workflow pins, at clean commit `f3b32b8` (registry
 SDK mode, `sourceTreeDirty: false`). A second `npm run check` at the same commit reproduced the
 same SHA-256 and integrity.
 
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | Filename  | `sess.si-mcp-0.1.0-rc.4.tgz`                                                                      |
-| SHA-256   | `a6e5ce9ed72f698a914859605ee81b057783ad447f2de3c0d99ace4074c72425`                                |
-| Integrity | `sha512-UfThvt5inXjrG2w80kstJdpB+MgSKdZ/BdTyxBHQkeN063a+9745OeB7+c05kb6TZvxf7cXrvU/dro+MUQRlhg==` |
+| SHA-256   | `f27a763492a7ea7c6ed5547b72ecd002212474798161ea437a0b102665c533d7`                                |
+| Integrity | `sha512-+3EwdJWGtBd/8HdSm0alTOgXW7tm5HHgHisoIg0c0t6laQbXm/kQXarl3a6M70AxeYYZmbFDEvmdHQx1CRbKhQ==` |
 
 The release workflow does not read this table; the prepare job's run summary is the record of the
 bytes it tested. If another packed change (`dist/` sources, `README.md`, `CHANGELOG.md`, `LICENSE`,
