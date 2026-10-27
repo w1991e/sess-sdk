@@ -28,7 +28,9 @@ if (command === 'install') {
   console.log('added 4 packages (fake)');
 } else if (command === 'start') {
   console.log('Agent running. Asking where and when.');
-  console.log('Open this private link on your phone. Anyone with it can answer:\n  https://sess.si/s/fake');
+  console.log(
+    'Open this private link on your phone. Anyone with it can answer:\n  https://sess.si/s/fake  Cmd-click to open.',
+  );
   if (config.start === 'SIGTERM') process.kill(process.pid, 'SIGTERM');
   else process.exit(config.start ?? 0);
 } else process.exit(64);

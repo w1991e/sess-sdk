@@ -2,7 +2,9 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { redactSensitiveText } from 'openclaw/plugin-sdk/security-runtime';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { doctorReport, toolsLine } from '../../src/doctor.js';
 import { applySetup, formatPlan, planSetup, RESTART_COMMAND, TOOL_NAMES } from '../../src/setup.js';
 import { registerPlugin } from './harness.js';
 
@@ -104,7 +106,13 @@ describe('planSetup / applySetup', () => {
 
   it('explains shell versus Gateway environment and never prints a key value', () => {
     const text = formatPlan(planSetup({}, {}), { SESS_API_KEY: 'test-owner-credential' }, true);
-    expect(text).toMatch(/not inherited by an already-running Gateway service/);
+    // Founder 2026-10-27 06:05Z: the terminal line matches doctor's wording.
+    expect(text).toContain(
+      '  SESS_API_KEY is set in this terminal; the running Gateway must also have it in its own environment.',
+    );
+    expect(formatPlan(planSetup({}, {}), {}, true)).toContain(
+      '  SESS_API_KEY is not set in this terminal; the running Gateway needs it in its own environment.',
+    );
     expect(text).toContain(RESTART_COMMAND);
     expect(text).not.toContain('test-owner-credential');
   });
@@ -204,10 +212,85 @@ describe('CLI wiring', () => {
     expect(JSON.stringify(draft)).toBe(before);
   });
 
+  it('doctor reads the tools from the authored file that setup writes', async () => {
+    authored({ tools: { alsoAllow: ['lobster', ...TOOL_NAMES] } });
+    const host = await registerPlugin();
+    // The CLI runtime view lists none; the authored file wins.
+    const { actions } = cli(host, { tools: {} });
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    await actions.get('doctor')!({});
+    const report = String(log.mock.calls[0]?.[0]);
+    expect(report).toContain('tools: allowed (sess_request, sess_response, sess_publish, sess_complete)');
+    expect(report).not.toMatch(/tools: optional/);
+  });
+
   it('has no option that accepts a key value', async () => {
     const host = await registerPlugin();
     const { options } = cli(host, {});
     for (const flags of options.values())
       for (const flag of flags) expect(flag).not.toMatch(/key(?!-env)|secret|token/i);
+  });
+});
+
+describe('doctor tools line', () => {
+  const all = 'tools: allowed (sess_request, sess_response, sess_publish, sess_complete)';
+
+  it('reports all four as allowed after setup has added them', () => {
+    const draft: Record<string, unknown> = { tools: { alsoAllow: ['lobster'] } };
+    applySetup(draft, planSetup(draft, {}));
+    expect(toolsLine(draft)).toBe(all);
+    expect(doctorReport({}, undefined, {}, undefined, draft)).toContain(all);
+    // A restrictive tools.allow that lists them also allows them.
+    expect(toolsLine({ tools: { allow: ['read', ...TOOL_NAMES] } })).toBe(all);
+  });
+
+  it('asks to add all four only when none is allowed', () => {
+    const expected =
+      'tools: optional and not yet allowed; add sess_request, sess_response, sess_publish, sess_complete to tools.alsoAllow (keep any existing entries; do not replace tools.allow), or preview with: openclaw sess setup';
+    for (const config of [{}, { tools: {} }, { tools: { alsoAllow: ['lobster'] } }, null])
+      expect(toolsLine(config)).toBe(expected);
+  });
+
+  it('lists the allowed and the missing ones when only some are allowed', () => {
+    expect(toolsLine({ tools: { alsoAllow: ['sess_request'], allow: ['sess_complete'] } })).toBe(
+      'tools: sess_request, sess_complete allowed; add sess_response, sess_publish to tools.alsoAllow (keep any existing entries; do not replace tools.allow), or preview with: openclaw sess setup',
+    );
+  });
+
+  it('says it did not check when the config could not be read', () => {
+    expect(toolsLine(undefined)).toBe(
+      'tools: not checked (the config could not be read); to allow them, run: openclaw sess setup',
+    );
+  });
+});
+
+describe("host log redaction (OpenClaw's redactSensitiveText)", () => {
+  it('masks nothing in the doctor report or the setup preview, and no line starts with a secret label', () => {
+    const env = { SESS_API_KEY: 'test-owner-credential' };
+    const outputs = [
+      doctorReport({}, { openKeyedStore: () => undefined }, env, '2026.10.3', {}),
+      doctorReport({}, undefined, {}, '2026.10.3', { tools: { alsoAllow: [...TOOL_NAMES] } }),
+      formatPlan(planSetup({}, {}), env, false),
+      formatPlan(planSetup({}, {}), {}, true),
+    ];
+    for (const text of outputs) {
+      expect(text).not.toContain('test-owner-credential');
+      for (const line of text.split('\n')) {
+        expect(redactSensitiveText(line)).toBe(line);
+        expect(line.trimStart()).not.toMatch(/^(credential|key|token|secret|password)\b/i);
+      }
+    }
+    const keyLine = (text: string) => text.split('\n').filter((line) => line.startsWith('API key source:'));
+    expect(keyLine(outputs[0]!)).toEqual([
+      'API key source: SESS_API_KEY, set in this CLI process (the running Gateway must also have it)',
+    ]);
+    expect(keyLine(outputs[1]!)).toEqual([
+      'API key source: SESS_API_KEY is not set in this CLI process; the running Gateway needs it in its own environment.',
+    ]);
+    expect(outputs[2]).toContain(
+      "API key source: SESS_API_KEY in the Gateway's own environment (for example $OPENCLAW_STATE_DIR/.env or the service definition). Setup never stores the key.",
+    );
+    // The old wording is what the host masked.
+    expect(redactSensitiveText('credential: SESS_API_KEY is set')).toContain('***');
   });
 });

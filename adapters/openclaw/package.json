@@ -1,6 +1,6 @@
 {
   "name": "@sess.si/openclaw",
-  "version": "0.1.0-rc.4",
+  "version": "0.1.0-rc.5",
   "description": "Sess for OpenClaw, maintained by Sess: an agent requests a decision, a person answers in a hosted Sess interface, and the verified answer returns to the agent.",
   "type": "module",
   "license": "Apache-2.0",
@@ -58,7 +58,7 @@
     "@sess.si/sdk": "0.1.0-rc.8"
   },
   "peerDependencies": {
-    "openclaw": "2026.10.3"
+    "openclaw": "2026.10.3 || 2026.10.7"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

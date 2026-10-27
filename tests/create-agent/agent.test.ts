@@ -98,8 +98,12 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     expect(run.code).toBe(0);
     const lines = run.stdout.split('\n');
     expect(lines[0]).toBe('Agent running. Asking where and when.');
-    const link = lines.findIndex((line) => /^ {2}https:\/\/app\.sess\.si\/s\/\S+$/.test(line));
+    // The link is its own token (still clickable), then two spaces and the hint (founder 2026-10-27 04:05Z item 4).
+    const link = lines.findIndex((line) =>
+      /^ {2}https:\/\/app\.sess\.si\/s\/\S+ {2}Cmd-click to open\.$/.test(line),
+    );
     expect(link).toBeGreaterThan(0);
+    expect(lines[link - 1]).toBe('Open this private link on your phone. Anyone with it can answer:');
     expect(lines.findIndex((line) => line.startsWith('Question 2'))).toBeGreaterThan(link);
     expect(run.stdout).toMatch(
       /\nYour plan: A picnic in the park, Sunday \d{1,2} \w+, Evening, 17:00–21:00 in Oslo \(18 °C · dry · wind 3 m\/s\)\.\n/,
