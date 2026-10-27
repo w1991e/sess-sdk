@@ -67,6 +67,38 @@
     "hostEngines": ">=24.16.0 <25 || >=26.1.0",
     "peerDeclaration": "peerDependencies.openclaw = 2026.10.3 (exact; only qualified release). openclaw.compat.pluginApi and openclaw.install.minHostVersion are floors because the host only accepts floor syntax there; newer hosts are NOT qualified and openclaw sess doctor warns on any host version other than 2026.10.3."
   },
+  "additionalHosts": [
+    {
+      "name": "openclaw",
+      "version": "2026.10.7",
+      "build": "157d8c2",
+      "source": "released npm artifact openclaw@2026.10.7",
+      "integrity": "sha512-iiZO+kFFBgQvxm17wn3Sc/MSC/GQu01PubAFVNA2Nn736HOHUbR0ra7a9NeW9wpjq3kDkSJ1RB7dTP+qVJFXig==",
+      "shasum": "7aaaa1b0a91f79ce2f17236b09869c25f579e209",
+      "hostEngines": ">=24.22.1 <25 || >=26.12.1",
+      "status": "agent-turn round trip qualified (sess_request/sess_response); the G0/G1 direct-invoke suite, the dashboard agent-turn items, sess_publish/sess_complete and reset isolation were NOT run on this host. Not in peerDependencies; openclaw sess doctor still warns on this version.",
+      "qualification": {
+        "date": "2026-10-27",
+        "run": "2026-10-27T04:46:01Z, one bounded attempt",
+        "profile": "Sess harness agent-turn path (apps/site/scripts/host-qualification.ts): the host installs the plugin from npm, runs openclaw sess setup --yes, runs one agent turn with `openclaw agent --local` (not a messaging channel, not a dashboard conversation), the model calls sess_request and shows the Sess link, headless Chromium (Pixel 7) answers it, the model calls sess_response and reports the verified answer, and the accepted event's bundle is exported and verified by POST /v1/receipts/verify",
+        "model": "openrouter/anthropic/claude-haiku-5.5",
+        "adapter": "@sess.si/openclaw@0.1.0-rc.4 from npm, integrity sha512-xCtfm5sw/85k6DDQve1py4jSNkTyN4ZYgcTOPSeEmZptAv3mHbIFHIkCjG6cPxFhN6LaZMptBLQ93XhiQP62Eg==",
+        "target": "the Sess preview environment (pre-production API and MCP), /version git_sha 1b645b978f5505bb0d02394293a785edb7eda884, build 20261027T023910Z-79470880",
+        "node": {
+          "version": "24.22.1",
+          "archive": "node-v24.22.1-darwin-arm64.tar.gz (official, nodejs.org)",
+          "sha256": "89c682593d76cd44233fa53b1563264e7de9cbb189cad169135c5b4fadfbc0a7",
+          "checksumSource": "equal to the line in nodejs.org v24.22.1/SHASUMS256.txt"
+        },
+        "platform": "darwin-arm64 (local)",
+        "result": "passed",
+        "detail": "host exit 0 after 26 s; link seen at 20 s; page 200, submit 303; host reported the typed answer verified; receipt verify readback valid",
+        "evidence": "Sess host-qualification record host-qualification-2026-10-27/preview-1b645b97 (dry run, run record, transcript and receipt-verify record, kept in the Sess repository; not packed)",
+        "caveat": "A preview run: the run record labels its purpose a preview rehearsal, not a production qualification or host-matrix entry. The adapter was 0.1.0-rc.4, not this package version."
+      },
+      "founderRun": "outsider Demo 4 on 2026.10.7 passed end to end, with a chat round trip and a verified answer (2026-10-27)"
+    }
+  ],
   "toolchain": {
     "node": "24.21.0 (full qualification incl. isolated-runtime round); 24.16.0 (declared floor: unit, packed artifact, real host install and setup)",
     "npm": "11.19.0 (with Node 24.21.0); 11.13.0 bundled with Node 24.16.0",

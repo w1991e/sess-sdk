@@ -179,4 +179,20 @@ describe('peer, engines and types metadata match qualification', () => {
     expect(doctorReport({}, undefined, {}, '2026.10.3')).toMatch(/host: OpenClaw 2026\.10\.3 \(qualified\)/);
     expect(doctorReport({}, undefined, {}, '2026.11.0')).toMatch(/not a qualified version; only 2026\.10\.3/);
   });
+
+  it('records 2026.10.7 as an additional host qualified for the agent-turn round trip only', () => {
+    const compatibility = JSON.parse(read('compatibility.json'));
+    expect(compatibility.host.version).toBe('2026.10.3');
+    expect(compatibility.additionalHosts).toHaveLength(1);
+    const [extra] = compatibility.additionalHosts;
+    expect(extra).toMatchObject({ name: 'openclaw', version: '2026.10.7', build: '157d8c2' });
+    expect(extra.integrity).toMatch(/^sha512-/);
+    expect(extra.hostEngines).toBe('>=24.22.1 <25 || >=26.12.1');
+    expect(extra.status).toMatch(/agent-turn round trip/);
+    expect(extra.status).toMatch(/direct-invoke suite.*NOT run/);
+    expect(extra.qualification).toMatchObject({ date: '2026-10-27', result: 'passed' });
+    expect(extra.qualification.node).toMatchObject({ version: '24.22.1' });
+    expect(extra.qualification.node.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(extra.qualification.evidence).toMatch(/host-qualification-2026-10-27\/preview-1b645b97/);
+  });
 });
