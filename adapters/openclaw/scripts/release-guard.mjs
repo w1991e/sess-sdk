@@ -30,9 +30,13 @@ export function checkRelease(facts) {
   const sdkSpec = manifest?.dependencies?.[SDK_NAME];
   if (typeof sdkSpec !== 'string' || !/^\d+\.\d+\.\d+(-rc\.\d+)?$/.test(sdkSpec))
     failures.push('exact SDK dependency');
-  for (const spec of Object.values({ ...manifest?.dependencies, ...manifest?.peerDependencies }))
-    // Exact registry versions only (no ranges, tags, file:, git, URLs or workspace specs).
-    if (typeof spec !== 'string' || !/^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(spec))
+  // Exact registry versions only (no ranges, tags, file:, git, URLs or workspace specs). A peer may
+  // list several exact host versions joined by " || " (each one declared, none a range).
+  const EXACT = /^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/;
+  for (const spec of Object.values({ ...manifest?.dependencies }))
+    if (typeof spec !== 'string' || !EXACT.test(spec)) failures.push('registry dependency specs');
+  for (const spec of Object.values({ ...manifest?.peerDependencies }))
+    if (typeof spec !== 'string' || !spec.split(' || ').every((version) => EXACT.test(version)))
       failures.push('registry dependency specs');
   // Refuse candidate mode: the locked SDK bytes must be the ones the public registry serves.
   if (!lockedSdkIntegrity || !registrySdkIntegrity || lockedSdkIntegrity !== registrySdkIntegrity)

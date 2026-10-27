@@ -207,8 +207,22 @@ export default definePluginEntry({
           .command('doctor')
           .description('Check Sess plugin configuration and host capabilities without contacting Sess')
           .action(async () => {
+            // Tools are read from the authored file that setup writes; the CLI's runtime view is
+            // the fallback when this host cannot read it.
+            let rootConfig: unknown;
+            try {
+              rootConfig = await readAuthoredConfig();
+            } catch {
+              rootConfig = config;
+            }
             console.log(
-              doctorReport(api.pluginConfig, api.runtime?.state, process.env, api.runtime?.version),
+              doctorReport(
+                api.pluginConfig,
+                api.runtime?.state,
+                process.env,
+                api.runtime?.version,
+                rootConfig,
+              ),
             );
             try {
               console.log(formatCounts(await countStates(hostStores())));
