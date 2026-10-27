@@ -106,7 +106,13 @@ describe('planSetup / applySetup', () => {
 
   it('explains shell versus Gateway environment and never prints a key value', () => {
     const text = formatPlan(planSetup({}, {}), { SESS_API_KEY: 'test-owner-credential' }, true);
-    expect(text).toMatch(/not inherited by an already-running Gateway service/);
+    // Founder 2026-10-27 06:05Z: the terminal line matches doctor's wording.
+    expect(text).toContain(
+      '  SESS_API_KEY is set in this terminal; the running Gateway must also have it in its own environment.',
+    );
+    expect(formatPlan(planSetup({}, {}), {}, true)).toContain(
+      '  SESS_API_KEY is not set in this terminal; the running Gateway needs it in its own environment.',
+    );
     expect(text).toContain(RESTART_COMMAND);
     expect(text).not.toContain('test-owner-credential');
   });

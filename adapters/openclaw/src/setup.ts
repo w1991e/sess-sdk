@@ -123,7 +123,9 @@ export function formatPlan(
   const present = typeof env[plan.apiKeyEnv] === 'string' && env[plan.apiKeyEnv]!.length > 0;
   lines.push(
     `API key source: ${plan.apiKeyEnv} in the Gateway's own environment (for example $OPENCLAW_STATE_DIR/.env or the service definition). Setup never stores the key.`,
-    `  ${plan.apiKeyEnv} is ${present ? 'set' : 'NOT set'} in this terminal. A variable exported in a terminal is not inherited by an already-running Gateway service.`,
+    present
+      ? `  ${plan.apiKeyEnv} is set in this terminal; the running Gateway must also have it in its own environment.`
+      : `  ${plan.apiKeyEnv} is not set in this terminal; the running Gateway needs it in its own environment.`,
   );
   if (applied && plan.changes.length)
     lines.push(`The Gateway was not restarted. When ready, run: ${RESTART_COMMAND}`);
