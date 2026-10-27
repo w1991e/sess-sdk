@@ -30,6 +30,9 @@ openclaw sess setup --yes    # apply the previewed change
 openclaw sess doctor
 ```
 
+OpenClaw warns that the package comes from npm, not ClawHub. That is expected: Sess is published on
+npm with a signed build. Answer `y`.
+
 `openclaw sess setup` is additive and consent-driven. Without `--yes` it writes nothing. With
 `--yes` it enables the plugin, appends the four tools to `tools.alsoAllow` (keeping every existing
 entry) and sets `plugins.entries.sess.config`; all other config, including secret references, is
@@ -41,9 +44,13 @@ already-running Gateway service. Setup never restarts the Gateway; it prints the
 `tools.allow` or `plugins.allow`; it warns instead. Options: `--base-url`, `--api-key-env`,
 `--wait-budget-ms`.
 
-The four tools are optional: they are offered to the model only after you allow them. The
-installer asks for capability consent (non-interactively: review the declared tools and CLI, then
-rerun with `--accept-capabilities`). OpenClaw itself is a peer and is never installed again.
+The four tools are optional: they are offered to the model only once `tools.alsoAllow` lists them,
+and `openclaw sess setup --yes` is that step. They have no consent prompt of their own, and
+`openclaw sess doctor` shows whether they are allowed. On a first install, OpenClaw lists the
+plugin's declared capabilities (the four tools, the `sess` command and the skill) and asks you to
+accept them; an update that declares nothing new keeps your earlier acceptance and does not ask
+again. Without a terminal, review them and rerun the install with `--accept-capabilities`.
+OpenClaw itself is a peer and is never installed again.
 
 Configuration (`plugins.entries.sess.config`), all owner-controlled and never taken from tools:
 

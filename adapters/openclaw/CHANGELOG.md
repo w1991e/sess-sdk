@@ -1,6 +1,24 @@
 # Changelog
 
-## 0.1.0-rc.4 (candidate, unpublished)
+## 0.1.0-rc.5
+
+- Still depends on `@sess.si/sdk` 0.1.0-rc.8; no dependency changes. Requests carry
+  `User-Agent: sess-openclaw/0.1.0-rc.5`.
+- Setup and doctor no longer print a line starting with `credential:`. OpenClaw's log redaction
+  masks the rest of such a line ("credential: \*\*\*"), so the variable name was hidden. The lines
+  now start with `API key source:` and still show only the variable name and whether it is set,
+  never the key.
+- Doctor reads the authored config that setup writes and reports the four tools as allowed when
+  `tools.alsoAllow` (or a restrictive `tools.allow`) lists them; it lists only the missing ones when
+  some are, and asks to add them only when none are. Before, it always said "optional; add ...".
+- README: the four tools have no consent prompt of their own; allowing them is
+  `openclaw sess setup --yes`. OpenClaw's capability review (tools, `sess` command, skill) is shown
+  on a first install and not again for an update that declares nothing new. The README also says
+  what to answer when OpenClaw warns that the package comes from npm, not ClawHub.
+- Skill: when the model reports the person's answer, it says the answer is verified (Sess checked
+  its signed receipt).
+
+## 0.1.0-rc.4
 
 - Still depends on `@sess.si/sdk` 0.1.0-rc.8 (sha256 `b533935b…4c95`); no dependency changes.
 - Every request to Sess carries `User-Agent: sess-openclaw/0.1.0-rc.4`, set by the plugin's

@@ -122,7 +122,7 @@ export function formatPlan(
   for (const warning of plan.warnings) lines.push(`warning: ${warning}`);
   const present = typeof env[plan.apiKeyEnv] === 'string' && env[plan.apiKeyEnv]!.length > 0;
   lines.push(
-    `credential: setup never stores the API key. Provide it as ${plan.apiKeyEnv} in the Gateway's own environment (for example $OPENCLAW_STATE_DIR/.env or the service definition).`,
+    `API key source: ${plan.apiKeyEnv} in the Gateway's own environment (for example $OPENCLAW_STATE_DIR/.env or the service definition). Setup never stores the key.`,
     `  ${plan.apiKeyEnv} is ${present ? 'set' : 'NOT set'} in this terminal. A variable exported in a terminal is not inherited by an already-running Gateway service.`,
   );
   if (applied && plan.changes.length)

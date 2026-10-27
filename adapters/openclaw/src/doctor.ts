@@ -1,19 +1,44 @@
 import { parseConfig } from './config.js';
 import { SessAdapterError } from './errors.js';
+import { TOOL_NAMES } from './setup.js';
 import type { PruneReport, RetireReport, StateCounts } from './store.js';
 
-export const PLUGIN_VERSION = '0.1.0-rc.4';
+export const PLUGIN_VERSION = '0.1.0-rc.5';
 export const QUALIFIED_HOST = '2026.10.3';
+
+/**
+ * Which Sess tools the authored config allows, read where `openclaw sess setup` writes them
+ * (`tools.alsoAllow`) and from a restrictive `tools.allow` that lists them. An `undefined` config
+ * could not be read.
+ */
+export function toolsLine(rootConfig: unknown): string {
+  if (rootConfig === undefined)
+    return 'tools: not checked (the config could not be read); to allow them, run: openclaw sess setup';
+  const tools = (rootConfig as { tools?: { alsoAllow?: unknown; allow?: unknown } } | null)?.tools;
+  const listed: unknown[] = [tools?.alsoAllow, tools?.allow].flatMap((list) =>
+    Array.isArray(list) ? list : [],
+  );
+  const allowed = TOOL_NAMES.filter((name) => listed.includes(name));
+  const missing = TOOL_NAMES.filter((name) => !listed.includes(name));
+  if (!missing.length) return `tools: allowed (${allowed.join(', ')})`;
+  const add = `add ${missing.join(', ')} to tools.alsoAllow (keep any existing entries; do not replace tools.allow), or preview with: openclaw sess setup`;
+  return allowed.length
+    ? `tools: ${allowed.join(', ')} allowed; ${add}`
+    : `tools: optional and not yet allowed; ${add}`;
+}
 
 /**
  * Plain-language, read-only diagnostics. No network request, no state opened, and no secret,
  * human link or response data printed: only whether the configured variable is present here.
+ * No line starts with a label the host's log redaction masks (credential, token, secret,
+ * password, api_key), so nothing here is shown as "***".
  */
 export function doctorReport(
   rawConfig: unknown,
   state: unknown,
   env: Readonly<Record<string, string | undefined>>,
   hostVersion?: string,
+  rootConfig?: unknown,
 ): string {
   const lines = [`Sess for OpenClaw ${PLUGIN_VERSION} (qualified host: OpenClaw ${QUALIFIED_HOST})`];
   if (typeof hostVersion === 'string')
@@ -28,16 +53,14 @@ export function doctorReport(
     if (config.allowInsecureLocalhost) lines.push('warning: allowInsecureLocalhost is a test-only setting');
     const present = typeof env[config.apiKeyEnv] === 'string' && env[config.apiKeyEnv]!.length > 0;
     lines.push(
-      `credential: ${config.apiKeyEnv} is ${present ? 'set' : 'NOT set'} in this CLI process (the running Gateway must also have it)`,
+      `API key source: ${config.apiKeyEnv}, ${present ? 'set' : 'NOT set'} in this CLI process (the running Gateway must also have it)`,
     );
   } catch (error) {
     lines.push(`config: invalid (${error instanceof SessAdapterError ? error.message : 'unreadable'})`);
   }
   const keyed = typeof (state as { openKeyedStore?: unknown } | undefined)?.openKeyedStore === 'function';
   lines.push(`durable plugin state: ${keyed ? 'available' : 'NOT available'}`);
-  lines.push(
-    'tools: optional; add sess_request, sess_response, sess_publish and sess_complete to tools.alsoAllow (keep any existing entries; do not replace tools.allow), or preview with: openclaw sess setup',
-  );
+  lines.push(toolsLine(rootConfig));
   lines.push('network: not contacted by doctor');
   return lines.join('\n');
 }

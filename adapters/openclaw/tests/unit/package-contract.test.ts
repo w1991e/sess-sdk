@@ -113,7 +113,7 @@ describe('import and registration have no network, timer, state or secret side e
       { openKeyedStore: () => undefined },
       { [API_KEY_ENV]: API_KEY },
     );
-    expect(report).toContain(`${API_KEY_ENV} is set`);
+    expect(report).toContain(`API key source: ${API_KEY_ENV}, set in this CLI process`);
     expect(report).not.toContain(API_KEY);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
