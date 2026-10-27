@@ -53,10 +53,10 @@ describe('@sess.si/create-agent initializer', { timeout: 30_000 }, () => {
     // The hidden read stands alone, so pasting the block never feeds the next line into it
     // (founder 2026-10-27 04:05Z item 4); the generated README shows it the same way.
     expect(run.stdout).toContain(
-      '\n\n  read -rs SESS_API_KEY && export SESS_API_KEY     # run this line by itself, then paste your key\n\n',
+      '\n\n  read -rs SESS_API_KEY && export SESS_API_KEY     # run this line by itself, then paste your key from https://app.sess.si\n\n',
     );
     expect(readFileSync(join(app, 'README.md'), 'utf8')).toContain(
-      '\nread -rs SESS_API_KEY && export SESS_API_KEY   # run this line by itself, then paste your key\n\n',
+      '\nread -rs SESS_API_KEY && export SESS_API_KEY   # run this line by itself, then paste your key from https://app.sess.si\n\n',
     );
   });
 

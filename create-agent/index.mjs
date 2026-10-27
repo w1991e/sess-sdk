@@ -90,7 +90,7 @@ const cd = /^[\w./-]+$/.test(rel) ? rel : `'${rel.replace(/'/g, `'\\''`)}'`;
 const NEXT = `Next:
 ${rel ? `  cd ${cd}\n` : ''}  npm install --ignore-scripts
 
-  read -rs SESS_API_KEY && export SESS_API_KEY     # run this line by itself, then paste your key
+  read -rs SESS_API_KEY && export SESS_API_KEY     # run this line by itself, then paste your key from https://app.sess.si
 
   export SESS_DEMO_CONTACT=https://example.com/your-project   # your project URL or team email
   npm start

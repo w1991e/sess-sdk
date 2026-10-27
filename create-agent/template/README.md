@@ -22,7 +22,7 @@ prints here, ending with `verified ✓`.
 Set the key without echoing it or saving it in your shell history:
 
 ```sh
-read -rs SESS_API_KEY && export SESS_API_KEY   # run this line by itself, then paste your key
+read -rs SESS_API_KEY && export SESS_API_KEY   # run this line by itself, then paste your key from https://app.sess.si
 
 export SESS_DEMO_CONTACT=https://example.com/your-project
 ```
