@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0-rc.4 (candidate, unpublished)
+## 0.1.0-rc.4
 
 - Still depends on `@sess.si/sdk` 0.1.0-rc.8 (sha256 `b533935b…4c95`), resolved from the registry;
   no dependency changes.
