@@ -27,7 +27,8 @@ decide yourself. They are optional tools; if they are not available, say so and 
    (for example, your reply is only shown after your turn ends), end your turn after presenting
    the link and call `sess_response` when they ask you to continue.
    - `answered`: the answer is verified for that exact revision. Its `actorAssurance` is
-     `link_holder`, not a verified identity.
+     `link_holder`, not a verified identity. When you report the person's answer, say it is
+     verified (Sess checked its signed receipt).
    - `needs_resume`: no answer yet. The form stays available. Tell the person to submit and to
      ask you to continue this Sess interaction. Do **not** call `sess_response` repeatedly in a
      loop or keep polling.
