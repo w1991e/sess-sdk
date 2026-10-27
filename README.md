@@ -62,9 +62,9 @@ confirmed; calling `answer()` again replays the same completion. The handle live
 resume after a restart, persist `sessionId` and `revision` and continue with the API below
 ([Integration](docs/integration.md#one-question-with-sessask)).
 
-If Sess refuses a call, the error's message says what happened and what to do. A key Sess does not
-accept gives "Sess did not accept your API key. Check SESS_API_KEY and the portal you made it on."
-Print the message first, and the code and request ID after it:
+If Sess refuses a call, the error says what happened and what to do. A key Sess does not accept
+prints: "Sess did not accept your API key. Check SESS_API_KEY and the portal you made it on." The
+message comes first; the code and request ID follow it:
 
 <!-- example:ask-error -->
 
