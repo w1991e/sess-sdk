@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/w1991e/sess-sdk/security/advisories/new
+    about: Report it privately here, never in a public issue. See SECURITY.md.
+  - name: Question or support
+    url: https://docs.sess.si/support/
+    about: How to use Sess, your account, or anything that is not a defect in this package.
