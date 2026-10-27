@@ -33,36 +33,41 @@ export interface SessErrorDetails {
 }
 const recovery = new WeakMap<SessError, Readonly<CreateSessionResponse>>();
 
-/** Stable error fields; messages never include response bodies or request secrets. */
+/**
+ * Stable error fields; messages never include response bodies or request secrets. An optional
+ * field is an own property only when it has a value, so printing an error lists no empty fields.
+ */
 export class SessError extends Error {
   readonly kind: SessErrorKind;
-  readonly code?: string;
-  readonly reason?: string;
-  readonly status?: number;
-  readonly requestId?: string;
-  readonly operation?: string;
-  readonly attempts?: number;
-  readonly outcome?: WriteOutcome;
-  readonly idempotencyKey?: string;
-  readonly retryAfterMs?: number;
-  readonly sessionId?: string;
-  readonly revision?: number;
+  // `declare`: no class-field initializer, so an absent detail is absent, not an own `undefined`.
+  declare readonly code?: string;
+  declare readonly reason?: string;
+  declare readonly status?: number;
+  declare readonly requestId?: string;
+  declare readonly operation?: string;
+  declare readonly attempts?: number;
+  declare readonly outcome?: WriteOutcome;
+  declare readonly idempotencyKey?: string;
+  declare readonly retryAfterMs?: number;
+  declare readonly sessionId?: string;
+  declare readonly revision?: number;
   /**
    * Set only when a value is too long (a 400 INVALID_SCHEMA from Sess, or INVALID_QUESTION from
    * `ask`): a JSON pointer to it, e.g. `/interaction/title`. Nothing is ever truncated: shorten
    * the value to at most `limit` characters and send again.
    */
-  readonly field?: string;
+  declare readonly field?: string;
   /** With `field`: the most the value may have, in Unicode code points (e.g. title 80). */
-  readonly limit?: number;
+  declare readonly limit?: number;
   /** With `field`: the value's actual length, in Unicode code points. */
-  readonly length?: number;
+  declare readonly length?: number;
 
   constructor(kind: SessErrorKind, message: string, details: SessErrorDetails = {}) {
     super(message);
     this.name = 'SessError';
     this.kind = kind;
-    Object.assign(this, details);
+    for (const [name, value] of Object.entries(details))
+      if (value !== undefined) Object.assign(this, { [name]: value });
   }
 
   /** Explicit access only. A usable create body may accompany a defective header. */
@@ -88,7 +93,7 @@ export class SessError extends Error {
       limit,
       length,
     } = this;
-    return {
+    const fields: Record<string, unknown> = {
       name,
       kind,
       message,
@@ -105,8 +110,10 @@ export class SessError extends Error {
       limit,
       length,
     };
+    return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
   }
 
+  /** `util.inspect` and `console.log`: the same fields as JSON, without the absent ones. */
   [inspect.custom](): object {
     return this.toJSON();
   }

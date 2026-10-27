@@ -41,6 +41,9 @@ const rejections: Record<number, readonly string[]> = {
   // rate limit; a plain 429 (no code, or RATE_LIMITED) stays transient and its outcome uncertain.
   429: ['PLAN_LIMIT_REACHED'],
 };
+/** A 401 UNAUTHORIZED: Sess refused the API key. */
+const UNAUTHORIZED_MESSAGE =
+  'Sess did not accept your API key. Check SESS_API_KEY and the portal you made it on.';
 
 /** RFC 9110 product tokens (`name` or `name/version`), separated by single spaces. */
 const PRODUCT = "[!#$%&'*+.^_`|~0-9A-Za-z-]+(?:/[!#$%&'*+.^_`|~0-9A-Za-z-]+)?";
@@ -435,7 +438,9 @@ export class Transport {
             const message =
               length.field !== undefined
                 ? lengthMessage(length.field, length.limit!, length.length!)
-                : 'The Sess API returned an error. See the status and code fields.';
+                : response.status === 401 && code === 'UNAUTHORIZED'
+                  ? UNAUTHORIZED_MESSAGE
+                  : 'The Sess API returned an error. See the status and code fields.';
             throw new SessError('api', message, {
               code,
               reason,

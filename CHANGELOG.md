@@ -14,6 +14,14 @@
   `Retry-After` (time until the period resets); it is never retried. Before, it was
   `unknown_outcome` ("may have succeeded"). Any other 429 (no code, or `RATE_LIMITED`) is unchanged:
   transient, retried where retries are allowed, and uncertain for a write.
+- A key Sess does not accept (HTTP 401 `UNAUTHORIZED`) now says so: the `SessError` message is
+  "Sess did not accept your API key. Check SESS_API_KEY and the portal you made it on." instead of
+  the generic "The Sess API returned an error. See the status and code fields." Other messages
+  are unchanged. `code`, `status` and `requestId` are still on the error.
+- A `SessError` has an own property only for a field with a value. Printing one (an uncaught
+  error, `console.log`, `util.inspect`, `JSON.stringify`) no longer lists absent fields as
+  `undefined`; reading an absent field still gives `undefined`. The Node quickstart and the
+  README print the message first, then a `Details:` line with the code and request ID.
 - The package ships compiled output only: no source maps (`*.js.map`, `*.d.ts.map`) or
   `sourceMappingURL` comments, and no `src/` TypeScript sources (every export and types path is in
   `dist/`). The generated wire types' JSDoc names Sess specifications instead of runtime-repository
