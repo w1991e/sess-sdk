@@ -109,7 +109,7 @@ describe('listing.json artifacts', () => {
     expect(JSON.parse(read('listing.json')).icons.value).toBeNull();
     // The npm package is deferred: adding it needs a successor candidate carrying si.sess/sess.
     expect(text).toMatch(
-      /MCP Registry npm package: deferred \(remote-only entry\); adding @sess\.si\/mcp needs a successor candidate whose mcpName is si\.sess\/sess \(@sess\.si\/mcp@0\.1\.0-rc\.3 on npm declares io\.github\.w1991e\/sess\)/,
+      /MCP Registry npm package: deferred \(remote-only entry\); adding @sess\.si\/mcp needs a successor candidate whose mcpName is si\.sess\/sess \(@sess\.si\/mcp@0\.1\.0-rc\.4 on npm declares io\.github\.w1991e\/sess\)/,
     );
   });
 

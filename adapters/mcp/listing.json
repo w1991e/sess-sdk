@@ -61,8 +61,8 @@
   },
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
-    "status": "unpublished",
-    "note": "0.1.0-rc.4 (package.json's version) is prepared and not published yet; the stdio entries naming it work only after it is. 0.1.0-rc.3 is on npm, dist-tag next, published 2026-10-23T18:03:37Z. Its mcpName is io.github.w1991e/sess, so the MCP Registry entry lists no npm package for now; see providers.mcpRegistry.npmPackage.",
+    "status": "published",
+    "note": "0.1.0-rc.4 (package.json's version) is on npm, dist-tag next, published 2026-10-27T17:49:04Z. Its mcpName is io.github.w1991e/sess, so the MCP Registry entry lists no npm package for now; see providers.mcpRegistry.npmPackage.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {
@@ -137,10 +137,10 @@
       },
       "npmPackage": {
         "status": "deferred",
-        "publishedVersion": "0.1.0-rc.3",
+        "publishedVersion": "0.1.0-rc.4",
         "publishedMcpName": "io.github.w1991e/sess",
-        "read": "2026-10-23",
-        "note": "Remote-only entry: server.json lists no npm package, so the registry cross-checks no published package's mcpName and the published @sess.si/mcp keeps its identity (package.json mcpName stays io.github.w1991e/sess, rc.3's published value). Adding the stdio package (status listed) needs a successor @sess.si/mcp candidate whose mcpName is si.sess/sess, after the re-pin freeze ends on 3 Nov."
+        "read": "2026-10-27",
+        "note": "Remote-only entry: server.json lists no npm package, so the registry cross-checks no published package's mcpName and the published @sess.si/mcp keeps its identity (package.json mcpName stays io.github.w1991e/sess, the published value of rc.4 and rc.3). Adding the stdio package (status listed) needs a successor @sess.si/mcp candidate whose mcpName is si.sess/sess, after the re-pin freeze ends on 3 Nov."
       },
       "schema": {
         "id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",

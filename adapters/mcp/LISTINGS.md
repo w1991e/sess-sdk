@@ -78,7 +78,7 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
 - `https://mcp.sess.si/mcp` passes production host qualification (it is deployed: `/version` was
   read back on 2026-10-23); then set `remote.status` to `qualified`;
 - to list the npm stdio package in the MCP Registry entry (today it is remote-only): a successor
-  `@sess.si/mcp` candidate declaring `mcpName` `si.sess/sess` (0.1.0-rc.3 declares
+  `@sess.si/mcp` candidate declaring `mcpName` `si.sess/sess` (the published 0.1.0-rc.4 declares
   `io.github.w1991e/sess`), after the re-pin freeze ends on 3 Nov; then set
   `providers.mcpRegistry.npmPackage.status` to `listed`;
 - `https://sess.si/privacy/` and `https://sess.si/terms/` answer on production (they are built by
@@ -103,7 +103,7 @@ into this repository, a file, a log, a chat or an agent prompt.
 
 **The entry is remote-only for now.** `server.json` lists the one `streamable-http` remote
 `https://mcp.sess.si/mcp` and no `packages`. The registry checks a listed npm package's `mcpName`
-against the server name, and the published `@sess.si/mcp@0.1.0-rc.3` declares
+against the server name, and the published `@sess.si/mcp@0.1.0-rc.4` declares
 `io.github.w1991e/sess`; `package.json` keeps that value so the published package's identity is
 unchanged. Listing the stdio package (`providers.mcpRegistry.npmPackage.status` `listed`) needs a
 successor candidate declaring `mcpName` `si.sess/sess`; the checks and the release guard then
