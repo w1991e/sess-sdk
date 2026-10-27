@@ -1,0 +1,30 @@
+name: Feature
+description: Something you tried to do with the SDK or an adapter and could not.
+labels: [feature]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: What you were trying to do
+      description: The task in your agent, not the API change you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: blocker
+    attributes:
+      label: What stopped you
+      description: What you tried and where it fell short.
+    validations:
+      required: true
+  - type: textarea
+    id: wish
+    attributes:
+      label: What would have worked
+      description: Optional. A sketch is enough.
+  - type: checkboxes
+    id: private
+    attributes:
+      label: Private data
+      options:
+        - label: This request contains no API key, Sess link, receipt, webhook secret or real person's data.
+          required: true
