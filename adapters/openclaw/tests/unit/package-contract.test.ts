@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CONFIG_JSON_SCHEMA, DEFAULT_ORIGIN, parseConfig, resolveCredential } from '../../src/config.js';
-import { doctorReport } from '../../src/doctor.js';
+import { doctorReport, QUALIFIED_HOST } from '../../src/doctor.js';
 import { TOOL_PARAMETERS } from '../../src/schemas.js';
 import { API_KEY, API_KEY_ENV, registerPlugin } from './harness.js';
 
@@ -38,7 +38,8 @@ describe('manifest and runtime declarations agree', () => {
 
   it('package boundary: exact SDK dependency, host as peer only, no lifecycle scripts', () => {
     expect(pkg.dependencies).toEqual({ [sdkPin.name]: sdkPin.version });
-    expect(pkg.peerDependencies).toEqual({ openclaw: pkg.devDependencies.openclaw });
+    expect(Object.keys(pkg.peerDependencies)).toEqual(['openclaw']);
+    expect(pkg.peerDependencies.openclaw.split(' || ')).toContain(pkg.devDependencies.openclaw);
     for (const hook of [
       'preinstall',
       'install',
@@ -113,8 +114,13 @@ describe('import and registration have no network, timer, state or secret side e
       { openKeyedStore: () => undefined },
       { [API_KEY_ENV]: API_KEY },
     );
-    expect(report).toContain(`${API_KEY_ENV} is set`);
+    expect(report.split('\n')).toContain(
+      `API key source: ${API_KEY_ENV}, set in this CLI process (the running Gateway must also have it)`,
+    );
     expect(report).not.toContain(API_KEY);
+    expect(doctorReport({ apiKeyEnv: API_KEY_ENV }, undefined, {}).split('\n')).toContain(
+      `API key source: ${API_KEY_ENV} is not set in this CLI process; the running Gateway needs it in its own environment.`,
+    );
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
@@ -166,8 +172,9 @@ describe('owner-controlled origin and credentials', () => {
 });
 
 describe('peer, engines and types metadata match qualification', () => {
-  it('declares only the qualified host, the qualified Node floor and no TypeScript declarations', () => {
-    expect(pkg.peerDependencies).toEqual({ openclaw: '2026.10.3' });
+  it('declares only the two declared hosts, the qualified Node floor and no TypeScript declarations', () => {
+    expect(pkg.peerDependencies).toEqual({ openclaw: '2026.10.3 || 2026.10.7' });
+    expect(pkg.devDependencies.openclaw).toBe('2026.10.3');
     expect(pkg.engines).toEqual({ node: '>=24.16.0 <25' });
     expect(pkg.types).toBeUndefined();
     expect(JSON.stringify(pkg.exports)).not.toMatch(/types|\.d\.ts/);
@@ -175,8 +182,52 @@ describe('peer, engines and types metadata match qualification', () => {
     expect(pkg.openclaw.install.minHostVersion).toBe('>=2026.10.3');
   });
 
-  it('doctor flags any host version other than the qualified one', () => {
-    expect(doctorReport({}, undefined, {}, '2026.10.3')).toMatch(/host: OpenClaw 2026\.10\.3 \(qualified\)/);
-    expect(doctorReport({}, undefined, {}, '2026.11.0')).toMatch(/not a qualified version; only 2026\.10\.3/);
+  it('doctor flags any host version other than the two declared ones', () => {
+    const header =
+      /^Sess for OpenClaw .* \(qualified host: OpenClaw 2026\.10\.3; also supported: 2026\.10\.7\)$/m;
+    const q3 = doctorReport({}, undefined, {}, '2026.10.3');
+    expect(q3).toMatch(header);
+    expect(q3).toMatch(/^host: OpenClaw 2026\.10\.3 \(qualified\)$/m);
+    expect(q3).not.toMatch(/warning: host/);
+    const q7 = doctorReport({}, undefined, {}, '2026.10.7');
+    expect(q7).toMatch(/^host: OpenClaw 2026\.10\.7 \(supported; production qualification pending\)$/m);
+    expect(q7).not.toMatch(/warning: host/);
+    expect(q7).not.toMatch(/2026\.10\.7 \(qualified\)/);
+    for (const other of ['2026.11.0', '2026.10.5', '2026.10.7-beta.1']) {
+      expect(doctorReport({}, undefined, {}, other)).toMatch(
+        new RegExp(
+          `warning: host OpenClaw ${other.replace(/\./g, '\\.')} is not a supported version; only 2026\\.10\\.3 and 2026\\.10\\.7 have been tested`,
+        ),
+      );
+    }
+    expect([...QUALIFIED_HOST]).toEqual(['2026.10.3', '2026.10.7']);
+  });
+
+  it('records 2026.10.7 as a preview rehearsal of the agent-turn round trip, not qualification', () => {
+    const compatibility = JSON.parse(read('compatibility.json'));
+    expect(compatibility.host.version).toBe('2026.10.3');
+    expect(compatibility.additionalHosts).toHaveLength(1);
+    const [extra] = compatibility.additionalHosts;
+    expect(extra).toMatchObject({ name: 'openclaw', version: '2026.10.7', build: '157d8c2' });
+    expect(extra.integrity).toMatch(/^sha512-/);
+    expect(extra.hostEngines).toBe('>=24.22.1 <25 || >=26.12.1');
+    expect(extra.label).toBe('preview rehearsal, agent-turn round trip, adapter rc.4');
+    expect(extra.status).toMatch(/^Not qualification\./);
+    expect(extra.status).toMatch(/agent-turn round trip/);
+    expect(extra.status).toMatch(/direct-invoke suite.*NOT run/);
+    expect(extra.status).toMatch(/production host run.*upgrades this entry/);
+    expect(extra.qualification).toBeUndefined();
+    expect(extra.previewRun).toMatchObject({ date: '2026-10-27', result: 'passed' });
+    expect(extra.previewRun.adapter).toMatch(/^@sess\.si\/openclaw@0\.1\.0-rc\.4 /);
+    expect(extra.previewRun.target).toMatch(/Sess preview environment/);
+    expect(extra.previewRun.node).toMatchObject({ version: '24.22.1' });
+    expect(extra.previewRun.node.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(extra.previewRun.evidence).toMatch(/host-qualification-2026-10-27\/preview-1b645b97/);
+    expect(compatibility.host.evidenceEnvironment).toMatch(
+      /isolated local Sess runtime.*no production run yet/,
+    );
+    expect(compatibility.host.peerDeclaration).toMatch(
+      /^peerDependencies\.openclaw = 2026\.10\.3 \|\| 2026\.10\.7 /,
+    );
   });
 });

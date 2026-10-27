@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "package": {
     "name": "@sess.si/mcp",
-    "version": "0.1.0-rc.3",
+    "version": "0.1.0-rc.4",
     "toolSchema": "sess-mcp-tools/4"
   },
-  "status": "0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next is 0.1.0-rc.3, on @sess.si/sdk 0.1.0-rc.8",
-  "recordedAt": "2026-10-23",
+  "status": "0.1.0-rc.4 prepared on @sess.si/sdk 0.1.0-rc.8, unpublished; 0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next is 0.1.0-rc.3",
+  "recordedAt": "2026-10-27",
   "node": {
     "engines": ">=22.14.0 <25",
     "qualified": ["22.14.0", "24.21.0"],
@@ -168,7 +168,7 @@
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "@sess.si/mcp@0.1.0-rc.3 published on npm dist-tag next on 2026-10-23, on @sess.si/sdk 0.1.0-rc.8; 0.1.0-rc.2 on 2026-10-19 and 0.1.0-rc.1 on 2026-10-17 (each staged by the release workflow, approved by a maintainer with npm 2FA); latest stays on the deprecated 0.0.0-stage placeholder. No unpublished candidate is pending. The SDK dependency is in registry mode.",
+    "status": "0.1.0-rc.4 prepared on @sess.si/sdk 0.1.0-rc.8, unpublished (release/rc4-packet.md). @sess.si/mcp@0.1.0-rc.3 published on npm dist-tag next on 2026-10-23, on @sess.si/sdk 0.1.0-rc.8; 0.1.0-rc.2 on 2026-10-19 and 0.1.0-rc.1 on 2026-10-17 (each staged by the release workflow, approved by a maintainer with npm 2FA); latest stays on the deprecated 0.0.0-stage placeholder. The SDK dependency is in registry mode.",
     "published": {
       "version": "0.1.0-rc.3",
       "distTag": "next",

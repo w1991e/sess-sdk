@@ -100,7 +100,19 @@ function files(dir: string): string[] {
     return statSync(path).isDirectory() ? files(path) : [path];
   });
 }
-const NEXT_STEPS = ['cd my-agent', 'npm install --ignore-scripts', 'read -rs SESS_API_KEY', 'npm start'];
+// The next steps, exactly (founder 2026-10-27 04:05Z item 4): the read line stands alone between blank
+// lines, because pasting it together with the next line feeds that line into `read`.
+const NEXT_BLOCK = `Next:
+  cd my-agent
+  npm install --ignore-scripts
+
+  read -rs SESS_API_KEY && export SESS_API_KEY     # run this line by itself, then paste your key from https://app.sess.si
+
+  export SESS_DEMO_CONTACT=https://example.com/your-project   # your project URL or team email
+  npm start
+
+Your key stays in your environment. This tool never stores it.
+`;
 
 describe('@sess.si/create-agent: the one command', { timeout: 30_000 }, () => {
   it('with both values in the environment: scaffolds, installs, runs once, no prompts', async () => {
@@ -125,7 +137,9 @@ describe('@sess.si/create-agent: the one command', { timeout: 30_000 }, () => {
       'Created my-agent: a weekend planner on real weather.',
       'Installing the agent…',
     ]);
-    expect(run.stdout).toContain('Anyone with it can answer:\n  https://sess.si/s/fake');
+    expect(run.stdout).toContain(
+      'Anyone with it can answer:\n  https://sess.si/s/fake  Cmd-click to open.\n',
+    );
     expect(run.stdout).not.toContain('added 4 packages'); // install output is shown only on failure
     expect(`${run.stdout}${run.stderr}`).not.toContain(KEY);
   });
@@ -195,7 +209,7 @@ describe('@sess.si/create-agent: the one command', { timeout: 30_000 }, () => {
     expect(run.stderr).toBe('');
     expect(run.calls).toEqual([]);
     expect(readdirSync(join(run.cwd, 'my-agent')).sort()).toEqual(GENERATED);
-    for (const step of NEXT_STEPS) expect(run.stdout).toContain(step);
+    expect(run.stdout).toContain(`\n\n${NEXT_BLOCK}`);
     expect(run.stdout).not.toContain('Paste');
   });
 
@@ -209,7 +223,7 @@ describe('@sess.si/create-agent: the one command', { timeout: 30_000 }, () => {
       expect(run.code).toBe(0);
       expect(run.calls).toEqual([]);
       expect(run.tty).toEqual([]);
-      for (const step of NEXT_STEPS) expect(run.stdout).toContain(step);
+      expect(run.stdout).toContain(`\n\n${NEXT_BLOCK}`);
     }
   });
 
@@ -225,7 +239,7 @@ describe('@sess.si/create-agent: the one command', { timeout: 30_000 }, () => {
     expect(run.calls.map((call) => call.argv[0])).toEqual(['install']);
     expect(run.stderr).toContain('npm error code E404 (fake)');
     expect(run.stderr).toContain('The install did not finish. The output above says why.');
-    for (const step of NEXT_STEPS) expect(run.stderr).toContain(step);
+    expect(run.stderr).toContain(`\n\n${NEXT_BLOCK}`);
     expect(readdirSync(join(run.cwd, 'my-agent')).sort()).toEqual(GENERATED);
   });
 
@@ -245,7 +259,7 @@ describe('@sess.si/create-agent: the one command', { timeout: 30_000 }, () => {
       expect(run.code, label).toBe(130);
       expect(run.calls, label).toEqual([]);
       expect(run.stdout, label).toContain('Stopped. Your agent is in my-agent.');
-      for (const step of NEXT_STEPS) expect(run.stdout, label).toContain(step);
+      expect(run.stdout, label).toContain(`\n\n${NEXT_BLOCK}`);
       expect(run.tty.at(-1), label).toBe('raw:false');
       expect(readdirSync(join(run.cwd, 'my-agent')).sort(), label).toEqual(GENERATED);
       expect(`${run.stdout}${run.stderr}`, label).not.toContain(KEY.slice(0, 5));
