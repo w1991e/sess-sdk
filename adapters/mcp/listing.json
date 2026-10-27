@@ -67,7 +67,7 @@
     "environmentVariables": [
       {
         "name": "SESS_API_KEY",
-        "description": "Sess developer API key (owner credential; never a tool argument).",
+        "description": "Your Sess developer API key (never a tool argument).",
         "isRequired": true,
         "isSecret": true
       },
