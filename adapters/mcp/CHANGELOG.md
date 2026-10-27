@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.4
 
+- Still depends on `@sess.si/sdk` 0.1.0-rc.8 (sha256 `b533935b…4c95`), resolved from the registry;
+  no dependency changes.
 - Every request to Sess, from the local stdio server and the hosted HTTP handler, carries
   `User-Agent: sess-mcp/<version>` (this package's version). On `@sess.si/sdk` 0.1.0-rc.8 that is
   the whole header; an SDK that sends its own token keeps it after this one.
