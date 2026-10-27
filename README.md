@@ -2,16 +2,10 @@
 
 Ask a person a question from your server and continue with their verified answer.
 
-**Create** a small agent:
+**Create and run** a small agent:
 
 ```sh
-npx @sess.si/create-agent@next my-agent
-```
-
-**Run** it (with `SESS_API_KEY` and `SESS_DEMO_CONTACT` set in your environment):
-
-```sh
-cd my-agent && npm install --ignore-scripts && npm start
+npm create @sess.si/agent@next my-agent
 ```
 
 **What you'll see:** a Sess link. Answer two questions on your phone and your plan prints in the
