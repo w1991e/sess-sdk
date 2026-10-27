@@ -4,7 +4,15 @@ import { TOOL_NAMES } from './setup.js';
 import type { PruneReport, RetireReport, StateCounts } from './store.js';
 
 export const PLUGIN_VERSION = '0.1.0-rc.5';
-export const QUALIFIED_HOST = '2026.10.3';
+/**
+ * Host versions declared in peerDependencies; doctor warns on any other. 2026.10.3 is qualified;
+ * 2026.10.7 ran the agent-turn round trip on the preview and awaits production qualification.
+ */
+export const QUALIFIED_HOST: ReadonlySet<string> = new Set(['2026.10.3', '2026.10.7']);
+const HOST_NOTE: Readonly<Record<string, string>> = {
+  '2026.10.3': 'qualified',
+  '2026.10.7': 'supported; production qualification pending',
+};
 
 /**
  * Which Sess tools the authored config allows, read where `openclaw sess setup` writes them
@@ -40,12 +48,14 @@ export function doctorReport(
   hostVersion?: string,
   rootConfig?: unknown,
 ): string {
-  const lines = [`Sess for OpenClaw ${PLUGIN_VERSION} (qualified host: OpenClaw ${QUALIFIED_HOST})`];
+  const lines = [
+    `Sess for OpenClaw ${PLUGIN_VERSION} (qualified host: OpenClaw 2026.10.3; also supported: 2026.10.7)`,
+  ];
   if (typeof hostVersion === 'string')
     lines.push(
-      hostVersion === QUALIFIED_HOST
-        ? `host: OpenClaw ${hostVersion} (qualified)`
-        : `warning: host OpenClaw ${hostVersion} is not a qualified version; only ${QUALIFIED_HOST} has been tested`,
+      QUALIFIED_HOST.has(hostVersion)
+        ? `host: OpenClaw ${hostVersion} (${HOST_NOTE[hostVersion]})`
+        : `warning: host OpenClaw ${hostVersion} is not a supported version; only 2026.10.3 and 2026.10.7 have been tested`,
     );
   try {
     const config = parseConfig(rawConfig);

@@ -182,7 +182,10 @@ assert(
 );
 for (const spec of Object.values({ ...manifest.dependencies, ...manifest.peerDependencies }))
   assert(!/^(file|link|workspace|git|https?):/.test(spec), 'non-registry dependency spec');
-assert(manifest.peerDependencies?.openclaw === '2026.10.3', 'OpenClaw must be the exact qualified host peer');
+assert(
+  manifest.peerDependencies?.openclaw === '2026.10.3 || 2026.10.7',
+  'OpenClaw peer must be exactly the declared host versions',
+);
 pass('manifest-boundary');
 
 // 4. Sizes (measured; reviewed budget 250 KiB packed / 1 MiB unpacked first-party).

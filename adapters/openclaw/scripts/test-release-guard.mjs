@@ -103,4 +103,15 @@ test('refuses candidate mode and non-registry dependency specs', () => {
     (f) => (f.manifest.peerDependencies.openclaw = 'git+https://example.invalid/x.git'),
     'registry dependency specs',
   );
+  // A peer is a list of exact versions joined by " || "; any range or malformed member is refused.
+  for (const peer of [
+    '>=2026.10.3',
+    '2026.10.3 || >=2026.10.7',
+    '^2026.10.3',
+    '2026.10.3 ||',
+    '2026.10.3||2026.10.7',
+    '*',
+  ])
+    refuses((f) => (f.manifest.peerDependencies.openclaw = peer), 'registry dependency specs');
+  refuses((f) => (f.manifest.dependencies.extra = '1.0.0 || 2.0.0'), 'registry dependency specs');
 });

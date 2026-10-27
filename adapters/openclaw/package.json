@@ -58,7 +58,7 @@
     "@sess.si/sdk": "0.1.0-rc.8"
   },
   "peerDependencies": {
-    "openclaw": "2026.10.3"
+    "openclaw": "2026.10.3 || 2026.10.7"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

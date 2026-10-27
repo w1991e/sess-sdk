@@ -17,6 +17,12 @@
   what to answer when OpenClaw warns that the package comes from npm, not ClawHub.
 - Skill: when the model reports the person's answer, it says the answer is verified (Sess checked
   its signed receipt).
+- The OpenClaw peer is now `2026.10.3 || 2026.10.7`, and `openclaw sess doctor` no longer warns on
+  OpenClaw 2026.10.7 (it still warns on any other host version). 2026.10.3 remains the qualified
+  host. `compatibility.json` records 2026.10.7 as a preview rehearsal: one agent-turn round trip on
+  the Sess preview with adapter 0.1.0-rc.4 on 27 October, not qualification; the production host
+  run will upgrade that entry. The 2026.10.3 record now says its evidence came from an isolated local
+  Sess runtime and preview rehearsals, with no production run yet.
 
 ## 0.1.0-rc.4
 

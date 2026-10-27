@@ -10,9 +10,10 @@ verified its signed receipt for that exact revision.
 > published only under the npm dist-tag `next`, after a maintainer approves the publication with
 > npm 2FA. Do not install the bare name: its `latest` dist-tag points at a `0.0.0-stage`
 > placeholder, not at a release. The candidate depends on `@sess.si/sdk@0.1.0-rc.8`, published
-> on npm under the `next` dist-tag. Qualified hosts: OpenClaw `2026.10.3` (Node 24.16 or later)
-> and, for the agent-turn round trip only, OpenClaw `2026.10.7` (Node 24.22.1 or later). See
-> [compatibility.json](compatibility.json) for exactly what was tested.
+> on npm under the `next` dist-tag. Qualified host: OpenClaw 2026.10.3 (Node 24.16 or later).
+> OpenClaw 2026.10.7 (Node 24.22.1 or later) ran the agent-turn round trip on the preview on 27
+> October; production qualification follows. See [compatibility.json](compatibility.json) for
+> exactly what was tested.
 
 ## Prerequisites
 
@@ -69,13 +70,13 @@ contacting Sess and without printing secrets.
 
 ## Support status
 
-| Profile                                                     | Status                                                      |
-| ----------------------------------------------------------- | ----------------------------------------------------------- |
-| Direct invoke (Gateway `POST /tools/invoke`, deterministic) | Qualified on OpenClaw 2026.10.3, Node 24.21.0 (and 24.16.0) |
-| Agent turn in a dashboard conversation (Control UI)         | Partially qualified (reset isolation fails, below)          |
-| Agent turn, one round trip (`openclaw agent --local`)       | Qualified on OpenClaw 2026.10.7, Node 24.22.1 (below)       |
-| Agent turn on messaging channels (Telegram, Slack, ...)     | Not qualified                                               |
-| Shared or group conversations                               | Not supported                                               |
+| Profile                                                     | Status                                                              |
+| ----------------------------------------------------------- | ------------------------------------------------------------------- |
+| Direct invoke (Gateway `POST /tools/invoke`, deterministic) | Qualified on OpenClaw 2026.10.3, Node 24.21.0 (and 24.16.0)         |
+| Agent turn in a dashboard conversation (Control UI)         | Partially qualified (reset isolation fails, below)                  |
+| Agent turn, one round trip (openclaw agent --local)         | Ran on OpenClaw 2026.10.7, Node 24.22.1 (preview rehearsal, 27 Oct) |
+| Agent turn on messaging channels (Telegram, Slack, ...)     | Not qualified                                                       |
+| Shared or group conversations                               | Not supported                                                       |
 
 Agent-turn qualification (OpenClaw 2026.10.3, `anthropic/claude-sonnet-5-5`, Code Mode,
 2026-10-14): the Sess link was observed in the conversation (via `chat.history`) while the wait
@@ -89,13 +90,14 @@ conversation for Sess purposes. In Code Mode the model awaits a long `sess_respo
 `wait` tool, which adds small model calls during a wait; the plugin itself never polls. Full record
 in [compatibility.json](compatibility.json).
 
-OpenClaw 2026.10.7 (Node 24.22.1, `openrouter/anthropic/claude-haiku-5.5`, 2026-10-27): one agent
-turn installed the plugin from npm, ran setup, sent the Sess link, and returned the person's
-verified answer through `sess_request` and `sess_response`. The direct-invoke suite, the dashboard
-items above, `sess_publish`, `sess_complete` and reset isolation were not run on 2026.10.7.
+OpenClaw 2026.10.7 (Node 24.22.1, `openrouter/anthropic/claude-haiku-5.5`, 2026-10-27, adapter
+0.1.0-rc.4): one agent turn installed the plugin from npm, ran setup, sent the Sess link, and
+returned the person's verified answer through `sess_request` and `sess_response`. The direct-invoke
+suite, the dashboard items above, `sess_publish`, `sess_complete` and reset isolation were not run
+on 2026.10.7.
 
-The package declares OpenClaw 2026.10.3 as its peer, and its metadata can only express a minimum
-host version, so `openclaw sess doctor` warns on any other host version, 2026.10.7 included. Node 22
+The package declares OpenClaw 2026.10.3 and 2026.10.7 as its peers, and its metadata can only
+express a minimum host version, so `openclaw sess doctor` warns on any other host version. Node 22
 is not supported: OpenClaw 2026.10.3 requires Node 24.16 or later, and 2026.10.7 requires 24.22.1
 or later.
 
@@ -105,8 +107,9 @@ loads, and it has no programmatic API.
 ## First interaction
 
 **Qualification status.** See [Support status](#support-status): the whole flow is qualified for
-direct invoke on OpenClaw 2026.10.3; on 2026.10.7 one model-driven turn passed steps 1 and 2. In
-model-driven turns in a dashboard (Control UI) conversation, only steps 1 and 2 are qualified (request, a live wait, and continuation in a later turn); the link was observed via
+direct invoke on OpenClaw 2026.10.3; on 2026.10.7 one model-driven turn passed steps 1 and 2 on
+the preview. In model-driven turns in a dashboard (Control UI) conversation, only steps 1 and 2 are
+qualified (request, a live wait, and continuation in a later turn); the link was observed via
 `chat.history` while the same turn was still waiting. Step 3 (`sess_complete`) was not exercised
 in a model-driven turn, and reset isolation fails. It is not qualified on messaging channels.
 
