@@ -43,17 +43,18 @@ function waitSeconds() {
   return value;
 }
 
-/** The SDK's safe error fields: never response bodies, keys or human URLs. */
+/**
+ * The message first; the code and request ID after it, on their own "Details" line. Only the SDK's
+ * safe error fields: never response bodies, keys or human URLs.
+ */
 function describe(error) {
   if (!(error instanceof Error)) return 'unknown error';
   if (!(error instanceof SessError)) return error.message;
-  const fields = [
-    ['kind', error.kind],
-    ['status', error.status],
-    ['code', error.code],
-    ['request', error.requestId],
-  ].filter(([, value]) => value !== undefined);
-  return `${error.message} (${fields.map(([name, value]) => `${name} ${value}`).join(', ')})`;
+  const details = [
+    error.code ?? (error.status !== undefined ? `${error.kind} ${error.status}` : error.kind),
+    error.requestId !== undefined ? `request ${error.requestId}` : undefined,
+  ].filter((value) => value !== undefined);
+  return `${error.message}\nDetails: ${details.join(', ')}`;
 }
 
 function resumeHint(sessionId) {

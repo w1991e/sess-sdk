@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- A key Sess does not accept (HTTP 401 `UNAUTHORIZED`) now says so: the `SessError` message is
+  "Sess did not accept your API key. Check SESS_API_KEY and the portal you made it on." instead of
+  the generic "The Sess API returned an error. See the status and code fields." Other messages
+  are unchanged. `code`, `status` and `requestId` are still on the error.
+- A `SessError` has an own property only for a field with a value. Printing one (an uncaught
+  error, `console.log`, `util.inspect`, `JSON.stringify`) no longer lists absent fields as
+  `undefined`; reading an absent field still gives `undefined`. The Node quickstart and the
+  README print the message first, then a `Details:` line with the code and request ID.
+
 ## 0.1.0-rc.9 — 2026-10-28 (prepared, unpublished)
 
 - Commerce: bills as ordinary Surfaces, for Sess's `items` component. Sess takes no payment.

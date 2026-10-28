@@ -56,6 +56,29 @@ confirmed; calling `answer()` again replays the same completion. The handle live
 resume after a restart, persist `sessionId` and `revision` and continue with the API below
 ([Integration](docs/integration.md#one-question-with-sessask)).
 
+If Sess refuses a call, the error says what happened and what to do. A key Sess does not accept
+prints: "Sess did not accept your API key. Check SESS_API_KEY and the portal you made it on." The
+message comes first; the code and request ID follow it:
+
+<!-- example:ask-error -->
+
+```js
+try {
+  const question = await sess.ask({
+    question: 'Approve the synthetic refund?',
+    fields: [{ name: 'approved', label: 'Approve it', type: 'boolean' }],
+  });
+  console.log(`Send this Sess link to the person: ${question.link}`);
+} catch (error) {
+  console.error(error.message); // what happened and what to do
+  const request = error.requestId ? `, request ${error.requestId}` : '';
+  console.error(`Details: ${error.code ?? error.kind}${request}`);
+  process.exitCode = 1;
+}
+```
+
+<!-- /example:ask-error -->
+
 ## Keep it short
 
 A person reads the page on a phone, so Sess keeps every piece of it short. Lengths count

@@ -89,6 +89,9 @@ response. Sess renders the page; the example sends only typed data.
   `SESS_SESSION_ID=ses_... npm start` waits on the same Session and revision.
 - After the response: its event ID and the verified, validated amount.
 - The completed Session status as confirmed by the API.
+- If something fails, the error says what happened, then a Details line with the code and request
+  ID. A key Sess does not accept prints "Sess did not accept your API key. Check SESS_API_KEY and
+  the portal you made it on." and exits with code 1.
 
 It never prints the API key or receipt contents. An uncertain create or complete outcome is
 reported as uncertain, never as success, and creation is never retried automatically.
