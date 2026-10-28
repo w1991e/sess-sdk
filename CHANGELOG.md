@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.10 — 2026-10-28 (prepared, unpublished)
 
 - Short human links: a request identifier holding a run of 22 or more base64url characters (a
   short-link token is 22, as in `/n/<token>`; a `/s/` token 43; either may be glued to more) is
