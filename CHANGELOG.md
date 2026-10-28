@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-rc.9 — 2026-10-28 (prepared, unpublished)
 
 - Commerce: bills as ordinary Surfaces, for Sess's `items` component. Sess takes no payment.
   `money(amount, currency)` checks a whole number of minor units (cents for USD, yen for JPY, fils
