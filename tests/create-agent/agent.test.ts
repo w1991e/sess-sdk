@@ -3,10 +3,19 @@
 // (create-agent/test/fake-world.mjs). `@sess.si/sdk` resolves to this repository's build, whose
 // packed bytes `npm run check:pin` proves equal to the published pin.
 import { beforeAll, describe, expect, it } from 'vitest';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { API_KEY, CONTACT, ROOT, initialize, runAgent, scratch, type WorldRecord } from './helpers.js';
+
+const version = (path: string): string => JSON.parse(readFileSync(join(ROOT, path), 'utf8')).version;
+// The starter names itself with the initializer's version. On the published SDK pin (0.1.0-rc.8)
+// that is the whole header (clean-install-check.mjs asserts it); this repository's SDK build
+// appends its own tokens after it.
+const USER_AGENT = `sess-create-agent/${version('create-agent/package.json')}`;
+const SDK_USER_AGENT = `sess-sdk/${version('package.json')} node/${process.versions.node}`;
 
 const ATTRIBUTION =
   'Weather data from MET Norway (https://api.met.no), licensed CC BY 4.0 ' +
@@ -89,8 +98,12 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     expect(run.code).toBe(0);
     const lines = run.stdout.split('\n');
     expect(lines[0]).toBe('Agent running. Asking where and when.');
-    const link = lines.findIndex((line) => /^ {2}https:\/\/app\.sess\.si\/s\/\S+$/.test(line));
+    // The link is its own token (still clickable), then two spaces and the hint (founder 2026-10-27 04:05Z item 4).
+    const link = lines.findIndex((line) =>
+      /^ {2}https:\/\/app\.sess\.si\/s\/\S+ {2}Cmd-click to open\.$/.test(line),
+    );
     expect(link).toBeGreaterThan(0);
+    expect(lines[link - 1]).toBe('Open this private link on your phone. Anyone with it can answer:');
     expect(lines.findIndex((line) => line.startsWith('Question 2'))).toBeGreaterThan(link);
     expect(run.stdout).toMatch(
       /\nYour plan: A picnic in the park, Sunday \d{1,2} \w+, Evening, 17:00–21:00 in Oslo \(18 °C · dry · wind 3 m\/s\)\.\n/,
@@ -108,6 +121,9 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     const world = read(record);
     expect(world).toMatchObject({ creates: 1, completes: 1, completeChecked: true, unauthorized: 0 });
     expect(world.status).toBe('completed');
+    // Every Sess request names the starter first, then this repository's SDK build.
+    expect(world.userAgents).toHaveLength(world.sess.length);
+    expect(new Set(world.userAgents)).toEqual(new Set([`${USER_AGENT} ${SDK_USER_AGENT}`]));
     expect(world.refused).toEqual([]);
     expect(world.pollsBeforeAnswer).toEqual([1, 1]); // the agent was waiting before each answer
     expect(world.publishes).toHaveLength(1);
@@ -305,6 +321,57 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
       expect(run.stdout).toBe('');
       const world = read(record);
       expect([...world.sess, ...world.weather.map((w) => w.url)]).toEqual([]);
+    }
+  });
+
+  it('sends User-Agent sess-create-agent/<initializer version> to a real HTTP server', async () => {
+    const { app } = generate();
+    const seen: { method: string; path: string; userAgent: string | undefined }[] = [];
+    const server = createServer((request, response) => {
+      seen.push({
+        method: String(request.method),
+        path: String(request.url),
+        userAgent: request.headers['user-agent'],
+      });
+      request.resume();
+      request.on('end', () => {
+        response.writeHead(401, { 'content-type': 'application/json' });
+        response.end('{"error":{"code":"UNAUTHORIZED","request_id":"req_ua","message":"x"}}');
+      });
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const { port } = server.address() as AddressInfo;
+      // Test-only preload: native fetch, with the Sess API origin pointed at the local server.
+      const preload = join(app, '..', 'to-local.mjs');
+      writeFileSync(
+        preload,
+        `const real = globalThis.fetch;
+globalThis.fetch = (input, init) => {
+  const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
+  if (url.origin !== 'https://api.sess.si') throw new TypeError('to-local: network access refused');
+  return real('http://127.0.0.1:${port}' + url.pathname + url.search, init);
+};
+`,
+      );
+      // Asynchronous, so that this process's server can answer while the agent runs.
+      const child = spawn(process.execPath, ['--import', preload, 'agent.mjs'], {
+        cwd: app,
+        env: { PATH: process.env.PATH ?? '', SESS_API_KEY: API_KEY, SESS_DEMO_CONTACT: CONTACT },
+        stdio: ['ignore', 'ignore', 'pipe'],
+      });
+      let stderr = '';
+      child.stderr.setEncoding('utf8').on('data', (chunk: string) => (stderr += chunk));
+      const timer = setTimeout(() => child.kill('SIGKILL'), 45_000);
+      const status = await new Promise<number | null>((done) => child.on('exit', done));
+      clearTimeout(timer);
+      expect(status).toBe(1);
+      expect(stderr).toContain('Stopped:');
+      expect(seen).toEqual([
+        { method: 'POST', path: '/v1/sessions', userAgent: `${USER_AGENT} ${SDK_USER_AGENT}` },
+      ]);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   });
 });

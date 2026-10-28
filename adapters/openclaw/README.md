@@ -10,12 +10,15 @@ verified its signed receipt for that exact revision.
 > published only under the npm dist-tag `next`, after a maintainer approves the publication with
 > npm 2FA. Do not install the bare name: its `latest` dist-tag points at a `0.0.0-stage`
 > placeholder, not at a release. The candidate depends on `@sess.si/sdk@0.1.0-rc.8`, published
-> on npm under the `next` dist-tag. Qualified host: OpenClaw `2026.10.3` on Node 24. See
-> [compatibility.json](compatibility.json) for exactly what was tested.
+> on npm under the `next` dist-tag. Qualified host: OpenClaw 2026.10.3 (Node 24.16 or later).
+> OpenClaw 2026.10.7 (Node 24.22.1 or later) ran the agent-turn round trip on the preview on 27
+> October; production qualification follows. See [compatibility.json](compatibility.json) for
+> exactly what was tested.
 
 ## Prerequisites
 
-- A running OpenClaw `2026.10.3` Gateway with configured model access.
+- A running OpenClaw `2026.10.3` or `2026.10.7` Gateway with configured model access. OpenClaw
+  `2026.10.7` needs Node 24.22.1 or later.
 - A Sess API key, made available to the **Gateway process** as an environment variable (for
   example in `$OPENCLAW_STATE_DIR/.env`). A key exported only in your interactive shell does not
   reach a running daemon. Never paste the key into chat or into plugin config.
@@ -30,6 +33,9 @@ openclaw sess setup --yes    # apply the previewed change
 openclaw sess doctor
 ```
 
+OpenClaw warns that the package comes from npm, not ClawHub. That is expected: Sess is published on
+npm with a signed build. Answer `y`.
+
 `openclaw sess setup` is additive and consent-driven. Without `--yes` it writes nothing. With
 `--yes` it enables the plugin, appends the four tools to `tools.alsoAllow` (keeping every existing
 entry) and sets `plugins.entries.sess.config`; all other config, including secret references, is
@@ -41,9 +47,18 @@ already-running Gateway service. Setup never restarts the Gateway; it prints the
 `tools.allow` or `plugins.allow`; it warns instead. Options: `--base-url`, `--api-key-env`,
 `--wait-budget-ms`.
 
-The four tools are optional: they are offered to the model only after you allow them. The
-installer asks for capability consent (non-interactively: review the declared tools and CLI, then
-rerun with `--accept-capabilities`). OpenClaw itself is a peer and is never installed again.
+The four tools are optional: they are offered to the model only once `tools.alsoAllow` lists them,
+and `openclaw sess setup --yes` is that step. They have no consent prompt of their own, and
+`openclaw sess doctor` shows whether they are allowed. OpenClaw 2026.10.3 and 2026.10.7 behave the
+same here. With the Gateway running, the npm question is the only one: the install goes through
+the Gateway, which accepts the plugin's capabilities without listing them. When a Gateway is
+running, OpenClaw skips its capability review at install. We reported this to OpenClaw on
+27 October 2026 ([openclaw/openclaw#186189](https://github.com/openclaw/openclaw/issues/186189)).
+With the Gateway
+stopped, OpenClaw then lists them (the four tools, the `sess` command and the skill) and asks once
+more; answer `y`. Without a terminal, OpenClaw cancels the install; after reviewing the package,
+rerun the same command with `--force --accept-capabilities`. OpenClaw itself is a peer and is never
+installed again.
 
 Configuration (`plugins.entries.sess.config`), all owner-controlled and never taken from tools:
 
@@ -60,12 +75,13 @@ contacting Sess and without printing secrets.
 
 ## Support status
 
-| Profile                                                     | Status                                                      |
-| ----------------------------------------------------------- | ----------------------------------------------------------- |
-| Direct invoke (Gateway `POST /tools/invoke`, deterministic) | Qualified on OpenClaw 2026.10.3, Node 24.21.0 (and 24.16.0) |
-| Agent turn in a dashboard conversation (Control UI)         | Partially qualified (reset isolation fails, below)          |
-| Agent turn on messaging channels (Telegram, Slack, ...)     | Not qualified                                               |
-| Shared or group conversations                               | Not supported                                               |
+| Profile                                                     | Status                                                              |
+| ----------------------------------------------------------- | ------------------------------------------------------------------- |
+| Direct invoke (Gateway `POST /tools/invoke`, deterministic) | Qualified on OpenClaw 2026.10.3, Node 24.21.0 (and 24.16.0)         |
+| Agent turn in a dashboard conversation (Control UI)         | Partially qualified (reset isolation fails, below)                  |
+| Agent turn, one round trip (openclaw agent --local)         | Ran on OpenClaw 2026.10.7, Node 24.22.1 (preview rehearsal, 27 Oct) |
+| Agent turn on messaging channels (Telegram, Slack, ...)     | Not qualified                                                       |
+| Shared or group conversations                               | Not supported                                                       |
 
 Agent-turn qualification (OpenClaw 2026.10.3, `anthropic/claude-sonnet-5-5`, Code Mode,
 2026-10-14): the Sess link was observed in the conversation (via `chat.history`) while the wait
@@ -79,9 +95,16 @@ conversation for Sess purposes. In Code Mode the model awaits a long `sess_respo
 `wait` tool, which adds small model calls during a wait; the plugin itself never polls. Full record
 in [compatibility.json](compatibility.json).
 
-Only OpenClaw 2026.10.3 is qualified. The package metadata can only express a minimum host version,
-so `openclaw sess doctor` warns on any other host version. Node 22 is not supported because the
-qualified host itself requires Node 24.16 or later.
+OpenClaw 2026.10.7 (Node 24.22.1, `openrouter/anthropic/claude-haiku-5.5`, 2026-10-27, adapter
+0.1.0-rc.4): one agent turn installed the plugin from npm, ran setup, sent the Sess link, and
+returned the person's verified answer through `sess_request` and `sess_response`. The direct-invoke
+suite, the dashboard items above, `sess_publish`, `sess_complete` and reset isolation were not run
+on 2026.10.7.
+
+The package declares OpenClaw 2026.10.3 and 2026.10.7 as its peers, and its metadata can only
+express a minimum host version, so `openclaw sess doctor` warns on any other host version. Node 22
+is not supported: OpenClaw 2026.10.3 requires Node 24.16 or later, and 2026.10.7 requires 24.22.1
+or later.
 
 The package exports no TypeScript declarations: its only export is the plugin entry that OpenClaw
 loads, and it has no programmatic API.
@@ -89,8 +112,9 @@ loads, and it has no programmatic API.
 ## First interaction
 
 **Qualification status.** See [Support status](#support-status): the whole flow is qualified for
-direct invoke. In model-driven turns in a dashboard (Control UI) conversation, only steps 1 and 2
-are qualified (request, a live wait, and continuation in a later turn); the link was observed via
+direct invoke on OpenClaw 2026.10.3; on 2026.10.7 one model-driven turn passed steps 1 and 2 on
+the preview. In model-driven turns in a dashboard (Control UI) conversation, only steps 1 and 2 are
+qualified (request, a live wait, and continuation in a later turn); the link was observed via
 `chat.history` while the same turn was still waiting. Step 3 (`sess_complete`) was not exercised
 in a model-driven turn, and reset isolation fails. It is not qualified on messaging channels.
 

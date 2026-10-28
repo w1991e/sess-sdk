@@ -17,7 +17,8 @@
 //    the integrity recorded in release/sdk-candidate.json, and the generated files pass the
 //    template parity check.
 // 4. Lets the agent finish both rounds against the offline fake world (create-agent/test/
-//    fake-world.mjs: fake SESS API with genuinely signed receipts, fake MET Norway and NWS).
+//    fake-world.mjs: fake SESS API with genuinely signed receipts, fake MET Norway and NWS). Every
+//    Sess request carries the starter's User-Agent, exactly `sess-create-agent/<version>` on rc.8.
 // 5. The one command: runs the packed initializer again in a new project with SESS_API_KEY and
 //    SESS_DEMO_CONTACT in its environment and no terminal, so it scaffolds, installs and runs the
 //    agent itself. Timed the same way; the agent completes both rounds in the fake world and the
@@ -53,6 +54,15 @@ const initializer = resolve(here, '..');
 const root = resolve(initializer, '..');
 const fakeWorld = join(initializer, 'test', 'fake-world.mjs');
 const pin = JSON.parse(readFileSync(join(root, 'release', 'sdk-candidate.json'), 'utf8'));
+// The starter names itself to Sess. On SDK 0.1.0-rc.8 that is the whole User-Agent; a later SDK
+// appends its own `sess-sdk/<version> node/<version>`.
+const USER_AGENT = `sess-create-agent/${JSON.parse(readFileSync(join(initializer, 'package.json'), 'utf8')).version}`;
+const sentUserAgent = (ua) =>
+  pin.version === '0.1.0-rc.8'
+    ? ua === USER_AGENT
+    : typeof ua === 'string' &&
+      ua.startsWith(`${USER_AGENT} sess-sdk/${pin.version} node/`) &&
+      !/\s/.test(ua.slice(`${USER_AGENT} sess-sdk/${pin.version} node/`.length));
 const args = process.argv.slice(2);
 const valueOf = (flag) => {
   const i = args.indexOf(flag);
@@ -169,6 +179,12 @@ try {
   expect(world.creates === 1 && world.publishes.length === 1, 'one Session, two rounds');
   expect(world.status === 'completed' && world.completeChecked, 'the Session is completed');
   expect(world.refused.length === 0, 'no request left the fake world');
+  expect(
+    world.sess.length > 0 &&
+      world.userAgents.length === world.sess.length &&
+      world.userAgents.every(sentUserAgent),
+    `every Sess request carries User-Agent ${USER_AGENT} (got ${JSON.stringify([...new Set(world.userAgents)])})`,
+  );
   expect(/· verified ✓\n/.test(run.stdout), 'the receipt summary is printed');
   expect(run.stdout.includes('Verify this yourself at https://sess.si/verify'), 'the verify hint is printed');
   expect(toRunning <= BUDGET_MS, `npm create -> agent running within ${seconds(BUDGET_MS)}`);

@@ -50,6 +50,14 @@ describe('@sess.si/create-agent initializer', { timeout: 30_000 }, () => {
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     // Every command line is safe to paste: no <placeholder> that a shell reads as a redirection.
     expect(run.stdout).not.toMatch(/^ {2}\S.*<[^>]*>/m);
+    // The hidden read stands alone, so pasting the block never feeds the next line into it
+    // (founder 2026-10-27 04:05Z item 4); the generated README shows it the same way.
+    expect(run.stdout).toContain(
+      '\n\n  read -rs SESS_API_KEY && export SESS_API_KEY     # run this line by itself, then paste your key from https://app.sess.si\n\n',
+    );
+    expect(readFileSync(join(app, 'README.md'), 'utf8')).toContain(
+      '\nread -rs SESS_API_KEY && export SESS_API_KEY   # run this line by itself, then paste your key from https://app.sess.si\n\n',
+    );
   });
 
   it('accepts a nested new path and an empty current directory', () => {

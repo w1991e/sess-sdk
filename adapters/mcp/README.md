@@ -4,7 +4,7 @@ A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent a
 a hosted Sess form and receive a receipt-verified answer. The agent gets the Sess link
 immediately, the person answers on any device, and the agent continues on the same Session.
 
-**Candidate status:** `@sess.si/mcp@0.1.0-rc.3` is a release candidate. Release candidates are
+**Candidate status:** `@sess.si/mcp@0.1.0-rc.4` is a release candidate. Release candidates are
 published only under the npm dist-tag `next`, after a maintainer approves the publication with npm
 2FA. Do not install the bare name: its `latest` dist-tag points at a `0.0.0-stage` placeholder,
 not at a release. Its SDK dependency, `@sess.si/sdk@0.1.0-rc.8`, is published on npm (dist-tag
@@ -134,6 +134,12 @@ line breaks are kept in multiline fields.
 | `sess_publish`  | `handle`, `expected_revision`, `response_event_id`, `interaction`             | `waiting` at the next revision                                |
 | `sess_complete` | `handle`, `expected_revision`, `response_event_id`                            | `completed`                                                   |
 | `sess_ask`      | `question`, `fields` (1–12), optional `details`, `submit_label`, `expires_in` | `waiting`, with `humanUrl` and `expiresAt`                    |
+
+After an answer, `sess_complete` is the rule, not an option: when `sess_response` returns state
+`answered` and the agent has no follow-up question for the person, it must call `sess_complete`
+next, so the person's page shows that the agent has their answer. Until then the page keeps waiting
+for the next step. Only to show a follow-up does the agent call `sess_publish` instead. The server
+instructions and both tool descriptions say this.
 
 `sess_ask` is a shortcut for `sess_request`: it turns a question and up to 12 simple fields
 (`text`, `number`, `integer`, `boolean`, `choice`, `multi_choice`) into an ordinary interaction,

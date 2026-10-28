@@ -6,11 +6,12 @@ after a maintainer approves the protected environment, and nothing is installabl
 maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`) go to `next`,
 never to `latest`.
 
-The current candidate, `0.1.0-rc.4`, has its contents, expected tarball digests and exact
-maintainer steps in [release/rc4-packet.md](release/rc4-packet.md). `0.1.0-rc.3`
+The current published candidate is `0.1.0-rc.5` (npm `next`, 2026-10-27; integrity and SHA-256 as
+recorded in [release/rc5-packet.md](release/rc5-packet.md) and `compatibility.json`). No unpublished
+candidate is pending. `0.1.0-rc.4` ([release/rc4-packet.md](release/rc4-packet.md)), `0.1.0-rc.3`
 ([release/rc3-packet.md](release/rc3-packet.md)), `0.1.0-rc.2`
 ([release/rc2-packet.md](release/rc2-packet.md)) and `0.1.0-rc.1`
-([release/rc1-packet.md](release/rc1-packet.md)) are published. Each candidate gets such a
+([release/rc1-packet.md](release/rc1-packet.md)) are published as well. Each candidate gets such a
 packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
 
 ## Prerequisites (owner actions, in order)

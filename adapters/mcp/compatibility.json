@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "package": {
     "name": "@sess.si/mcp",
-    "version": "0.1.0-rc.3",
+    "version": "0.1.0-rc.4",
     "toolSchema": "sess-mcp-tools/4"
   },
-  "status": "0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next is 0.1.0-rc.3, on @sess.si/sdk 0.1.0-rc.8",
-  "recordedAt": "2026-10-23",
+  "status": "0.1.0-rc.4 (2026-10-27), 0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next is 0.1.0-rc.4, on @sess.si/sdk 0.1.0-rc.8",
+  "recordedAt": "2026-10-27",
   "node": {
     "engines": ">=22.14.0 <25",
     "qualified": ["22.14.0", "24.21.0"],
@@ -161,30 +161,45 @@
     "name": "si.sess/sess",
     "validated": "2026-10-14 with ajv against the downloaded 2025-12-11 schema (sha256 3fba09590c99f61735d234822279f4223fab9e300c0a81e81c91ab62a4114de0). Since Q-2 (2026-10-15) server.json is generated from listing.json and npm run check validates it against that schema, vendored at listings/schemas/ with the same SHA-256 (rechecked 2026-10-23: still current).",
     "remote": "https://mcp.sess.si/mcp (streamable-http) is the entry's one remote; production host qualification has not passed; see LISTINGS.md before submitting",
-    "packages": "none: the entry is remote-only while the npm package is deferred, so the registry cross-checks no published mcpName. package.json mcpName stays io.github.w1991e/sess, the published 0.1.0-rc.3's; listing the stdio package needs a successor candidate whose mcpName is si.sess/sess",
+    "packages": "none: the entry is remote-only while the npm package is deferred, so the registry cross-checks no published mcpName. package.json mcpName stays io.github.w1991e/sess, the published 0.1.0-rc.4's and 0.1.0-rc.3's; listing the stdio package needs a successor candidate whose mcpName is si.sess/sess",
     "status": "domain namespace si.sess/sess (DNS authentication of sess.si) chosen by the owner for the registry entry, replacing io.github.w1991e/sess; remote-only; not submitted"
   },
   "release": {
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "@sess.si/mcp@0.1.0-rc.3 published on npm dist-tag next on 2026-10-23, on @sess.si/sdk 0.1.0-rc.8; 0.1.0-rc.2 on 2026-10-19 and 0.1.0-rc.1 on 2026-10-17 (each staged by the release workflow, approved by a maintainer with npm 2FA); latest stays on the deprecated 0.0.0-stage placeholder. No unpublished candidate is pending. The SDK dependency is in registry mode.",
+    "status": "@sess.si/mcp@0.1.0-rc.4 published on npm dist-tag next on 2026-10-27, on @sess.si/sdk 0.1.0-rc.8; 0.1.0-rc.3 on 2026-10-23, 0.1.0-rc.2 on 2026-10-19 and 0.1.0-rc.1 on 2026-10-17 (each staged by the release workflow, approved by a maintainer with npm 2FA); latest stays on the deprecated 0.0.0-stage placeholder. No unpublished candidate is pending. The SDK dependency is in registry mode.",
     "published": {
-      "version": "0.1.0-rc.3",
+      "version": "0.1.0-rc.4",
       "distTag": "next",
-      "publishedAt": "2026-10-23T18:03:37.669Z",
-      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0-rc.3.tgz",
-      "sha256": "d6b5d3d71205c4fcf7884d317a6e0c74806907ac32c5beb9778c2aa1446bc837",
-      "integrity": "sha512-Gc/hUu0H+gDvp0PSnNytCsTojolfpJ6ZkNlkMu0JLYH0IIYXl4oFwFvGBoJwQRekEnnstrOX5rQ7SEOJRa+Cvw==",
+      "publishedAt": "2026-10-27T17:49:04.120Z",
+      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0-rc.4.tgz",
+      "sha256": "f27a763492a7ea7c6ed5547b72ecd002212474798161ea437a0b102665c533d7",
+      "integrity": "sha512-+3EwdJWGtBd/8HdSm0alTOgXW7tm5HHgHisoIg0c0t6laQbXm/kQXarl3a6M70AxeYYZmbFDEvmdHQx1CRbKhQ==",
       "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
-      "sourceCommit": "ade8f835a6eeebba4090b13a26c9817028807657",
-      "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/39995114814",
+      "sourceCommit": "2c0908c9b1f4150b01cc42758b9a5b3cc440091d",
+      "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/40469984410",
       "mcpName": "io.github.w1991e/sess",
       "sessSdk": "0.1.0-rc.8, which bundles the sess-html-form-1 and sess-html-form-2 renderer identities",
-      "readBack": "2026-10-23: npm view time, dist.integrity and dist-tags.next; the registry tarball's SHA-256 and integrity equal release/rc3-packet.md",
-      "registryInstall": "not yet qualified: npx -y @sess.si/mcp@0.1.0-rc.3 has not been run as a recorded test"
+      "readBack": "2026-10-27: npm view time, dist.integrity, dist.attestations and dist-tags.next; the registry tarball's SHA-256 and integrity equal release/rc4-packet.md",
+      "registryInstall": "not yet qualified: npx -y @sess.si/mcp@0.1.0-rc.4 has not been run as a recorded test"
     },
     "earlier": [
+      {
+        "version": "0.1.0-rc.3",
+        "distTag": "next",
+        "publishedAt": "2026-10-23T18:03:37.669Z",
+        "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0-rc.3.tgz",
+        "sha256": "d6b5d3d71205c4fcf7884d317a6e0c74806907ac32c5beb9778c2aa1446bc837",
+        "integrity": "sha512-Gc/hUu0H+gDvp0PSnNytCsTojolfpJ6ZkNlkMu0JLYH0IIYXl4oFwFvGBoJwQRekEnnstrOX5rQ7SEOJRa+Cvw==",
+        "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
+        "sourceCommit": "ade8f835a6eeebba4090b13a26c9817028807657",
+        "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/39995114814",
+        "mcpName": "io.github.w1991e/sess",
+        "sessSdk": "0.1.0-rc.8, which bundles the sess-html-form-1 and sess-html-form-2 renderer identities",
+        "readBack": "2026-10-23: npm view time, dist.integrity and dist-tags.next; the registry tarball's SHA-256 and integrity equal release/rc3-packet.md",
+        "registryInstall": "not yet qualified: npx -y @sess.si/mcp@0.1.0-rc.3 has not been run as a recorded test"
+      },
       {
         "version": "0.1.0-rc.2",
         "distTag": "next",

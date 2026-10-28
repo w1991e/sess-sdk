@@ -30,34 +30,42 @@ actions.
 - `compatibility.json` records the publication of rc.3 (2026-10-23, release run 39995130479;
   registry SHA-256 and integrity equal [rc3-packet.md](rc3-packet.md)); rc.2 and rc.1 move to
   `earlierPublications`.
+- User-Agent. Every request to Sess carries `User-Agent: sess-openclaw/0.1.0-rc.4`, the product
+  token Sess classifies a creating client by. The plugin's guarded fetch sets it: the SDK rc.8
+  accepts a `fetch` option but sends no User-Agent of its own and has no option to prepend one. An
+  SDK that sends its own token keeps it after the plugin's. `tests/unit/user-agent.test.ts` asserts the exact header at a local HTTP server.
 - The four tools, tool schema version 1, the setup/doctor/prune CLI and the bundled skill are
   otherwise unchanged from rc.3. Qualified host: OpenClaw `2026.10.3` on Node 24.
 
-Commits on `master` since `openclaw-v0.1.0-rc.3` (`ade8f83`) that change `adapters/openclaw`:
+Commits on `master` since `openclaw-v0.1.0-rc.3` (`df4083b`) that change `adapters/openclaw`:
 
 | Commit    | Change                                                                                                  |
 | --------- | ------------------------------------------------------------------------------------------------------- |
-| `3e9f4e2` | Packed-tarball hygiene guard in the packed check; internal references out of `compatibility.json` (#82) |
-| `dcc2026` | A plan limit (429 `PLAN_LIMIT_REACHED`) is a definite refusal, not an unknown outcome (#88)             |
+| `40c0aca` | Packed-tarball hygiene guard in the packed check; internal references out of `compatibility.json` (#82) |
+| `842f6ed` | A plan limit (429 `PLAN_LIMIT_REACHED`) is a definite refusal, not an unknown outcome (#88)             |
+| `1ac4f2e` | Version 0.1.0-rc.4, changelog, compatibility record and this packet (#89)                               |
+| `7aca9e7` | `User-Agent: sess-openclaw/0.1.0-rc.4` (branch `release/ua-tokens`; its squash commit once merged)      |
 
-The other commits since that tag (`2ab260f` #81, `043802c` #84, `722810a` #85, `7fcf100` #83,
-`0763daf` #86, `7bd8153` #87) change CI pins, the SDK, MCP, create-agent, recipes or docs, not
-this package's packed files. The full list of changes is in [CHANGELOG.md](../CHANGELOG.md).
+The other commits since that tag (`dec1103` #81, `dc6a997` #84, `a1348cd` #85, `82352fa` #83,
+`10cf42a` #86, `b98eee5` #87, `0886c5a` #90) change CI pins, the SDK, MCP, create-agent, recipes or
+docs, not this package's packed files. The full list of changes is in [CHANGELOG.md](../CHANGELOG.md).
 
 ## Expected tarball
 
 Computed by `node scripts/check-package.mjs --registry --host`, the release workflow's packed
 check, which records `.artifacts/package-result.json` (`sdkSource` `registry`,
-`sourceTreeDirty` `false`). Run at clean commit `b6fdaf4` on Node 24.21.0 and npm 11.19.0, the
-versions the workflow pins, after the workflow's `npm ci`, build, typecheck and tests; the
-real-host install passed on OpenClaw `2026.10.3`. A second build reproduced the same integrity.
-This packet is not in the tarball (`release/` is outside `files`).
+`sourceTreeDirty` `false`). Re-prepared for the User-Agent change: run at clean commit `7aca9e7`
+on Node 24.21.0 and npm 11.19.0, the versions the workflow pins, after the workflow's `npm ci`,
+build, typecheck and tests (160 passed); the real-host install passed on OpenClaw `2026.10.3`. A
+second build reproduced the same integrity. This packet is not in the tarball (`release/` is
+outside `files`). It replaces the earlier rc.4 bytes (SHA-256 `32a15b68…b4af`), which were never
+tagged or published.
 
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | Filename  | `sess.si-openclaw-0.1.0-rc.4.tgz`                                                                 |
-| SHA-256   | `32a15b68dc53c62a34eaa51e8afce47e8ed61caa8bbf8e7efcad6da5dbf3b4af`                                |
-| Integrity | `sha512-uUFVi9D35Id9GKjOAeMyysEivNj0zEnbkvOxNtmP0FwenYnv7Ite3ct+yE6NCZaNVdZNZD7DpICosdunJ+pC7Q==` |
+| SHA-256   | `fc8041f00fbc946a4e36bd878aaa12f27b200a244a5f19bd1c109d6d1d4f4553`                                |
+| Integrity | `sha512-xCtfm5sw/85k6DDQve1py4jSNkTyN4ZYgcTOPSeEmZptAv3mHbIFHIkCjG6cPxFhN6LaZMptBLQ93XhiQP62Eg==` |
 
 The release workflow does not read this table; the prepare job's run summary is the record of the
 bytes it tested. If another packed change (`dist/` sources, `openclaw.plugin.json`, `skills/`,

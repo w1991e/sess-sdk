@@ -17,12 +17,12 @@
       "status": "published",
       "config": {
         "command": "npx",
-        "args": ["-y", "@sess.si/mcp@0.1.0-rc.3"],
+        "args": ["-y", "@sess.si/mcp@0.1.0-rc.4"],
         "env": {
           "SESS_API_KEY": "${env:SESS_API_KEY}"
         }
       },
-      "deeplink": "cursor://anysphere.cursor-deeplink/mcp/install?name=sess&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBzZXNzLnNpL21jcEAwLjEuMC1yYy4zIl0sImVudiI6eyJTRVNTX0FQSV9LRVkiOiIke2VudjpTRVNTX0FQSV9LRVl9In19"
+      "deeplink": "cursor://anysphere.cursor-deeplink/mcp/install?name=sess&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBzZXNzLnNpL21jcEAwLjEuMC1yYy40Il0sImVudiI6eyJTRVNTX0FQSV9LRVkiOiIke2VudjpTRVNTX0FQSV9LRVl9In19"
     }
   ]
 }

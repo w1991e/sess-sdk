@@ -20,6 +20,9 @@ Use `npx --no-install prettier --write .` only after the locked dependency insta
 Use the recorded `.artifacts/` path to install that tarball for development; it is not a registry release. The package has
 no install, prepare, prepack or publish lifecycle hook and no private runtime dependency.
 
+Report a defect or ask for something with the issue forms (Bug or Feature). Questions about using
+Sess or your account go to [support](https://docs.sess.si/support/), not to an issue.
+
 Keep fixes focused. Add tests for behavior and meaningful failure modes. One independent review
 and relevant green CI are the ordinary path. Never use actual credentials, private links or customer
 data in tests, issues, artifacts or examples. Follow [Security reporting](SECURITY.md) for vulnerabilities.

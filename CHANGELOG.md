@@ -17,6 +17,11 @@
   `field`. New types `ItemsComponent` and `ItemTotalRole` (`SurfaceComponent` includes items) and
   the Advanced `locale` on an interactive interaction. Session reads now accept an items component,
   and a 400 for too many rows or totals lines carries Sess's sentence.
+- Every request names the SDK in its `User-Agent` header: `sess-sdk/<version> node/<version>`.
+  The new client option `userAgent` puts a wrapping client's product tokens first, for example
+  `userAgent: 'my-app/1.2.0'` sends `my-app/1.2.0 sess-sdk/0.1.0-rc.9 node/24.21.0`. A value that is
+  not product tokens separated by single spaces (at most 256 characters) is a `configuration`
+  error before anything is sent.
 - A plan limit is a refusal, not an uncertain outcome. Sess answers a create over the workspace's
   plan with HTTP 429 `PLAN_LIMIT_REACHED`, and nothing is created. The SDK now reports it as
   `kind: 'api'`, `outcome: 'rejected'`, with `code`, `reason` (`monthly_allowance` or

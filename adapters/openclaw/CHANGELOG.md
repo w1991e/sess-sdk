@@ -1,8 +1,38 @@
 # Changelog
 
-## 0.1.0-rc.4 (candidate, unpublished)
+## 0.1.0-rc.5
+
+- Still depends on `@sess.si/sdk` 0.1.0-rc.8; no dependency changes. Requests carry
+  `User-Agent: sess-openclaw/0.1.0-rc.5`.
+- Setup and doctor no longer print a line starting with `credential:`. OpenClaw's log redaction
+  masks the rest of such a line ("credential: \*\*\*"), so the variable name was hidden. The lines
+  now start with `API key source:` and still show only the variable name and whether it is set,
+  never the key. When it is not set, doctor says so in a sentence: "API key source: SESS_API_KEY
+  is not set in this CLI process; the running Gateway needs it in its own environment."
+- Doctor reads the authored config that setup writes and reports the four tools as allowed when
+  `tools.alsoAllow` (or a restrictive `tools.allow`) lists them; it lists only the missing ones when
+  some are, and asks to add them only when none are. Before, it always said "optional; add ...".
+- README: the four tools have no consent prompt of their own; allowing them is
+  `openclaw sess setup --yes`. It says what the install asks, as reproduced on OpenClaw 2026.10.3
+  and 2026.10.7: with the Gateway running, only the npm question (the Gateway accepts the
+  capabilities without listing them); with it stopped, also the capability list and a second
+  question. The README also says what to answer when OpenClaw warns that the package comes from
+  npm, not ClawHub.
+- Skill: when the model reports the person's answer, it says the answer is verified (Sess checked
+  its signed receipt).
+- The OpenClaw peer is now `2026.10.3 || 2026.10.7`, and `openclaw sess doctor` no longer warns on
+  OpenClaw 2026.10.7 (it still warns on any other host version). 2026.10.3 remains the qualified
+  host. `compatibility.json` records 2026.10.7 as a preview rehearsal: one agent-turn round trip on
+  the Sess preview with adapter 0.1.0-rc.4 on 27 October, not qualification; the production host
+  run will upgrade that entry. The 2026.10.3 record now says its evidence came from an isolated local
+  Sess runtime and preview rehearsals, with no production run yet.
+
+## 0.1.0-rc.4
 
 - Still depends on `@sess.si/sdk` 0.1.0-rc.8 (sha256 `b533935b…4c95`); no dependency changes.
+- Every request to Sess carries `User-Agent: sess-openclaw/0.1.0-rc.4`, set by the plugin's
+  guarded fetch (rc.8 sends no User-Agent of its own). An SDK that sends its own token keeps it
+  after this one.
 - A create that Sess refuses under the workspace's plan (HTTP 429 `PLAN_LIMIT_REACHED`) is now a
   definite refusal: `sess_request` fails with `PLAN_LIMIT_REACHED` (class `create_rejected`) and a
   fixed message, and a redelivery of the same host call reports the same and sends nothing. Before,

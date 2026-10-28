@@ -81,6 +81,14 @@ export const TEXT_DOCS = {
 const TOO_LONG =
   'A value over its limit is refused with INVALID_ARGUMENTS naming the field (a JSON pointer), the limit, its length and the fix; nothing is truncated. Shorten that value and call again.';
 
+/**
+ * The rule after an answer, verbatim in the server instructions and the sess_response description.
+ * Until sess_complete (or sess_publish) the person's page keeps waiting for the agent's next step.
+ */
+export const COMPLETE_RULE =
+  'When sess_response returns state "answered" and you have no follow-up question for the person, you must call sess_complete next, so their page shows that you have their answer. ' +
+  'Call sess_publish instead only to show them a follow-up.';
+
 const titleSchema = shown(L.title, TEXT_DOCS.title);
 const buttonSchema = shown(L.actionLabel, TEXT_DOCS.actionLabel);
 const labelSchema = shown(L.label, TEXT_DOCS.fieldLabel);
@@ -356,7 +364,8 @@ export const TOOLS = [
       'state "answered" means the answer passed full Sess receipt verification. ' +
       'state "needs_resume" or "waiting" means no answer yet: the form stays open; tell the person to submit it and ask you to continue, then call again. ' +
       'state "expired" means the link closed with no answer: it is final; create a new form if you still need one. ' +
-      'Do not poll in a loop.',
+      'Do not poll in a loop. ' +
+      COMPLETE_RULE,
     inputSchema: {
       type: 'object',
       additionalProperties: false,
@@ -396,6 +405,7 @@ export const TOOLS = [
     name: 'sess_complete',
     title: 'Finish the Sess interaction',
     description:
+      'Required once you are done with the person’s answer: until you call it, their page keeps waiting for your next step. ' +
       'Close the interaction after its verified answer and confirm the completed state. ' +
       'If the outcome is unknown, repeat the identical call.',
     inputSchema: {
