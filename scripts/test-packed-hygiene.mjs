@@ -62,6 +62,7 @@ const CLEAN = {
     'Origins are exact (scheme://host[:port]); an absolute https:// URL on port 443.',
     'MCP registry name io.github.w1991e/sess. Packed from sess-sdk 3dbd7fd239a9a91c9e7b97b55d99dd1e413e8d2b.',
     'The Sess link /s/short is a placeholder.',
+    'Short links look like https://sess.si/n/<token>; /n/short is a placeholder too.',
   ].join('\n'),
   'dist/index.js': [
     "export const base = 'https://api.sess.si';",
@@ -107,6 +108,8 @@ const MORE_SECRETS = [
   ['github-token', ['github', 'pat', r(40)].join('_')],
   ['sess-credential', ['sess', 'mg', r(40)].join('_')],
   ['private-key', ['-----BEGIN', 'RSA PRIVATE KEY-----'].join(' ')],
+  ['human-link-token', `https://sess.si/n/${r(22)}`],
+  ['human-link-token', `/n/${r(22, 'x-_9')}`],
 ];
 
 const INTERNAL = {
@@ -230,6 +233,8 @@ test('words and prose near the key prefixes pass', () => {
     'The OpenRouter label sk-or-v1-abc...xyz is a placeholder; AIza is a Google prefix.',
     `A scikit-learn sk-learn-compatible name, sk-${'abcdefghijklmnopqrstuvwxyzabcdefgh'} (letters only).`,
     'Contact: someone@example.com; npm i @sess.si/sdk; see https://github.com/w1991e/sess-sdk?ref=main.',
+    // Not a short-link token: /n/ then a 23-character run, or a 21-character one.
+    `Paths /n/${r(23)} and /n/${r(21)} are not short links.`,
   ].join('\n');
   const { findings } = checkTarball(write({ ...CLEAN, 'README.md': prose }));
   assert.deepEqual(findings, [], findings.map(formatFinding).join('\n'));

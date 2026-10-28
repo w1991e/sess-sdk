@@ -24,7 +24,7 @@ function redact(text) {
   let out = text;
   for (const secret of [...secrets].sort((a, b) => b.length - a.length))
     out = out.split(secret).join('[redacted]');
-  return out.replace(/\/s\/[^\s"'<>]*/g, '/s/[redacted]');
+  return out.replace(/\/([sn])\/[^\s"'<>]*/g, '/$1/[redacted]');
 }
 
 function runExample(extraEnv, onHumanUrl) {

@@ -73,7 +73,7 @@ describe('Create outcomes', () => {
     expect(error.code).toBe('CREATED_NOT_SAVED');
     expect(error.errorClass).toBe('created_not_saved');
     expect(error.message).toMatch(/was created .*Do not repeat/);
-    expect(error.message).not.toContain('/s/');
+    expect(error.message).not.toMatch(/\/[sn]\//);
     expect(sess.requests.filter((r) => r.path === '/v1/sessions')).toHaveLength(1);
   });
 

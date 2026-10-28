@@ -41,7 +41,7 @@ const secrets = [ownerKey];
 const redact = (text) => {
   let out = String(text);
   for (const s of secrets) if (s) out = out.split(s).join('[redacted]');
-  return out.replace(/\/s\/[^\s"'<>?#]*/g, '/s/[capability]');
+  return out.replace(/\/([sn])\/[^\s"'<>?#]*/g, '/$1/[capability]');
 };
 const log = (step, value) =>
   console.log(`${step}: ${redact(typeof value === 'string' ? value : JSON.stringify(value))}`);
@@ -89,7 +89,10 @@ try {
   const { handle, humanUrl } = requested.interaction;
   secrets.push(humanUrl, humanUrl.split('/').pop());
   check(requested.interaction.state === 'waiting' && requested.interaction.revision === 1, 'request state');
-  check(humanUrl.startsWith(`${url.origin}/s/`), 'human URL origin');
+  check(
+    humanUrl.startsWith(`${url.origin}/s/`) || humanUrl.startsWith(`${url.origin}/n/`),
+    'human URL origin',
+  );
   log('sess_request', {
     state: requested.interaction.state,
     revision: 1,

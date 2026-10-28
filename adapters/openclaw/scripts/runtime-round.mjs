@@ -36,7 +36,7 @@ const secrets = new Set([token]);
 const redact = (value) => {
   let text = typeof value === 'string' ? value : JSON.stringify(value);
   for (const secret of secrets) text = text.split(secret).join('[redacted]');
-  return text.replace(/\/s\/[A-Za-z0-9_-]+/g, '/s/[redacted]');
+  return text.replace(/\/([sn])\/[A-Za-z0-9_-]+/g, '/$1/[redacted]');
 };
 const log = (step, data) => console.log(`${step}: ${redact(data)}`);
 const port = new URL(gateway).port;
@@ -118,7 +118,8 @@ async function main() {
     'request returns waiting revision 1',
   );
   check(
-    typeof first.humanUrl === 'string' && first.humanUrl.startsWith(`${sessOrigin}/s/`),
+    typeof first.humanUrl === 'string' &&
+      (first.humanUrl.startsWith(`${sessOrigin}/s/`) || first.humanUrl.startsWith(`${sessOrigin}/n/`)),
     'human link returned before any wait (return-link-first)',
   );
 

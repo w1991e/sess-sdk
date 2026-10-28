@@ -116,7 +116,9 @@ const text = files
   .map((f) => readFileSync(join(root, f), 'utf8'))
   .join('\n');
 assert(
-  !/sess_(?:sk|mg|tk|mk)_[A-Za-z0-9_-]{30,}|\/s\/[A-Za-z0-9_-]{43}|-----BEGIN [A-Z ]*PRIVATE KEY/.test(text),
+  !/sess_(?:sk|mg|tk|mk)_[A-Za-z0-9_-]{30,}|\/s\/[A-Za-z0-9_-]{43}|\/n\/[A-Za-z0-9_-]{22}(?![A-Za-z0-9_-])|-----BEGIN [A-Z ]*PRIVATE KEY/.test(
+    text,
+  ),
   'packed content contains secret-like material',
 );
 assert(

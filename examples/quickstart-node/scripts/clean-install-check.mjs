@@ -118,7 +118,7 @@ try {
   const redact = (text) => {
     let out = text;
     for (const secret of secrets) out = out.split(secret).join('[redacted]');
-    return out.replace(/\/s\/[^\s"'<>]*/g, '/s/[redacted]');
+    return out.replace(/\/([sn])\/[^\s"'<>]*/g, '/$1/[redacted]');
   };
   console.log(`--- index.mjs exit ${result.code} (redacted transcript) ---`);
   process.stdout.write(redact(result.stdout));

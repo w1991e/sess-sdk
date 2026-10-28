@@ -250,7 +250,7 @@ export async function runRecipe(provider, plan, options = {}) {
     };
     const textOut = `${JSON.stringify(record, null, 2)}\n`;
     const secrets = [sessKey, apiKey].filter((s) => s && s.length >= 8);
-    const withheld = secrets.some((s) => textOut.includes(s)) || /\/s\/[A-Za-z0-9_-]{16,}/.test(textOut);
+    const withheld = secrets.some((s) => textOut.includes(s)) || /\/[sn]\/[A-Za-z0-9_-]{16,}/.test(textOut);
     let path = null;
     if (withheld) {
       err('The qualification record would carry a secret or a private link; it was not written.');

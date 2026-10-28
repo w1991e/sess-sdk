@@ -579,4 +579,50 @@ describe('deadlines, bounded responses and metadata', () => {
     expect(error.requestId).toBeUndefined();
     expect(JSON.stringify(error)).not.toContain(API_KEY);
   });
+  // A reflected human-link token (/s/ 43 characters, /n/ short link 22) is never surfaced as an id.
+  it.each([
+    ['body', 'Zq3-x_9Kp0LmN4rTv7Wy2a'],
+    ['body', 'Q'.repeat(43)],
+    ['header', 'Zq3-x_9Kp0LmN4rTv7Wy2a'],
+    ['header', 'Q'.repeat(43)],
+  ])('withholds a token-shaped request identifier in the %s (%#)', async (where, token) => {
+    const fetch = vi.fn(async () =>
+      where === 'body'
+        ? apiError(404, 'NOT_FOUND', { request_id: token })
+        : new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'm' } }), {
+            status: 404,
+            headers: { 'content-type': 'application/json', 'x-request-id': token },
+          }),
+    );
+    const error = await client(fetch)
+      .sessions.retrieve(SESSION_ID)
+      .then(
+        () => {
+          throw new Error('Expected rejection');
+        },
+        (error: unknown) => {
+          if (!(error instanceof SessError)) throw error;
+          return error;
+        },
+      );
+    expect(error.requestId).toBeUndefined();
+    expect(JSON.stringify(error)).not.toContain(token);
+  });
+  it('keeps Sess request identifiers and other lengths', async () => {
+    for (const id of [
+      'req_0b7f6a2e-6c1d-4c8e-9a51-3f2d1e0c9b8a',
+      'Zq3-x_9Kp0LmN4rTv7Wy2',
+      'Zq3-x_9Kp0LmN4rTv7Wy2ab',
+    ]) {
+      const fetch = vi.fn(async () => apiError(404, 'NOT_FOUND', { request_id: id }));
+      const error = await client(fetch)
+        .sessions.retrieve(SESSION_ID)
+        .then(
+          () => undefined,
+          (e: unknown) => e,
+        );
+      expect(error).toBeInstanceOf(SessError);
+      expect((error as SessError).requestId).toBe(id);
+    }
+  });
 });

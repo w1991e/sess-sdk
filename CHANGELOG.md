@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Short human links: a request identifier shaped like a short-link token (22 base64url
+  characters, as in `/n/<token>`) is withheld from `SessError.requestId` and request events, as a
+  43-character one already was.
+
 - Commerce: bills as ordinary Surfaces, for Sess's `items` component. Sess takes no payment.
   `money(amount, currency)` checks a whole number of minor units (cents for USD, yen for JPY, fils
   for BHD) and an ISO 4217 code Sess accepts; it never rounds or converts. `items()` builds the

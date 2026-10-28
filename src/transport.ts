@@ -132,7 +132,9 @@ function safeText(
     typeof value !== 'string' ||
     !pattern.test(value) ||
     /sess_(?:sk|mg|tk|mk)_|whsec_|eyJ/.test(value) ||
-    (opaqueIdentifier && /^[A-Za-z0-9_-]{43}$/.test(value)) ||
+    // A request identifier shaped like a human-link token (43 characters for /s/ links, 22 for /n/
+    // short links) may be a reflected capability; Sess request ids are req_<uuid>.
+    (opaqueIdentifier && /^(?:[A-Za-z0-9_-]{43}|[A-Za-z0-9_-]{22})$/.test(value)) ||
     (key && value.includes(key))
   )
     return undefined;

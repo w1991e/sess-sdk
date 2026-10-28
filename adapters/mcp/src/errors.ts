@@ -76,6 +76,13 @@ export class AdapterError extends Error {
 }
 
 /**
+ * A 22-character run that is an error code or event name (CREATE_OUTCOME_UNKNOWN,
+ * http_protocol_rejected): one letter case, at least one underscore, no digits or hyphens. A random
+ * 22-character base64url token has this shape with probability about 1e-8 (2 x (27/64)^22).
+ */
+const SNAKE_IDENTIFIER = /^(?=[^_]*_)(?:[A-Z_]+|[a-z_]+)$/;
+
+/**
  * Removes the configured secrets and any capability-shaped material from text before it can reach
  * stderr. Human URLs are bearer capabilities; the owner key is a credential.
  */
@@ -84,12 +91,19 @@ export function redact(text: string, secrets: readonly string[] = []): string {
   for (const secret of [...secrets].filter((s) => s && s.length >= 8).sort((a, b) => b.length - a.length)) {
     out = out.split(secret).join('[redacted]');
   }
-  return out
-    .replace(/https?:\/\/[^\s"'<>]+/gi, '[url]')
-    .replace(/\/s\/[^\s"'<>?#]*/g, '[capability-path]')
-    .replace(/(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g, '[token]')
-    .replace(/sess_(?:sk|mg|tk|mk)_[A-Za-z0-9_-]+/g, '[key]')
-    .replace(/Bearer\s+[^\s"']+/gi, 'Bearer [redacted]');
+  return (
+    out
+      .replace(/https?:\/\/[^\s"'<>]+/gi, '[url]')
+      .replace(/\/[sn]\/[^\s"'<>?#]*/g, '[capability-path]')
+      // Bare human-link tokens: 43 characters (/s/ links) or 22 characters (/n/ short links). Whole
+      // runs only, so prefixed identifiers such as sh_<22> handles and cg1_<22> generations survive.
+      .replace(/(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g, '[token]')
+      .replace(/(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{22}(?![A-Za-z0-9_-])/g, (run) =>
+        SNAKE_IDENTIFIER.test(run) ? run : '[token]',
+      )
+      .replace(/sess_(?:sk|mg|tk|mk)_[A-Za-z0-9_-]+/g, '[key]')
+      .replace(/Bearer\s+[^\s"']+/gi, 'Bearer [redacted]')
+  );
 }
 
 export type Diagnostics = (event: string, fields?: Record<string, string | number | boolean>) => void;

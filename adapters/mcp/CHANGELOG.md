@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Diagnostics redact Sess's short human links (`/n/` and a 22-character token) as they redact
+  `/s/` links: the path, and a bare 22-character token on its own. The adapter's own `sh_` handles,
+  `cg1_` generations, error codes and event names are kept.
+
 ## 0.1.0-rc.4
 
 - Still depends on `@sess.si/sdk` 0.1.0-rc.8 (sha256 `b533935b…4c95`), resolved from the registry;

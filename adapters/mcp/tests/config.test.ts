@@ -110,4 +110,46 @@ describe('diagnostic redaction', () => {
     expect(lines.join('')).not.toMatch(/QQQQ|synthetic-owner|app\.sess\.test/);
     expect(lines.join('')).toMatch(/^sess-mcp: tool_error code=X/);
   });
+
+  // Short human links (sess.si/n/{22}, 128 bits) are bearer capabilities like /s/{43}.
+  const short = 'Zq3-x_9Kp0LmN4rTv7Wy2a';
+  const shortUrl = `https://sess.si/n/${short}`;
+  it('removes short-link URLs, /n/ paths and bare 22-character tokens', () => {
+    expect(short).toHaveLength(22);
+    const out = redact(`link ${shortUrl} path /n/${short}?x=1 bare ${short}. quoted "${short}" (${short})`);
+    expect(out).not.toContain(short);
+    expect(out).not.toContain('/n/');
+    expect(out).not.toContain('sess.si');
+    expect(out).toContain('[capability-path]');
+    expect(out.match(/\[token\]/g)).toHaveLength(3);
+  });
+  it('stderr diagnostics redact short links without a configured secret', () => {
+    const lines: string[] = [];
+    stderrDiagnostics(
+      (line) => lines.push(line),
+      () => [],
+    )('tool_error', { code: 'X', leaked: shortUrl, path: `/n/${short}`, bare: short });
+    expect(lines.join('')).not.toContain(short);
+    expect(lines.join('')).toMatch(/^sess-mcp: tool_error code=X /);
+  });
+  it('keeps the adapter’s own 22-character identifiers, codes and event names', () => {
+    const handle = `sh_${short}`;
+    const generation = `cg1_${short}`;
+    const text = [
+      `handle=${handle}`,
+      `file=${handle}.json`,
+      `generation=${generation}`,
+      'code=CREATE_OUTCOME_UNKNOWN',
+      'code=transport/RESPONSE_LIMIT_REACHED',
+      'http_protocol_rejected',
+    ].join(' ');
+    expect(redact(text)).toBe(text);
+  });
+  it('a 22-character run inside a longer token-character run is not a short link', () => {
+    for (const run of [`${short}A`, `A${short}`, `-${short}`, `${short}_`]) expect(redact(run)).toBe(run);
+  });
+  it('mixed-case or digit-bearing 22-character runs are redacted even with underscores', () => {
+    for (const run of ['Create_Outcome_Unknown', 'CREATE_OUTCOME_UNKNOW1', 'create-outcome-unknown'])
+      expect(redact(`v ${run} v`)).toBe('v [token] v');
+  });
 });
