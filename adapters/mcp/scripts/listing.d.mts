@@ -27,4 +27,7 @@ export function validate(
   files: Map<string, string>,
   schemaTexts: SchemaTexts,
 ): { errors: string[]; blockers: string[] };
+export function pngSize(bytes: Uint8Array | undefined): { width: number; height: number } | undefined;
+export function checkIconFiles(listing: any, read: (path: string) => Uint8Array | undefined): string[];
+export function checkPackets(listing: any, text: string): string[];
 export function readSchemas(listing: any, base?: string): SchemaTexts;
