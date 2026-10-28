@@ -4,7 +4,7 @@
 // Generation and validation are not submission, and a submission is not an accepted listing.
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative, sep } from 'node:path';
+import { basename, dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import Ajv from 'ajv';
@@ -71,6 +71,12 @@ const OPENAI = {
 // contact". No published schema.
 const CLAUDE = { name: 100, oneLiner: 200, description: 2000, categories: { min: 1, max: 5 } };
 
+// Listing icons: OpenAI and Claude take a square PNG of at least 48x48; the MCP Registry takes any
+// size its `sizes` names, over HTTPS; Cline asks for a 400x400 PNG
+// (https://github.com/cline/mcp-marketplace, read 2026-10-28).
+const ICON = { min: 48, cline: 400 };
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Every listing names the production hosted endpoint, never a preview or local one. */
@@ -125,6 +131,18 @@ const toolRows = (tools) =>
 const url = (entry) => (entry && typeof entry.value === 'string' ? entry.value : undefined);
 const defined = (object) => Object.fromEntries(Object.entries(object).filter(([, v]) => v !== undefined));
 
+/** The committed icon PNGs (`icons.files`), none while `icons.value` is null. */
+const iconFiles = (listing) => (listing.icons.value === null ? [] : (listing.icons.files ?? []));
+/** The primary listing icon (the largest) and the small one (the smallest). */
+const primaryIcon = (listing) => [...iconFiles(listing)].sort((a, b) => b.size - a.size)[0];
+const smallIcon = (listing) => [...iconFiles(listing)].sort((a, b) => a.size - b.size)[0];
+/** A plugin-bundle file as the ./-prefixed path relative to the bundle root that OpenAI reads. */
+const bundlePath = (file) =>
+  file && file.path.startsWith(`${PLUGIN_DIR}/`) ? `./${file.path.slice(PLUGIN_DIR.length + 1)}` : undefined;
+/** The HTTPS URL of a committed icon: the published site's versioned icon directory. */
+const iconUrl = (listing, file) =>
+  `${new URL(listing.homepage).origin}/assets/icons/${listing.icons.source?.iconSetVersion}/${basename(file.path)}`;
+
 export function cursorDeeplink(name, config) {
   const encoded = Buffer.from(JSON.stringify(config), 'utf8').toString('base64');
   return `cursor://anysphere.cursor-deeplink/mcp/install?name=${encodeURIComponent(name)}&config=${encodeURIComponent(encoded)}`;
@@ -156,6 +174,7 @@ function serverJson({ listing, manifest }) {
     // In step with the package on every release candidate (2026-10-20): package.json's
     // exact version, for the server and the package; never a dist-tag.
     version: manifest.version,
+    icons: listing.icons.value ?? undefined,
     // Remote-only while the npm package is deferred: the registry then cross-checks no published
     // package's mcpName, so the published @sess.si/mcp keeps its identity unchanged.
     packages: registryListsPackage(listing)
@@ -214,6 +233,10 @@ function pluginJson({ listing, manifest, tools }) {
           termsOfServiceURL: url(listing.urls.terms),
           defaultPrompt: listing.copy.defaultPrompts,
           brandColor: openai.brandColor ?? undefined,
+          // OpenAI: logo is the primary listing icon, composerIcon the composer's; both ./ paths in
+          // the bundle, square and at least 48x48.
+          composerIcon: bundlePath(smallIcon(listing)),
+          logo: bundlePath(primaryIcon(listing)),
         }),
         review: defined({
           test_cases: { positive: cases(openai.positive, true), negative: cases(openai.negative, false) },
@@ -343,8 +366,45 @@ function claudeConnector({ listing, tools }) {
     privacyPolicyUrl: url(listing.urls.privacy),
     supportContact: listing.supportContact,
     supportUrl: url(listing.urls.support),
+    icon: primaryIcon(listing)?.path,
     tools: toolRows(tools),
   });
+}
+
+// A YAML plain scalar, refused when it would need quoting (the generator writes no quotes).
+function plain(value) {
+  const s = String(value);
+  if (!s || /^[\s\-?:,[\]{}#&*!|>'"%@`]|: | #|:$|\s$|\n/.test(s))
+    throw new Error(`docker server.yaml: ${JSON.stringify(s)} needs quoting; change the source value`);
+  return s;
+}
+
+/** docker/mcp-registry servers/<name>/server.yaml for a remote server with OAuth. */
+function dockerServerYaml({ listing }) {
+  const d = listing.providers.docker;
+  const icon = primaryIcon(listing);
+  return [
+    `name: ${plain(d.name)}`,
+    'type: remote',
+    'dynamic:',
+    '  tools: true',
+    'meta:',
+    `  category: ${plain(d.category)}`,
+    '  tags:',
+    ...d.tags.map((t) => `    - ${plain(t)}`),
+    'about:',
+    `  title: ${plain(listing.displayName)}`,
+    `  description: ${plain(listing.copy.registry)}`,
+    ...(icon ? [`  icon: ${plain(iconUrl(listing, icon))}`] : []),
+    'remote:',
+    `  transport_type: ${plain(listing.remote.type)}`,
+    `  url: ${plain(listing.remote.url)}`,
+    'oauth:',
+    `  - provider: ${plain(d.oauth.provider)}`,
+    `    secret: ${plain(d.oauth.secret)}`,
+    `    env: ${plain(d.oauth.env)}`,
+    '',
+  ].join('\n');
 }
 
 /** @returns {Map<string, string>} relative path → exact file content */
@@ -360,7 +420,21 @@ export function generate(inputs) {
     [`${PLUGIN_DIR}/skills/${skill}/SKILL.md`, skillMd(inputs)],
     [listing.providers.cursorInstall.output, formatJson(cursorInstall(inputs))],
     [listing.providers.claudeConnector.output, formatJson(claudeConnector(inputs))],
+    ...dockerFiles(inputs),
   ]);
+}
+
+/** docker/mcp-registry's three files for a remote server (tools.json is [] for dynamic tools). */
+function dockerFiles(inputs) {
+  const { listing } = inputs;
+  const out = listing.providers.docker.output;
+  const docs = url(listing.urls.docs);
+  if (!docs) throw new Error('docker readme.md needs urls.docs');
+  return [
+    [`${out}/server.yaml`, dockerServerYaml(inputs)],
+    [`${out}/tools.json`, formatJson([])],
+    [`${out}/readme.md`, `Docs: ${docs}\n`],
+  ];
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -417,6 +491,57 @@ function httpsUrl(value) {
   } catch {
     return false;
   }
+}
+
+/** A PNG's IHDR width and height, or undefined when the bytes are not a PNG. */
+export function pngSize(bytes) {
+  const b = Buffer.from(bytes ?? []);
+  if (b.length < 24 || PNG_SIGNATURE.some((v, i) => b[i] !== v) || b.toString('latin1', 12, 16) !== 'IHDR')
+    return undefined;
+  return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
+}
+
+/**
+ * The committed icon PNGs (`icons.files`): each exists, is a square PNG of its stated size (read
+ * from the IHDR) and has its recorded SHA-256.
+ * @param {(path: string) => Uint8Array | undefined} read the bytes at a path relative to adapters/mcp
+ */
+export function checkIconFiles(listing, read) {
+  const errors = [];
+  for (const file of iconFiles(listing)) {
+    const bytes = read(file.path);
+    if (!bytes) {
+      errors.push(`icon ${file.path} is missing`);
+      continue;
+    }
+    const size = pngSize(bytes);
+    if (!size) errors.push(`icon ${file.path} is not a PNG`);
+    else if (size.width !== file.size || size.height !== file.size)
+      errors.push(
+        `icon ${file.path} is ${size.width}x${size.height}, not the stated ${file.size}x${file.size}`,
+      );
+    if (sha256(bytes) !== file.sha256) errors.push(`icon ${file.path} does not match its recorded SHA-256`);
+  }
+  return errors;
+}
+
+/**
+ * The owner submission steps in LISTINGS.md quote listing.json's values for the directories that
+ * take a form or an issue; they must name the current ones.
+ */
+export function checkPackets(listing, text) {
+  const values = [
+    listing.copy.short,
+    listing.copy.registry,
+    listing.copy.oneLiner,
+    listing.remote.url,
+    listing.repository.url,
+    listing.supportContact,
+    ...(Array.isArray(listing.icons.value) ? listing.icons.value.map((i) => i.src) : []),
+  ];
+  return values
+    .filter((v) => !text.includes(v))
+    .map((v) => `LISTINGS.md owner submission steps do not quote listing.json's ${JSON.stringify(v)}`);
 }
 
 /**
@@ -643,6 +768,41 @@ export function validate(inputs, files, schemaTexts) {
   )
     errors.push('claude-connector.json supportContact must be an email address or an HTTPS URL');
 
+  // Icons: icons.value (the HTTPS URLs) and icons.files (the committed PNGs) name the same icons,
+  // in order, from one named icon set; every host gets them from those two lists.
+  const icons = listing.icons;
+  const committed = iconFiles(listing);
+  if (icons.value !== null) {
+    const source = icons.source ?? {};
+    if (!/^[0-9a-f]{40}$/.test(source.commit ?? '') || !/^[0-9a-f]{12}$/.test(source.iconSetVersion ?? ''))
+      errors.push('icons.source must name the Sess commit and the icons.json version the icons come from');
+    if (!Array.isArray(icons.value) || icons.value.length === 0 || icons.value.length !== committed.length)
+      errors.push('icons.value and icons.files must list the same icons');
+    else
+      icons.value.forEach((icon, i) => {
+        const file = committed[i];
+        const expected = iconUrl(listing, file);
+        if (icon.src !== expected || !httpsUrl(icon.src))
+          errors.push(`icons.value[${i}].src must be ${expected}`);
+        if (
+          icon.mimeType !== 'image/png' ||
+          JSON.stringify(icon.sizes) !== JSON.stringify([`${file.size}x${file.size}`])
+        )
+          errors.push(`icons.value[${i}] must be image/png with sizes ["${file.size}x${file.size}"]`);
+        if (!Number.isInteger(file.size) || file.size < ICON.min)
+          errors.push(`icons.files[${i}] must be at least ${ICON.min}x${ICON.min}`);
+        if (!bundlePath(file) || !/^\.\/assets\/[a-z0-9-]+\.png$/.test(bundlePath(file)))
+          errors.push(`icons.files[${i}] must be a PNG under ${PLUGIN_DIR}/assets/`);
+        if (!/^[0-9a-f]{64}$/.test(file.sha256 ?? '')) errors.push(`icons.files[${i}] needs its SHA-256`);
+      });
+  }
+  if (JSON.stringify(server.icons) !== JSON.stringify(icons.value ?? undefined))
+    errors.push('server.json icons drift from listing.json icons.value');
+  const primary = primaryIcon(listing);
+  if (ui.logo !== bundlePath(primary) || ui.composerIcon !== bundlePath(smallIcon(listing)))
+    errors.push('plugin.json interface.logo and composerIcon must name the committed icons');
+  if (claude.icon !== primary?.path) errors.push('claude-connector.json icon must name the primary icon');
+
   // Owner actions before any submission. These never fail the check.
   if (listing.copy.status !== 'approved')
     blockers.push('all: listing copy is PROPOSED and awaits the founder’s line-by-line sign-off');
@@ -670,6 +830,14 @@ export function validate(inputs, files, schemaTexts) {
   if (listing.icons.value === null)
     blockers.push(
       `all: icon ${listing.icons.status}: no PNG icon yet (square, at least 48x48; OpenAI's primary icon, Claude's icon, the MCP Registry icons); the owner supplies it`,
+    );
+  else if (listing.icons.status !== 'live')
+    blockers.push(
+      `MCP Registry and Docker: icon URLs ${listing.icons.status}${listing.icons.note ? ` (${listing.icons.note})` : ''}`,
+    );
+  if (!committed.some((f) => f.size === ICON.cline))
+    blockers.push(
+      `Cline: needs a ${ICON.cline}x${ICON.cline} PNG; the Sess logos script generates none yet (see LISTINGS.md)`,
     );
   if (ap.openai.demoRecordingUrl === null) blockers.push('OpenAI: no demo recording URL');
   blockers.push(`OpenAI: test cases are ${ap.openai.testCasesStatus}`);
@@ -736,12 +904,21 @@ async function main(mode) {
         problems.push(`${path} is out of date; run npm run listing`);
     }
   }
-  for (const full of walk(join(root, PLUGIN_DIR))) {
-    const path = relative(root, full).split(sep).join('/');
-    if (!files.has(path)) problems.push(`${path} is not generated from listing.json; remove it`);
-  }
+  const icons = new Set(iconFiles(inputs.listing).map((f) => f.path));
+  for (const dir of [PLUGIN_DIR, inputs.listing.providers.docker.output])
+    for (const full of walk(join(root, dir))) {
+      const path = relative(root, full).split(sep).join('/');
+      if (!files.has(path) && !icons.has(path))
+        problems.push(`${path} is neither generated from listing.json nor a listed icon; remove it`);
+    }
   const { errors, blockers } = validate(inputs, files, readSchemas(inputs.listing));
   problems.push(...errors);
+  problems.push(
+    ...checkIconFiles(inputs.listing, (path) =>
+      existsSync(join(root, path)) ? readFileSync(join(root, path)) : undefined,
+    ),
+  );
+  problems.push(...checkPackets(inputs.listing, readFileSync(join(root, 'LISTINGS.md'), 'utf8')));
   for (const path of files.keys()) console.log(`${mode === 'write' ? 'wrote' : 'checked'} ${path}`);
   console.log('\nSubmission blockers (owner actions; they do not fail this check):');
   for (const b of blockers) console.log(`- ${b}`);
