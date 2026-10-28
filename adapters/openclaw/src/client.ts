@@ -43,7 +43,6 @@ export function guardFetch(
     sent++;
     return baseFetch(input, {
       ...init,
-      headers: withUserAgent(init?.headers),
       redirect: 'manual',
       credentials: 'omit',
     });
@@ -51,19 +50,12 @@ export function guardFetch(
   return { fetch, dispatched: () => sent, refused: () => refusedDispatch };
 }
 
-/** The product token Sess classifies this plugin's requests by. */
-export const USER_AGENT = `sess-openclaw/${PLUGIN_VERSION}`;
-
 /**
- * Puts this plugin's token first in the User-Agent. The SDK it runs on (0.1.0-rc.8) sends none of
- * its own, so the header is exactly USER_AGENT; an SDK that sends its own token keeps it after ours.
+ * The product token Sess classifies this plugin's requests by. The plugin passes it as the SDK's
+ * `userAgent` option, so the SDK (0.1.0-rc.9, the current pin) sends
+ * `sess-openclaw/<version> sess-sdk/<version> node/<version>`: this plugin first, then the SDK's own.
  */
-function withUserAgent(init: HeadersInit | undefined): Headers {
-  const headers = new Headers(init);
-  const sdk = headers.get('user-agent');
-  headers.set('user-agent', sdk ? `${USER_AGENT} ${sdk}` : USER_AGENT);
-  return headers;
-}
+export const USER_AGENT = `sess-openclaw/${PLUGIN_VERSION}`;
 
 /**
  * Invocation-scoped SDK client (spec 8.1). Its fetch wrapper re-checks the live host authority
@@ -81,6 +73,7 @@ export function createGuardedClient(
     apiKey: credential.apiKey,
     baseUrl: config.baseUrl,
     fetch: guarded.fetch,
+    userAgent: USER_AGENT,
     allowInsecureLocalhost: config.allowInsecureLocalhost,
     ...(config.receiptIssuer ? { receiptIssuer: config.receiptIssuer } : {}),
     ...(config.expectedWorkspaceId ? { expectedWorkspaceId: config.expectedWorkspaceId } : {}),

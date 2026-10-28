@@ -1,7 +1,8 @@
 // The plugin names itself to Sess in the User-Agent header (Sess classifies the creating client by
-// product token). The SDK pin, 0.1.0-rc.8, sends no User-Agent of its own and has no option to
-// prepend one, so the plugin's guarded fetch sets it; this test sends real requests through native
-// fetch to a local stub server and asserts the exact header.
+// product token). The SDK pin, 0.1.0-rc.9, sends its own User-Agent (sess-sdk/<version>
+// node/<version>) and puts its `userAgent` option's tokens first, so the plugin's client passes its
+// token there; this test sends real requests through native fetch to a local stub server and
+// asserts the exact header.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
@@ -13,11 +14,8 @@ const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.ur
 const sdkVersion: string = JSON.parse(
   readFileSync(new URL('../../node_modules/@sess.si/sdk/package.json', import.meta.url), 'utf8'),
 ).version;
-// rc.8 sends no User-Agent: the header is exactly the plugin's token. A later SDK appends its own.
-const EXPECTED =
-  sdkVersion === '0.1.0-rc.8'
-    ? `sess-openclaw/${pkg.version}`
-    : `sess-openclaw/${pkg.version} sess-sdk/${sdkVersion} node/${process.versions.node}`;
+// The plugin's token, then the SDK's own: exactly one of each, in that order.
+const EXPECTED = `sess-openclaw/${pkg.version} sess-sdk/${sdkVersion} node/${process.versions.node}`;
 const SESSION_ID = 'ses_00000000000000000000000001';
 
 let server: Server;

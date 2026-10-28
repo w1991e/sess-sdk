@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Depends on `@sess.si/sdk` 0.1.0-rc.9 (sha256 `486cf8d9…192b`), resolved from the registry.
+- The SDK now sends its own User-Agent, so requests carry
+  `User-Agent: sess-openclaw/<version> sess-sdk/<version> node/<version>`: this plugin's token
+  first, then the SDK's. The plugin passes its token as the SDK's `userAgent` option instead of
+  rewriting the header in its guarded fetch.
+- A create refused under the workspace's plan (429 `PLAN_LIMIT_REACHED`) is reported by the SDK
+  itself as a refusal; the tool result is unchanged.
+
 ## 0.1.0-rc.5
 
 - Still depends on `@sess.si/sdk` 0.1.0-rc.8; no dependency changes. Requests carry

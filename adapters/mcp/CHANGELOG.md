@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Depends on `@sess.si/sdk` 0.1.0-rc.9 (sha256 `486cf8d9…192b`), resolved from the registry.
+- The SDK now sends its own User-Agent, so every request to Sess, from the local stdio server and
+  the hosted HTTP handler, carries
+  `User-Agent: sess-mcp/<version> sess-sdk/<version> node/<version>`: this package's token first,
+  then the SDK's. The adapter passes its token as the SDK's `userAgent` option instead of rewriting
+  the header in its fetch.
+- A create refused under the workspace's plan (429 `PLAN_LIMIT_REACHED`) is reported by the SDK
+  itself as a refusal; the tool error `PLAN_LIMIT_REACHED` is unchanged.
 - Diagnostics redact Sess's short human links (`/n/` and a 22-character token) as they redact
   `/s/` links, and withhold every run of 22 or more base64url characters, whatever its letter case
   or what it is glued to. Event names and error codes are kept only when they are exactly a known

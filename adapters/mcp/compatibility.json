@@ -146,12 +146,12 @@
   "untestedClients": ["Cursor", "Claude Desktop", "any other MCP host"],
   "sessSdk": {
     "name": "@sess.si/sdk",
-    "version": "0.1.0-rc.8",
+    "version": "0.1.0-rc.9",
     "status": "published (registry)",
-    "sha256": "b533935b98020354010ca4e1a14901e8bc5218ca4b129422a8f8a6fa97684c95",
-    "integrity": "sha512-TlON9nYHkuFl6Al0TeGl9GUiPx65QpvpOBOHGdIp/ukt+3xXM5b2+4//pMN5RB0lsf031GoSZQFsXvkFScuykA==",
-    "candidatePath": ".candidate/sess.si-sdk-0.1.0-rc.8.tgz",
-    "source": "https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.0-rc.8.tgz",
+    "sha256": "486cf8d98258699cd5d7b6571aa1ba57f2e521046c1da2ece05a64717835192b",
+    "integrity": "sha512-ovBUP086I2P/JSyVueOabkqzYd5E4C1kf3qPiQwDJp75E0WygUot0PDf8J392hirVgctp9TlO/K240b7qMbzTg==",
+    "candidatePath": ".candidate/sess.si-sdk-0.1.0-rc.9.tgz",
+    "source": "https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.0-rc.9.tgz",
     "releaseHold": "none for the SDK dependency; review the regenerated package-lock.json",
     "history": "0.1.0-rc.3 (sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502) was the earlier approved candidate; it is held by owner decision (2026-10-14) and not published. 0.1.0-rc.4 is the first SDK candidate to be published."
   },

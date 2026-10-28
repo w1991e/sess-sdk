@@ -9,7 +9,7 @@ verified its signed receipt for that exact revision.
 > **Status: release candidate in qualification.** Release candidates such as `0.1.0-rc.1` are
 > published only under the npm dist-tag `next`, after a maintainer approves the publication with
 > npm 2FA. Do not install the bare name: its `latest` dist-tag points at a `0.0.0-stage`
-> placeholder, not at a release. The candidate depends on `@sess.si/sdk@0.1.0-rc.8`, published
+> placeholder, not at a release. The candidate depends on `@sess.si/sdk@0.1.0-rc.9`, published
 > on npm under the `next` dist-tag. Qualified host: OpenClaw 2026.10.3 (Node 24.16 or later).
 > OpenClaw 2026.10.7 (Node 24.22.1 or later) ran the agent-turn round trip on the preview on 27
 > October; production qualification follows. See [compatibility.json](compatibility.json) for

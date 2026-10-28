@@ -1,13 +1,16 @@
 # Compatibility and evidence
 
-SDK version: **0.1.0-rc.8**, published on npm under the `next` dist-tag with provenance and pinned
-in [release/sdk-candidate.json](../release/sdk-candidate.json); it adds link timing (`link_state`,
-`action_expires_horizon`, link extensions), renderer identities on the issuer's signed list
-(`verifyRendererIdentities`, `sess verify --renderers`) and Sess's interactive length limits with
-`field`, `limit` and `length` on `SessError`. Its contract snapshot is from Sess runtime commit
-`2f8500e3da894c00b2a9ac2c4be413851b711c5b`. **0.1.0-rc.7** (`sess.ask()`, the Advanced link
-lifetime and `@sess.si/sdk/qr`), **0.1.0-rc.5** (decision-bundle verification and the `sess verify`
-executable) and **0.1.0-rc.4** remain published. **0.1.0-rc.3** is held and will not be published.
+SDK version: **0.1.0-rc.9**, published on npm under the `next` dist-tag with provenance and pinned
+in [release/sdk-candidate.json](../release/sdk-candidate.json); it adds the commerce builders
+(`money()`, `items()`, `invoice()`, `receipt()`, `quote()`, `refund()`, `purchaseOrder()`,
+`lintText()`), a `User-Agent` of `sess-sdk/<version> node/<version>` with the `userAgent` option for
+a wrapping client's tokens, and reports a plan limit (429 `PLAN_LIMIT_REACHED`) as a refusal. Its
+contract snapshot is unchanged from rc.8: Sess runtime commit
+`2f8500e3da894c00b2a9ac2c4be413851b711c5b`. **0.1.0-rc.8** (link timing, renderer identities on the
+issuer's signed list and the interactive length limits), **0.1.0-rc.7** (`sess.ask()`, the Advanced
+link lifetime and `@sess.si/sdk/qr`), **0.1.0-rc.5** (decision-bundle verification and the
+`sess verify` executable) and **0.1.0-rc.4** remain published. **0.1.0-rc.3** is held and will not
+be published.
 The SDK version is independent of HTTP API
 `info.version` 0.1.0 and the runtime's Git commit.
 
