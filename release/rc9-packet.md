@@ -44,11 +44,13 @@ This packet changes no packed file beyond the dated CHANGELOG heading. If a pack
 
    ```sh
    npm stage list @sess.si/sdk --json
-   npm stage download <stage-id>
-   shasum -a 256 sess.si-sdk-0.1.0-rc.9.tgz   # must equal the SHA-256 above
+   npm stage download <stage-id>              # writes and prints sess.si-sdk-0.1.0-rc.9-<stage-id>.tgz
+   shasum -a 256 sess.si-sdk-0.1.0-rc.9-<stage-id>.tgz   # must equal the SHA-256 above
    npm stage view <stage-id>                  # tag must be next
    npm stage approve <stage-id>               # npm 2FA
    ```
+
+   npm 11 names the downloaded file with the stage ID (`<package>-<version>-<stage-id>.tgz`); hash the file `npm stage download` prints.
 
 6. The readback job waits up to 60 minutes for the approval, then checks registry integrity, dist-tag and provenance. If it timed out, approve the stage and then re-run the failed jobs.
 7. Read back yourself:
