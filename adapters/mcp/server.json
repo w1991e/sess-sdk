@@ -9,6 +9,18 @@
     "subfolder": "adapters/mcp"
   },
   "version": "0.1.0-rc.4",
+  "icons": [
+    {
+      "src": "https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    },
+    {
+      "src": "https://sess.si/assets/icons/24eb73d4a4d9/icon-192.png",
+      "mimeType": "image/png",
+      "sizes": ["192x192"]
+    }
+  ],
   "remotes": [
     {
       "type": "streamable-http",
