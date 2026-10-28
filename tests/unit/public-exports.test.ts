@@ -104,6 +104,29 @@ const ADDED = {
     // Decision 0009 Amendment 10: the link timing types (rc.8).
     'LinkExtension',
     'LinkState',
+    // P2-22 Commerce B (rc.9): money, the items builder, the five builders and their types.
+    'Amount',
+    'BillInput',
+    'COMMERCE_DEFAULTS',
+    'ITEMS_DEFAULT_LABELS',
+    'ITEMS_LIMITS',
+    'ItemLineInput',
+    'ItemPaymentInput',
+    'ItemRowInput',
+    'ItemTotalRole',
+    'ItemsComponent',
+    'ItemsInput',
+    'Money',
+    'RefundInput',
+    'TextLintFinding',
+    'invoice',
+    'items',
+    'lintText',
+    'money',
+    'purchaseOrder',
+    'quote',
+    'receipt',
+    'refund',
   ],
   // Decision 0009 Amendment 13 (rc.8): renderer identities on a signed list.
   './receipts': [
@@ -167,18 +190,30 @@ function declaredExports(): Record<keyof typeof ENTRIES, string[]> {
 }
 
 describe('public exports', () => {
-  it('are unchanged except for the added question and link timing types', () => {
+  it('are unchanged except for the added question, link timing and Commerce exports', () => {
     const actual = declaredExports();
     for (const entry of Object.keys(ENTRIES) as (keyof typeof ENTRIES)[])
       expect(actual[entry]).toEqual([...BEFORE[entry], ...ADDED[entry]].sort());
   });
 
-  it('add no runtime value exports', () => {
+  it('add no runtime value exports beyond the Commerce builders', () => {
+    // Commerce B adds only its pure builders and their constants (no client or network).
     expect(Object.keys(root).sort()).toEqual([
+      'COMMERCE_DEFAULTS',
+      'ITEMS_DEFAULT_LABELS',
+      'ITEMS_LIMITS',
       'Sess',
       'SessError',
+      'invoice',
       'isInteractiveSession',
       'isInteractiveSurface',
+      'items',
+      'lintText',
+      'money',
+      'purchaseOrder',
+      'quote',
+      'receipt',
+      'refund',
     ]);
     expect(Object.keys(receipts).sort()).toEqual([
       'BUNDLED_RENDERER_IDENTITIES',

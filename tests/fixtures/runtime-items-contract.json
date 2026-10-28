@@ -1,0 +1,566 @@
+{
+  "source": "Sess runtime w1991e/sess at source_runtime_commit: the items and record components of SurfaceComponent and the interactive interaction of PatchSessionRequest from packages/spec/openapi.json, and the ISO 4217 minor-unit table of packages/core/src/currency.ts. Extracted verbatim for the Commerce builders contract test; refresh from the runtime, never by hand.",
+  "source_runtime_commit": "01b2c05b06811cb6ba411120863cbf550fa4ddc3",
+  "openapi_git_blob_sha1": "a7e45d4b307fb3f0d4fdf59a2b1f431d23eb44a4",
+  "currency_git_blob_sha1": "8b275ee9e8e903be1d1d290e7eae15fa7bd11996",
+  "items_component": {
+    "additionalProperties": false,
+    "description": "Line items with amounts and totals (Commerce). For anything with prices, send an items component, not a table or text. Amounts are integers in the currency’s smallest unit (cents for USD, yen for JPY, fils for BHD), with one ISO 4217 currency per component; Sess never rounds, converts or computes them. Discounts, credits and payments are negative amounts. A subtotal must equal the sum of the rows, and a total given with a subtotal must equal the subtotal plus every other totals line except paid, due and included ones; otherwise 400 INVALID_SCHEMA gives expected and actual in minor units. Every row and total is shown; nothing is collapsed. Editable quantities need an action with intent request_change, such as “Request changes”: a changed quantity can only be sent with it, and your agent replies with a new revision and updated amounts; without one, 400 INVALID_SCHEMA.",
+    "type": "object",
+    "required": ["type", "currency", "rows"],
+    "properties": {
+      "type": {
+        "const": "items",
+        "type": "string"
+      },
+      "label": {
+        "minLength": 1,
+        "maxLength": 200,
+        "pattern": "\\S",
+        "description": "Optional caption of an items card: what the list is, a few words; at most 200. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+        "examples": ["Invoice 2041"],
+        "type": "string"
+      },
+      "currency": {
+        "pattern": "^[A-Z]{3}$",
+        "description": "ISO 4217 alphabetic code with known minor units (CAD, JPY, BHD …); one per component.",
+        "examples": ["CAD"],
+        "type": "string"
+      },
+      "select": {
+        "description": "The person may choose rows: one (radios) or many (checkboxes). Needs name; the result carries the chosen row indices in selected.",
+        "anyOf": [
+          {
+            "const": "one",
+            "type": "string"
+          },
+          {
+            "const": "many",
+            "type": "string"
+          }
+        ]
+      },
+      "editable": {
+        "minItems": 1,
+        "maxItems": 1,
+        "description": "The person may change the quantity of rows that carry one. Needs name and an action with intent request_change; a changed quantity is sent only with that action. The result carries quantities, one per row (null for a row without one).",
+        "type": "array",
+        "items": {
+          "const": "quantity",
+          "type": "string"
+        }
+      },
+      "name": {
+        "pattern": "^[a-z][a-z0-9_]{0,55}$",
+        "type": "string"
+      },
+      "rows": {
+        "minItems": 1,
+        "maxItems": 100,
+        "description": "1 to 100 rows, in order; more fail with 400 INVALID_SCHEMA (never truncated).",
+        "type": "array",
+        "items": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": ["name", "amount"],
+          "properties": {
+            "name": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "\\S",
+              "description": "What one line is, shown verbatim; put quantity and unit price in detail; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+              "examples": ["Design retainer, October"],
+              "type": "string"
+            },
+            "detail": {
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "\\S",
+              "description": "Optional second line under the name: quantity, unit price or a reference; at most 160. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+              "examples": ["3 × $150.00"],
+              "type": "string"
+            },
+            "quantity": {
+              "additionalProperties": false,
+              "description": "An editable quantity (only with editable [\"quantity\"]): the person may change it within min (default 0) and max; Sess never recomputes the amount, your agent does on its next revision. The result carries the quantities.",
+              "type": "object",
+              "required": ["value"],
+              "properties": {
+                "value": {
+                  "minimum": 0,
+                  "maximum": 1000000,
+                  "type": "integer"
+                },
+                "unit": {
+                  "minLength": 1,
+                  "maxLength": 16,
+                  "pattern": "\\S",
+                  "description": "Optional unit shown after an editable quantity: a word; at most 16. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+                  "examples": ["boxes"],
+                  "type": "string"
+                },
+                "min": {
+                  "minimum": 0,
+                  "maximum": 1000000,
+                  "type": "integer"
+                },
+                "max": {
+                  "minimum": 0,
+                  "maximum": 1000000,
+                  "type": "integer"
+                }
+              }
+            },
+            "amount": {
+              "description": "The line amount in minor units, or null for a line with no amount.",
+              "anyOf": [
+                {
+                  "minimum": -1000000000000000,
+                  "maximum": 1000000000000000,
+                  "description": "The line amount in minor units, as stated.",
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "totals": {
+        "maxItems": 8,
+        "description": "Up to 8 totals lines, in order, as you state them.",
+        "type": "array",
+        "items": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": ["label", "amount", "role"],
+          "properties": {
+            "label": {
+              "minLength": 1,
+              "maxLength": 40,
+              "pattern": "\\S",
+              "description": "A totals line's label: a word or two; at most 40. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+              "examples": ["Subtotal", "GST 5%"],
+              "type": "string"
+            },
+            "amount": {
+              "minimum": -1000000000000000,
+              "maximum": 1000000000000000,
+              "description": "The amount in minor units, as stated.",
+              "type": "integer"
+            },
+            "role": {
+              "description": "subtotal (at most one) must equal the sum of the rows; total (at most one), with a subtotal, must equal the subtotal plus the other lines except paid, due and included.",
+              "anyOf": [
+                {
+                  "const": "subtotal",
+                  "type": "string"
+                },
+                {
+                  "const": "tax",
+                  "type": "string"
+                },
+                {
+                  "const": "discount",
+                  "type": "string"
+                },
+                {
+                  "const": "shipping",
+                  "type": "string"
+                },
+                {
+                  "const": "fee",
+                  "type": "string"
+                },
+                {
+                  "const": "tip",
+                  "type": "string"
+                },
+                {
+                  "const": "paid",
+                  "type": "string"
+                },
+                {
+                  "const": "due",
+                  "type": "string"
+                },
+                {
+                  "const": "adjustment",
+                  "type": "string"
+                },
+                {
+                  "const": "total",
+                  "type": "string"
+                },
+                {
+                  "const": "other",
+                  "type": "string"
+                }
+              ]
+            },
+            "included": {
+              "description": "Already included in the prices (such as VAT): shown, never added. Not on a subtotal or total.",
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  },
+  "record_component": {
+    "additionalProperties": false,
+    "description": "A read-only key/value record; keys and values are shown verbatim as text.",
+    "type": "object",
+    "required": ["type", "fields"],
+    "properties": {
+      "type": {
+        "const": "record",
+        "type": "string"
+      },
+      "label": {
+        "minLength": 1,
+        "maxLength": 200,
+        "pattern": "\\S",
+        "description": "Optional caption above the record: a few words; at most 200. When a later page depends on an earlier answer, restate it in a record. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+        "examples": ["Order 1042"],
+        "type": "string"
+      },
+      "fields": {
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "description": "A row's value, shown verbatim: a string of at most 200, or a number, boolean or null. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+              "examples": ["$120.00"],
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "propertyNames": {
+          "maxLength": 40,
+          "description": "A row's name, shown verbatim: a word or two; at most 40. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+          "examples": ["Amount"],
+          "type": "string"
+        },
+        "minProperties": 1,
+        "maxProperties": 50,
+        "type": "object",
+        "properties": {}
+      }
+    }
+  },
+  "interactive_interaction": {
+    "additionalProperties": false,
+    "type": "object",
+    "required": ["mode", "title", "source", "actions"],
+    "properties": {
+      "mode": {
+        "const": "interactive",
+        "type": "string"
+      },
+      "title": {
+        "minLength": 1,
+        "maxLength": 80,
+        "pattern": "\\S",
+        "description": "The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+        "examples": ["Approve the refund?", "Pick a delivery date"],
+        "type": "string"
+      },
+      "description": {
+        "maxLength": 280,
+        "description": "Optional context under the title: what the person decides and why, in one or two plain sentences; at most 280. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+        "examples": ["The customer was charged twice for order 1042."],
+        "type": "string"
+      },
+      "locale": {
+        "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8}){0,4}$",
+        "maxLength": 35,
+        "description": "Advanced. Optional BCP 47 locale for formatting the amounts on this page, one per Surface (default: the page’s language, en). It does not translate the page.",
+        "examples": ["en-CA"],
+        "type": "string"
+      },
+      "progress": {
+        "additionalProperties": false,
+        "description": "Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter (\"1/2\"). Anything else fails with 400 INVALID_SCHEMA.",
+        "type": "object",
+        "required": ["step", "total"],
+        "properties": {
+          "step": {
+            "minimum": 1,
+            "maximum": 20,
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 1,
+            "maximum": 20,
+            "type": "integer"
+          }
+        }
+      },
+      "source": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["kind", "components"],
+        "properties": {
+          "kind": {
+            "const": "sess_surface",
+            "type": "string"
+          },
+          "components": {
+            "minItems": 1,
+            "maxItems": 100,
+            "description": "The page's content, in order. How the page lays it out: Fields keep the order you send them in. Consecutive fields share one group; a heading or a text starts a new one. Each label sits beside its answer, or above it when the two do not fit, so keep it to a word or two (about 20 characters). A field's help shows under that field; give it only when it is needed. Keep choice labels short, and put any detail the decision needs in a text or record on the page: a phone's picker may cut a long choice short. Nothing is truncated: rows grow to fit their text.",
+            "type": "array",
+            "items": {
+              "additionalProperties": true,
+              "description": "One SurfaceComponent (heading, text, record, field or items). An unrecognized type fails with 400 UNKNOWN_COMPONENT.",
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": {
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "actions": {
+        "minItems": 1,
+        "maxItems": 5,
+        "type": "array",
+        "items": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": ["id", "label"],
+          "properties": {
+            "id": {
+              "pattern": "^[a-z][a-z0-9_]{0,31}$",
+              "type": "string"
+            },
+            "label": {
+              "minLength": 1,
+              "maxLength": 24,
+              "pattern": "\\S",
+              "description": "A button: a verb, 1–3 words; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+              "examples": ["Approve", "Send refund"],
+              "type": "string"
+            },
+            "intent": {
+              "anyOf": [
+                {
+                  "const": "submit",
+                  "type": "string"
+                },
+                {
+                  "const": "continue",
+                  "type": "string"
+                },
+                {
+                  "const": "approve",
+                  "type": "string"
+                },
+                {
+                  "const": "reject",
+                  "type": "string"
+                },
+                {
+                  "const": "request_change",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "response_policy": {
+        "description": "One accepted response per revision (the only P1 policy; the default).",
+        "const": "first",
+        "type": "string"
+      }
+    }
+  },
+  "currency_minor_units": {
+    "AED": 2,
+    "AFN": 2,
+    "ALL": 2,
+    "AMD": 2,
+    "ANG": 2,
+    "AOA": 2,
+    "ARS": 2,
+    "AUD": 2,
+    "AWG": 2,
+    "AZN": 2,
+    "BAM": 2,
+    "BBD": 2,
+    "BDT": 2,
+    "BGN": 2,
+    "BHD": 3,
+    "BIF": 0,
+    "BMD": 2,
+    "BND": 2,
+    "BOB": 2,
+    "BOV": 2,
+    "BRL": 2,
+    "BSD": 2,
+    "BTN": 2,
+    "BWP": 2,
+    "BYN": 2,
+    "BZD": 2,
+    "CAD": 2,
+    "CDF": 2,
+    "CHE": 2,
+    "CHF": 2,
+    "CHW": 2,
+    "CLF": 4,
+    "CLP": 0,
+    "CNY": 2,
+    "COP": 2,
+    "COU": 2,
+    "CRC": 2,
+    "CUP": 2,
+    "CVE": 2,
+    "CZK": 2,
+    "DJF": 0,
+    "DKK": 2,
+    "DOP": 2,
+    "DZD": 2,
+    "EGP": 2,
+    "ERN": 2,
+    "ETB": 2,
+    "EUR": 2,
+    "FJD": 2,
+    "FKP": 2,
+    "GBP": 2,
+    "GEL": 2,
+    "GHS": 2,
+    "GIP": 2,
+    "GMD": 2,
+    "GNF": 0,
+    "GTQ": 2,
+    "GYD": 2,
+    "HKD": 2,
+    "HNL": 2,
+    "HTG": 2,
+    "HUF": 2,
+    "IDR": 2,
+    "ILS": 2,
+    "INR": 2,
+    "IQD": 3,
+    "IRR": 2,
+    "ISK": 0,
+    "JMD": 2,
+    "JOD": 3,
+    "JPY": 0,
+    "KES": 2,
+    "KGS": 2,
+    "KHR": 2,
+    "KMF": 0,
+    "KPW": 2,
+    "KRW": 0,
+    "KWD": 3,
+    "KYD": 2,
+    "KZT": 2,
+    "LAK": 2,
+    "LBP": 2,
+    "LKR": 2,
+    "LRD": 2,
+    "LSL": 2,
+    "LYD": 3,
+    "MAD": 2,
+    "MDL": 2,
+    "MGA": 2,
+    "MKD": 2,
+    "MMK": 2,
+    "MNT": 2,
+    "MOP": 2,
+    "MRU": 2,
+    "MUR": 2,
+    "MVR": 2,
+    "MWK": 2,
+    "MXN": 2,
+    "MXV": 2,
+    "MYR": 2,
+    "MZN": 2,
+    "NAD": 2,
+    "NGN": 2,
+    "NIO": 2,
+    "NOK": 2,
+    "NPR": 2,
+    "NZD": 2,
+    "OMR": 3,
+    "PAB": 2,
+    "PEN": 2,
+    "PGK": 2,
+    "PHP": 2,
+    "PKR": 2,
+    "PLN": 2,
+    "PYG": 0,
+    "QAR": 2,
+    "RON": 2,
+    "RSD": 2,
+    "RUB": 2,
+    "RWF": 0,
+    "SAR": 2,
+    "SBD": 2,
+    "SCR": 2,
+    "SDG": 2,
+    "SEK": 2,
+    "SGD": 2,
+    "SHP": 2,
+    "SLE": 2,
+    "SLL": 2,
+    "SOS": 2,
+    "SRD": 2,
+    "SSP": 2,
+    "STN": 2,
+    "SVC": 2,
+    "SYP": 2,
+    "SZL": 2,
+    "THB": 2,
+    "TJS": 2,
+    "TMT": 2,
+    "TND": 3,
+    "TOP": 2,
+    "TRY": 2,
+    "TTD": 2,
+    "TWD": 2,
+    "TZS": 2,
+    "UAH": 2,
+    "UGX": 0,
+    "USD": 2,
+    "USN": 2,
+    "UYI": 0,
+    "UYU": 2,
+    "UYW": 4,
+    "UZS": 2,
+    "VED": 2,
+    "VES": 2,
+    "VND": 0,
+    "VUV": 0,
+    "WST": 2,
+    "XAF": 0,
+    "XCD": 2,
+    "XCG": 2,
+    "XOF": 0,
+    "XPF": 0,
+    "YER": 2,
+    "ZAR": 2,
+    "ZMW": 2,
+    "ZWG": 2,
+    "ZWL": 2
+  }
+}
