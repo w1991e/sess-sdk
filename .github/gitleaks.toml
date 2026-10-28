@@ -77,6 +77,12 @@ regex = '''https?://[^\s"'<>]+/s/[A-Za-z0-9_-]{43}(?:[\s"'<>]|$)'''
 keywords = ["/s/"]
 
 [[rules]]
+id = "sess-human-short-link"
+description = "Private hosted human short link (/n/ and a 22-character token)"
+regex = '''https?://[^\s"'<>]+/n/[A-Za-z0-9_-]{22}(?:[^A-Za-z0-9_-]|$)'''
+keywords = ["/n/"]
+
+[[rules]]
 id = "private-key-header"
 description = "Private key header, including truncated private material"
 regex = '''-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'''
