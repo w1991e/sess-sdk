@@ -70,6 +70,35 @@ test('every omitted tracked location and default upstream path exclusion detects
   });
 });
 
+test('ASTRA-SDK-19-01: a human link token glued to further token characters is caught by the fast boundary and the maintained scanner', async () => {
+  await withScanWorkspace(async (workspace) => {
+    const config = await prepareConfig(workspace);
+    const legacy = 'A'.repeat(43);
+    const short = 'abcdefghijklmnopqrstug';
+    for (const [text, rule] of [
+      [`see https://sess.si/s/${legacy}B for it\n`, 'sess-human-capability'],
+      [`see https://sess.si/s/${legacy}B/x for it\n`, 'sess-human-capability'],
+      [`see https://sess.si/n/${short}Z for it\n`, 'sess-human-short-link'],
+    ]) {
+      const root = join(workspace, 'case');
+      await mkdir(root);
+      initialize(root);
+      await file(root, 'docs/link.md', text);
+      git(root, ['add', '--all']);
+      const fast = boundary(root);
+      assert.equal(fast.signal, null);
+      assert.equal(fast.status, 1, `Fast boundary missed a glued token (${rule}).`);
+      const staged = join(workspace, 'staged');
+      assert.equal(await stageTrackedSource(root, staged), 1);
+      const result = await scan(binary, config.path, workspace, 'dir', staged);
+      assert.equal(result.status, 'FAIL', `Maintained scanner missed a glued token (${rule}).`);
+      assert.ok(result.findings.some((finding) => finding.rule === rule));
+      await rm(root, { recursive: true });
+      await rm(staged, { recursive: true });
+    }
+  });
+});
+
 test('ignored local credentials and a tracked symlink to them never enter scan content', async () => {
   await withScanWorkspace(async (workspace) => {
     const config = await prepareConfig(workspace);

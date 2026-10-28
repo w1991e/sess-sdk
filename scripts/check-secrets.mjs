@@ -8,7 +8,9 @@ const forbidden = [
   /sess_(?:sk|mg|tk|mk)_[A-Za-z0-9_-]{30,}/,
   /whsec_[A-Za-z0-9+/]{43}=/,
   /(?:github_pat_|gh[pousr]_|npm_)[A-Za-z0-9_]{30,}/,
-  /https?:\/\/[^\s"'<>]+\/s\/[A-Za-z0-9_-]{43}(?:[\s"'<>]|$)/,
+  // A legacy link token followed by any further token character is still a usable token
+  // (ASTRA-SDK-19-01): 43 or more, with no terminator required.
+  /https?:\/\/[^\s"'<>]+\/s\/[A-Za-z0-9_-]{43,}/,
   // Short human links: /n/ then a 22-character base64url token (128 bits), alone or glued to more
   // token characters.
   /https?:\/\/[^\s"'<>]+\/n\/[A-Za-z0-9_-]{22,}/,
