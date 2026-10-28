@@ -118,8 +118,8 @@ const PLAN_LIMIT_MESSAGE =
 
 /**
  * A create that Sess refused with 429 PLAN_LIMIT_REACHED: a definite refusal, nothing created.
- * An SDK with the plan limit in its rejection table reports it as `rejected`; an earlier SDK
- * (0.1.0-rc.8, the current pin) reports it as `unknown_outcome`, but a create is attempted exactly
+ * The SDK pin (0.1.0-rc.9) has the plan limit in its rejection table and reports it as `rejected`;
+ * an earlier SDK (0.1.0-rc.8) reports it as `unknown_outcome`, but a create is attempted exactly
  * once, so its single coded 429 answer is the whole outcome. A plain rate limit (no code or
  * RATE_LIMITED) and any other status stay uncertain.
  */

@@ -27,7 +27,7 @@ The private link prints in your terminal. Open it on your phone and answer there
 ## How they are built
 
 - [workflow.mjs](workflow.mjs) is the job, written as five local tools:
-  - `sess_ask`, `sess_response`, `sess_publish` and `sess_complete`, on `@sess.si/sdk@0.1.0-rc.8`;
+  - `sess_ask`, `sess_response`, `sess_publish` and `sess_complete`, on `@sess.si/sdk@0.1.0-rc.9`;
   - `get_weather`: MET Norway, plus NWS alerts in the US, cached and with an identifying User-Agent.
 - Each `agent.mjs` declares those tools in its provider's own format and runs its provider's own loop. Tool-call ids and reasoning context are kept exactly as that provider requires. There is no shared translation layer.
 - The three plans come from the starter's fixed rule. The model writes the intros and the final sentence.
@@ -103,7 +103,7 @@ To use another model, set `RECIPE_MODEL`. If it is not in `models.json`, also se
 ## Free pre-flight: dry run
 
 ```sh
-cd examples/recipes && npm install --ignore-scripts   # the published @sess.si/sdk@0.1.0-rc.8
+cd examples/recipes && npm install --ignore-scripts   # the published @sess.si/sdk@0.1.0-rc.9
 node qualify.mjs --dry-run gemini                     # or any provider; --scenario happy_path|correction
 ```
 

@@ -18,7 +18,7 @@
 //    template parity check.
 // 4. Lets the agent finish both rounds against the offline fake world (create-agent/test/
 //    fake-world.mjs: fake SESS API with genuinely signed receipts, fake MET Norway and NWS). Every
-//    Sess request carries the starter's User-Agent, exactly `sess-create-agent/<version>` on rc.8.
+//    Sess request carries the starter's User-Agent, `sess-create-agent/<version>` then the SDK's.
 // 5. The one command: runs the packed initializer again in a new project with SESS_API_KEY and
 //    SESS_DEMO_CONTACT in its environment and no terminal, so it scaffolds, installs and runs the
 //    agent itself. Timed the same way; the agent completes both rounds in the fake world and the
@@ -54,15 +54,13 @@ const initializer = resolve(here, '..');
 const root = resolve(initializer, '..');
 const fakeWorld = join(initializer, 'test', 'fake-world.mjs');
 const pin = JSON.parse(readFileSync(join(root, 'release', 'sdk-candidate.json'), 'utf8'));
-// The starter names itself to Sess. On SDK 0.1.0-rc.8 that is the whole User-Agent; a later SDK
-// appends its own `sess-sdk/<version> node/<version>`.
+// The starter names itself to Sess first; the SDK pin (0.1.0-rc.9 and later) appends its own
+// `sess-sdk/<version> node/<version>`.
 const USER_AGENT = `sess-create-agent/${JSON.parse(readFileSync(join(initializer, 'package.json'), 'utf8')).version}`;
 const sentUserAgent = (ua) =>
-  pin.version === '0.1.0-rc.8'
-    ? ua === USER_AGENT
-    : typeof ua === 'string' &&
-      ua.startsWith(`${USER_AGENT} sess-sdk/${pin.version} node/`) &&
-      !/\s/.test(ua.slice(`${USER_AGENT} sess-sdk/${pin.version} node/`.length));
+  typeof ua === 'string' &&
+  ua.startsWith(`${USER_AGENT} sess-sdk/${pin.version} node/`) &&
+  !/\s/.test(ua.slice(`${USER_AGENT} sess-sdk/${pin.version} node/`.length));
 const args = process.argv.slice(2);
 const valueOf = (flag) => {
   const i = args.indexOf(flag);

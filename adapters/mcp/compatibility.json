@@ -9,19 +9,12 @@
   "recordedAt": "2026-10-27",
   "node": {
     "engines": ">=22.14.0 <25",
-    "qualified": [
-      "22.14.0",
-      "24.21.0"
-    ],
+    "qualified": ["22.14.0", "24.21.0"],
     "evidence": "npm run setup + npm run check (build, typecheck, unit tests, packed consumer with the official stdio client) from a clean copy in node:22.14.0-bookworm-slim and node:24.21.0-bookworm-slim, plus macOS on 24.21.0"
   },
   "transport": {
-    "supported": [
-      "stdio"
-    ],
-    "library": [
-      "streamable-http (stateless, @sess.si/mcp/http createSessMcpHttpHandler)"
-    ],
+    "supported": ["stdio"],
+    "library": ["streamable-http (stateless, @sess.si/mcp/http createSessMcpHttpHandler)"],
     "notSupported": [
       "sse",
       "sessionful streamable-http",
@@ -79,27 +72,13 @@
   },
   "protocol": {
     "stdio": {
-      "negotiated": [
-        "2025-11-25",
-        "2025-06-18",
-        "2025-03-26",
-        "2024-11-05",
-        "2024-10-07"
-      ],
+      "negotiated": ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05", "2024-10-07"],
       "latestNegotiable": "2025-11-25",
       "note": "Unchanged on the wire: raw initialize, tools/list (five tools, sess-mcp-tools/2), tool errors, unknown-tool error, unsafe-key and unknown-property rejections, server/discover (method not found), ping and stderr diagnostics are byte-identical to the 1.32.1 build. One SDK-level difference: a tools/call whose arguments is not an object was -32603 and is now -32602 Invalid params. Since the Q-2 annotation audit (2026-10-15), tools/list differs from that build in one tool hint: sess_complete has destructiveHint true (was false); titles, descriptions, schemas and sess-mcp-tools/2 are unchanged."
     },
     "http": {
-      "modern": [
-        "2026-07-28"
-      ],
-      "legacy": [
-        "2025-11-25",
-        "2025-06-18",
-        "2025-03-26",
-        "2024-11-05",
-        "2024-10-07"
-      ],
+      "modern": ["2026-07-28"],
+      "legacy": ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05", "2024-10-07"],
       "unsupportedModernRevision": "400, JSON-RPC -32022 with data.supported [\"2026-07-28\"]",
       "note": "One endpoint serves both eras: per-request 2026-07-28 traffic and the stateless legacy fallback (initialize answered with 2025-11-25, no session ID)."
     },
@@ -164,11 +143,7 @@
       ]
     }
   ],
-  "untestedClients": [
-    "Cursor",
-    "Claude Desktop",
-    "any other MCP host"
-  ],
+  "untestedClients": ["Cursor", "Claude Desktop", "any other MCP host"],
   "sessSdk": {
     "name": "@sess.si/sdk",
     "version": "0.1.0-rc.9",

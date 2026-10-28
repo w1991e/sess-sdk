@@ -6,7 +6,7 @@
 // node in one of two modes:
 //
 //   registry   the genuine npm registry tarball with the pinned integrity. This is the current
-//              mode: the pinned @sess.si/sdk@0.1.0-rc.8 is published (dist-tag `next`). `npm run setup`,
+//              mode: the pinned @sess.si/sdk@0.1.0-rc.9 is published (dist-tag `next`). `npm run setup`,
 //              `npm run check`, CI and releases require it.
 //   candidate  `file:.candidate/<pinned filename>`, a gitignored local tarball, kept only for a
 //              future pin that is not yet published. npm does not enforce lock integrity for file:

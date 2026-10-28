@@ -11,9 +11,8 @@ import { join } from 'node:path';
 import { API_KEY, CONTACT, ROOT, initialize, runAgent, scratch, type WorldRecord } from './helpers.js';
 
 const version = (path: string): string => JSON.parse(readFileSync(join(ROOT, path), 'utf8')).version;
-// The starter names itself with the initializer's version. On the published SDK pin (0.1.0-rc.8)
-// that is the whole header (clean-install-check.mjs asserts it); this repository's SDK build
-// appends its own tokens after it.
+// The starter names itself with the initializer's version, first; the SDK appends its own tokens
+// after it (this repository's build here, the published pin 0.1.0-rc.9 in clean-install-check.mjs).
 const USER_AGENT = `sess-create-agent/${version('create-agent/package.json')}`;
 const SDK_USER_AGENT = `sess-sdk/${version('package.json')} node/${process.versions.node}`;
 

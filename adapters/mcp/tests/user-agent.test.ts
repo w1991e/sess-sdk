@@ -1,7 +1,8 @@
 // The adapter names itself to Sess in the User-Agent header (Sess classifies the creating client by
-// product token), on the local stdio path and the hosted HTTP path. The SDK pin, 0.1.0-rc.8, sends
-// no User-Agent of its own and has no option to prepend one, so the adapter's fetch sets it. Real
-// requests go through native fetch to a local stub Sess API; the test asserts the exact header.
+// product token), on the local stdio path and the hosted HTTP path. The SDK pin, 0.1.0-rc.9, sends
+// its own User-Agent (sess-sdk/<version> node/<version>) and puts its `userAgent` option's tokens
+// first, so the adapter passes its token there. Real requests go through native fetch to a local
+// stub Sess API; the test asserts the exact header.
 import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { Sess } from '@sess.si/sdk';
@@ -16,11 +17,8 @@ const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url),
 const sdkVersion: string = JSON.parse(
   readFileSync(new URL('../node_modules/@sess.si/sdk/package.json', import.meta.url), 'utf8'),
 ).version;
-// rc.8 sends no User-Agent: the header is exactly the adapter's token. A later SDK appends its own.
-const EXPECTED =
-  sdkVersion === '0.1.0-rc.8'
-    ? `sess-mcp/${pkg.version}`
-    : `sess-mcp/${pkg.version} sess-sdk/${sdkVersion} node/${process.versions.node}`;
+// The adapter's token, then the SDK's own: exactly one of each, in that order.
+const EXPECTED = `sess-mcp/${pkg.version} sess-sdk/${sdkVersion} node/${process.versions.node}`;
 
 let server: Server;
 let origin: string;
