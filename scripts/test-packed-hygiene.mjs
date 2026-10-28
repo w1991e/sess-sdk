@@ -110,6 +110,11 @@ const MORE_SECRETS = [
   ['private-key', ['-----BEGIN', 'RSA PRIVATE KEY-----'].join(' ')],
   ['human-link-token', `https://sess.si/n/${r(22)}`],
   ['human-link-token', `/n/${r(22, 'x-_9')}`],
+  // A canonical single-case token, and tokens glued to more token characters (ASTRA-807-01).
+  ['human-link-token', `/n/${r(22, 'abcdefghijklmnopqrstug')}`],
+  ['human-link-token', `/n/${r(23)}`],
+  ['human-link-token', `/n/${r(42, 'x-_9')}`],
+  ['human-link-token', `/s/${r(44)}`],
 ];
 
 const INTERNAL = {
@@ -233,8 +238,8 @@ test('words and prose near the key prefixes pass', () => {
     'The OpenRouter label sk-or-v1-abc...xyz is a placeholder; AIza is a Google prefix.',
     `A scikit-learn sk-learn-compatible name, sk-${'abcdefghijklmnopqrstuvwxyzabcdefgh'} (letters only).`,
     'Contact: someone@example.com; npm i @sess.si/sdk; see https://github.com/w1991e/sess-sdk?ref=main.',
-    // Not a short-link token: /n/ then a 23-character run, or a 21-character one.
-    `Paths /n/${r(23)} and /n/${r(21)} are not short links.`,
+    // Not a short-link token: /n/ then a run of 21 characters, too short to hold one.
+    `Paths /n/${r(21)} and /n/${r(21)}/x are not short links.`,
   ].join('\n');
   const { findings } = checkTarball(write({ ...CLEAN, 'README.md': prose }));
   assert.deepEqual(findings, [], findings.map(formatFinding).join('\n'));

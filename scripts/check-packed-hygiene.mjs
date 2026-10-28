@@ -89,8 +89,9 @@ export const CONTENT_RULES = [
   },
   {
     id: 'human-link-token',
-    pattern: /\/s\/[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])|\/n\/[A-Za-z0-9_-]{22}(?![A-Za-z0-9_-])/,
-    reason: 'human link capability token shape (/s/<43 chars> or /n/<22 chars>)',
+    // At least the token length: a token glued to more token characters is still a token.
+    pattern: /\/s\/[A-Za-z0-9_-]{43,}|\/n\/[A-Za-z0-9_-]{22,}/,
+    reason: 'human link capability token shape (/s/<43+ chars> or /n/<22+ chars>)',
     secret: true,
   },
   {

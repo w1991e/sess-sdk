@@ -9,8 +9,9 @@ const forbidden = [
   /whsec_[A-Za-z0-9+/]{43}=/,
   /(?:github_pat_|gh[pousr]_|npm_)[A-Za-z0-9_]{30,}/,
   /https?:\/\/[^\s"'<>]+\/s\/[A-Za-z0-9_-]{43}(?:[\s"'<>]|$)/,
-  // Short human links: /n/ then exactly 22 base64url characters (128 bits).
-  /https?:\/\/[^\s"'<>]+\/n\/[A-Za-z0-9_-]{22}(?:[^A-Za-z0-9_-]|$)/,
+  // Short human links: /n/ then a 22-character base64url token (128 bits), alone or glued to more
+  // token characters.
+  /https?:\/\/[^\s"'<>]+\/n\/[A-Za-z0-9_-]{22,}/,
   /(?:from\s*|import\s*(?:\(\s*)?|require\s*\(\s*)['"]@sess\/(?:core|db|renderer|security)(?:\/[^'"]*)?['"]/,
 ];
 // Only the exact pinned public-contract example may match the SESS rule.

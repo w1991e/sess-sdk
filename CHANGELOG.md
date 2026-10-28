@@ -2,9 +2,9 @@
 
 ## Unreleased
 
-- Short human links: a request identifier shaped like a short-link token (22 base64url
-  characters, as in `/n/<token>`) is withheld from `SessError.requestId` and request events, as a
-  43-character one already was.
+- Short human links: a request identifier holding a run of 22 or more base64url characters (a
+  short-link token is 22, as in `/n/<token>`; a `/s/` token 43; either may be glued to more) is
+  withheld from `SessError.requestId` and request events. Sess's own `req_<uuid>` ids are kept.
 
 - Commerce: bills as ordinary Surfaces, for Sess's `items` component. Sess takes no payment.
   `money(amount, currency)` checks a whole number of minor units (cents for USD, yen for JPY, fils

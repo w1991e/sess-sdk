@@ -905,7 +905,11 @@ export class SessMcpAdapter {
     });
   }
 
-  async #mutationFailed(record: HandleRecord, operation: string, error: unknown): Promise<never> {
+  async #mutationFailed(
+    record: HandleRecord,
+    operation: 'publish' | 'complete',
+    error: unknown,
+  ): Promise<never> {
     this.#options.diagnostics(`${operation}_failed`, { code: sessCode(error) });
     const code = safeCode(error);
     // The SDK reports `rejected` only for a definitive coded 4xx from its rejection table with no

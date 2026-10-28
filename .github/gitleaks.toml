@@ -78,8 +78,8 @@ keywords = ["/s/"]
 
 [[rules]]
 id = "sess-human-short-link"
-description = "Private hosted human short link (/n/ and a 22-character token)"
-regex = '''https?://[^\s"'<>]+/n/[A-Za-z0-9_-]{22}(?:[^A-Za-z0-9_-]|$)'''
+description = "Private hosted human short link (/n/ and a 22-character token, alone or glued to more token characters)"
+regex = '''https?://[^\s"'<>]+/n/[A-Za-z0-9_-]{22,}'''
 keywords = ["/n/"]
 
 [[rules]]

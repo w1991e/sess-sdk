@@ -1,8 +1,16 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
-import { AdapterError, redact, stderrDiagnostics } from '../src/errors.js';
+import {
+  AdapterError,
+  BLOCK_REASONS,
+  SESS_ERROR_CODES,
+  SESS_ERROR_KINDS,
+  isKnownCode,
+  redact,
+  stderrDiagnostics,
+} from '../src/errors.js';
 import { VERSION } from '../src/version.js';
 
 const base = { SESS_API_KEY: 'synthetic-owner-key-one', SESS_MCP_STATE_DIR: '/tmp/sess-mcp-config-test' };
@@ -132,24 +140,119 @@ describe('diagnostic redaction', () => {
     expect(lines.join('')).not.toContain(short);
     expect(lines.join('')).toMatch(/^sess-mcp: tool_error code=X /);
   });
-  it('keeps the adapter’s own 22-character identifiers, codes and event names', () => {
-    const handle = `sh_${short}`;
-    const generation = `cg1_${short}`;
-    const text = [
-      `handle=${handle}`,
-      `file=${handle}.json`,
-      `generation=${generation}`,
-      'code=CREATE_OUTCOME_UNKNOWN',
-      'code=transport/RESPONSE_LIMIT_REACHED',
+  // ASTRA-807-01: a canonical 16-byte base64url token can be one letter case, and a token glued to
+  // other token characters is a longer run. Free text keeps no run of 22 or more for its shape.
+  const canonical = 'abcdefghijklmnopqrstug';
+  it('redacts a canonical single-case short-link token', () => {
+    expect(canonical).toHaveLength(22);
+    expect(Buffer.from(canonical, 'base64url')).toHaveLength(16);
+    expect(Buffer.from(canonical, 'base64url').toString('base64url')).toBe(canonical);
+    for (const token of [canonical, canonical.toUpperCase(), short])
+      expect(redact(`v ${token} v`)).toBe('v [token] v');
+  });
+  it('redacts a token glued to 1 to 20 token characters on either side', () => {
+    for (let n = 1; n <= 20; n++) {
+      for (const pad of ['A', 'z', '9', '_', '-']) {
+        const glue = pad.repeat(n);
+        for (const run of [`${glue}${canonical}`, `${canonical}${glue}`, `${glue}${canonical}${glue}`])
+          expect(redact(`v ${run}.`)).toBe('v [token].');
+      }
+    }
+  });
+  it('redacts every run of 22 or more token characters in free text, codes and handles included', () => {
+    // Previously kept by shape (single-case snake case, or a sh_/cg1_ prefix); now withheld in free
+    // text. Codes and event names survive only as structured diagnostic values.
+    for (const run of [
+      'Create_Outcome_Unknown',
+      'CREATE_OUTCOME_UNKNOWN',
       'http_protocol_rejected',
+      `sh_${short}`,
+      `cg1_${short}`,
+    ])
+      expect(redact(`v ${run} v`)).toBe('v [token] v');
+    expect(redact(`file=sh_${short}.json code=transport/RESPONSE_LIMIT_REACHED`)).toBe(
+      'file=[token].json code=transport/[token]',
+    );
+  });
+  it('does not redact ordinary text or runs shorter than 22', () => {
+    const text = [
+      'The Sess MCP server hit an unexpected error.',
+      'tool=sess_response code=INVALID_STATE revision=3 remoteRevision=4',
+      `run=${canonical.slice(0, 21)} pair=${canonical.slice(0, 11)}.${canonical.slice(11)}`,
+      'Call sess_response for the current revision.',
     ].join(' ');
     expect(redact(text)).toBe(text);
   });
-  it('a 22-character run inside a longer token-character run is not a short link', () => {
-    for (const run of [`${short}A`, `A${short}`, `-${short}`, `${short}_`]) expect(redact(run)).toBe(run);
+  it('stderr diagnostics keep listed event names and exactly known codes as structured values', () => {
+    const lines: string[] = [];
+    const diagnostics = stderrDiagnostics(
+      (line) => lines.push(line),
+      () => [],
+    );
+    diagnostics('verification_not_configured', { code: 'transport/RESPONSE_LIMIT_REACHED' });
+    diagnostics('http_protocol_rejected');
+    diagnostics('blocked', { reason: 'CLOSED_WITHOUT_RESPONSE' });
+    diagnostics('tool_error', { tool: 'sess_request', code: 'CREATE_OUTCOME_UNKNOWN' });
+    diagnostics('create_rejected', { code: 'api/WEBHOOK_VERIFICATION_FAILED' });
+    expect(lines).toEqual([
+      'sess-mcp: verification_not_configured code=transport/RESPONSE_LIMIT_REACHED\n',
+      'sess-mcp: http_protocol_rejected\n',
+      'sess-mcp: blocked reason=CLOSED_WITHOUT_RESPONSE\n',
+      'sess-mcp: tool_error tool=sess_request code=CREATE_OUTCOME_UNKNOWN\n',
+      'sess-mcp: create_rejected code=api/WEBHOOK_VERIFICATION_FAILED\n',
+    ]);
   });
-  it('mixed-case or digit-bearing 22-character runs are redacted even with underscores', () => {
-    for (const run of ['Create_Outcome_Unknown', 'CREATE_OUTCOME_UNKNOW1', 'create-outcome-unknown'])
-      expect(redact(`v ${run} v`)).toBe('v [token] v');
+  it('stderr diagnostics redact token-shaped values that are not exactly a known code', () => {
+    const lines: string[] = [];
+    const diagnostics = stderrDiagnostics(
+      (line) => lines.push(line),
+      () => [],
+    );
+    const upper = canonical.toUpperCase();
+    diagnostics('blocked', { reason: upper });
+    diagnostics('create_rejected', { code: `api/${upper}` });
+    diagnostics('create_rejected', { code: 'evil/CREATE_OUTCOME_UNKNOWN' });
+    diagnostics('create_rejected', { code: 'CREATE_OUTCOME_UNKNOWN_' });
+    diagnostics('tool_error', { tool: `A${canonical}`, code: `${canonical}` });
+    // A JavaScript caller can pass any event name; an unlisted one is redacted like free text.
+    (diagnostics as (event: string) => void)(canonical);
+    expect(lines).toEqual([
+      'sess-mcp: blocked reason=[token]\n',
+      'sess-mcp: create_rejected code=api/[token]\n',
+      'sess-mcp: create_rejected code=evil/[token]\n',
+      'sess-mcp: create_rejected code=[token]\n',
+      'sess-mcp: tool_error tool=[token] code=[token]\n',
+      'sess-mcp: [token]\n',
+    ]);
+  });
+  it('the code allowlist is taken from the contract and SDK sources', () => {
+    const root = join(import.meta.dirname, '..', '..', '..');
+    const contract = JSON.parse(readFileSync(join(root, 'contract', 'openapi.json'), 'utf8'));
+    const apiCodes: string[] = contract.components.schemas.Error.properties.error.properties.code.anyOf.map(
+      (entry: { const: string }) => entry.const,
+    );
+    const sdkCodes = new Set<string>();
+    for (const file of readdirSync(join(root, 'src'), { recursive: true, encoding: 'utf8' })) {
+      if (!file.endsWith('.ts')) continue;
+      const text = readFileSync(join(root, 'src', file), 'utf8');
+      for (const [, code] of text.matchAll(/\bcode: '([A-Z][A-Z0-9_]*)'/g)) sdkCodes.add(code as string);
+    }
+    expect(apiCodes.length).toBeGreaterThan(20);
+    expect(sdkCodes.size).toBeGreaterThan(5);
+    expect([...SESS_ERROR_CODES].sort()).toEqual([...new Set([...apiCodes, ...sdkCodes])].sort());
+    const sdkErrors = readFileSync(join(root, 'src', 'errors.ts'), 'utf8');
+    const kinds = /export type SessErrorKind =([^;]*);/.exec(sdkErrors)?.[1] ?? '';
+    expect([...SESS_ERROR_KINDS].sort()).toEqual([...kinds.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort());
+    // Every literal block reason in operations.ts is listed (Sess codes reach #block as well).
+    const operations = readFileSync(join(import.meta.dirname, '..', 'src', 'operations.ts'), 'utf8');
+    const reasons = [
+      ...operations.matchAll(/#block\(record, '([A-Z_]+)'/g),
+      ...operations.matchAll(/kind: 'progress', reason: '([A-Z_]+)'/g),
+      // `code ?? 'SDK_CONFIGURATION'` and `error.code ?? 'WAIT_ENDED'`; HTTP_<status> stays short.
+      ...operations.matchAll(/\?\? '([A-Z_]+)'[);]/g),
+    ].map((m) => m[1] as string);
+    expect(reasons.length).toBeGreaterThan(5);
+    for (const reason of reasons) expect(isKnownCode(reason), reason).toBe(true);
+    expect(BLOCK_REASONS).toContain('LINK_EXPIRED'); // through the LINK_EXPIRED constant
   });
 });

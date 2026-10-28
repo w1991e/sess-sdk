@@ -38,10 +38,16 @@ if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) || !ownerKey)
   );
 
 const secrets = [ownerKey];
+// Exact strings only: the adapter error code this round checks for and logs.
+const KNOWN_CODES = new Set(['PENDING_MUTATION_DIFFERS']);
 const redact = (text) => {
   let out = String(text);
   for (const s of secrets) if (s) out = out.split(s).join('[redacted]');
-  return out.replace(/\/([sn])\/[^\s"'<>?#]*/g, '/$1/[capability]');
+  // Fail closed: any run of 22 or more token characters may hold a human-link token (22 for /n/,
+  // 43 for /s/, alone or glued to more token characters).
+  return out
+    .replace(/\/([sn])\/[^\s"'<>?#]*/g, '/$1/[capability]')
+    .replace(/[A-Za-z0-9_-]{22,}/g, (run) => (KNOWN_CODES.has(run) ? run : '[token]'));
 };
 const log = (step, value) =>
   console.log(`${step}: ${redact(typeof value === 'string' ? value : JSON.stringify(value))}`);

@@ -118,7 +118,9 @@ try {
   const redact = (text) => {
     let out = text;
     for (const secret of secrets) out = out.split(secret).join('[redacted]');
-    return out.replace(/\/([sn])\/[^\s"'<>]*/g, '/$1/[redacted]');
+    // Fail closed: any run of 22 or more token characters may hold a human-link token (22 for /n/,
+    // 43 for /s/, alone or glued to more token characters).
+    return out.replace(/\/([sn])\/[^\s"'<>]*/g, '/$1/[redacted]').replace(/[A-Za-z0-9_-]{22,}/g, '[token]');
   };
   console.log(`--- index.mjs exit ${result.code} (redacted transcript) ---`);
   process.stdout.write(redact(result.stdout));
