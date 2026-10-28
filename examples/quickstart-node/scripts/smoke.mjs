@@ -24,7 +24,9 @@ function redact(text) {
   let out = text;
   for (const secret of [...secrets].sort((a, b) => b.length - a.length))
     out = out.split(secret).join('[redacted]');
-  return out.replace(/\/s\/[^\s"'<>]*/g, '/s/[redacted]');
+  // Fail closed: any run of 22 or more token characters may hold a human-link token (22 for /n/,
+  // 43 for /s/, alone or glued to more token characters).
+  return out.replace(/\/([sn])\/[^\s"'<>]*/g, '/$1/[redacted]').replace(/[A-Za-z0-9_-]{22,}/g, '[token]');
 }
 
 function runExample(extraEnv, onHumanUrl) {
@@ -53,9 +55,8 @@ function runExample(extraEnv, onHumanUrl) {
     }
   });
   child.stderr.on('data', (chunk) => (stderr += chunk));
-  return new Promise((resolve) =>
-    child.on('exit', (code) => resolve({ code, stdout: redact(stdout), stderr: redact(stderr) })),
-  );
+  // The transcript is checked as it is and redacted only where it is printed (report).
+  return new Promise((resolve) => child.on('exit', (code) => resolve({ code, stdout, stderr })));
 }
 
 async function respond(humanUrl, amount) {
@@ -89,8 +90,8 @@ async function respond(humanUrl, amount) {
 
 function report(label, result) {
   console.log(`--- ${label}: exit ${result.code} ---`);
-  process.stdout.write(result.stdout);
-  if (result.stderr) process.stdout.write(`[stderr]\n${result.stderr}`);
+  process.stdout.write(redact(result.stdout));
+  if (result.stderr) process.stdout.write(`[stderr]\n${redact(result.stderr)}`);
 }
 
 let failed = false;

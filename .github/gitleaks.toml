@@ -73,8 +73,14 @@ keywords = ["whsec_"]
 [[rules]]
 id = "sess-human-capability"
 description = "Private hosted human capability URL"
-regex = '''https?://[^\s"'<>]+/s/[A-Za-z0-9_-]{43}(?:[\s"'<>]|$)'''
+regex = '''https?://[^\s"'<>]+/s/[A-Za-z0-9_-]{43,}'''
 keywords = ["/s/"]
+
+[[rules]]
+id = "sess-human-short-link"
+description = "Private hosted human short link (/n/ and a 22-character token, alone or glued to more token characters)"
+regex = '''https?://[^\s"'<>]+/n/[A-Za-z0-9_-]{22,}'''
+keywords = ["/n/"]
 
 [[rules]]
 id = "private-key-header"

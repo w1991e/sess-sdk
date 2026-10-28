@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Short human links: a request identifier holding a run of 22 or more base64url characters (a
+  short-link token is 22, as in `/n/<token>`; a `/s/` token 43; either may be glued to more) is
+  withheld from `SessError.requestId` and request events. Sess's own `req_<uuid>` ids are kept.
 - A key Sess does not accept (HTTP 401 `UNAUTHORIZED`) now says so: the `SessError` message is
   "Sess did not accept your API key. Check SESS_API_KEY and the portal you made it on." instead of
   the generic "The Sess API returned an error. See the status and code fields." Other messages

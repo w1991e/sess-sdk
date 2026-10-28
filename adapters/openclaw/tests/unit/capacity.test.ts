@@ -408,7 +408,7 @@ describe('prune and redacted diagnostics', () => {
     const text = formatCounts(await countStates(stores(host)));
     expect(text).toMatch(/active interactions.*waiting=1/);
     expect(text).toMatch(/archive.*blocked=1/);
-    expect(text).not.toMatch(/ih_|ses_|https?:|\/s\/|c:/);
+    expect(text).not.toMatch(/ih_|ses_|https?:|\/[sn]\/|c:/);
   });
 
   it('registers dry-run-first prune and doctor CLI commands', async () => {
@@ -463,7 +463,7 @@ describe('release-boundary revocation for request and publish', () => {
     ).catch((e) => e);
     expect(error.code).toBe('AUTHORITY_REVOKED');
     expect(error.message).toContain(REVOKED_AFTER_SAVE);
-    expect(JSON.stringify(error)).not.toContain('/s/');
+    expect(JSON.stringify(error)).not.toMatch(/\/[sn]\//);
     conv.revoked = false;
     const redelivered = await call(
       host,

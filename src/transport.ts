@@ -125,6 +125,8 @@ function origin(input: string | undefined, allowInsecure: boolean): string {
   }
   return url.origin;
 }
+/** The request id the Sess API assigns: `req_` and a random UUID. */
+const SESS_REQUEST_ID = /^req_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 function safeText(
   value: unknown,
   pattern: RegExp,
@@ -135,7 +137,10 @@ function safeText(
     typeof value !== 'string' ||
     !pattern.test(value) ||
     /sess_(?:sk|mg|tk|mk)_|whsec_|eyJ/.test(value) ||
-    (opaqueIdentifier && /^[A-Za-z0-9_-]{43}$/.test(value)) ||
+    // A request identifier holding a run of 22 or more base64url characters may carry a reflected
+    // human-link token (22 for /n/ short links, 43 for /s/ links, alone or glued to more token
+    // characters), so it is withheld. Sess's own request ids, req_ and a lowercase UUID, are kept.
+    (opaqueIdentifier && /[A-Za-z0-9_-]{22,}/.test(value) && !SESS_REQUEST_ID.test(value)) ||
     (key && value.includes(key))
   )
     return undefined;

@@ -589,4 +589,65 @@ describe('deadlines, bounded responses and metadata', () => {
     expect(error.requestId).toBeUndefined();
     expect(JSON.stringify(error)).not.toContain(API_KEY);
   });
+  // A reflected human-link token (/s/ 43 characters, /n/ short link 22) is never surfaced as an id,
+  // whatever its letter case and whether or not it is glued to other characters (ASTRA-807-01).
+  const canonical = 'abcdefghijklmnopqrstug'; // a canonical 16-byte base64url token, one letter case
+  const tokenShaped = [
+    'Zq3-x_9Kp0LmN4rTv7Wy2a',
+    canonical,
+    canonical.toUpperCase(),
+    'Q'.repeat(43),
+    `${canonical}A`,
+    `A${canonical}`,
+    `${'x'.repeat(20)}${canonical}${'_'.repeat(20)}`,
+    `trace.${canonical}`,
+    `${canonical}:1`,
+    `req_${canonical}`,
+    'req_0B7F6A2E-6C1D-4C8E-9A51-3F2D1E0C9B8A',
+    `req_0b7f6a2e-6c1d-4c8e-9a51-3f2d1e0c9b8a${canonical}`,
+  ];
+  it.each([
+    ...tokenShaped.map((token) => ['body', token] as const),
+    ...tokenShaped.map((token) => ['header', token] as const),
+  ])('withholds a token-shaped request identifier in the %s (%#)', async (where, token) => {
+    const fetch = vi.fn(async () =>
+      where === 'body'
+        ? apiError(404, 'NOT_FOUND', { request_id: token })
+        : new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'm' } }), {
+            status: 404,
+            headers: { 'content-type': 'application/json', 'x-request-id': token },
+          }),
+    );
+    const error = await client(fetch)
+      .sessions.retrieve(SESSION_ID)
+      .then(
+        () => {
+          throw new Error('Expected rejection');
+        },
+        (error: unknown) => {
+          if (!(error instanceof SessError)) throw error;
+          return error;
+        },
+      );
+    expect(error.requestId).toBeUndefined();
+    expect(JSON.stringify(error)).not.toContain(token);
+  });
+  it('keeps Sess request identifiers and identifiers without a run of 22 token characters', async () => {
+    for (const id of [
+      'req_0b7f6a2e-6c1d-4c8e-9a51-3f2d1e0c9b8a',
+      'Zq3-x_9Kp0LmN4rTv7Wy2',
+      'request-123',
+      `${canonical.slice(0, 21)}.${canonical.slice(0, 21)}:7`,
+    ]) {
+      const fetch = vi.fn(async () => apiError(404, 'NOT_FOUND', { request_id: id }));
+      const error = await client(fetch)
+        .sessions.retrieve(SESSION_ID)
+        .then(
+          () => undefined,
+          (e: unknown) => e,
+        );
+      expect(error).toBeInstanceOf(SessError);
+      expect((error as SessError).requestId).toBe(id);
+    }
+  });
 });

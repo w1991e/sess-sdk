@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Diagnostics redact Sess's short human links (`/n/` and a 22-character token) as they redact
+  `/s/` links, and withhold every run of 22 or more base64url characters, whatever its letter case
+  or what it is glued to. Event names and error codes are kept only when they are exactly a known
+  event or code, as structured values; in free text they are withheld like any other such run.
+
 ## 0.1.0-rc.4
 
 - Still depends on `@sess.si/sdk` 0.1.0-rc.8 (sha256 `b533935b…4c95`), resolved from the registry;

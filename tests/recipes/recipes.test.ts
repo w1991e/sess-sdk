@@ -390,7 +390,7 @@ describe('provider recipes (mocked providers)', () => {
       expect(model.seen).toHaveLength(7); // six tool calls, then the final answer
       for (let i = 1; i < model.seen.length; i++) CARRIES[id]?.(model.seen[i] as Seen, i);
       // The private link reaches the terminal only, never a model request.
-      for (const s of model.seen) expect(JSON.stringify(s.body)).not.toContain('/s/');
+      for (const s of model.seen) expect(JSON.stringify(s.body)).not.toMatch(/\/[sn]\//);
       expect(err).toContain(LINK);
       expect(out).not.toContain(LINK);
       // Sess: one create; publish and complete bound to the answered snapshots.
@@ -421,7 +421,7 @@ describe('provider recipes (mocked providers)', () => {
     const files = readdirSync(dir).filter((f) => f !== 'spend-ledger.json');
     expect(files).toHaveLength(1);
     const text = readFileSync(join(dir, files[0] as string), 'utf8');
-    for (const secret of [SESS_KEY, MODEL_KEY, LINK, '/s/', 'oslo', 'option_1', 'evening'])
+    for (const secret of [SESS_KEY, MODEL_KEY, LINK, '/s/', '/n/', 'oslo', 'option_1', 'evening'])
       expect(text).not.toContain(secret);
     const record = JSON.parse(text);
     expect(record).toMatchObject({

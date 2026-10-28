@@ -36,7 +36,11 @@ const secrets = new Set([token]);
 const redact = (value) => {
   let text = typeof value === 'string' ? value : JSON.stringify(value);
   for (const secret of secrets) text = text.split(secret).join('[redacted]');
-  return text.replace(/\/s\/[A-Za-z0-9_-]+/g, '/s/[redacted]');
+  // Fail closed: any run of 22 or more token characters may hold a human-link token (22 for /n/,
+  // 43 for /s/, alone or glued to more token characters).
+  return text
+    .replace(/\/([sn])\/[A-Za-z0-9_-]+/g, '/$1/[redacted]')
+    .replace(/[A-Za-z0-9_-]{22,}/g, '[token]');
 };
 const log = (step, data) => console.log(`${step}: ${redact(data)}`);
 const port = new URL(gateway).port;
@@ -118,7 +122,8 @@ async function main() {
     'request returns waiting revision 1',
   );
   check(
-    typeof first.humanUrl === 'string' && first.humanUrl.startsWith(`${sessOrigin}/s/`),
+    typeof first.humanUrl === 'string' &&
+      (first.humanUrl.startsWith(`${sessOrigin}/s/`) || first.humanUrl.startsWith(`${sessOrigin}/n/`)),
     'human link returned before any wait (return-link-first)',
   );
 
