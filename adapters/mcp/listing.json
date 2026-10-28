@@ -44,20 +44,51 @@
     },
     "privacy": {
       "value": "https://sess.si/privacy/",
-      "status": "pending-cutover",
-      "note": "Built by the Sess site (apps/site/content/privacy.html) and served on preview; https://sess.si/privacy/ answers only after the apex cutover."
+      "status": "live",
+      "note": "Built by the Sess site (apps/site/content/privacy.html). A read-only GET of https://sess.si/privacy/ returned 200 on production on 2026-10-28, after the 27 Oct apex cutover."
     },
     "terms": {
       "value": "https://sess.si/terms/",
-      "status": "pending-cutover",
-      "note": "Built by the Sess site (apps/site/content/terms.html) and served on preview; https://sess.si/terms/ answers only after the apex cutover."
+      "status": "live",
+      "note": "Built by the Sess site (apps/site/content/terms.html). A read-only GET of https://sess.si/terms/ returned 200 on production on 2026-10-28, after the 27 Oct apex cutover."
     }
   },
   "supportContact": "support@sess.si",
   "icons": {
-    "value": null,
-    "status": "missing",
-    "note": "No PNG icon exists yet. Needs a square PNG of at least 48x48 (OpenAI primary icon, Claude icon, MCP Registry icons over HTTPS), committed under listings/plugin/assets/; the owner supplies the brand asset."
+    "value": [
+      {
+        "src": "https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png",
+        "mimeType": "image/png",
+        "sizes": ["512x512"]
+      },
+      {
+        "src": "https://sess.si/assets/icons/24eb73d4a4d9/icon-192.png",
+        "mimeType": "image/png",
+        "sizes": ["192x192"]
+      }
+    ],
+    "status": "pending-deploy",
+    "note": "The URLs answer only after the Wednesday production deploy of w1991e/sess #776 (both returned 404 on 2026-10-28). The site serves the icon set under /assets/icons/<icons.json version>/. The same PNGs are committed under listings/plugin/assets/ for the stores that take an upload.",
+    "source": {
+      "repository": "https://github.com/w1991e/sess",
+      "commit": "43f169107f2b37a1e1b14ec69bc5ae446931445c",
+      "pullRequest": 776,
+      "generator": "packages/design-tokens/scripts/logos.ts",
+      "iconSetVersion": "24eb73d4a4d9",
+      "note": "Copied byte for byte from packages/design-tokens/icons/ (the logo masters B set; icons.json version 24eb73d4a4d9). On 2026-10-28, logos.ts --check reported every derived file equal to a fresh generation at w1991e/sess 8dc6f040, where the icon files are unchanged since 43f16910. Nothing is drawn by hand."
+    },
+    "files": [
+      {
+        "path": "listings/plugin/assets/icon-512.png",
+        "size": 512,
+        "sha256": "423a61419cf7988e51afb858e671a23bffea8593eb7529345cce854073d6ae90"
+      },
+      {
+        "path": "listings/plugin/assets/icon-192.png",
+        "size": 192,
+        "sha256": "7c22cd45d39dd0b57d5dc61282952b77724f345614e763d08e74b34d57c1e862"
+      }
+    ]
   },
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
@@ -246,6 +277,21 @@
       "note": "Values for Anthropic's connector submission form; there is no published schema, so listing.mjs checks the documented requirements (HTTPS URL, OAuth, a title and read-only/destructive hints on every tool; name 100, one-liner 200, description 2000 characters, 1-5 categories, documentation and privacy policy URLs, a support contact).",
       "source": "https://claude.com/docs/connectors/building/submission.md",
       "retrieved": "2026-10-23"
+    },
+    "docker": {
+      "mapping": 1,
+      "output": "listings/docker",
+      "name": "sess",
+      "category": "productivity",
+      "tags": ["productivity", "human-in-the-loop", "forms", "approvals", "remote"],
+      "oauth": {
+        "provider": "sess",
+        "secret": "sess.personal_access_token",
+        "env": "SESS_PERSONAL_ACCESS_TOKEN"
+      },
+      "note": "Files for a pull request to docker/mcp-registry that adds servers/sess/ (server.yaml, tools.json, readme.md). The oauth entry follows the remote wizard's convention (<name>.personal_access_token, <NAME>_PERSONAL_ACCESS_TOKEN). Whether Docker's OAuth handling fits Sess's client-ID metadata documents and dynamic client registration is an open question (LISTINGS.md).",
+      "source": "https://github.com/docker/mcp-registry/blob/main/CONTRIBUTING.md",
+      "retrieved": "2026-10-28"
     },
     "clawhub": {
       "status": "not-applicable",

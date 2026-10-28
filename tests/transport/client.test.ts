@@ -188,14 +188,24 @@ describe('single attempt create and secret-safe failure', () => {
   });
   it('keeps a 429 active_sessions plan limit definite without Retry-After', async () => {
     const fetch = vi.fn(async () => apiError(429, 'PLAN_LIMIT_REACHED', { reason: 'active_sessions' }));
-    await expect(client(fetch).sessions.create({ interaction: INTERACTION })).rejects.toMatchObject({
+    const error = await client(fetch)
+      .sessions.create({ interaction: INTERACTION })
+      .then(
+        () => {
+          throw new Error('Expected rejection');
+        },
+        (error: unknown) => error as SessError,
+      );
+    expect(error).toMatchObject({
       kind: 'api',
       code: 'PLAN_LIMIT_REACHED',
       reason: 'active_sessions',
       outcome: 'rejected',
-      retryAfterMs: undefined,
       attempts: 1,
     });
+    // Absent, not an own `undefined` property: printing the error lists no empty fields.
+    expect(error.retryAfterMs).toBeUndefined();
+    expect('retryAfterMs' in error).toBe(false);
   });
   it.each([
     ['429 RATE_LIMITED', () => apiError(429, 'RATE_LIMITED')],
