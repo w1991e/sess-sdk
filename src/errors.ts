@@ -125,6 +125,11 @@ export function lengthMessage(field: string, limit: number, length: number): str
   // `sess.ask()` question) has its own.
   if (field === '/interaction/title' || field === '/question')
     return `The title can be at most ${limit} characters. Keep it to a short heading, about 40.`;
+  // Commerce: an items component's rows and totals lines are counted, never truncated.
+  if (/\/rows$/.test(field))
+    return `${field} has ${length} rows; the limit is ${limit}. Send at most ${limit}, in more than one items component if you need more.`;
+  if (/\/totals$/.test(field))
+    return `${field} has ${length} totals lines; the limit is ${limit}. Send at most ${limit}.`;
   return `${field} is ${length} characters; the limit is ${limit}. Shorten it to at most ${limit} characters.`;
 }
 

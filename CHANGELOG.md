@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+- A key Sess does not accept (HTTP 401 `UNAUTHORIZED`) now says so: the `SessError` message is
+  "Sess did not accept your API key. Check SESS_API_KEY and the portal you made it on." instead of
+  the generic "The Sess API returned an error. See the status and code fields." Other messages
+  are unchanged. `code`, `status` and `requestId` are still on the error.
+- A `SessError` has an own property only for a field with a value. Printing one (an uncaught
+  error, `console.log`, `util.inspect`, `JSON.stringify`) no longer lists absent fields as
+  `undefined`; reading an absent field still gives `undefined`. The Node quickstart and the
+  README print the message first, then a `Details:` line with the code and request ID.
+
+## 0.1.0-rc.9 — 2026-10-28 (prepared, unpublished)
+
+- Commerce: bills as ordinary Surfaces, for Sess's `items` component. Sess takes no payment.
+  `money(amount, currency)` checks a whole number of minor units (cents for USD, yen for JPY, fils
+  for BHD) and an ISO 4217 code Sess accepts; it never rounds or converts. `items()` builds the
+  component with its subtotal, total and amount due computed exactly from the rows, lines and
+  payments, so Sess's arithmetic check passes. `invoice()`, `receipt()`, `quote()`, `refund()` and
+  `purchaseOrder()` return an `interaction` for `sessions.create()`: the card, the document's
+  reference in a record under a plain name, and the buttons Sess requires (Request changes
+  whenever a quantity is editable). `refund()` states positive amounts under "Refund total" and
+  never a negative total. `lintText()` finds Markdown pipe tables in text and says whether to send
+  an items component or a record. Limits match Sess's and reject, never truncate: row name 80,
+  detail 160, totals label 40, caption 200, rows 100, totals lines 8 (`ITEMS_LIMITS`); a refusal is
+  a `SessError` with code `INVALID_SCHEMA`, outcome `not_sent`, and the value's JSON pointer in
+  `field`. A `record` key `__proto__`, `constructor` or `prototype` is refused. New types
+  `ItemsComponent` and `ItemTotalRole` (`SurfaceComponent` includes items) and the Advanced
+  `locale` on an interactive interaction. Session reads now accept an items component, and a 400
+  for too many rows or totals lines carries Sess's sentence.
 - Every request names the SDK in its `User-Agent` header: `sess-sdk/<version> node/<version>`.
   The new client option `userAgent` puts a wrapping client's product tokens first, for example
   `userAgent: 'my-app/1.2.0'` sends `my-app/1.2.0 sess-sdk/0.1.0-rc.9 node/24.21.0`. A value that is
@@ -14,14 +41,6 @@
   `Retry-After` (time until the period resets); it is never retried. Before, it was
   `unknown_outcome` ("may have succeeded"). Any other 429 (no code, or `RATE_LIMITED`) is unchanged:
   transient, retried where retries are allowed, and uncertain for a write.
-- A key Sess does not accept (HTTP 401 `UNAUTHORIZED`) now says so: the `SessError` message is
-  "Sess did not accept your API key. Check SESS_API_KEY and the portal you made it on." instead of
-  the generic "The Sess API returned an error. See the status and code fields." Other messages
-  are unchanged. `code`, `status` and `requestId` are still on the error.
-- A `SessError` has an own property only for a field with a value. Printing one (an uncaught
-  error, `console.log`, `util.inspect`, `JSON.stringify`) no longer lists absent fields as
-  `undefined`; reading an absent field still gives `undefined`. The Node quickstart and the
-  README print the message first, then a `Details:` line with the code and request ID.
 - The package ships compiled output only: no source maps (`*.js.map`, `*.d.ts.map`) or
   `sourceMappingURL` comments, and no `src/` TypeScript sources (every export and types path is in
   `dist/`). The generated wire types' JSDoc names Sess specifications instead of runtime-repository

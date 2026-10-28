@@ -1,9 +1,13 @@
-import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  checkIconFiles,
+  checkPackets,
   cursorDeeplink,
   generate,
+  pngSize,
   readSchemas,
   scanText,
   validate,
@@ -86,6 +90,9 @@ describe('listing.json artifacts', () => {
       [
         'listings/claude-connector.json',
         'listings/cursor-install.json',
+        'listings/docker/readme.md',
+        'listings/docker/server.yaml',
+        'listings/docker/tools.json',
         'listings/plugin/README.md',
         'listings/plugin/mcp.json',
         'listings/plugin/plugin.json',
@@ -104,12 +111,15 @@ describe('listing.json artifacts', () => {
       /https:\/\/mcp\.sess\.si\/mcp is unqualified \(production host qualification pending\)/,
     );
     expect(text).toMatch(/PROPOSED and awaits the founder’s line-by-line sign-off/);
-    // The icon stays an open blocker until the owner supplies a PNG; nothing is invented.
-    expect(text).toMatch(/icon missing: no PNG icon yet/);
-    expect(JSON.parse(read('listing.json')).icons.value).toBeNull();
+    // The icon is the logos script's output; its URLs stay a blocker until production serves them,
+    // and Cline's 400x400 stays one until the script generates it.
+    expect(text).toMatch(/MCP Registry and Docker: icon URLs pending-deploy/);
+    expect(text).toMatch(/Cline: needs a 400x400 PNG/);
+    expect(text).not.toMatch(/no PNG icon yet/);
+    expect(text).not.toMatch(/urls\.(privacy|terms)/);
     // The npm package is deferred: adding it needs a successor candidate carrying si.sess/sess.
     expect(text).toMatch(
-      /MCP Registry npm package: deferred \(remote-only entry\); adding @sess\.si\/mcp needs a successor candidate whose mcpName is si\.sess\/sess \(@sess\.si\/mcp@0\.1\.0-rc\.3 on npm declares io\.github\.w1991e\/sess\)/,
+      /MCP Registry npm package: deferred \(remote-only entry\); adding @sess\.si\/mcp needs a successor candidate whose mcpName is si\.sess\/sess \(@sess\.si\/mcp@0\.1\.0-rc\.4 on npm declares io\.github\.w1991e\/sess\)/,
     );
   });
 
@@ -413,5 +423,160 @@ describe('listing.json artifacts', () => {
       c.entries[1].deeplink = cursorDeeplink('sess', c.entries[1].config);
     });
     expect(check(i, files).errors).toContain('cursor stdio: env values must be ${env:NAME}');
+  });
+});
+
+describe('listing icons', () => {
+  const readBytes = (path: string) =>
+    existsSync(join(base, path)) ? readFileSync(join(base, path)) : undefined;
+  const ICON_URL = 'https://sess.si/assets/icons/24eb73d4a4d9';
+
+  it('are the Sess logos script’s 512 and 192 PNGs, square, at their pinned SHA-256s', () => {
+    const { icons } = inputs().listing;
+    expect(icons.source).toMatchObject({
+      repository: 'https://github.com/w1991e/sess',
+      commit: '43f169107f2b37a1e1b14ec69bc5ae446931445c',
+      generator: 'packages/design-tokens/scripts/logos.ts',
+      iconSetVersion: '24eb73d4a4d9',
+    });
+    expect(icons.files).toEqual([
+      {
+        path: 'listings/plugin/assets/icon-512.png',
+        size: 512,
+        sha256: '423a61419cf7988e51afb858e671a23bffea8593eb7529345cce854073d6ae90',
+      },
+      {
+        path: 'listings/plugin/assets/icon-192.png',
+        size: 192,
+        sha256: '7c22cd45d39dd0b57d5dc61282952b77724f345614e763d08e74b34d57c1e862',
+      },
+    ]);
+    expect(checkIconFiles(inputs().listing, readBytes)).toEqual([]);
+    for (const f of icons.files)
+      expect(pngSize(readBytes(f.path))).toEqual({ width: f.size, height: f.size });
+  });
+
+  it('refuses a missing icon, a non-PNG, a wrong size and changed bytes', () => {
+    const listing = inputs().listing;
+    const real = readBytes('listings/plugin/assets/icon-512.png')!;
+    const swapped = (path: string) =>
+      path.endsWith('icon-512.png') ? readBytes('listings/plugin/assets/icon-192.png') : readBytes(path);
+    expect(checkIconFiles(listing, (p) => (p.endsWith('icon-512.png') ? undefined : readBytes(p)))).toEqual([
+      'icon listings/plugin/assets/icon-512.png is missing',
+    ]);
+    expect(checkIconFiles(listing, swapped)).toEqual([
+      'icon listings/plugin/assets/icon-512.png is 192x192, not the stated 512x512',
+      'icon listings/plugin/assets/icon-512.png does not match its recorded SHA-256',
+    ]);
+    const notPng = (p: string) =>
+      p.endsWith('icon-512.png') ? Buffer.from('GIF89a not a png') : readBytes(p);
+    expect(checkIconFiles(listing, notPng)).toContain(
+      'icon listings/plugin/assets/icon-512.png is not a PNG',
+    );
+    // One changed byte after the header: same IHDR, different SHA-256.
+    const tampered = Buffer.from(real);
+    const at = tampered.length - 20;
+    tampered[at] = tampered[at]! ^ 1;
+    expect(createHash('sha256').update(tampered).digest('hex')).not.toBe(listing.icons.files[0].sha256);
+    expect(checkIconFiles(listing, (p) => (p.endsWith('icon-512.png') ? tampered : readBytes(p)))).toEqual([
+      'icon listings/plugin/assets/icon-512.png does not match its recorded SHA-256',
+    ]);
+  });
+
+  it('reach every host from icons.value and icons.files', () => {
+    const files = generate(inputs());
+    const server = JSON.parse(files.get('server.json')!);
+    expect(server.icons).toEqual([
+      { src: `${ICON_URL}/icon-512.png`, mimeType: 'image/png', sizes: ['512x512'] },
+      { src: `${ICON_URL}/icon-192.png`, mimeType: 'image/png', sizes: ['192x192'] },
+    ]);
+    const ui = JSON.parse(files.get('listings/plugin/plugin.json')!).extensions['com.openai'].interface;
+    expect([ui.logo, ui.composerIcon]).toEqual(['./assets/icon-512.png', './assets/icon-192.png']);
+    expect(JSON.parse(files.get('listings/claude-connector.json')!).icon).toBe(
+      'listings/plugin/assets/icon-512.png',
+    );
+    expect(files.get('listings/docker/server.yaml')).toContain(`  icon: ${ICON_URL}/icon-512.png\n`);
+  });
+
+  it('refuses icon URLs, sizes or host fields that drift from the committed files', () => {
+    const wrongUrl = inputs();
+    wrongUrl.listing.icons.value[0].src = 'https://cdn.example.com/icon-512.png';
+    expect(check(wrongUrl).errors).toContain(`icons.value[0].src must be ${ICON_URL}/icon-512.png`);
+    const wrongSize = inputs();
+    wrongSize.listing.icons.value[1].sizes = ['512x512'];
+    expect(check(wrongSize).errors).toContain('icons.value[1] must be image/png with sizes ["192x192"]');
+    const tooSmall = inputs();
+    tooSmall.listing.icons.files[1].size = 32;
+    tooSmall.listing.icons.value[1].sizes = ['32x32'];
+    expect(check(tooSmall).errors).toContain('icons.files[1] must be at least 48x48');
+    const unsourced = inputs();
+    delete unsourced.listing.icons.source.commit;
+    expect(check(unsourced).errors).toContain(
+      'icons.source must name the Sess commit and the icons.json version the icons come from',
+    );
+    const i = inputs();
+    let files = edit(generate(i), 'server.json', (s) => {
+      s.icons.pop();
+    });
+    files = edit(files, 'listings/plugin/plugin.json', (p) => {
+      delete p.extensions['com.openai'].interface.logo;
+    });
+    files = edit(files, 'listings/claude-connector.json', (c) => {
+      c.icon = 'listings/plugin/assets/other.png';
+    });
+    const { errors } = check(i, files);
+    expect(errors).toContain('server.json icons drift from listing.json icons.value');
+    expect(errors).toContain('plugin.json interface.logo and composerIcon must name the committed icons');
+    expect(errors).toContain('claude-connector.json icon must name the primary icon');
+  });
+});
+
+describe('directory packets', () => {
+  it('Docker: a remote server with OAuth, the production URL, the icon URL and dynamic tools', () => {
+    const files = generate(inputs());
+    expect(files.get('listings/docker/server.yaml')).toBe(
+      [
+        'name: sess',
+        'type: remote',
+        'dynamic:',
+        '  tools: true',
+        'meta:',
+        '  category: productivity',
+        '  tags:',
+        '    - productivity',
+        '    - human-in-the-loop',
+        '    - forms',
+        '    - approvals',
+        '    - remote',
+        'about:',
+        '  title: Sess',
+        '  description: Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.',
+        '  icon: https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png',
+        'remote:',
+        '  transport_type: streamable-http',
+        '  url: https://mcp.sess.si/mcp',
+        'oauth:',
+        '  - provider: sess',
+        '    secret: sess.personal_access_token',
+        '    env: SESS_PERSONAL_ACCESS_TOKEN',
+        '',
+      ].join('\n'),
+    );
+    expect(files.get('listings/docker/tools.json')).toBe('[]\n');
+    expect(files.get('listings/docker/readme.md')).toBe('Docs: https://docs.sess.si/add-to-your-agent/\n');
+    // A value that would need YAML quoting is refused, never written half-quoted.
+    const colon = inputs();
+    colon.listing.copy.registry = 'Sess: ask a person';
+    expect(() => generate(colon)).toThrow(/needs quoting/);
+  });
+
+  it('LISTINGS.md quotes listing.json’s current copy, URLs and icons', () => {
+    const listing = inputs().listing;
+    expect(checkPackets(listing, read('LISTINGS.md'))).toEqual([]);
+    const changed = inputs().listing;
+    changed.copy.registry = 'Another registry description.';
+    expect(checkPackets(changed, read('LISTINGS.md'))).toEqual([
+      'LISTINGS.md owner submission steps do not quote listing.json\'s "Another registry description."',
+    ]);
   });
 });

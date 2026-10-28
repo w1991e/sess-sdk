@@ -51,7 +51,10 @@ The four tools are optional: they are offered to the model only once `tools.also
 and `openclaw sess setup --yes` is that step. They have no consent prompt of their own, and
 `openclaw sess doctor` shows whether they are allowed. OpenClaw 2026.10.3 and 2026.10.7 behave the
 same here. With the Gateway running, the npm question is the only one: the install goes through
-the Gateway, which accepts the plugin's capabilities without listing them. With the Gateway
+the Gateway, which accepts the plugin's capabilities without listing them. When a Gateway is
+running, OpenClaw skips its capability review at install. We reported this to OpenClaw on
+27 October 2026 ([openclaw/openclaw#186189](https://github.com/openclaw/openclaw/issues/186189)).
+With the Gateway
 stopped, OpenClaw then lists them (the four tools, the `sess` command and the skill) and asks once
 more; answer `y`. Without a terminal, OpenClaw cancels the install; after reviewing the package,
 rerun the same command with `--force --accept-capabilities`. OpenClaw itself is a peer and is never

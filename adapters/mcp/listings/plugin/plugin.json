@@ -34,7 +34,9 @@
           "Ask me on my phone which time works for a call tomorrow.",
           "Before you send the report, ask me to approve it.",
           "Ask me three quick questions to plan my weekend."
-        ]
+        ],
+        "composerIcon": "./assets/icon-192.png",
+        "logo": "./assets/icon-512.png"
       },
       "review": {
         "test_cases": {

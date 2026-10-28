@@ -1,0 +1,50 @@
+name: Bug
+description: Something in @sess.si/sdk, the MCP adapter, the OpenClaw adapter or create-agent does not do what the docs say.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Keep it synthetic: never paste an API key, a Sess link, a receipt or anyone's answers. A security problem goes to the private advisory form instead (see SECURITY.md).
+  - type: input
+    id: package
+    attributes:
+      label: Package and version
+      placeholder: '@sess.si/sdk 0.1.0-rc.9'
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      placeholder: 'node --version'
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Minimal reproduction
+      description: The smallest code or command that shows it, with made-up data.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: The error text or result, with anything private removed.
+    validations:
+      required: true
+  - type: checkboxes
+    id: private
+    attributes:
+      label: Private data
+      options:
+        - label: This report contains no API key, Sess link, receipt, webhook secret or real person's data.
+          required: true
