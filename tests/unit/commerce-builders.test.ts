@@ -130,6 +130,27 @@ describe('the five builders', () => {
     );
   });
 
+  it('a record key that is not plain data is refused, never dropped (ASTRA-SDK-6-RECORD-PROTO-01)', () => {
+    // A JSON-parsed record has an own "__proto__" key. Copied onto an ordinary object it would
+    // run the prototype setter: no row, and with null the output's prototype changes; a bill whose
+    // only fact is that row would silently lose its record. It is refused, as ask() refuses it.
+    for (const json of [
+      '{"__proto__":"30 November 2026"}',
+      '{"__proto__":null}',
+      '{"Due":"x","__proto__":{}}',
+    ]) {
+      const record = JSON.parse(json) as Record<string, string | null>;
+      expect(Object.hasOwn(record, '__proto__')).toBe(true);
+      const e = refusal(() => invoice({ ...BILL, record }));
+      expect(e.field).toBe('/interaction/source/components/0/fields/__proto__');
+    }
+    for (const key of ['constructor', 'prototype']) {
+      expect(refusal(() => invoice({ ...BILL, record: { [key]: 'v' } })).field).toBe(
+        `/interaction/source/components/0/fields/${key}`,
+      );
+    }
+  });
+
   it('title, description and locale: the page around the bill, checked as Sess checks it', () => {
     const interaction = quote({
       ...BILL,

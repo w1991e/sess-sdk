@@ -14,9 +14,10 @@
   an items component or a record. Limits match Sess's and reject, never truncate: row name 80,
   detail 160, totals label 40, caption 200, rows 100, totals lines 8 (`ITEMS_LIMITS`); a refusal is
   a `SessError` with code `INVALID_SCHEMA`, outcome `not_sent`, and the value's JSON pointer in
-  `field`. New types `ItemsComponent` and `ItemTotalRole` (`SurfaceComponent` includes items) and
-  the Advanced `locale` on an interactive interaction. Session reads now accept an items component,
-  and a 400 for too many rows or totals lines carries Sess's sentence.
+  `field`. A `record` key `__proto__`, `constructor` or `prototype` is refused. New types
+  `ItemsComponent` and `ItemTotalRole` (`SurfaceComponent` includes items) and the Advanced
+  `locale` on an interactive interaction. Session reads now accept an items component, and a 400
+  for too many rows or totals lines carries Sess's sentence.
 - Every request names the SDK in its `User-Agent` header: `sess-sdk/<version> node/<version>`.
   The new client option `userAgent` puts a wrapping client's product tokens first, for example
   `userAgent: 'my-app/1.2.0'` sends `my-app/1.2.0 sess-sdk/0.1.0-rc.9 node/24.21.0`. A value that is

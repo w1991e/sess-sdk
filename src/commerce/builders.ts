@@ -49,6 +49,9 @@ const ACTION_ID = /^[a-z][a-z0-9_]{0,31}$/;
 const INTENTS = ['submit', 'continue', 'approve', 'reject', 'request_change'] as const;
 const LOCALE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8}){0,4}$/;
 const COMPONENTS = '/interaction/source/components';
+// Keys an ordinary object does not hold as plain data (the same set ask() refuses): copied with
+// `fields[key] = value`, "__proto__" would run the prototype setter and the row would vanish.
+const RESERVED_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 /**
  * The words a builder puts on the page when you give none (proposed copy; `Request changes` is
@@ -114,6 +117,7 @@ function recordComponent(kind: Kind, input: BillInput, at: string): SurfaceCompo
     const p = `${at}/fields/${token(key)}`;
     const keyLength = [...key].length;
     if (keyLength > LIMITS.recordKey) tooLong(p, LIMITS.recordKey, keyLength);
+    if (RESERVED_KEYS.has(key)) refuse(p, 'is a reserved name; give the fact another name');
     if (Object.hasOwn(fields, key)) refuse(p, 'repeats the reference row; give the reference once');
     if (typeof value === 'string') {
       const length = [...value].length;

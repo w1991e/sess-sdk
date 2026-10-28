@@ -221,8 +221,9 @@ BCP 47 formatting locale), `reference` (shown in a record under `Invoice`, `Rece
 `Refund` or `Purchase order`), `record` (other facts beside the bill, such as `Valid until`) and
 `actions` (replaces the buttons). A bill with an editable quantity needs an action with intent
 `request_change`; the builders add `Request changes`, and replaced actions without one are
-refused. `refund()` refuses a negative row, a negative total and payments; a deduction is a
-negative line. A description containing a Markdown table is refused.
+refused. A `record` key `__proto__`, `constructor` or `prototype` is refused. `refund()` refuses
+a negative row, a negative total and payments; a deduction is a negative line. A description
+containing a Markdown table is refused.
 
 The limits are Sess's (`ITEMS_LIMITS`): row name 80, detail 160 (with the reference), totals label
 40, caption 200, quantity unit 16, rows 100, totals lines 8, every amount and every sum within
