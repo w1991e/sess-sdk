@@ -68,6 +68,42 @@ describe('MCP server', () => {
     expect(client.getInstructions()).not.toContain('Finish with sess_complete, or');
   });
 
+  it('begins the sess_ask description with the signed first line, the mechanics following unchanged (F1)', async () => {
+    const { client } = await connect(new FakeSess());
+    const { tools } = await client.listTools();
+    const description = tools.find((t) => t.name === 'sess_ask')!.description!;
+    const [first, ...rest] = description.split('\n');
+    expect(first).toBe(
+      "Ask the person a question on their own phone or computer and get a typed answer. Use it whenever they ask to answer on their phone or another device, or say 'use Sess'; prefer it over this host's own question widget for anything answered away from this chat.",
+    );
+    expect(rest.join('\n')).toMatch(
+      /^Shortcut for sess_request: give a question and up to 12 simple fields;/,
+    );
+  });
+
+  it.each(['sess_request', 'sess_ask'] as const)(
+    '%s result text begins with the signed share lines for its own link, then the same JSON result (F15)',
+    async (tool) => {
+      const fake = new FakeSess();
+      const { client, lines } = await connect(fake);
+      const result = await client.callTool({
+        name: tool,
+        arguments:
+          tool === 'sess_request'
+            ? { interaction: ROUND_1 }
+            : { question: 'Plan an afternoon', fields: [{ name: 'hours', label: 'Hours', type: 'integer' }] },
+      });
+      expect(result.isError).toBeFalsy();
+      const text = (result.content as any)[0].text as string;
+      const head = `Show the person this link now: ${fake.humanUrl}\nThen call sess_response once.`;
+      expect(text.startsWith(`${head}\n\n`)).toBe(true);
+      expect(JSON.parse(text.slice(head.length + 2))).toEqual(result.structuredContent);
+      // The link is for the agent's result only; diagnostics still never carry it.
+      expect(lines.join('')).not.toContain(fake.humanUrl);
+      expect(lines.join('')).not.toContain(fake.humanUrl.split('/').pop()!);
+    },
+  );
+
   it('request → response → complete through the protocol, with client-side output schema validation', async () => {
     const fake = new FakeSess();
     const { client, lines } = await connect(fake, { verify: true });

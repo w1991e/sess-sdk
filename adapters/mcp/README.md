@@ -205,7 +205,9 @@ Shorten that value and call the tool again. If Sess itself refuses a length (`CR
 with an SDK that reports it), the same three fields come back.
 
 Every result is `{ "interaction": { handle, revision, state, humanUrl?, response? } }`, returned as
-`structuredContent` and as JSON text. `answered` is returned only after
+`structuredContent` and as JSON text. The text of a `sess_request` or `sess_ask` result begins
+with two lines for the agent, `Show the person this link now: <humanUrl>` and
+`Then call sess_response once.`, then a blank line and the same JSON. `answered` is returned only after
 `client.receipts.verifyResponse` verified the receipt for that exact Session, revision, event and
 immutable Surface; `response.verified` is `true` and `response.actorAssurance` is `link_holder`.
 Receipt verification proves a retained historical answer, not that it is still the current step,
