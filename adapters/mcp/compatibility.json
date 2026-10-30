@@ -57,9 +57,10 @@
       },
       {
         "name": "@hono/node-server",
-        "version": "1.19.17",
+        "version": "2.1.5",
         "license": "MIT",
-        "integrity": "sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ=="
+        "integrity": "sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q==",
+        "note": "Pinned by package.json overrides over @modelcontextprotocol/node 2.1.1's ^1.19.9 (GHSA-rmxm-3fg6-px4: serveStatic decodes the path twice; no patched 1.x). The adapter does not use serveStatic; the pin keeps npm audit clean (founder 2026-10-30 16:55Z decision 1a)."
       }
     ],
     "serverApi": "low-level Server (request handlers). stdio: Server.connect(StdioServerTransport) through the raw-message unsafe-key guard, a 2025-era connection exactly as before. HTTP: createMcpHandler with its default legacy: 'stateless' fallback, one server instance per request.",
