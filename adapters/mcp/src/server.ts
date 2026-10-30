@@ -43,9 +43,28 @@ export const INSTRUCTIONS =
  */
 export const UNKNOWN_TOOL_MESSAGE = 'MCP error -32602: Unknown tool.';
 
+/**
+ * The first two lines of a sess_request or sess_ask result, as signed off (2026-10-28). The link
+ * is the same interaction.humanUrl the result already carries for the agent; like every human link
+ * it is never written to diagnostics.
+ */
+export function shareLinkLines(link: string): string {
+  return `Show the person this link now: ${link}\nThen call sess_response once.`;
+}
+
 function success(result: AdapterResult): CallToolResult {
   return {
     content: [{ type: 'text', text: JSON.stringify(result) }],
+    structuredContent: result as unknown as Record<string, unknown>,
+  };
+}
+
+/** A created form: the signed share lines first, then the same JSON result every tool returns. */
+function created(result: AdapterResult): CallToolResult {
+  const link = result.interaction.humanUrl;
+  if (link === undefined) return success(result);
+  return {
+    content: [{ type: 'text', text: `${shareLinkLines(link)}\n\n${JSON.stringify(result)}` }],
     structuredContent: result as unknown as Record<string, unknown>,
   };
 }
@@ -116,10 +135,10 @@ export function buildToolServer({ adapter, diagnostics, shutdown, flagged }: Too
     try {
       switch (name as ToolName) {
         case 'sess_request':
-          return success(await adapter.request(parseRequestArgs(raw)));
+          return created(await adapter.request(parseRequestArgs(raw)));
         case 'sess_ask':
           // Same request operation and lifecycle; only the input shape differs.
-          return success(await adapter.request(parseAskArgs(raw)));
+          return created(await adapter.request(parseAskArgs(raw)));
         case 'sess_response':
           return success(await adapter.response(parseResponseArgs(raw), signal));
         case 'sess_publish':
