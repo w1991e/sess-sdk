@@ -63,6 +63,10 @@ export async function installPacked() {
     private: true,
     type: 'module',
     dependencies: { '@sess.si/mcp': mcpSpec, ...(sdkSpec ? { '@sess.si/sdk': sdkSpec } : {}) },
+    // The adapter's reviewed overrides (package.json; compatibility.json records each), so the
+    // offline install resolves exactly the adapter lockfile's production entries. A consumer
+    // installing from npm applies only its own overrides (compatibility.json's note).
+    ...(manifest.overrides ? { overrides: manifest.overrides } : {}),
   };
   const production = Object.fromEntries(
     Object.entries(lock.packages).filter(
