@@ -88,7 +88,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, windows-2022]
+        # macos-14 is retired on 2026-11-02 (actions/runner-images#13518; brownouts before it).
+        os: [macos-15, windows-2022]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
