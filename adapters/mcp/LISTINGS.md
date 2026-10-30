@@ -222,7 +222,7 @@ organization and the Apps Management Write role.
 Eligible for the remote endpoint with OAuth; Anthropic no longer accepts MCPB bundles there. Every
 tool has a title and read-only/destructive hints. Submit at claude.ai/directory/manage (Submit new,
 MCP connector) with the values in `listings/claude-connector.json`: name, one-liner, description,
-categories, documentation and privacy policy URLs, support contact `support@sess.si`, and the icon
+categories, documentation and privacy policy URLs, support contact `ask@sess.si`, and the icon
 `listings/plugin/assets/icon-512.png` (its `icon` field). Add the permanent slug (the owner's
 choice), a test account with every step, the data-handling answers and the acknowledgements in the
 portal.
@@ -273,7 +273,7 @@ connector page.
   Glama's pages; from the brief). That is a w1991e/sess runtime change: **open question** below.
 - Listing values: name `Sess`; description
   `Your agent sends a Sess link, a person answers on any device, and the agent continues with their typed, receipt-checked answer.`;
-  server URL `https://mcp.sess.si/mcp`; support `support@sess.si`.
+  server URL `https://mcp.sess.si/mcp`; support `ask@sess.si`.
 
 ### mcp.so
 
