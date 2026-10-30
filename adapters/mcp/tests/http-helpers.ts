@@ -12,6 +12,7 @@ import {
   type SessMcpHttpHandler,
   type SessMcpHttpHandlerOptions,
 } from '../src/http.js';
+import { shareLinkLines } from '../src/server.js';
 import { FakeSess, ORIGIN } from './helpers.js';
 import { MemoryHandleBackend } from './memory-store.js';
 
@@ -230,12 +231,20 @@ export async function rpcBody(response: Response): Promise<any> {
   return data.length === 1 ? data[0] : data;
 }
 
-/** Calls a tool and returns its parsed adapter result or error envelope. */
+/**
+ * Calls a tool and returns its parsed adapter result or error envelope. A created form's text starts
+ * with the signed share lines for its own link; they are checked and stripped before parsing.
+ */
 export function toolPayload(result: {
   content?: unknown;
   structuredContent?: unknown;
   isError?: unknown;
 }): any {
   const content = result.content as { type: string; text: string }[];
-  return JSON.parse(content[0]!.text);
+  const text = content[0]!.text;
+  if (!text.startsWith('Show the person')) return JSON.parse(text);
+  const link = (result.structuredContent as any)?.interaction?.humanUrl as string;
+  const lines = `${shareLinkLines(link)}\n\n`;
+  if (!text.startsWith(lines)) throw new Error('share lines do not name the result link');
+  return JSON.parse(text.slice(lines.length));
 }
