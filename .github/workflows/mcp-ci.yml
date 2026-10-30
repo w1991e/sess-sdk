@@ -23,7 +23,8 @@ jobs:
         include:
           # Existing check names are kept; Node 22.14.0 is the SDK's minimum supported Node.
           - { label: ubuntu-24.04, os: ubuntu-24.04, node: '24.21.0' }
-          - { label: macos-14, os: macos-14, node: '24.21.0' }
+          # macos-14 is retired on 2026-11-02 (actions/runner-images#13518; brownouts before it).
+          - { label: macos-15, os: macos-15, node: '24.21.0' }
           - { label: Node 22.14.0, os: ubuntu-24.04, node: '22.14.0' }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
