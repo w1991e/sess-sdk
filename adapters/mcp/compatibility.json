@@ -60,7 +60,7 @@
         "version": "2.1.5",
         "license": "MIT",
         "integrity": "sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q==",
-        "note": "Pinned by package.json overrides over @modelcontextprotocol/node 2.1.1's ^1.19.9 (GHSA-rmxm-3fg6-px4: serveStatic decodes the path twice; no patched 1.x). The adapter does not use serveStatic. The override applies where this package is the root project (this repository and its packed-package check); an install from npm resolves @modelcontextprotocol/node's own range."
+        "note": "Pinned by package.json overrides over @modelcontextprotocol/node 2.1.1's ^1.19.9 (GHSA-rmxm-3fg6-px4f, >=1.19.10 <2.1.3: serveStatic decodes the request path a second time; no patched 1.x). The override applies where this package is the root project: this repository and its packed-package check, which therefore exercise 2.1.5. An install from npm resolves @modelcontextprotocol/node's own range, 1.19.x (last tested here: 1.19.17); that carries the advisory on serveStatic, a code path the adapter never loads (only src/http.ts imports @modelcontextprotocol/node, and only its toNodeHandler)."
       }
     ],
     "serverApi": "low-level Server (request handlers). stdio: Server.connect(StdioServerTransport) through the raw-message unsafe-key guard, a 2025-era connection exactly as before. HTTP: createMcpHandler with its default legacy: 'stateless' fallback, one server instance per request.",
