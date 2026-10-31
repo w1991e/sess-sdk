@@ -120,9 +120,9 @@ async function askShort(question: string) {
 }
 ```
 
-**Release status:** `0.1.0` is the first stable release, served under the `latest` dist-tag. The
-earlier `0.1.0` release candidates stay under `next`. The [changelog](CHANGELOG.md) describes each
-version; `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
+**Release status:** `0.1.0` is the first stable release, served under the `latest` dist-tag.
+`next` stays at the last release candidate, `0.1.0-rc.10`. The [changelog](CHANGELOG.md) describes
+each version; `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
 
 ## Commerce
 
