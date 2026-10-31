@@ -58,6 +58,8 @@ export function checkIdentity({ manifest, ref, repository }) {
     if (manifest[field] !== undefined && Object.keys(manifest[field]).length > 0)
       refuse(`the initializer must declare no ${field}`);
   if (!VERSION.test(manifest.version)) refuse(`unsupported version ${manifest.version}`);
+  // The license field travels with the LICENSE file (owner decision 2026-10-31).
+  if (manifest.license !== 'Apache-2.0') refuse('license must be Apache-2.0');
   if (ref !== `refs/tags/create-agent-v${manifest.version}`)
     refuse(`tag ${ref} does not equal refs/tags/create-agent-v${manifest.version}`);
   // Release candidates never take the default dist-tag.
