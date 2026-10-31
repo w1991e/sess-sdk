@@ -60,8 +60,18 @@ const refuses = (mutate, reason) => {
   assert.throws(() => checkRelease(facts), new RegExp(reason));
 };
 
-test('accepts the exact prerelease tag on reviewed master with the registry SDK', () => {
-  assert.deepEqual(checkRelease(good()), { version: manifest.version, distTag: 'next' });
+test('accepts the exact tag on reviewed master with the registry SDK; rc maps to next', () => {
+  assert.deepEqual(checkRelease(good()), {
+    version: manifest.version,
+    distTag: manifest.version.includes('-rc.') ? 'next' : 'latest',
+  });
+});
+
+test('a release candidate goes to next', () => {
+  const facts = good();
+  facts.manifest.version = '0.1.0-rc.6';
+  facts.ref = 'refs/tags/openclaw-v0.1.0-rc.6';
+  assert.deepEqual(checkRelease(facts), { version: '0.1.0-rc.6', distTag: 'next' });
 });
 
 test('refuses tags for other packages or versions', () => {

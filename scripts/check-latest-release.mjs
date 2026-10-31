@@ -34,9 +34,9 @@ function gather(name, expected) {
     license =
       JSON.parse(npm(['view', `${name}@${expected}`, 'license', '--json', '--prefer-online']) || 'null') ??
       undefined;
-    files = JSON.parse(npm(['pack', `${name}@${expected}`, '--dry-run', '--json']))[0].files.map(
-      (f) => f.path,
-    );
+    files = JSON.parse(
+      npm(['pack', `${name}@${expected}`, '--dry-run', '--json', '--ignore-scripts']),
+    )[0].files.map((f) => f.path);
   } catch {
     // The version is not published: latestProblems reports it through the latest tag.
   }
@@ -45,8 +45,9 @@ function gather(name, expected) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const expected = process.argv[2];
-  if (!expected) {
-    console.error('usage: node scripts/check-latest-release.mjs <version>');
+  // Refuse anything but X.Y.Z before any npm call: a git or URL spec would make npm fetch it.
+  if (!expected || !STABLE.test(expected)) {
+    console.error('usage: node scripts/check-latest-release.mjs <X.Y.Z>');
     process.exit(2);
   }
   const problems = PACKAGES.flatMap((name) => latestProblems(gather(name, expected)));

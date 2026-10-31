@@ -34,7 +34,7 @@ packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
    `openclaw-v*`; its `publish` job is the only job with `id-token: write`. Self-review is allowed,
    so a sole maintainer can approve a run they started; the release gate is the npm 2FA approval of
    the staged version. No secrets: publishing uses npm trusted publishing (OIDC), not a token.
-3. **npm package — exists; no release version is published.** A never-approved bootstrap stage
+3. **npm package — exists; release candidates are published on `next`.** A never-approved bootstrap stage
    created `@sess.si/openclaw` in the `sess.si` scope so that a trusted publisher can be configured.
    Only once a public `0.0.0-stage` placeholder exists (npm publishes one with the bootstrap stage),
    and if `latest` lands on it, deprecate it with a pointer to `@next` (`latest` never points at a
@@ -88,5 +88,5 @@ as an available installation channel, and do not call the plugin official or end
 ## Rollback
 
 Do not unpublish or reuse a version. A release owner can deprecate a defective version and publish
-a fixed prerelease. Recovery-record compatibility: a newer schema must stop older versions safely
+a fixed version. Recovery-record compatibility: a newer schema must stop older versions safely
 (see README "Stored state, capacity and upgrade").
