@@ -131,7 +131,7 @@ jobs:
               filename !== `sess.si-openclaw-${process.env.RELEASE_VERSION}.tgz` ||
               !/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/.test(filename) ||
               manifest.version !== process.env.RELEASE_VERSION || result.version !== manifest.version ||
-              process.env.RELEASE_DIST_TAG !== 'next' ||
+              process.env.RELEASE_DIST_TAG !== (manifest.version.includes('-rc.') ? 'next' : 'latest') ||
               result.tarball !== `.artifacts/${filename}` || result.node !== 'v24.21.0' ||
               result.sdkSource !== 'registry' ||
               result.sourceCommit !== process.env.GITHUB_SHA || result.sourceTreeDirty !== false) {
@@ -143,7 +143,7 @@ jobs:
           if (sha256 !== result.sha256 || sha256 !== process.env.EXPECTED_TARBALL_SHA256 ||
               integrity !== result.integrity) throw new Error('Tested bytes changed.');
           if (execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim() !== '11.19.0') throw new Error('Unexpected publisher version.');
-          execFileSync('npm', ['stage', 'publish', result.tarball, '--ignore-scripts', '--provenance', '--access', 'public', '--tag', 'next'], { stdio: 'inherit' });
+          execFileSync('npm', ['stage', 'publish', result.tarball, '--ignore-scripts', '--provenance', '--access', 'public', '--tag', process.env.RELEASE_DIST_TAG], { stdio: 'inherit' });
           JS
       - name: Record the staged candidate for maintainer approval
         working-directory: ${{ github.workspace }}
@@ -215,7 +215,8 @@ jobs:
                   published.repository?.url !== manifest.repository.url ||
                   published.repository?.directory !== 'adapters/openclaw' ||
                   published.dist?.integrity !== result.integrity ||
-                  tags.next !== manifest.version || tags.latest === manifest.version ||
+                  tags[process.env.RELEASE_DIST_TAG] !== manifest.version ||
+                  (manifest.version.includes('-rc.') && tags.latest === manifest.version) ||
                   !published.dist?.attestations?.url || !published.dist?.attestations?.provenance ||
                   !isDeepStrictEqual(published.dependencies, manifest.dependencies) ||
                   !isDeepStrictEqual(published.peerDependencies, manifest.peerDependencies)) {
@@ -229,5 +230,5 @@ jobs:
             }
           }
           if (!verified) throw new Error('Registry verification did not complete.');
-          console.log(`Verified ${manifest.name}@${manifest.version}, next, tested integrity and provenance metadata.`);
+          console.log(`Verified ${manifest.name}@${manifest.version}, ${process.env.RELEASE_DIST_TAG}, tested integrity and provenance metadata.`);
           JS
