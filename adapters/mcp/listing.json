@@ -53,7 +53,7 @@
       "note": "Built by the Sess site (apps/site/content/terms.html). A read-only GET of https://sess.si/terms/ returned 200 on production on 2026-10-28, after the 27 Oct apex cutover."
     }
   },
-  "supportContact": "support@sess.si",
+  "supportContact": "ask@sess.si",
   "icons": {
     "value": [
       {

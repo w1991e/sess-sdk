@@ -350,7 +350,7 @@ describe('listing.json artifacts', () => {
       categories: ['Productivity', 'Developer Tools'],
       documentationUrl: 'https://docs.sess.si/add-to-your-agent/',
       privacyPolicyUrl: 'https://sess.si/privacy/',
-      supportContact: 'support@sess.si',
+      supportContact: 'ask@sess.si',
     });
     expect(claude.oneLiner.length).toBeLessThanOrEqual(200);
     const bad = inputs();
