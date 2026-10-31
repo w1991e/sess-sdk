@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0 — 2026-10-31 (prepared, unpublished)
+
+- The first stable release, published to the `latest` dist-tag. The API is that of
+  0.1.0-rc.10, unchanged.
+- Development dependency only: the contract generator's `@redocly/openapi-core` now resolves
+  `minimatch` 11.0.1 (advisory GHSA-g3hv-75wg-m249), through a scoped `overrides` entry. No
+  runtime dependency changes; the generated types are byte-identical.
+
 ## 0.1.0-rc.10 — 2026-10-28 (prepared, unpublished)
 
 - Short human links: a request identifier holding a run of 22 or more base64url characters (a
