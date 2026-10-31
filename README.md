@@ -5,7 +5,7 @@ Ask a person a question from your server and continue with their verified answer
 **Create and run** a small agent:
 
 ```sh
-npm create @sess.si/agent@next my-agent
+npm create @sess.si/agent@latest my-agent
 ```
 
 **What you'll see:** a Sess link. Answer two questions on your phone and your plan prints in the
@@ -14,7 +14,7 @@ terminal with a verified receipt.
 **Install** the SDK in your own server project:
 
 ```sh
-npm install --save-exact @sess.si/sdk@next
+npm install --save-exact @sess.si/sdk@0.1.0
 ```
 
 ## Ask a person
@@ -120,10 +120,9 @@ async function askShort(question: string) {
 }
 ```
 
-**Release status:** every SDK release so far is a `0.1.0` release candidate, served under the `next`
-dist-tag. There is no stable release yet: do not install the bare name, whose `latest` tag points at a
-deprecated `0.0.0-stage` placeholder. The [changelog](CHANGELOG.md) describes each version;
-`npm view @sess.si/sdk dist-tags` shows what the registry serves now.
+**Release status:** `0.1.0` is the first stable release, served under the `latest` dist-tag. The
+earlier `0.1.0` release candidates stay under `next`. The [changelog](CHANGELOG.md) describes each
+version; `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
 
 ## Commerce
 
@@ -243,11 +242,10 @@ exact Surface and input, and the issuer's public keys. Check it on your own comp
 trust (never the keys inside the bundle):
 
 ```sh
-npx -p @sess.si/sdk@0.1.0-rc.5 sess verify bundle.json --issuer https://api.sess.si --keys sess-receipt-keys.json
+npx -p @sess.si/sdk@0.1.0 sess verify bundle.json --issuer https://api.sess.si --keys sess-receipt-keys.json
 ```
 
-The `sess` command first ships in `0.1.0-rc.5`; name that version (or a later one) exactly, because
-the bare package name resolves to the `latest` placeholder, which has no command.
+The `sess` command first ships in `0.1.0-rc.5`; any later version, `0.1.0` included, has it.
 
 You'll see `Valid decision bundle.` and what was accepted, when, on which revision; or `Invalid`
 and the first reason. Exit status is 0 valid, 1 invalid, 2 usage error; add `--json` for the full
