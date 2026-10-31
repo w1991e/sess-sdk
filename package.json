@@ -80,5 +80,10 @@
     "typescript": "5.9.3",
     "typescript-current": "npm:typescript@7.0.2",
     "vitest": "5.0.4"
+  },
+  "overrides": {
+    "@redocly/openapi-core": {
+      "minimatch": "11.0.1"
+    }
   }
 }
