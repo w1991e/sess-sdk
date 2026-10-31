@@ -130,7 +130,7 @@ Includes everything in the unpublished 0.1.0-rc.6 below, which is not published 
 - `ResponseMeta.serverDate`: the response's HTTP `Date`, when the runtime sends one.
 - Contract snapshot from Sess runtime commit `b48e8e7` (see `contract/contract-lock.json`), with
   `expires_in`, `action_expires_at` on create and the target's `default_expires_in`.
-- `@sess.si/sdk/qr` (S-07): `qr(url, { format: 'svg' | 'png' | 'terminal' })` draws a Sess link as a
+- `@sess.si/sdk/qr`: `qr(url, { format: 'svg' | 'png' | 'terminal' })` draws a Sess link as a
   QR code locally (error correction level M, 4-module quiet zone, deterministic, no network call), and
   `printQr(url)` prints "Scan to answer on your phone" and the code on an interactive terminal only:
   never without a TTY, in CI or with `NODE_ENV=production`; `--no-qr` or `{ qr: false }` turn it off
