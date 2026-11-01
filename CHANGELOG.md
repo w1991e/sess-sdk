@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.1.0-rc.10 — 2026-10-28 (prepared, unpublished)
+## 0.1.0 — 2026-10-31
+
+- The first stable release, published to the `latest` dist-tag. The API is that of
+  0.1.0-rc.10, unchanged.
+- Development dependency only: the contract generator's `@redocly/openapi-core` now resolves
+  `minimatch` 11.0.1 (advisory GHSA-g3hv-75wg-m249), through a scoped `overrides` entry. No
+  runtime dependency changes; the generated types are byte-identical.
+
+## 0.1.0-rc.10 — 2026-10-28
 
 - Short human links: a request identifier holding a run of 22 or more base64url characters (a
   short-link token is 22, as in `/n/<token>`; a `/s/` token 43; either may be glued to more) is
@@ -14,7 +22,7 @@
   `undefined`; reading an absent field still gives `undefined`. The Node quickstart and the
   README print the message first, then a `Details:` line with the code and request ID.
 
-## 0.1.0-rc.9 — 2026-10-28 (prepared, unpublished)
+## 0.1.0-rc.9 — 2026-10-28
 
 - Commerce: bills as ordinary Surfaces, for Sess's `items` component. Sess takes no payment.
   `money(amount, currency)` checks a whole number of minor units (cents for USD, yen for JPY, fils
@@ -50,9 +58,9 @@
   document paths. Every published package's packed bytes now pass a hygiene check (no maps,
   fixtures, non-public hosts, credential-shaped strings or internal references).
 
-## 0.1.0-rc.8 — 2026-10-22 (prepared, unpublished)
+## 0.1.0-rc.8 — 2026-10-22
 
-- Link timing (Decision 0009 Amendment 10). On an interactive Sess link of 20 hours or less the
+- Link timing. On an interactive Sess link of 20 hours or less the
   person may ask for more time, up to ten times, never past a fixed horizon. Session reads carry
   `link_state` (`live`, `lapsed` or `expired`), `action_expires_horizon`, `extensions_used` and the
   `extensions` history; the Session log (`listEvents()`) lists the same records as
@@ -69,7 +77,7 @@
   describes: the interactive text limits with `field`, `limit` and `length` on a length error,
   `progress`, the receipt `format` and the renderer identities list. The generated wire types gain
   them; the SDK's public types and behavior in this change are link timing only.
-- Renderer identities (Decision 0009 Amendment 13). A receipt's `surface.renderer_version` now
+- Renderer identities. A receipt's `surface.renderer_version` now
   verifies when it is an identity this release bundles (`sess-html-form-1`, `sess-html-form-2`;
   `BUNDLED_RENDERER_IDENTITIES`) or one on the issuer's renderer list whose signature verifies
   under the same trusted keys and issuer, so a later Sess page change needs no SDK update. Every
@@ -105,7 +113,7 @@
   Sess's own fix. The README and the quickstart show catching it, shortening the value and asking again.
   Surfaces stored before these limits still read as before.
 
-## 0.1.0-rc.7 — 2026-10-18 (prepared, unpublished)
+## 0.1.0-rc.7 — 2026-10-18
 
 Includes everything in the unpublished 0.1.0-rc.6 below, which is not published on its own.
 
@@ -122,7 +130,7 @@ Includes everything in the unpublished 0.1.0-rc.6 below, which is not published 
 - `ResponseMeta.serverDate`: the response's HTTP `Date`, when the runtime sends one.
 - Contract snapshot from Sess runtime commit `b48e8e7` (see `contract/contract-lock.json`), with
   `expires_in`, `action_expires_at` on create and the target's `default_expires_in`.
-- `@sess.si/sdk/qr` (S-07): `qr(url, { format: 'svg' | 'png' | 'terminal' })` draws a Sess link as a
+- `@sess.si/sdk/qr`: `qr(url, { format: 'svg' | 'png' | 'terminal' })` draws a Sess link as a
   QR code locally (error correction level M, 4-module quiet zone, deterministic, no network call), and
   `printQr(url)` prints "Scan to answer on your phone" and the code on an interactive terminal only:
   never without a TTY, in CI or with `NODE_ENV=production`; `--no-qr` or `{ qr: false }` turn it off

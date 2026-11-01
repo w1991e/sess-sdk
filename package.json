@@ -1,6 +1,6 @@
 {
   "name": "@sess.si/sdk",
-  "version": "0.1.0-rc.10",
+  "version": "0.1.0",
   "description": "Ask a person from your server and continue with their verified answer. Sess API client with receipt and webhook verification.",
   "type": "module",
   "license": "Apache-2.0",
@@ -80,5 +80,10 @@
     "typescript": "5.9.3",
     "typescript-current": "npm:typescript@7.0.2",
     "vitest": "5.0.4"
+  },
+  "overrides": {
+    "@redocly/openapi-core": {
+      "minimatch": "11.0.1"
+    }
   }
 }
