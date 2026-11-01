@@ -36,7 +36,7 @@ async function geminiDryRun(respond?: (url: string, body: Any) => Response | nul
   const result = await dryRun('gemini', {
     out: dir,
     Sess,
-    sdkVersion: '0.1.0-rc.9',
+    sdkVersion: '0.1.0',
     env: {},
     guard: { fetch, sleep: async () => {} },
     stdout: () => {},
