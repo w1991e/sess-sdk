@@ -1,14 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 — 2026-11-01
 
-- Depends on `@sess.si/sdk` 0.1.0 (sha256 `a0745188…9b97`), resolved from the registry.
+- The first stable release, published to the `latest` dist-tag. `next` stays at the last release
+  candidate, `0.1.0-rc.5`. The tools, their arguments and their results are those of
+  `0.1.0-rc.5`, unchanged.
+- Depends on `@sess.si/sdk` 0.1.0 (sha256 `a0745188…9b97`), resolved from the registry, instead of
+  0.1.0-rc.8.
 - The SDK now sends its own User-Agent, so requests carry
-  `User-Agent: sess-openclaw/<version> sess-sdk/<version> node/<version>`: this plugin's token
-  first, then the SDK's. The plugin passes its token as the SDK's `userAgent` option instead of
-  rewriting the header in its guarded fetch.
+  `User-Agent: sess-openclaw/0.1.0 sess-sdk/0.1.0 node/<version>`: this plugin's token first, then
+  the SDK's. The plugin passes its token as the SDK's `userAgent` option instead of rewriting the
+  header in its guarded fetch.
 - A create refused under the workspace's plan (429 `PLAN_LIMIT_REACHED`) is reported by the SDK
-  itself as a refusal; the tool result is unchanged.
+  itself as a refusal; the tool result is unchanged (`PLAN_LIMIT_REACHED`, class
+  `create_rejected`).
+- The SDK's other changes since 0.1.0-rc.8 (commerce helpers, a clearer message for an API key
+  Sess does not accept, request IDs that withhold short-link tokens) do not change what the tools
+  return: the plugin reports its own fixed messages and does not relay request IDs.
 
 ## 0.1.0-rc.5
 
@@ -63,7 +71,7 @@
   `sess-html-form-1` and `sess-html-form-2`, so `sess_response`, and the re-verification before
   `sess_publish` and `sess_complete`, accept an answer given on Sess's form-2 renderer and verify
   it offline. With rc.7 (in 0.1.0-rc.2) every such answer failed verification. Any other identity
-  is checked against the issuer's signed renderer list (Decision 0009 Amendment 13); a list that
+  is checked against the issuer's signed renderer list (Sess's published renderer list); a list that
   cannot be read is a retryable `UNAVAILABLE`, never a verified answer.
 - Sess's length limits for what a person reads, in Unicode code points (were UTF-16 units and
   200/1,000/4,000): title 80, description 280, heading 60, field and option labels 60, field

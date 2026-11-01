@@ -176,9 +176,11 @@ describe('listing.json artifacts', () => {
       s.packages[0].version = '0.1.0-rc.1';
     });
     expect(check(i, drift).errors).toContain(message);
+    // Stale: both name the previous candidate, not package.json's version.
+    expect(i.manifest.version).not.toBe('0.1.0-rc.4');
     const stale = edit(generate(i), 'server.json', (s) => {
-      s.version = '0.1.0';
-      s.packages[0].version = '0.1.0';
+      s.version = '0.1.0-rc.4';
+      s.packages[0].version = '0.1.0-rc.4';
     });
     expect(check(i, stale).errors).toContain(message);
   });

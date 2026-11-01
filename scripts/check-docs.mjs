@@ -31,7 +31,8 @@ const atLeast = (a, b) => {
 
 /**
  * Every documented shell command that fetches `@sess.si/sdk` names what it fetches: a bare name
- * resolves through `latest`, the deprecated placeholder. A command that runs the `sess`
+ * resolves through whatever `latest` points at when the reader runs it, which moves with each
+ * stable release, so the docs name a version or tag. A command that runs the `sess`
  * executable names an exact version that ships it (a dist-tag may still point at an earlier one).
  */
 function checkShellInstalls(commands) {

@@ -92,8 +92,8 @@
   },
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
-    "status": "published",
-    "note": "0.1.0-rc.4 (package.json's version) is on npm, dist-tag next, published 2026-10-27T17:49:04Z. Its mcpName is io.github.w1991e/sess, so the MCP Registry entry lists no npm package for now; see providers.mcpRegistry.npmPackage.",
+    "status": "unpublished",
+    "note": "0.1.0 (package.json's version) is prepared for dist-tag latest and not published yet; the stdio entries naming it work only after it is. 0.1.0-rc.4 is on npm, dist-tag next, published 2026-10-27T17:49:04Z. Its mcpName is io.github.w1991e/sess, so the MCP Registry entry lists no npm package for now; see providers.mcpRegistry.npmPackage.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {

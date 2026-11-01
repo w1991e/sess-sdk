@@ -3,7 +3,7 @@ import { SessAdapterError } from './errors.js';
 import { TOOL_NAMES } from './setup.js';
 import type { PruneReport, RetireReport, StateCounts } from './store.js';
 
-export const PLUGIN_VERSION = '0.1.0-rc.5';
+export const PLUGIN_VERSION = '0.1.0';
 /**
  * Host versions declared in peerDependencies; doctor warns on any other. 2026.10.3 is qualified;
  * 2026.10.7 ran the agent-turn round trip on the preview and awaits production qualification.
