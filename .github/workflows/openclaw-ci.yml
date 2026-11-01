@@ -52,6 +52,9 @@ jobs:
       - name: Unit and contract tests
         working-directory: adapters/openclaw
         run: npm test
+      - name: Release guard self-test
+        working-directory: adapters/openclaw
+        run: node --test scripts/test-release-guard.mjs
 
   packed-host:
     name: OpenClaw adapter / packed artifact and host install${{ matrix.label }}

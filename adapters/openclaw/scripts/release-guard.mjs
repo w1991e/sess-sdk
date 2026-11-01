@@ -8,12 +8,12 @@ export const PACKAGE_NAME = '@sess.si/openclaw';
 export const PACKAGE_DIRECTORY = 'adapters/openclaw';
 export const REPOSITORY = 'w1991e/sess-sdk';
 export const SDK_NAME = '@sess.si/sdk';
-const PRERELEASE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-rc\.(0|[1-9]\d*)$/;
+const VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-rc\.(0|[1-9]\d*))?$/;
 
 /**
  * @param {{ manifest: any, ref: string, repository: string, onMaster: boolean, cleanTree: boolean,
  *   lockedSdkIntegrity: string | undefined, registrySdkIntegrity: string | undefined }} facts
- * @returns {{ version: string, distTag: 'next' }}
+ * @returns {{ version: string, distTag: 'next' | 'latest' }}
  */
 export function checkRelease(facts) {
   const { manifest, ref, repository, onMaster, cleanTree, lockedSdkIntegrity, registrySdkIntegrity } = facts;
@@ -22,8 +22,9 @@ export function checkRelease(facts) {
   if (manifest?.name !== PACKAGE_NAME) failures.push('package name');
   if (manifest?.repository?.directory !== PACKAGE_DIRECTORY) failures.push('package directory');
   if (manifest?.private === true || manifest?.publishConfig?.access !== 'public') failures.push('visibility');
-  // Prereleases only: stable promotion to latest is a separate owner decision.
-  if (typeof manifest?.version !== 'string' || !PRERELEASE.test(manifest.version)) failures.push('version');
+  // A release candidate (x.y.z-rc.n) or a stable version (x.y.z); nothing else.
+  if (typeof manifest?.version !== 'string' || !VERSION.test(manifest.version)) failures.push('version');
+  if (manifest?.license !== 'Apache-2.0') failures.push('license');
   if (ref !== `refs/tags/openclaw-v${manifest?.version}`) failures.push('tag');
   if (!onMaster) failures.push('master reachability');
   if (!cleanTree) failures.push('clean tree');
@@ -42,7 +43,9 @@ export function checkRelease(facts) {
   if (!lockedSdkIntegrity || !registrySdkIntegrity || lockedSdkIntegrity !== registrySdkIntegrity)
     failures.push('registry SDK integrity');
   if (failures.length) throw new Error(`Release guard failed: ${[...new Set(failures)].join(', ')}.`);
-  return { version: manifest.version, distTag: 'next' };
+  // Release candidates never take the default dist-tag; a stable version is published to latest,
+  // the same rule as the SDK, MCP adapter and create-agent releases (owner decision 2026-10-31).
+  return { version: manifest.version, distTag: manifest.version.includes('-rc.') ? 'next' : 'latest' };
 }
 
 /**

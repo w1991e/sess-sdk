@@ -165,6 +165,8 @@ pass('imports-stay-in-package');
 const manifest = JSON.parse(
   execFileSync('tar', ['-xOzf', tarball, 'package/package.json'], { encoding: 'utf8' }),
 );
+// The license field travels with the LICENSE file (owner decision 2026-10-31).
+assert(manifest.license === 'Apache-2.0', 'packed package.json license must be Apache-2.0');
 for (const hook of [
   'preinstall',
   'install',
