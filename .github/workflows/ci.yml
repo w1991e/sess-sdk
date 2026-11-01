@@ -69,6 +69,8 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       # check builds once before tests/docs that consume the public dist exports.
       - run: npm run check
+      - name: Four-package latest readback self-test
+        run: node --test scripts/test-check-latest-release.mjs
       - run: npm audit --audit-level=moderate
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

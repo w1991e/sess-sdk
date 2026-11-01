@@ -60,8 +60,18 @@ const refuses = (mutate, reason) => {
   assert.throws(() => checkRelease(facts), new RegExp(reason));
 };
 
-test('accepts the exact prerelease tag on reviewed master with the registry SDK', () => {
-  assert.deepEqual(checkRelease(good()), { version: manifest.version, distTag: 'next' });
+test('accepts the exact tag on reviewed master with the registry SDK; rc maps to next', () => {
+  assert.deepEqual(checkRelease(good()), {
+    version: manifest.version,
+    distTag: manifest.version.includes('-rc.') ? 'next' : 'latest',
+  });
+});
+
+test('a release candidate goes to next', () => {
+  const facts = good();
+  facts.manifest.version = '0.1.0-rc.6';
+  facts.ref = 'refs/tags/openclaw-v0.1.0-rc.6';
+  assert.deepEqual(checkRelease(facts), { version: '0.1.0-rc.6', distTag: 'next' });
 });
 
 test('refuses tags for other packages or versions', () => {
@@ -79,11 +89,22 @@ test('refuses wrong identity, path, repository or visibility', () => {
   refuses((f) => (f.manifest.private = true), 'visibility');
 });
 
-test('refuses stable versions (latest promotion is an owner decision)', () => {
-  refuses((f) => {
-    f.manifest.version = '0.1.0';
-    f.ref = 'refs/tags/openclaw-v0.1.0';
-  }, 'version');
+test('a stable version goes to latest (owner decision 2026-10-31: the same rule as the other three packages)', () => {
+  const facts = good();
+  facts.manifest.version = '0.1.0';
+  facts.ref = 'refs/tags/openclaw-v0.1.0';
+  assert.deepEqual(checkRelease(facts), { version: '0.1.0', distTag: 'latest' });
+});
+
+test('refuses other version shapes and a missing or other license', () => {
+  for (const version of ['0.1', '0.1.0-beta.1', '0.1.0-rc', '01.0.0', '0.1.0+build']) {
+    refuses((f) => {
+      f.manifest.version = version;
+      f.ref = `refs/tags/openclaw-v${version}`;
+    }, 'version');
+  }
+  refuses((f) => delete f.manifest.license, 'license');
+  refuses((f) => (f.manifest.license = 'MIT'), 'license');
 });
 
 test('refuses unreviewed history and dirty trees', () => {
