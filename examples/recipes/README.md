@@ -2,7 +2,7 @@
 
 These recipes are the weekend planner, driven by a model through that provider's own tool calling. Each one asks a person two questions on one private Sess link and returns their plan.
 
-The default starter (`npm create @sess.si/agent@next`) uses no model and needs only a Sess key. Start there. These recipes are for when you want a model in the loop.
+The default starter (`npm create @sess.si/agent@latest`) uses no model and needs only a Sess key. Start there. These recipes are for when you want a model in the loop.
 
 Each recipe needs **two keys**: a Sess API key (`SESS_API_KEY`) and the provider's key. It also needs `SESS_DEMO_CONTACT`, a project URL or team email, because the weather services ask for one.
 
