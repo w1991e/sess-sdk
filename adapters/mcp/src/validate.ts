@@ -17,7 +17,12 @@ export const LIMITS = Object.freeze({
   enumValues: 100,
   maxWaitMs: 45_000,
   maxRevision: 999_999_999,
+  /** A round's position in a sequence: 1 ≤ step ≤ total ≤ 20, as Sess checks it. */
+  progressTotal: 20,
 });
+
+/** The position a follow-up round declares when it gives none, and every sess_ask round: the last. */
+export const LAST_ROUND = Object.freeze({ step: 1, total: 1 });
 
 /**
  * Sess's length limits for what a person reads, in Unicode code points: the runtime checks the
@@ -313,21 +318,46 @@ function effectiveOptionLabels(c: JsonObject, path: string): void {
   });
 }
 
-/** A closed check of the supported interactive Surface shape. The runtime still validates it. */
-export function validateInteraction(value: JsonValue | undefined, path = 'interaction'): JsonObject {
+/** A round's position: a closed {step, total} with 1 ≤ step ≤ total ≤ 20, exactly as Sess checks it. */
+function progress(value: JsonValue | undefined, path: string): void {
+  const p = object(value, path);
+  closed(p, path, ['step', 'total'], ['step', 'total']);
+  const total = integer(p.total, `${path}.total`, 1, LIMITS.progressTotal);
+  integer(p.step, `${path}.step`, 1, total);
+}
+
+/**
+ * A closed check of the supported interactive Surface shape. The runtime still validates it.
+ * `progress` is accepted only where the tool declares it (sess_publish, and sess_ask's own
+ * compiled round); sess_request's interaction stays without it.
+ */
+export function validateInteraction(
+  value: JsonValue | undefined,
+  path = 'interaction',
+  options: { progress?: boolean } = {},
+): JsonObject {
   const interaction = object(value, path);
   if (bytes(interaction) > LIMITS.interactionBytes)
     invalid(path, `serialized size exceeds ${LIMITS.interactionBytes} bytes`);
   closed(
     interaction,
     path,
-    ['mode', 'title', 'description', 'source', 'actions', 'response_policy'],
+    [
+      'mode',
+      'title',
+      'description',
+      ...(options.progress ? ['progress'] : []),
+      'source',
+      'actions',
+      'response_policy',
+    ],
     ['mode', 'title', 'source', 'actions'],
   );
   if (interaction.mode !== 'interactive') invalid(`${path}.mode`, 'must be "interactive"');
   text(interaction.title, `${path}.title`, TEXT_LIMITS.title);
   if (interaction.description !== undefined)
     text(interaction.description, `${path}.description`, TEXT_LIMITS.description, 0);
+  if (interaction.progress !== undefined) progress(interaction.progress, `${path}.progress`);
   if (interaction.response_policy !== undefined && interaction.response_policy !== 'first')
     invalid(`${path}.response_policy`, 'must be "first"');
   const source = object(interaction.source, `${path}.source`);
@@ -397,6 +427,12 @@ export interface PublishArgs {
   expectedRevision: number;
   responseEventId: string;
   interaction: JsonObject;
+  /**
+   * Only when the 1-of-1 default was added: the interaction exactly as given, as an earlier adapter
+   * version (sess-mcp-tools/4) saved it. A publish that version left pending or confirmed is still
+   * recognised and replayed with its saved body; it is never used for a new publish.
+   */
+  givenInteraction?: JsonObject;
 }
 export interface CompleteArgs {
   handle: string;
@@ -422,11 +458,26 @@ export function parsePublishArgs(raw: unknown): PublishArgs {
     ['handle', 'expected_revision', 'response_event_id', 'interaction'],
     ['handle', 'expected_revision', 'response_event_id', 'interaction'],
   );
+  const handle = pattern(a.handle, 'handle', HANDLE_PATTERN);
+  const expectedRevision = integer(a.expected_revision, 'expected_revision', 1, LIMITS.maxRevision);
+  const responseEventId = pattern(a.response_event_id, 'response_event_id', EVENT_ID_PATTERN);
+  const given = a.interaction;
+  // A follow-up round that declares no position is the last one (1 of 1), so the person's page
+  // shows the finished confirmation after it. The default is added before validation, so the size
+  // limit and the replay digest cover exactly what is sent.
+  const defaulted =
+    !!given && typeof given === 'object' && !Array.isArray(given) && given.progress === undefined;
+  const interaction = validateInteraction(
+    defaulted ? { ...given, progress: { ...LAST_ROUND } } : given,
+    'interaction',
+    { progress: true },
+  );
   return {
-    handle: pattern(a.handle, 'handle', HANDLE_PATTERN),
-    expectedRevision: integer(a.expected_revision, 'expected_revision', 1, LIMITS.maxRevision),
-    responseEventId: pattern(a.response_event_id, 'response_event_id', EVENT_ID_PATTERN),
-    interaction: validateInteraction(a.interaction),
+    handle,
+    expectedRevision,
+    responseEventId,
+    interaction,
+    ...(defaulted ? { givenInteraction: given as JsonObject } : {}),
   };
 }
 export function parseCompleteArgs(raw: unknown): CompleteArgs {
@@ -530,11 +581,17 @@ export function parseAskArgs(raw: unknown): RequestArgs {
   if (a.details !== undefined)
     components.push({ type: 'text', text: text(a.details, 'details', TEXT_LIMITS.text) });
   fields.forEach((f, i) => components.push(askField(f, `fields[${i}]`)));
+  // One question is the whole sequence: the round declares itself the last (1 of 1), so the
+  // person's page shows the finished confirmation once they send it. Not a sess_ask argument.
   const interaction: JsonObject = {
     mode: 'interactive',
     title,
+    progress: { ...LAST_ROUND },
     source: { kind: 'sess_surface', components },
     actions: [{ id: 'submit', label: submit, intent: 'submit' }],
   };
-  return { interaction: validateInteraction(interaction), ...linkLifetime(a.expires_in) };
+  return {
+    interaction: validateInteraction(interaction, 'interaction', { progress: true }),
+    ...linkLifetime(a.expires_in),
+  };
 }

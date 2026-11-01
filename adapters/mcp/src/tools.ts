@@ -6,8 +6,11 @@ import { ASK_LIMITS, LIMITS, TEXT_LIMITS as L } from './validate.js';
  * sess-mcp-tools/4: Sess's length limits for what a person reads (title 80, button 24, labels 60,
  * help 160, description 280, heading 60, record key 40 and value 200), with a purpose, style and
  * examples on every such field.
+ * sess-mcp-tools/5: sess_publish's interaction takes an optional `progress` {step, total}
+ * (1 ≤ step ≤ total ≤ 20) and is sent as the last round (1 of 1) when it gives none. sess_ask
+ * sends its one round as 1 of 1; its input is unchanged.
  */
-export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/4';
+export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/5';
 export const TOOL_NAMES = [
   'sess_request',
   'sess_response',
@@ -296,6 +299,25 @@ export const interactionSchema = {
   },
 };
 
+/** sess_publish's next round: the same form, plus where it sits in the sequence. */
+export const followUpInteractionSchema = {
+  ...interactionSchema,
+  properties: {
+    ...interactionSchema.properties,
+    progress: {
+      type: 'object',
+      description: `Advanced: where this round sits in a sequence of questions, shown as a small counter ("2/3"). Integers with 1 ≤ step ≤ total ≤ ${LIMITS.progressTotal}. Leave it out when this is the last round: it is sent as 1 of 1, and the person's page shows that their answer was sent.`,
+      additionalProperties: false,
+      required: ['step', 'total'],
+      properties: {
+        step: { type: 'integer', minimum: 1, maximum: LIMITS.progressTotal },
+        total: { type: 'integer', minimum: 1, maximum: LIMITS.progressTotal },
+      },
+      examples: [{ step: 2, total: 3 }],
+    },
+  },
+};
+
 export const resultSchema = {
   type: 'object',
   additionalProperties: false,
@@ -385,7 +407,9 @@ export const TOOLS = [
     title: 'Show the next Sess step',
     description:
       'Replace the form with the next interaction after a verified answer, keeping the same private link. ' +
-      'Requires the verified answer for expected_revision. If the outcome is unknown, repeat the identical call.',
+      'Requires the verified answer for expected_revision. ' +
+      'The new form is the last one (1 of 1) unless its interaction.progress says where it sits in a longer sequence. ' +
+      'If the outcome is unknown, repeat the identical call.',
     inputSchema: {
       type: 'object',
       additionalProperties: false,
@@ -394,7 +418,7 @@ export const TOOLS = [
         handle,
         expected_revision: revision,
         response_event_id: eventId,
-        interaction: interactionSchema,
+        interaction: followUpInteractionSchema,
       },
     },
     outputSchema: resultSchema,

@@ -417,9 +417,12 @@ export function compileAsk(input: unknown): CompiledAsk {
     components.push(result.component);
     compiled.push(result.compiled);
   });
+  // One question is the whole sequence: the round declares itself the last (1 of 1), so the
+  // person's page shows the finished confirmation once they send it.
   const interaction: InteractiveInteraction = {
     mode: 'interactive',
     title,
+    progress: { step: 1, total: 1 },
     source: { kind: 'sess_surface', components },
     actions: [{ id: 'submit', label: submit, intent: 'submit' }],
   };

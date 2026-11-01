@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Tool schemas `sess-mcp-tools/5`. `sess_ask` sends its one question as the last round
+  (`progress` 1 of 1), so the person's page shows that their answer was sent; its input schema is
+  unchanged and takes no `progress`. `sess_publish`'s `interaction` takes an optional Advanced
+  `progress` `{ step, total }` (integers, 1 ≤ step ≤ total ≤ 20, shown as a small counter); without
+  it the follow-up is sent as 1 of 1. An invalid `progress` is refused with `INVALID_ARGUMENTS`
+  naming it, and nothing is sent. `sess_request` is unchanged. A new Session's stored interaction,
+  revision digest and receipt Surface hash include `progress`; Sess enforces nothing about "last",
+  so a later `sess_publish` is still accepted and the page moves to it.
+- A `sess_publish` that an earlier version saved without `progress` (pending or confirmed) is still
+  recognised when the identical call is repeated after the upgrade: it is reconciled with the
+  saved body and identity, so nothing new is sent and replay stays exact.
+
 - The text of a `sess_request` or `sess_ask` result begins with
   `Show the person this link now: <link>` and `Then call sess_response once.`, then a blank line
   and the same JSON result; `structuredContent` is unchanged.

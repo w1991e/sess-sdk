@@ -35,7 +35,27 @@ describe('tool argument validation (closed, versioned schemas)', () => {
         response_event_id: EVENT,
         interaction: ROUND_2,
       }).interaction,
-    ).toEqual(ROUND_2);
+      // A follow-up that declares no position is sent as the last round.
+    ).toEqual({ ...ROUND_2, progress: { step: 1, total: 1 } });
+  });
+
+  it('accepts progress on a follow-up only; sess_request stays without it', () => {
+    const publish = (interaction: unknown) =>
+      parsePublishArgs({ handle: HANDLE, expected_revision: 1, response_event_id: EVENT, interaction });
+    for (const progress of [
+      { step: 1, total: 1 },
+      { step: 2, total: 3 },
+      { step: 20, total: 20 },
+    ])
+      expect(publish({ ...ROUND_2, progress }).interaction.progress).toEqual(progress);
+    // The caller's object is not changed by the default.
+    const given = clone(ROUND_2);
+    publish(given);
+    expect(given).toEqual(ROUND_2);
+    rejects(
+      () => parseRequestArgs({ interaction: { ...ROUND_1, progress: { step: 1, total: 1 } } }),
+      'unknown property "progress"',
+    );
   });
 
   it('rejects unknown top-level fields, including owner-only configuration', () => {

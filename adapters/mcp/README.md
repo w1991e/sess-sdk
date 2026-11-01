@@ -125,7 +125,7 @@ A synthetic sample of what the agent sends (sample content, not from a real repo
 Text blocks are shown as plain paragraphs, so send a summary of the change rather than a raw diff;
 line breaks are kept in multiline fields.
 
-## Tools (`sess-mcp-tools/4`)
+## Tools (`sess-mcp-tools/5`)
 
 | Tool            | Input                                                                         | Result `interaction.state`                                    |
 | --------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -146,6 +146,13 @@ instructions and both tool descriptions say this.
 checks it with the same rules and limits, and runs the same request operation. It creates exactly
 one Session, returns the link and handle at once, never waits and never returns an answer. Continue
 with `sess_response`, `sess_publish` and `sess_complete` as usual.
+
+A `sess_ask` form is one question, so it is sent as the last round (`progress` 1 of 1) and the
+person's page shows that their answer was sent. Advanced: `sess_publish`'s `interaction` may say
+where the next form sits in a longer sequence with `progress` (`{ "step": 2, "total": 3 }`, integers
+with 1 ≤ step ≤ total ≤ 20, shown as a small counter); without it the form is sent as 1 of 1.
+Sess enforces nothing about "last": a later `sess_publish` is still accepted, and the page moves
+to it.
 
 Advanced: `expires_in` sets how long the link stays open, in whole seconds from creation: from 30
 up to your plan's link lifetime (Sess checks the ceiling). The result's `expiresAt` is when the link

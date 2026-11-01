@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdapterError } from '../src/errors.js';
 import type { SessMcpAdapter } from '../src/operations.js';
-import { parseRequestArgs } from '../src/validate.js';
+import { parsePublishArgs, parseRequestArgs } from '../src/validate.js';
 import { ANSWER_1, FakeSess, ROUND_1, ROUND_2, acceptingVerifier, adapterWith, tempDir } from './helpers.js';
 
 let dir: ReturnType<typeof tempDir>;
@@ -33,6 +33,50 @@ async function answered(adapter: SessMcpAdapter, fake: FakeSess) {
   await adapter.response({ handle: created.interaction.handle, revision: 1, waitMs: 0 });
   return { handle: created.interaction.handle, eventId };
 }
+
+describe('a publish saved by the earlier tool schema (no progress) across the upgrade', () => {
+  const publishArgs = (handle: string, eventId: string, value: unknown) =>
+    parsePublishArgs({ handle, expected_revision: 1, response_event_id: eventId, interaction: value });
+  // What sess-mcp-tools/4 saved: the interaction exactly as given, without the 1-of-1 default.
+  const earlier = (handle: string, eventId: string) => ({
+    handle,
+    expectedRevision: 1,
+    responseEventId: eventId,
+    interaction: interaction(ROUND_2),
+  });
+
+  it('a pending one is reconciled by the identical call, replaying its saved body and identity', async () => {
+    const fake = new FakeSess();
+    const adapter = adapterWith(dir.path, fake, { verify: acceptingVerifier(fake) });
+    const { handle, eventId } = await answered(adapter, fake);
+    fake.failNext = { method: 'PATCH', pathSuffix: fake.session!.id, apply: false };
+    expect((await failure(adapter.publish(earlier(handle, eventId)))).code).toBe('OUTCOME_UNKNOWN');
+    expect(record(handle).pending.body.interaction.progress).toBeUndefined();
+    // The same tool call after the upgrade carries the default, yet matches the saved call.
+    const args = publishArgs(handle, eventId, ROUND_2);
+    expect(args.interaction.progress).toEqual({ step: 1, total: 1 });
+    expect(await adapter.publish(args)).toEqual({ interaction: { handle, revision: 2, state: 'waiting' } });
+    const patches = fake.calls.filter((c) => c.method === 'PATCH');
+    expect(patches).toHaveLength(2);
+    expect(patches[1]!.idempotencyKey).toBe(patches[0]!.idempotencyKey);
+    // Exactly the saved body was sent, never a regenerated one.
+    expect(fake.session!.interaction.progress).toBeUndefined();
+  });
+
+  it('a confirmed one is answered from the saved transition; a different call is still refused', async () => {
+    const fake = new FakeSess();
+    const adapter = adapterWith(dir.path, fake, { verify: acceptingVerifier(fake) });
+    const { handle, eventId } = await answered(adapter, fake);
+    await adapter.publish(earlier(handle, eventId));
+    expect(await adapter.publish(publishArgs(handle, eventId, ROUND_2))).toEqual({
+      interaction: { handle, revision: 2, state: 'waiting' },
+    });
+    // An explicit position is a different call from the one saved without progress.
+    const explicit = publishArgs(handle, eventId, { ...ROUND_2, progress: { step: 2, total: 3 } });
+    expect((await failure(adapter.publish(explicit))).code).toBe('PENDING_MUTATION_DIFFERS');
+    expect(fake.calls.filter((c) => c.method === 'PATCH')).toHaveLength(1);
+  });
+});
 
 describe('replay of a confirmed publish or complete', () => {
   it('an identical publish replay after success returns the confirmed state without a new write', async () => {

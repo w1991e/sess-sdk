@@ -98,7 +98,9 @@ has 1–12 fields, a `question` (the page title: a question or a task, about 40 
 80), optional `details` (1–4,000 characters of plain text above the fields) and an optional
 `submit_label` (the button: a verb of 1–3 words, at most 24 characters; default `Send`). It
 compiles to one interactive Surface: a text component for `details`, one field component per field
-with its runtime schema, and one `submit` action. Invalid input fails with `SessError` kind
+with its runtime schema, and one `submit` action. One question is the whole sequence, so the
+Surface declares itself the last round (`progress` 1 of 1) and the person's page shows that their
+answer was sent; `progress` is not an input. Invalid input fails with `SessError` kind
 `configuration`, code `INVALID_QUESTION`, outcome `not_sent`, before credential lookup or network
 access; messages name the path, never your values.
 

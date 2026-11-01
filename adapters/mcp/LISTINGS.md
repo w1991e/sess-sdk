@@ -100,7 +100,7 @@ limits above. Recheck them, and the schema versions, before each submission.
 | `sess_complete` | no        | **yes**     | yes        | yes        | Terminal: the link stops accepting answers and never reopens. Changed from `false`.                  |
 | `sess_ask`      | no        | no          | no         | yes        | The same create as `sess_request`.                                                                   |
 
-Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` schemas.
+Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/5` schemas.
 
 ## Before any submission
 

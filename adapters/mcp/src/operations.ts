@@ -815,8 +815,16 @@ export class SessMcpAdapter {
     operation: 'publish' | 'complete',
     args: CompleteArgs,
     body?: JsonObject,
+    /** The same call as an earlier adapter version saved it (publish without the 1-of-1 default). */
+    earlierBody?: JsonObject,
   ): Promise<{ record: HandleRecord; pending: PendingMutation } | { done: AdapterResult }> {
     const { store } = await this.#ctx();
+    // A saved call matches this one exactly, or as the earlier version saved the same arguments.
+    const sameBody = (saved: JsonObject) =>
+      canonicalJson(saved) === canonicalJson(body!) ||
+      (earlierBody !== undefined && canonicalJson(saved) === canonicalJson(earlierBody));
+    const sameDigest = (saved: string | undefined) =>
+      saved === digest(body!) || (earlierBody !== undefined && saved === digest(earlierBody));
     return store.withLock(args.handle, async () => {
       const record = await this.#load(store, args.handle);
       const pendingState = operation === 'publish' ? 'publish_pending' : 'complete_pending';
@@ -825,7 +833,7 @@ export class SessMcpAdapter {
         if (
           p.expectedRevision !== args.expectedRevision ||
           p.responseEventId !== args.responseEventId ||
-          (body !== undefined && canonicalJson(p.body!) !== canonicalJson(body))
+          (body !== undefined && !sameBody(p.body!))
         )
           throw new AdapterError(
             'PENDING_MUTATION_DIFFERS',
@@ -839,7 +847,7 @@ export class SessMcpAdapter {
         const exact =
           used.operation === operation &&
           used.expectedRevision === args.expectedRevision &&
-          (operation === 'complete' || used.bodyDigest === digest(body!));
+          (operation === 'complete' || sameDigest(used.bodyDigest));
         if (!exact)
           throw new AdapterError(
             'PENDING_MUTATION_DIFFERS',
@@ -1005,7 +1013,9 @@ export class SessMcpAdapter {
   async publish(args: PublishArgs): Promise<AdapterResult> {
     const { store, client } = await this.#ctx();
     const body = { interaction: args.interaction };
-    const prepared = await this.#prepare('publish', args, body);
+    const earlier = args.givenInteraction ? { interaction: args.givenInteraction } : undefined;
+    // A replay always sends the saved body (pending.body), never this call's.
+    const prepared = await this.#prepare('publish', args, body, earlier);
     if ('done' in prepared) return prepared.done;
     const { record, pending } = prepared;
     const nextRevision = pending.expectedRevision + 1;

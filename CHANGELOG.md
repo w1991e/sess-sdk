@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- `sess.ask()` declares its one question as the last round: the compiled interaction carries
+  `progress: { step: 1, total: 1 }`, so the person's page shows that their answer was sent. The
+  input is unchanged; `progress` is not an input. A new Session's stored interaction, revision
+  digest and receipt Surface hash include it; `answer()` binds the receipt to exactly that
+  Surface, as before. Sess enforces nothing about "last": a later `sessions.publish()` is still
+  accepted. Sessions created before this release are unchanged.
+
 ## 0.1.0-rc.10 — 2026-10-28 (prepared, unpublished)
 
 - Short human links: a request identifier holding a run of 22 or more base64url characters (a

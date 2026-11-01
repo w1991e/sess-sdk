@@ -52,6 +52,8 @@ describe('sess.ask: create once, link before waiting', () => {
     expect(stored.status).toBe('active');
     expect(stored.interaction.title).toBe(question.question);
     expect(stored.interaction.actions).toEqual([{ id: 'submit', label: 'Send', intent: 'submit' }]);
+    // One question is the whole sequence: the round is declared the last, so the page can finish.
+    expect(stored.interaction.progress).toEqual({ step: 1, total: 1 });
   });
 
   it('reports an uncertain create once and never retries it', async () => {
@@ -140,6 +142,25 @@ describe('sess.ask: verify, recheck currentness, then complete', () => {
       if (method !== 'POST' || !String(url).endsWith('/v1/sessions')) return undefined;
       const body = JSON.parse(String(init.body));
       body.interaction.title = 'A different question';
+      return route(url, { ...init, body: JSON.stringify(body) });
+    });
+    const handle = await client(runtime).ask(question);
+    runtime.setHook(undefined);
+    runtime.answer(valid);
+    await expect(handle.answer()).rejects.toMatchObject({
+      kind: 'receipt_verification',
+      code: 'RECORD_BINDING_MISMATCH',
+    });
+    expect(completes(runtime)).toHaveLength(0);
+  });
+
+  it('binds the declared last round: a Surface stored without progress 1 of 1 is not this question', async () => {
+    const runtime = createFakeRuntime();
+    runtime.setHook(({ method, url, init, route }) => {
+      if (method !== 'POST' || !String(url).endsWith('/v1/sessions')) return undefined;
+      const body = JSON.parse(String(init.body));
+      expect(body.interaction.progress).toEqual({ step: 1, total: 1 });
+      delete body.interaction.progress;
       return route(url, { ...init, body: JSON.stringify(body) });
     });
     const handle = await client(runtime).ask(question);

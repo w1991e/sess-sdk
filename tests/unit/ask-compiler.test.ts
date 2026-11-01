@@ -174,6 +174,25 @@ describe('the simple-field compiler', () => {
     },
   );
 
+  it('declares its one round as the last (1 of 1), byte for byte; progress is not an input', () => {
+    const { interaction } = compileAsk({
+      question: 'One field',
+      fields: [{ name: 'a', label: 'A', type: 'text' }],
+    });
+    expect(JSON.stringify(interaction)).toBe(
+      '{"mode":"interactive","title":"One field","progress":{"step":1,"total":1},' +
+        '"source":{"kind":"sess_surface","components":[{"type":"field","name":"a","label":"A","required":true,"schema":{"type":"string"}}]},' +
+        '"actions":[{"id":"submit","label":"Send","intent":"submit"}]}',
+    );
+    expect(() =>
+      compileAsk({
+        question: 'Q',
+        fields: [{ name: 'a', label: 'A', type: 'text' }],
+        progress: { step: 1, total: 2 },
+      }),
+    ).toThrow(SessError);
+  });
+
   it('compiles every kind to the runtime field schema', () => {
     const { interaction } = compileAsk(everyKind);
     expect(interaction.title).toBe(everyKind.question);

@@ -46,8 +46,8 @@ const edit = (files: Map<string, string>, path: string, change: (value: any) => 
 };
 
 describe('tool annotation audit', () => {
-  it('matches each tool’s behaviour; schemas are sess-mcp-tools/4', () => {
-    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/4');
+  it('matches each tool’s behaviour; schemas are sess-mcp-tools/5', () => {
+    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/5');
     const table = Object.fromEntries(TOOLS.map((t) => [t.name, t.annotations]));
     // Creates a Session and a human link: writes, additive, a repeat creates another one.
     expect(table.sess_request).toEqual({
