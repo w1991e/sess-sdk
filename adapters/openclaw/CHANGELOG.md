@@ -71,7 +71,7 @@
   `sess-html-form-1` and `sess-html-form-2`, so `sess_response`, and the re-verification before
   `sess_publish` and `sess_complete`, accept an answer given on Sess's form-2 renderer and verify
   it offline. With rc.7 (in 0.1.0-rc.2) every such answer failed verification. Any other identity
-  is checked against the issuer's signed renderer list (Decision 0009 Amendment 13); a list that
+  is checked against the issuer's signed renderer list (Sess's published renderer list); a list that
   cannot be read is a retryable `UNAVAILABLE`, never a verified answer.
 - Sess's length limits for what a person reads, in Unicode code points (were UTF-16 units and
   200/1,000/4,000): title 80, description 280, heading 60, field and option labels 60, field
