@@ -1,12 +1,15 @@
 # Compatibility and evidence
 
-SDK version: **0.1.0-rc.9**, published on npm under the `next` dist-tag with provenance and pinned
-in [release/sdk-candidate.json](../release/sdk-candidate.json); it adds the commerce builders
-(`money()`, `items()`, `invoice()`, `receipt()`, `quote()`, `refund()`, `purchaseOrder()`,
-`lintText()`), a `User-Agent` of `sess-sdk/<version> node/<version>` with the `userAgent` option for
-a wrapping client's tokens, and reports a plan limit (429 `PLAN_LIMIT_REACHED`) as a refusal. Its
+SDK version: **0.1.0**, the first stable release, published on npm under the `latest` dist-tag
+with provenance and pinned in [release/sdk-candidate.json](../release/sdk-candidate.json). Its API
+is that of 0.1.0-rc.10, unchanged; `next` stays at the last release candidate, `0.1.0-rc.10`. Its
 contract snapshot is unchanged from rc.8: Sess runtime commit
-`2f8500e3da894c00b2a9ac2c4be413851b711c5b`. **0.1.0-rc.8** (link timing, renderer identities on the
+`2f8500e3da894c00b2a9ac2c4be413851b711c5b`. **0.1.0-rc.10** (short-link redaction in request
+identifiers and a plain message for a key Sess does not accept), **0.1.0-rc.9** (the commerce
+builders `money()`, `items()`, `invoice()`, `receipt()`, `quote()`, `refund()`, `purchaseOrder()`
+and `lintText()`, a `User-Agent` of `sess-sdk/<version> node/<version>` with the `userAgent` option
+for a wrapping client's tokens, and a plan limit (429 `PLAN_LIMIT_REACHED`) reported as a refusal),
+**0.1.0-rc.8** (link timing, renderer identities on the
 issuer's signed list and the interactive length limits), **0.1.0-rc.7** (`sess.ask()`, the Advanced
 link lifetime and `@sess.si/sdk/qr`), **0.1.0-rc.5** (decision-bundle verification and the
 `sess verify` executable) and **0.1.0-rc.4** remain published. **0.1.0-rc.3** is held and will not

@@ -22,12 +22,12 @@ maintainer steps are historical: they were executed and are not re-run.
 > automatically, without protection rules, and the publish job would then run without maintainer
 > approval.
 
-1. **SDK published — done.** The pinned `@sess.si/sdk@0.1.0-rc.9` (`release/sdk-candidate.json`) is
-   on npm under the dist-tag `next`, with provenance, and its registry tarball has exactly the
+1. **SDK published — done.** The pinned `@sess.si/sdk@0.1.0` (`release/sdk-candidate.json`) is
+   on npm under the dist-tag `latest`, with provenance, and its registry tarball has exactly the
    pinned SHA-256 and integrity. `package-lock.json` resolves it from the registry (switched with
    `npm run sdk:switch-to-registry -- --apply`). `npm run setup`, `npm run check`, CI and the
-   release workflow all refuse a candidate-mode lock. Never depend on the `latest` dist-tag of
-   `@sess.si/sdk` (a deprecated placeholder). For a future SDK pin, publish it first, then repeat the
+   release workflow all refuse a candidate-mode lock. Depend on the exact pinned version, never on
+   a dist-tag of `@sess.si/sdk`. For a future SDK pin, publish it first, then repeat the
    switch and merge the reviewed lockfile change before releasing.
 2. **GitHub environment `npm-mcp-release` — exists** in `w1991e/sess-sdk`:
    - a required reviewer: the maintainer who approves each publication run. Self-review is

@@ -8,7 +8,7 @@
 - The `sess_ask` description begins with a line saying when to use it: whenever the person asks to
   answer on their phone or another device, or says 'use Sess', in preference to the host's own
   question widget for anything answered away from the chat. The rest of the description is unchanged.
-- Depends on `@sess.si/sdk` 0.1.0-rc.9 (sha256 `486cf8d9…192b`), resolved from the registry.
+- Depends on `@sess.si/sdk` 0.1.0 (sha256 `a0745188…9b97`), resolved from the registry.
 - The SDK now sends its own User-Agent, so every request to Sess, from the local stdio server and
   the hosted HTTP handler, carries
   `User-Agent: sess-mcp/<version> sess-sdk/<version> node/<version>`: this package's token first,
