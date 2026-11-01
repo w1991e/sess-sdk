@@ -76,10 +76,7 @@ const packedList = Array.isArray(packOutput) ? packOutput : Object.values(packOu
 assert(packedList.length === 1, `npm pack reported ${packedList.length} packages`);
 const [packed] = packedList;
 const tarball = join(artifacts, packed.filename);
-assert(
-  packed.filename === 'sess.si-openclaw-0.1.0-rc.5.tgz' && existsSync(tarball),
-  'unexpected tarball name',
-);
+assert(packed.filename === 'sess.si-openclaw-0.1.0.tgz' && existsSync(tarball), 'unexpected tarball name');
 const bytes = readFileSync(tarball);
 const sha256 = createHash('sha256').update(bytes).digest('hex');
 

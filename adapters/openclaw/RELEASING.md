@@ -7,13 +7,24 @@ maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`
 never to `latest`; a stable version (`X.Y.Z`) goes to `latest`, the same rule as the SDK, the MCP
 adapter and create-agent (owner decision 2026-10-31).
 
-The current published candidate is `0.1.0-rc.5` (npm `next`, 2026-10-27; integrity and SHA-256 as
-recorded in [release/rc5-packet.md](release/rc5-packet.md) and `compatibility.json`). No unpublished
-candidate is pending. `0.1.0-rc.4` ([release/rc4-packet.md](release/rc4-packet.md)), `0.1.0-rc.3`
+`0.1.0` is prepared, unpublished, for `latest` (tag `openclaw-v0.1.0`; expected tarball below).
+Until it is approved, `latest` points at the `0.0.0-stage` placeholder. `next` stays at the last
+release candidate, `0.1.0-rc.5` (published 2026-10-27; integrity and SHA-256 as recorded in
+[release/rc5-packet.md](release/rc5-packet.md) and `compatibility.json`); the stable release does
+not move it. `0.1.0-rc.4` ([release/rc4-packet.md](release/rc4-packet.md)), `0.1.0-rc.3`
 ([release/rc3-packet.md](release/rc3-packet.md)), `0.1.0-rc.2`
 ([release/rc2-packet.md](release/rc2-packet.md)) and `0.1.0-rc.1`
 ([release/rc1-packet.md](release/rc1-packet.md)) are published as well. Each candidate gets such a
 packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
+
+Expected `0.1.0` tarball (`npm run check` on Node 24.21.0 and npm 11.19.0; the release run's
+SHA-256 must equal it). A packed change before the tag updates these values in the same PR:
+
+| Field     | Value                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------- |
+| Filename  | `sess.si-openclaw-0.1.0.tgz`                                                                      |
+| SHA-256   | `e8581f51c550651cb2fde02f10bc76b46235c8b759efbb94fee4b33ac85fa6c2`                                |
+| Integrity | `sha512-vceAZzdB4Y5LqPXnh9PWKjH5Wy4GoGcvd4+hV4AfaUkMiVKxasjM5yOWHlqkVZth9RX+6KV1/DxxHJ5GawGRcw==` |
 
 ## Prerequisites (owner actions, in order)
 
@@ -34,11 +45,11 @@ packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
    `openclaw-v*`; its `publish` job is the only job with `id-token: write`. Self-review is allowed,
    so a sole maintainer can approve a run they started; the release gate is the npm 2FA approval of
    the staged version. No secrets: publishing uses npm trusted publishing (OIDC), not a token.
-3. **npm package — exists; release candidates are published on `next`.** A never-approved bootstrap stage
-   created `@sess.si/openclaw` in the `sess.si` scope so that a trusted publisher can be configured.
-   Only once a public `0.0.0-stage` placeholder exists (npm publishes one with the bootstrap stage),
-   and if `latest` lands on it, deprecate it with a pointer to `@next` (`latest` never points at a
-   prerelease). The package's presence on npm is not a release.
+3. **npm package — exists; release candidates are published on `next`, stable versions on
+   `latest`.** A never-approved bootstrap stage created `@sess.si/openclaw` in the `sess.si` scope
+   so that a trusted publisher can be configured. Its public `0.0.0-stage` placeholder holds
+   `latest`, deprecated with a pointer to `@next`, until the first stable version is approved there
+   (`latest` never points at a prerelease). The package's presence on npm is not a release.
 4. **Stage-only npm trusted publisher.** On npmjs.com, for package `@sess.si/openclaw`, add a GitHub
    Actions trusted publisher bound to repository `w1991e/sess-sdk`, workflow `openclaw-release.yml`
    and environment `npm-openclaw-release`, with direct publishing not permitted. Do not reject the
