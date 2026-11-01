@@ -227,8 +227,9 @@ test('artifact: only the tested bytes and file list from this commit pass', () =
     sha256,
     integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`,
   };
-  const args = { result, bytes, expectedSha256: sha256, version, distTag: 'next', sha };
-  if (version.includes('-rc.')) assert.equal(checkArtifact(args).sha256, sha256);
+  const distTag = version.includes('-rc.') ? 'next' : 'latest';
+  const args = { result, bytes, expectedSha256: sha256, version, distTag, sha };
+  assert.equal(checkArtifact(args).sha256, sha256);
   refuses(() => checkArtifact({ ...args, bytes: Buffer.from('changed') }), /bytes changed/);
   refuses(() => checkArtifact({ ...args, expectedSha256: '0'.repeat(64) }), /bytes changed/);
   refuses(() => checkArtifact({ ...args, sha: 'b'.repeat(40) }), /source commit/);
@@ -250,6 +251,7 @@ test('artifact: only the tested bytes and file list from this commit pass', () =
   }
   assert.equal(checkArtifactPath({ result, version }), `.artifacts/sess.si-create-agent-${version}.tgz`);
   if (version.includes('-rc.')) refuses(() => checkArtifact({ ...args, distTag: 'latest' }), /dist-tag/);
+  else refuses(() => checkArtifact({ ...args, distTag: 'next' }), /dist-tag/);
 });
 
 test('readback: exact integrity, rc on next and never latest, no dependencies and provenance', () => {
@@ -263,8 +265,9 @@ test('readback: exact integrity, rc on next and never latest, no dependencies an
       attestations: { url: 'https://example.invalid', provenance: { predicateType: 'x' } },
     },
   };
-  const tags = { next: version };
-  checkPublished({ manifest, result, published, tags, distTag: 'next' });
+  const distTag = version.includes('-rc.') ? 'next' : 'latest';
+  const tags = { [distTag]: version };
+  checkPublished({ manifest, result, published, tags, distTag });
   const bad = (overrides, t = tags) =>
     refuses(
       () =>
@@ -273,14 +276,15 @@ test('readback: exact integrity, rc on next and never latest, no dependencies an
           result,
           published: { ...published, ...overrides },
           tags: t,
-          distTag: 'next',
+          distTag,
         }),
       /does not match/,
     );
   bad({ dist: { ...published.dist, integrity: 'sha512-other' } });
   bad({ dist: { integrity: 'sha512-tested' } });
-  bad({}, { next: '0.0.0' });
+  bad({}, { [distTag]: '0.0.0' });
   if (version.includes('-rc.')) bad({}, { next: version, latest: version });
+  else bad({}, { next: version, latest: '0.0.0-stage' });
   bad({ dependencies: { 'left-pad': '1.3.0' } });
   bad({ repository: { ...manifest.repository, directory: 'adapters/mcp' } });
   bad({ repository: { ...manifest.repository, url: 'git+https://github.com/someone/fork.git' } });

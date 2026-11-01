@@ -3,7 +3,7 @@
 Creates a small agent that asks you two questions on your phone and plans your weekend on the real
 forecast.
 
-**Create and run:** `npm create @sess.si/agent@next my-agent`
+**Create and run:** `npm create @sess.si/agent@latest my-agent`
 
 **What you'll see:** it asks for your Sess API key (hidden as you paste it) and a contact for the
 weather services, then prints a Sess link.
