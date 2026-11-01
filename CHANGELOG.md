@@ -60,7 +60,7 @@
 
 ## 0.1.0-rc.8 — 2026-10-22
 
-- Link timing (Decision 0009 Amendment 10). On an interactive Sess link of 20 hours or less the
+- Link timing. On an interactive Sess link of 20 hours or less the
   person may ask for more time, up to ten times, never past a fixed horizon. Session reads carry
   `link_state` (`live`, `lapsed` or `expired`), `action_expires_horizon`, `extensions_used` and the
   `extensions` history; the Session log (`listEvents()`) lists the same records as
@@ -77,7 +77,7 @@
   describes: the interactive text limits with `field`, `limit` and `length` on a length error,
   `progress`, the receipt `format` and the renderer identities list. The generated wire types gain
   them; the SDK's public types and behavior in this change are link timing only.
-- Renderer identities (Decision 0009 Amendment 13). A receipt's `surface.renderer_version` now
+- Renderer identities. A receipt's `surface.renderer_version` now
   verifies when it is an identity this release bundles (`sess-html-form-1`, `sess-html-form-2`;
   `BUNDLED_RENDERER_IDENTITIES`) or one on the issuer's renderer list whose signature verifies
   under the same trusted keys and issuer, so a later Sess page change needs no SDK update. Every
@@ -130,7 +130,7 @@ Includes everything in the unpublished 0.1.0-rc.6 below, which is not published 
 - `ResponseMeta.serverDate`: the response's HTTP `Date`, when the runtime sends one.
 - Contract snapshot from Sess runtime commit `b48e8e7` (see `contract/contract-lock.json`), with
   `expires_in`, `action_expires_at` on create and the target's `default_expires_in`.
-- `@sess.si/sdk/qr` (S-07): `qr(url, { format: 'svg' | 'png' | 'terminal' })` draws a Sess link as a
+- `@sess.si/sdk/qr`: `qr(url, { format: 'svg' | 'png' | 'terminal' })` draws a Sess link as a
   QR code locally (error correction level M, 4-module quiet zone, deterministic, no network call), and
   `printQr(url)` prints "Scan to answer on your phone" and the code on an interactive terminal only:
   never without a TTY, in CI or with `NODE_ENV=production`; `--no-qr` or `{ qr: false }` turn it off
