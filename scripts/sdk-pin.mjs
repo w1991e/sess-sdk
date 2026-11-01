@@ -125,7 +125,7 @@ export function pack({ out, doBuild = false }) {
 const MCP = join(root, 'adapters', 'mcp');
 const OPENCLAW = join(root, 'adapters', 'openclaw');
 const QUICKSTART = join(root, 'examples', 'quickstart-node');
-// The starter agent written by `npm create @sess.si/agent@next` (and the public starter template).
+// The starter agent written by `npm create @sess.si/agent@latest` (and the public starter template).
 const STARTER = join(root, 'create-agent', 'template');
 // The provider recipes (private, never published; installed with npm install and no lockfile).
 const RECIPES = join(root, 'examples', 'recipes');
