@@ -5,11 +5,16 @@ reviewed master commit, published by `.github/workflows/mcp-release.yml`. Nothin
 from a laptop. Preparing a release does not authorize publishing. The workflow stages the tested
 tarball only after a maintainer approves the protected environment, and nothing is installable
 until a maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`) go to
-`next`, never to `latest`.
+`next`, never to `latest`; a stable version (no `-rc.N`) goes to `latest`.
 
-The current published candidate is `0.1.0-rc.4` (npm `next`, 2026-10-27; integrity and SHA-256 as
-recorded in [release/rc4-packet.md](release/rc4-packet.md) and `compatibility.json`). No unpublished
-candidate is pending. `0.1.0-rc.3` ([release/rc3-packet.md](release/rc3-packet.md)), `0.1.0-rc.2`
+The current release, `0.1.0`, is prepared and unpublished: the tag `mcp-v0.1.0` stages it for
+`latest`, where it replaces the `0.0.0-stage` placeholder. Its contents are the `0.1.0` entry in
+[CHANGELOG.md](CHANGELOG.md); the repository's
+[release/v0.1.0-packet.md](../../release/v0.1.0-packet.md) sets the order of the four 0.1.0
+releases. `next` stays at the last release candidate, `0.1.0-rc.4`.
+
+The last published candidate is `0.1.0-rc.4` (npm `next`, 2026-10-27; integrity and SHA-256 as
+recorded in [release/rc4-packet.md](release/rc4-packet.md) and `compatibility.json`). `0.1.0-rc.3` ([release/rc3-packet.md](release/rc3-packet.md)), `0.1.0-rc.2`
 ([release/rc2-packet.md](release/rc2-packet.md)) and `0.1.0-rc.1`
 ([release/rc1-packet.md](release/rc1-packet.md)) are published as well. Those four packets'
 maintainer steps are historical: they were executed and are not re-run.
@@ -39,7 +44,8 @@ maintainer steps are historical: they were executed and are not re-run.
    created `@sess.si/mcp` so that a trusted publisher can be configured. Only once a public
    `0.0.0-stage` placeholder exists (npm publishes one with the bootstrap stage), and if `latest`
    lands on it, deprecate it with a pointer to `@next` (`latest` never points at a prerelease). The
-   package's presence on npm is not a release.
+   package's presence on npm is not a release. Once `0.1.0` is approved, `latest` is the release,
+   not the placeholder.
 4. **Stage-only npm trusted publisher for `@sess.si/mcp`**, bound to repository `w1991e/sess-sdk`,
    workflow `mcp-release.yml` and environment `npm-mcp-release`, with direct publishing not
    permitted. Do not reject the bootstrap stage yet (see "Cutting a release", step 5).
@@ -65,7 +71,7 @@ maintainer steps are historical: they were executed and are not re-run.
 3. Review the prepare job's summary (tested tarball link and SHA-256), then approve the
    `npm-mcp-release` deployment. The publish job stages the tested tarball.
 4. `npm stage list @sess.si/mcp --json`, `npm stage download <stage-id>`, check the SHA-256,
-   `npm stage view <stage-id>` (tag `next` for a release candidate), then
+   `npm stage view <stage-id>` (tag `next` for a release candidate, `latest` for a stable version), then
    `npm stage approve <stage-id>` with 2FA. The readback job then verifies the registry.
 5. First release only: after its stage is approved, reject the never-approved bootstrap stage
    (`npm stage list @sess.si/mcp --json`, then reject it). Never reject it before: rejecting the
@@ -99,7 +105,7 @@ Publish job (environment `npm-mcp-release`; only this job has `id-token: write`)
 - re-verifies name, version, filename, Node, registry SDK mode, source commit and both digests
   against the prepare job's outputs;
 - `npm stage publish <tarball> --ignore-scripts --provenance --access public --tag <tag>`, where a
-  `-rc.N` version always uses `next` (never `latest`). The trusted publisher is stage-only; a
+  `-rc.N` version always uses `next` (never `latest`) and a stable version `latest`. The trusted publisher is stage-only; a
   maintainer verifies the staged digest and runs `npm stage approve` with npm 2FA;
 - a read-only `readback` job then waits for that approval and reads the registry back: version, repository and directory, integrity equal to the tested
   bytes, the dist-tag (and that an rc is not `latest`), dependencies, and provenance attestations.

@@ -8,7 +8,7 @@
     "source": "github",
     "subfolder": "adapters/mcp"
   },
-  "version": "0.1.0-rc.4",
+  "version": "0.1.0",
   "icons": [
     {
       "src": "https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png",
