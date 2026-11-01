@@ -38,6 +38,15 @@ test('identity: the exact tag for this package version passes; rc maps to next',
   assert.deepEqual(checkIdentity(good), { version, distTag: version.includes('-rc.') ? 'next' : 'latest' });
 });
 
+test('identity: a missing or other license refuses (owner decision 2026-10-31)', () => {
+  const { license: _license, ...unlicensed } = manifest;
+  refuses(() => checkIdentity({ ...good, manifest: unlicensed }), /license must be Apache-2.0/);
+  refuses(
+    () => checkIdentity({ ...good, manifest: { ...manifest, license: 'MIT' } }),
+    /license must be Apache-2.0/,
+  );
+});
+
 test('identity: wrong tag, version, prefix or repository refuses', () => {
   refuses(() => checkIdentity({ ...good, ref: `refs/tags/v${version}` }), /does not equal/);
   refuses(() => checkIdentity({ ...good, ref: `refs/tags/mcp-v${version}` }), /does not equal/);
