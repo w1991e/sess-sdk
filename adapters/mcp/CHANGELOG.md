@@ -65,9 +65,9 @@ Integrity `sha512-Gc/hUu0H…Ra+Cvw==`, SHA-256 `d6b5d3d7…6bc837`, as in `rele
   `sess-html-form-1` and `sess-html-form-2`, so `sess_response` and `sess_ask` accept an answer
   given on Sess's form-2 renderer and verify it offline. With rc.7 (in 0.1.0-rc.2) every such
   answer failed verification. Any other identity is checked against the issuer's signed renderer
-  list (Decision 0009 Amendment 13); a list that cannot be read is a retryable `SESS_UNAVAILABLE`
+  list (Sess's published renderer list); a list that cannot be read is a retryable `SESS_UNAVAILABLE`
   that records nothing, never a verified answer.
-- Link timing (Decision 0009 Amendment 10). A lapsed link (past its deadline, but the person can
+- Link timing. A lapsed link (past its deadline, but the person can
   still ask for more time until its horizon) is still open: `sess_response`, and so `sess_ask`,
   report `waiting`, never `expired`. `expired` is reported only once a read shows the link expired:
   past its end (its horizon while an extension is left, else its deadline) plus the two-second
