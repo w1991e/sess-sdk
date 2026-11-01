@@ -4,13 +4,7 @@ A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent a
 a hosted Sess form and receive a receipt-verified answer. The agent gets the Sess link
 immediately, the person answers on any device, and the agent continues on the same Session.
 
-**Candidate status:** `@sess.si/mcp@0.1.0-rc.4` is a release candidate. Release candidates are
-published only under the npm dist-tag `next`, after a maintainer approves the publication with npm
-2FA. Do not install the bare name: its `latest` dist-tag points at a `0.0.0-stage` placeholder,
-not at a release. Its SDK dependency, `@sess.si/sdk@0.1.0`, is published on npm (dist-tag
-`latest`) and installs from the registry. Everything below marked _tested_ was run from a packed,
-installed tarball; everything marked _untested_ is the intended registry form. See
-[compatibility.json](compatibility.json) for the exact tuple.
+**Release status:** `@sess.si/mcp@0.1.0` is the first stable release, on the `latest` dist-tag. `next` stays at `0.1.0-rc.4`. It depends on `@sess.si/sdk@0.1.0`. The [changelog](CHANGELOG.md) describes each version; `npm view @sess.si/mcp dist-tags` shows what the registry serves now. Everything below marked _tested_ was run from a packed, installed tarball; everything marked _untested_ is the intended registry form. See [compatibility.json](compatibility.json) for the exact tuple.
 
 ## Set up with Claude Code (connection tested) or Cursor (untested)
 
