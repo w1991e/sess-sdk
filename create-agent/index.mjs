@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// `npm create @sess.si/agent@next <dir>`: writes the starter agent into a new or empty directory inside
+// `npm create @sess.si/agent@latest <dir>`: writes the starter agent into a new or empty directory inside
 // the current one, then installs it and runs it once. It never overwrites a file or follows a symlink.
 //
 // The API key comes from SESS_API_KEY or, in a terminal, from a hidden prompt. It is never taken from
@@ -17,7 +17,7 @@ const TEMPLATE = join(dirname(fileURLToPath(import.meta.url)), 'template');
 const FILES = readdirSync(TEMPLATE)
   .sort()
   .map((name) => [name, name.startsWith('_') ? `.${name.slice(1)}` : name]);
-const USAGE = 'Usage: npm create @sess.si/agent@next <directory> [-- --no-run]';
+const USAGE = 'Usage: npm create @sess.si/agent@latest <directory> [-- --no-run]';
 
 function refuse(message) {
   console.error(`${message}\nNothing was written.`);

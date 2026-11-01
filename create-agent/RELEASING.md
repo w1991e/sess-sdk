@@ -3,7 +3,8 @@
 Releases run only from `.github/workflows/create-agent-release.yml`, on a tag `create-agent-v<version>`
 whose commit is on reviewed `master`. The workflow tests and packs the initializer once, then stages
 exactly those bytes with npm provenance. Nothing is installable until a maintainer approves the staged
-version with npm 2FA. Release candidates (`-rc.N`) go to `next`, never to `latest`. The guards are
+version with npm 2FA. Release candidates (`-rc.N`) go to `next`, never to `latest`; a stable version
+(`X.Y.Z`) goes to `latest`. The guards are
 `create-agent/scripts/release-guard.mjs`, self-tested by
 `node --test create-agent/scripts/test-release-guard.mjs`.
 
@@ -11,13 +12,14 @@ version with npm 2FA. Release candidates (`-rc.N`) go to `next`, never to `lates
 makes GitHub create it automatically, without protection rules, and the publish job would then run
 without maintainer approval.
 
-The current published candidate is `0.1.0-rc.6` (npm `next`, 2026-10-27; release run 40469398018;
-SHA-256 and integrity as recorded in [release/rc6-packet.md](release/rc6-packet.md), equal to the
-registry tarball). No unpublished candidate is pending. `0.1.0-rc.5`
-([release/rc5-packet.md](release/rc5-packet.md)), `0.1.0-rc.4`
-([release/rc4-packet.md](release/rc4-packet.md)) and `0.1.0-rc.3`
-([release/rc3-packet.md](release/rc3-packet.md)) are published as well. Each candidate gets such a
-packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
+`0.1.0` is prepared for `latest` ([release/v0.1.0-packet.md](release/v0.1.0-packet.md)) and not yet
+published. The current published candidate is `0.1.0-rc.6` (npm `next`, 2026-10-27; release run
+40469398018; SHA-256 and integrity as recorded in [release/rc6-packet.md](release/rc6-packet.md),
+equal to the registry tarball). `0.1.0-rc.5` ([release/rc5-packet.md](release/rc5-packet.md)),
+`0.1.0-rc.4` ([release/rc4-packet.md](release/rc4-packet.md)) and `0.1.0-rc.3`
+([release/rc3-packet.md](release/rc3-packet.md)) are published as well. Each version gets such a
+packet, `release/rc<N>-packet.md` or `release/v<version>-packet.md`, updated in the same PR as any
+packed change. Changes by version are in [CHANGELOG.md](CHANGELOG.md).
 
 ## One-time maintainer setup
 
@@ -40,11 +42,12 @@ packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
 3. Approve the `npm-create-agent-release` environment on the run. The publish job stages the tested
    tarball; its summary shows the SHA-256.
 4. `npm stage list @sess.si/create-agent --json`, `npm stage download <stage-id>`, check the SHA-256,
-   `npm stage view <stage-id>` (tag `next` for a release candidate), then `npm stage approve <stage-id>`
-   with 2FA.
+   `npm stage view <stage-id>` (tag `next` for a release candidate, `latest` for a stable version),
+   then `npm stage approve <stage-id>` with 2FA.
 5. First release only: after its stage is approved, reject the never-approved bootstrap stage
    (`npm stage list @sess.si/create-agent --json`, then reject it). Never reject it before: rejecting
    the bootstrap stage before the first release is approved deletes the npm package and its trusted
    publisher.
 6. The readback job verifies the registry integrity, dist-tag and provenance. Then
-   `npm create @sess.si/agent@next my-agent` installs it.
+   `npm create @sess.si/agent@latest my-agent` installs a stable version, and
+   `npm create @sess.si/agent@next my-agent` a release candidate.

@@ -1,4 +1,4 @@
-// The one command: `npm create @sess.si/agent@next <dir>` scaffolds, installs, asks for what is missing
+// The one command: `npm create @sess.si/agent@latest <dir>` scaffolds, installs, asks for what is missing
 // (the API key hidden), runs the agent once and exits with the agent's exit code. npm is faked
 // (create-agent/test/fake-npm/npm-cli.mjs, reached through npm_execpath) and the terminal is faked
 // (create-agent/test/fake-tty.mjs) or, where python3 is available, a real pseudo-terminal.
@@ -274,7 +274,7 @@ describe('@sess.si/create-agent: the one command', { timeout: 30_000 }, () => {
     ]) {
       const run = await oneCommand({ args });
       expect(run.code).toBe(1);
-      expect(run.stderr).toContain('Usage: npm create @sess.si/agent@next <directory>');
+      expect(run.stderr).toContain('Usage: npm create @sess.si/agent@latest <directory>');
       expect(run.calls).toEqual([]);
       expect(readdirSync(run.cwd)).toEqual([]);
     }

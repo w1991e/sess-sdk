@@ -116,7 +116,7 @@ describe('@sess.si/create-agent initializer', { timeout: 30_000 }, () => {
     expect(initialize(cwd, '--force', 'x').status).toBe(1);
     expect(initialize(cwd, 'a', 'b').status).toBe(1);
     expect(readdirSync(cwd)).toEqual([]);
-    expect(initialize(cwd, '--help').stdout).toContain('npm create @sess.si/agent@next <directory>');
+    expect(initialize(cwd, '--help').stdout).toContain('npm create @sess.si/agent@latest <directory>');
   });
 
   it('writes only the template and has no lifecycle scripts in either package', () => {
