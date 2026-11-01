@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "package": {
     "name": "@sess.si/mcp",
-    "version": "0.1.0-rc.4",
+    "version": "0.1.0",
     "toolSchema": "sess-mcp-tools/4"
   },
-  "status": "0.1.0-rc.4 (2026-10-27), 0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next is 0.1.0-rc.4, on @sess.si/sdk 0.1.0-rc.8",
-  "recordedAt": "2026-10-27",
+  "status": "0.1.0 prepared on @sess.si/sdk 0.1.0 for npm dist-tag latest, unpublished; 0.1.0-rc.4 (2026-10-27), 0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next is 0.1.0-rc.4, on @sess.si/sdk 0.1.0-rc.8, and stays there",
+  "recordedAt": "2026-10-31",
   "node": {
     "engines": ">=22.14.0 <25",
     "qualified": ["22.14.0", "24.21.0"],
@@ -169,7 +169,14 @@
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "@sess.si/mcp@0.1.0-rc.4 published on npm dist-tag next on 2026-10-27, on @sess.si/sdk 0.1.0-rc.8; 0.1.0-rc.3 on 2026-10-23, 0.1.0-rc.2 on 2026-10-19 and 0.1.0-rc.1 on 2026-10-17 (each staged by the release workflow, approved by a maintainer with npm 2FA); latest stays on the deprecated 0.0.0-stage placeholder. No unpublished candidate is pending. The SDK dependency is in registry mode.",
+    "status": "0.1.0 prepared on @sess.si/sdk 0.1.0, unpublished; the tag mcp-v0.1.0 stages it for npm dist-tag latest (release.prepared). @sess.si/mcp@0.1.0-rc.4 published on npm dist-tag next on 2026-10-27, on @sess.si/sdk 0.1.0-rc.8; 0.1.0-rc.3 on 2026-10-23, 0.1.0-rc.2 on 2026-10-19 and 0.1.0-rc.1 on 2026-10-17 (each staged by the release workflow, approved by a maintainer with npm 2FA). latest stays on the deprecated 0.0.0-stage placeholder until 0.1.0 is approved; next stays at 0.1.0-rc.4. The SDK dependency is in registry mode.",
+    "prepared": {
+      "version": "0.1.0",
+      "distTag": "latest",
+      "tag": "mcp-v0.1.0",
+      "sessSdk": "0.1.0 (registry, dist-tag latest)",
+      "note": "Prepared and unpublished. The release guard derives latest for a version without -rc.N. Once the stage is approved and read back, this entry becomes release.published and 0.1.0-rc.4 moves to release.earlier."
+    },
     "published": {
       "version": "0.1.0-rc.4",
       "distTag": "next",

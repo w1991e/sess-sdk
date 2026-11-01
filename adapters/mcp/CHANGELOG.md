@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 — 2026-11-01
+
+The first stable release, for the `latest` dist-tag. Compared with 0.1.0-rc.4, which stays on
+`next`; tool schemas stay `sess-mcp-tools/4`:
 
 - The text of a `sess_request` or `sess_ask` result begins with
   `Show the person this link now: <link>` and `Then call sess_response once.`, then a blank line
@@ -8,7 +11,8 @@
 - The `sess_ask` description begins with a line saying when to use it: whenever the person asks to
   answer on their phone or another device, or says 'use Sess', in preference to the host's own
   question widget for anything answered away from the chat. The rest of the description is unchanged.
-- Depends on `@sess.si/sdk` 0.1.0 (sha256 `a0745188…9b97`), resolved from the registry.
+- Depends on `@sess.si/sdk` 0.1.0 (was 0.1.0-rc.8; sha256 `a0745188…9b97`), resolved from the
+  registry.
 - The SDK now sends its own User-Agent, so every request to Sess, from the local stdio server and
   the hosted HTTP handler, carries
   `User-Agent: sess-mcp/<version> sess-sdk/<version> node/<version>`: this package's token first,
@@ -20,6 +24,11 @@
   `/s/` links, and withhold every run of 22 or more base64url characters, whatever its letter case
   or what it is glued to. Event names and error codes are kept only when they are exactly a known
   event or code, as structured values; in free text they are withheld like any other such run.
+- SDK 0.1.0 also brings rc.10's error changes: a new message for a key Sess does not accept
+  (401 `UNAUTHORIZED`), short-link tokens withheld from request IDs, and a `SessError` that has
+  own properties only for fields with a value. None of them changes what an MCP client sees. Tool
+  errors keep this package's fixed messages with the Sess code, such as `UNAUTHORIZED`; the SDK's
+  message, request IDs and the error object itself are never relayed or printed.
 
 ## 0.1.0-rc.4
 

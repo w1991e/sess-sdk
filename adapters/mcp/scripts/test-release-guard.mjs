@@ -41,6 +41,7 @@ const server = {
 };
 const compatibility = read('compatibility.json');
 const version = manifest.version;
+const releaseTag = version.includes('-rc.') ? 'next' : 'latest';
 const good = { manifest, server, ref: `refs/tags/mcp-v${version}`, repository: 'w1991e/sess-sdk' };
 const refuses = (fn, pattern) => assert.throws(fn, (e) => e instanceof GuardError && pattern.test(e.message));
 const clone = (value) => structuredClone(value);
@@ -269,8 +270,9 @@ test('artifact: only the tested bytes from this commit, tested with the registry
     sha256,
     integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`,
   };
-  const args = { result, bytes, expectedSha256: sha256, version, distTag: 'next', sha };
-  if (version.includes('-rc.')) assert.equal(checkArtifact(args).sha256, sha256);
+  // The dist-tag the prepare job derives for this version: next for a release candidate, else latest.
+  const args = { result, bytes, expectedSha256: sha256, version, distTag: releaseTag, sha };
+  assert.equal(checkArtifact(args).sha256, sha256);
   refuses(() => checkArtifact({ ...args, bytes: Buffer.from('changed') }), /bytes changed/);
   refuses(() => checkArtifact({ ...args, expectedSha256: '0'.repeat(64) }), /bytes changed/);
   refuses(() => checkArtifact({ ...args, sha: 'b'.repeat(40) }), /source commit/);
@@ -291,10 +293,21 @@ test('artifact: only the tested bytes from this commit, tested with the registry
     refuses(() => checkArtifact({ ...args, result: bad }), /filename\/path/);
   }
   assert.equal(checkArtifactPath({ result, version }), `.artifacts/sess.si-mcp-${version}.tgz`);
-  if (version.includes('-rc.')) refuses(() => checkArtifact({ ...args, distTag: 'latest' }), /dist-tag/);
+  refuses(() => checkArtifact({ ...args, distTag: releaseTag === 'next' ? 'latest' : 'next' }), /dist-tag/);
+  // Both directions, whatever the package version: an rc is never latest, a stable one never next.
+  const rc = { ...result, version: '0.1.0-rc.9', filename: 'sess.si-mcp-0.1.0-rc.9.tgz' };
+  rc.tarball = `.artifacts/${rc.filename}`;
+  const rcArgs = { ...args, result: rc, version: rc.version };
+  assert.equal(checkArtifact({ ...rcArgs, distTag: 'next' }).sha256, sha256);
+  refuses(() => checkArtifact({ ...rcArgs, distTag: 'latest' }), /dist-tag/);
+  const stable = { ...result, version: '9.9.0', filename: 'sess.si-mcp-9.9.0.tgz' };
+  stable.tarball = `.artifacts/${stable.filename}`;
+  const stableArgs = { ...args, result: stable, version: stable.version };
+  assert.equal(checkArtifact({ ...stableArgs, distTag: 'latest' }).sha256, sha256);
+  refuses(() => checkArtifact({ ...stableArgs, distTag: 'next' }), /dist-tag/);
 });
 
-test('readback: exact integrity, rc on next and never latest, dependencies and provenance', () => {
+test('readback: exact integrity, rc on next and never latest, stable on latest, dependencies and provenance', () => {
   const result = { integrity: 'sha512-tested' };
   const published = {
     name: manifest.name,
@@ -306,8 +319,8 @@ test('readback: exact integrity, rc on next and never latest, dependencies and p
       attestations: { url: 'https://example.invalid', provenance: { predicateType: 'x' } },
     },
   };
-  const tags = { next: version };
-  checkPublished({ manifest, result, published, tags, distTag: 'next' });
+  const tags = { [releaseTag]: version };
+  checkPublished({ manifest, result, published, tags, distTag: releaseTag });
   refuses(
     () =>
       checkPublished({
@@ -315,7 +328,7 @@ test('readback: exact integrity, rc on next and never latest, dependencies and p
         result,
         published: { ...published, dist: { ...published.dist, integrity: 'sha512-other' } },
         tags,
-        distTag: 'next',
+        distTag: releaseTag,
       }),
     /does not match/,
   );
@@ -326,26 +339,57 @@ test('readback: exact integrity, rc on next and never latest, dependencies and p
         result,
         published: { ...published, dist: { integrity: 'sha512-tested' } },
         tags,
-        distTag: 'next',
+        distTag: releaseTag,
       }),
     /does not match/,
   );
   refuses(
-    () => checkPublished({ manifest, result, published, tags: { next: '0.0.0' }, distTag: 'next' }),
+    () =>
+      checkPublished({ manifest, result, published, tags: { [releaseTag]: '0.0.0' }, distTag: releaseTag }),
     /does not match/,
   );
-  if (version.includes('-rc.'))
-    refuses(
-      () =>
-        checkPublished({
-          manifest,
-          result,
-          published,
-          tags: { next: version, latest: version },
-          distTag: 'next',
-        }),
-      /does not match/,
-    );
+  // A release candidate on latest is refused, whatever this package's version is.
+  const rcManifest = { ...manifest, version: '0.1.0-rc.9' };
+  const rcPublished = { ...published, version: rcManifest.version };
+  checkPublished({
+    manifest: rcManifest,
+    result,
+    published: rcPublished,
+    tags: { next: rcManifest.version },
+    distTag: 'next',
+  });
+  refuses(
+    () =>
+      checkPublished({
+        manifest: rcManifest,
+        result,
+        published: rcPublished,
+        tags: { next: rcManifest.version, latest: rcManifest.version },
+        distTag: 'next',
+      }),
+    /does not match/,
+  );
+  // A stable version passes only once latest serves it.
+  const stableManifest = { ...manifest, version: '9.9.0' };
+  const stablePublished = { ...published, version: stableManifest.version };
+  checkPublished({
+    manifest: stableManifest,
+    result,
+    published: stablePublished,
+    tags: { latest: stableManifest.version, next: '9.9.0-rc.1' },
+    distTag: 'latest',
+  });
+  refuses(
+    () =>
+      checkPublished({
+        manifest: stableManifest,
+        result,
+        published: stablePublished,
+        tags: { latest: '0.0.0-stage', next: stableManifest.version },
+        distTag: 'latest',
+      }),
+    /does not match/,
+  );
   refuses(
     () =>
       checkPublished({
@@ -353,7 +397,7 @@ test('readback: exact integrity, rc on next and never latest, dependencies and p
         result,
         published: { ...published, dependencies: {} },
         tags,
-        distTag: 'next',
+        distTag: releaseTag,
       }),
     /does not match/,
   );
@@ -364,7 +408,13 @@ test('readback: exact integrity, rc on next and never latest, dependencies and p
   ])
     refuses(
       () =>
-        checkPublished({ manifest, result, published: { ...published, repository }, tags, distTag: 'next' }),
+        checkPublished({
+          manifest,
+          result,
+          published: { ...published, repository },
+          tags,
+          distTag: releaseTag,
+        }),
       /does not match/,
     );
 });
