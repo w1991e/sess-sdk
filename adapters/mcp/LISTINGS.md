@@ -360,7 +360,8 @@ exercised in the runs of prompts 2 and 4. This run does not count as OpenAI's, w
 Findings:
 
 - **F-LT-1, routing.** A prompt that only says "ask me" is answered in the chat on claude.ai. One that
-  says "through Sess" or "on my phone" reaches the tools.
+  says "through Sess" or "on my phone" reaches the tools. The `sess_ask` and `sess_request`
+  descriptions now name this case; not yet released or requalified.
 - **F-LT-2, the 45-second wait.** When the person answers after the wait returns, the host says the form
   is still open and asks to be told to continue. The person's page keeps the waiting shape until the
   host completes. This is designed behaviour.
@@ -369,7 +370,8 @@ Findings:
   answered, which is correct. Medium.
 - **F-LT-4, re-wait.** The wait returned before the answer in three of five runs. The host then stops
   until told "continue". A mitigation is to call `sess_response` again up to three times before asking.
-  High. Not implemented.
+  High. The server instructions, the `sess_response` description and its waiting result now ask for
+  this; not yet released or requalified.
 
 ### Docker
 

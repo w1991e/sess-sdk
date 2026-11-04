@@ -79,7 +79,8 @@ The agent calls `sess_request` and shows you a Sess link at once. Open it on you
 see what changed, and the proposed message in a field you can edit. Change a line if you like, then
 approve, or stop. The agent waits with `sess_response` and continues only on the verified answer:
 it commits with the message you approved, or does nothing if you stopped. If you are slower than
-its 45-second wait, it tells you the form is still open; answer it and ask the agent to continue.
+its 45-second wait, it checks again for about two minutes, then tells you the form is still open;
+answer it and say continue.
 
 The same works for a reply: "Before you send this reply, use Sess to show me the draft so I can
 edit and approve it."
@@ -157,6 +158,11 @@ After an answer, `sess_complete` is the rule, not an option: when `sess_response
 next, so the person's page shows that the agent has their answer. Until then the page keeps waiting
 for the next step. Only to show a follow-up does the agent call `sess_publish` instead. The server
 instructions and both tool descriptions say this.
+
+While there is no answer yet, the host calls `sess_response` again, up to three times after its
+first call (about two minutes at the 45-second ceiling), then asks the person to say continue. The
+server instructions, the `sess_response` description and the text of a `waiting` or `needs_resume`
+result say this. The server keeps no count; the host does.
 
 `sess_ask` is a shortcut for `sess_request`: it turns a question and up to 12 simple fields
 (`text`, `number`, `integer`, `boolean`, `choice`, `multi_choice`) into an ordinary interaction,
@@ -314,8 +320,9 @@ blocks like a definitive rejection.
   After completion the link
   and answer data are removed from the record. At most 100 unfinished interactions are kept per
   profile.
-- **No wake-up.** A wait is one bounded read of at most 45 seconds. The server cannot wake an agent
-  after its turn ends; the person asks the agent to continue.
+- **No wake-up.** A wait is one bounded read of at most 45 seconds. The host is told to call again up
+  to three times, then stop. The server cannot wake an agent after its turn ends; the person says
+  continue.
 - **Not included:** an HTTP server or bin flag, a hosted server, OAuth, MCP Tasks, Apps,
   elicitation, resources or prompts (the HTTP composition below is a library for a hosting
   runtime, not a runnable server). One server process per profile is supported; concurrent processes on the

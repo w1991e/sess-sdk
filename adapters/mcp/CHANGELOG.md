@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+Tool schemas stay `sess-mcp-tools/4`; annotations and `structuredContent` are unchanged.
+
+- While `sess_response` has no answer, the host is told to call it again, up to three times after
+  its first call (about two minutes at the 45-second ceiling), then ask the person to say continue.
+  The server instructions, the `sess_response` description and the plugin skill say so. The text of
+  a `sess_response` result in state `waiting` or `needs_resume` begins with that line, then a blank
+  line and the same JSON result. The server keeps no count; the host does.
+- The `sess_ask` and `sess_request` descriptions say when to use them: an approval, a decision or
+  details only the person can give, even if the prompt names no tool or device. Both say that a
+  receipt records what was shown and chosen, not who answered. The signed first line of the
+  `sess_ask` description is unchanged; the new line follows it, then the mechanics, unchanged.
+
 ## 0.1.0 — 2026-11-01
 
 The first stable release, for the `latest` dist-tag. Compared with 0.1.0-rc.4, which stays on

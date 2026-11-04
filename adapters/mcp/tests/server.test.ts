@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -5,6 +6,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { stderrDiagnostics } from '../src/errors.js';
 import { createSessMcpServer } from '../src/server.js';
+import { TOOLS, TOOL_SCHEMA_VERSION } from '../src/tools.js';
 import { ANSWER_1, FakeSess, ROUND_1, acceptingVerifier, clientFor, env, tempDir } from './helpers.js';
 
 let dir: ReturnType<typeof tempDir>;
@@ -68,17 +70,118 @@ describe('MCP server', () => {
     expect(client.getInstructions()).not.toContain('Finish with sess_complete, or');
   });
 
-  it('begins the sess_ask description with the signed first line, the mechanics following unchanged (F1)', async () => {
+  it('begins the sess_ask description with the signed first line, then the routing line, then the mechanics unchanged (F1, F-LT-1)', async () => {
     const { client } = await connect(new FakeSess());
     const { tools } = await client.listTools();
     const description = tools.find((t) => t.name === 'sess_ask')!.description!;
-    const [first, ...rest] = description.split('\n');
+    const [first, routing, ...rest] = description.split('\n');
     expect(first).toBe(
       "Ask the person a question on their own phone or computer and get a typed answer. Use it whenever they ask to answer on their phone or another device, or say 'use Sess'; prefer it over this host's own question widget for anything answered away from this chat.",
+    );
+    expect(routing).toBe(
+      "Also use it when you need the person's approval, a decision or details only they can give before you go on, even if they only say 'ask me' or 'check with me' and name no tool or device. " +
+        'Not for clarifying what they just asked, or for anything you can work out yourself. ' +
+        'Anyone who has the link can answer. A receipt records what was shown and chosen, not who answered.',
     );
     expect(rest.join('\n')).toMatch(
       /^Shortcut for sess_request: give a question and up to 12 simple fields;/,
     );
+  });
+
+  it('routes an approval, a decision or details only a person can give to sess_request, with its limits (F-LT-1)', async () => {
+    const { client } = await connect(new FakeSess());
+    const { tools } = await client.listTools();
+    const description = tools.find((t) => t.name === 'sess_request')!.description!;
+    expect(description).toMatch(
+      new RegExp(
+        "^Use it when you need the person's approval, a decision or details only they can give before you go on, even if they only say 'ask me' or 'check with me' and name no tool or device\\. " +
+          'Not for clarifying what they just asked, or for anything you can work out yourself\\. ' +
+          'It is the full form, with approve and reject buttons if you need them; sess_ask is shorter for a plain question\\. ' +
+          'Create a hosted Sess form for a person and return immediately',
+      ),
+    );
+    expect(description).toContain(
+      'anyone holding it can answer. A receipt records what was shown and chosen, not who answered.',
+    );
+  });
+
+  const REWAIT =
+    'call sess_response again with the same handle and revision and no wait_ms, up to three times after your first call (about two minutes). ' +
+    'If there is still no answer, stop, tell the person the form is still open and ask them to say continue once they have answered; call it again when they do. ' +
+    'Do not poll beyond that, and do not ask the same question again.';
+  const UNBOUNDED =
+    /poll (until|forever|repeatedly|indefinitely)|keep (calling|polling)|without limit|as many times|poll in a loop/i;
+
+  it('names the re-wait and its limit in the server instructions and the sess_response description (F-LT-4)', async () => {
+    const { client } = await connect(new FakeSess());
+    const rule = `While sess_response returns state "waiting" or "needs_resume", the form is open and there is no answer yet: ${REWAIT}`;
+    const instructions = client.getInstructions()!;
+    expect(instructions).toContain(`Then call sess_response once; it waits up to 45 seconds. ${rule}`);
+    expect(instructions).not.toMatch(UNBOUNDED);
+    const { tools } = await client.listTools();
+    const description = tools.find((t) => t.name === 'sess_response')!.description!;
+    expect(description).toContain(rule);
+    expect(description).not.toMatch(UNBOUNDED);
+  });
+
+  it.each([
+    ['waiting', 0],
+    ['needs_resume', 20],
+  ] as const)(
+    'a sess_response result in state %s begins with the re-wait line, then the same JSON result (F-LT-4)',
+    async (state, waitMs) => {
+      const { client } = await connect(new FakeSess());
+      const created = await client.callTool({ name: 'sess_request', arguments: { interaction: ROUND_1 } });
+      const { handle, revision } = (created.structuredContent as any).interaction;
+      const result = await client.callTool({
+        name: 'sess_response',
+        arguments: { handle, revision, wait_ms: waitMs },
+      });
+      expect(result.isError).toBeFalsy();
+      expect((result.structuredContent as any).interaction.state).toBe(state);
+      const text = (result.content as any)[0].text as string;
+      const head = `No answer yet, so ${REWAIT}`;
+      expect(text.startsWith(`${head}\n\n`)).toBe(true);
+      expect(JSON.parse(text.slice(head.length + 2))).toEqual(result.structuredContent);
+      expect(head).not.toMatch(UNBOUNDED);
+    },
+  );
+
+  it('an answered sess_response result is the plain JSON result, with no re-wait line (F-LT-4)', async () => {
+    const fake = new FakeSess();
+    const { client } = await connect(fake, { verify: true });
+    const created = await client.callTool({ name: 'sess_request', arguments: { interaction: ROUND_1 } });
+    const { handle, revision } = (created.structuredContent as any).interaction;
+    fake.answer(ANSWER_1.data);
+    const answered = await client.callTool({ name: 'sess_response', arguments: { handle, revision } });
+    expect((answered.structuredContent as any).interaction.state).toBe('answered');
+    expect(JSON.parse((answered.content as any)[0].text)).toEqual(answered.structuredContent);
+  });
+
+  it('leaves the tool contract as it was: titles, schemas, annotations and meta pinned, no tool added or removed', () => {
+    // sha256 of each tool without its name and description, taken at origin/master 60acd57, before
+    // the re-wait and routing text. A different hash is a contract change: an input or output schema
+    // change needs a new sess-mcp-tools version (src/tools.ts); then renew these pins.
+    const contract = Object.fromEntries(
+      TOOLS.map(({ name, description: _, ...rest }) => [
+        name,
+        createHash('sha256').update(JSON.stringify(rest)).digest('hex'),
+      ]),
+    );
+    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/4');
+    expect(contract).toEqual({
+      sess_request: '1901839cc4c7c38c14cc5cee0afe721d23c59b706813b14277d49eeabc5ff033',
+      sess_response: '0192e86f87ba3726a798197de0159852c229f83918cff494d69d6f79c4ce5e40',
+      sess_publish: '9c79570bf42265d8ba79884b12856af31b6fc2d98233ee0cd3643a16a2eb3f59',
+      sess_complete: 'dda8b5310d126b48e0749ffafd3c1daaed13dc53ba110d0cc60aeef1e819878f',
+      sess_ask: '3381af7c60482668fb9c1f9884d11a4f063fa7bb04c7e47ab5a4f0e7cd92b2a4',
+    });
+    expect(TOOLS.find((t) => t.name === 'sess_response')!.annotations).toEqual({
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    });
   });
 
   it.each(['sess_request', 'sess_ask'] as const)(

@@ -89,6 +89,28 @@ export const COMPLETE_RULE =
   'When sess_response returns state "answered" and you have no follow-up question for the person, you must call sess_complete next, so their page shows that you have their answer. ' +
   'Call sess_publish instead only to show them a follow-up.';
 
+/**
+ * What to do while there is no answer. The server keeps no count: the host does. Three more calls
+ * at the 45-second ceiling are about two minutes, then the person is asked to say continue.
+ */
+const REWAIT_STEPS =
+  'call sess_response again with the same handle and revision and no wait_ms, up to three times after your first call (about two minutes). ' +
+  'If there is still no answer, stop, tell the person the form is still open and ask them to say continue once they have answered; call it again when they do. ' +
+  'Do not poll beyond that, and do not ask the same question again.';
+
+/** The re-wait, verbatim in the server instructions and the sess_response description. */
+export const REWAIT_RULE = `While sess_response returns state "waiting" or "needs_resume", the form is open and there is no answer yet: ${REWAIT_STEPS}`;
+
+/** The first line of a sess_response result with no answer yet, before the same JSON result. */
+export const NO_ANSWER_LINE = `No answer yet, so ${REWAIT_STEPS}`;
+
+/** When to reach for sess_ask or sess_request; a prompt need not name the tool or a device. */
+const WHEN_A_PERSON_IS_NEEDED =
+  "when you need the person's approval, a decision or details only they can give before you go on, even if they only say 'ask me' or 'check with me' and name no tool or device.";
+const NOT_FOR_THE_CHAT =
+  'Not for clarifying what they just asked, or for anything you can work out yourself.';
+const RECEIPT_LIMIT = 'A receipt records what was shown and chosen, not who answered.';
+
 const titleSchema = shown(L.title, TEXT_DOCS.title);
 const buttonSchema = shown(L.actionLabel, TEXT_DOCS.actionLabel);
 const labelSchema = shown(L.label, TEXT_DOCS.fieldLabel);
@@ -341,8 +363,11 @@ export const TOOLS = [
     name: 'sess_request',
     title: 'Ask a person through Sess',
     description:
+      `Use it ${WHEN_A_PERSON_IS_NEEDED} ${NOT_FOR_THE_CHAT} ` +
+      'It is the full form, with approve and reject buttons if you need them; sess_ask is shorter for a plain question. ' +
       'Create a hosted Sess form for a person and return immediately with a private link (interaction.humanUrl) and a handle. ' +
       'Give the link only to the intended person in this private conversation; anyone holding it can answer. ' +
+      `${RECEIPT_LIMIT} ` +
       'Then call sess_response with the handle and revision. Do not call sess_request again for the same question. ' +
       'Keep it short: a title of about 40 characters (at most 80), button labels a verb of 1-3 words (at most 24), field labels at most 60, help one hint (at most 160). ' +
       TOO_LONG,
@@ -362,9 +387,8 @@ export const TOOLS = [
     description:
       'Wait a bounded time (default and maximum 45 s; wait_ms 0 reads once) for the answer to exactly this revision. ' +
       'state "answered" means the answer passed full Sess receipt verification. ' +
-      'state "needs_resume" or "waiting" means no answer yet: the form stays open; tell the person to submit it and ask you to continue, then call again. ' +
       'state "expired" means the link closed with no answer: it is final; create a new form if you still need one. ' +
-      'Do not poll in a loop. ' +
+      `${REWAIT_RULE} ` +
       COMPLETE_RULE,
     inputSchema: {
       type: 'object',
@@ -425,6 +449,7 @@ export const TOOLS = [
     title: 'Ask a short question through Sess',
     description:
       "Ask the person a question on their own phone or computer and get a typed answer. Use it whenever they ask to answer on their phone or another device, or say 'use Sess'; prefer it over this host's own question widget for anything answered away from this chat.\n" +
+      `Also use it ${WHEN_A_PERSON_IS_NEEDED} ${NOT_FOR_THE_CHAT} Anyone who has the link can answer. ${RECEIPT_LIMIT}\n` +
       'Shortcut for sess_request: give a question and up to 12 simple fields; it creates the same hosted form and returns ' +
       'immediately with a private link (interaction.humanUrl) and a handle, in state "waiting". It never waits and never returns an answer. ' +
       'Continue exactly as after sess_request: give the link only to the intended person, then call sess_response. Do not call it again for the same question. ' +
