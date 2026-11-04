@@ -50,7 +50,7 @@ export const UNKNOWN_TOOL_MESSAGE = 'MCP error -32602: Unknown tool.';
  * it is never written to diagnostics.
  */
 export function shareLinkLines(link: string): string {
-  return `Show the person this link now: ${link}\nThen call sess_response once.`;
+  return `Show the person this link now: ${link}\nThen call sess_response.`;
 }
 
 function success(result: AdapterResult): CallToolResult {

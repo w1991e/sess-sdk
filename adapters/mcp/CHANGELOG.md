@@ -11,7 +11,7 @@ Tool schemas stay `sess-mcp-tools/4`; annotations and `structuredContent` are un
 - A text-level change: the text of a `sess_response` result in state `waiting` or `needs_resume`
   begins with that line, then a blank line and the same JSON result. `structuredContent` is
   unchanged. A client that parses the text as JSON needs to read `structuredContent` instead.
-- The server instructions say "Then call sess_response; it waits up to 45 seconds." without "once".
+- The server instructions say "Then call sess_response; it waits up to 45 seconds." and the share line in `sess_request` and `sess_ask` results says "Then call sess_response.", both without "once".
 - The `sess_ask` and `sess_request` descriptions say when to use them: an approval, a decision or
   details only the person can give, even if the prompt names no tool or device. Both say that a
   receipt records what was shown and chosen, not who answered. The signed first line of the

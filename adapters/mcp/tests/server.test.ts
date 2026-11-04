@@ -209,7 +209,7 @@ describe('MCP server', () => {
       });
       expect(result.isError).toBeFalsy();
       const text = (result.content as any)[0].text as string;
-      const head = `Show the person this link now: ${fake.humanUrl}\nThen call sess_response once.`;
+      const head = `Show the person this link now: ${fake.humanUrl}\nThen call sess_response.`;
       expect(text.startsWith(`${head}\n\n`)).toBe(true);
       expect(JSON.parse(text.slice(head.length + 2))).toEqual(result.structuredContent);
       // The link is for the agent's result only; diagnostics still never carry it.
