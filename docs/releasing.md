@@ -11,12 +11,12 @@ Publication needs an authorized maintainer's environment approval and npm 2FA st
 
 The published candidate's exact bytes are pinned in
 [`release/sdk-candidate.json`](../release/sdk-candidate.json): name, version,
-tarball filename, SHA-256 and SHA-512. That file is the single source for every consumer. The MCP and
-OpenClaw adapters and CI pack the current repository root with
-`node scripts/sdk-pin.mjs pack [--build] [--out <dir>]`, which accepts the tarball only if its bytes
-equal the pin. The Node quickstart check instead installs the published version from the npm registry
-and accepts it only if npm's recorded integrity equals the pinned SHA-512. `npm run check` ends with `check:pin`. It fails if the packed root differs from the pin,
-or if any consumer (adapter dependency, lockfile entry and integrity, MCP compatibility record,
+tarball filename, SHA-256 and SHA-512. That file is the single source for every consumer. Consumers
+install the published version from the npm registry; the Node quickstart check accepts it only if
+npm's recorded integrity equals the pinned SHA-512. `node scripts/sdk-pin.mjs pack [--build] [--out <dir>]`
+packs the current repository root and accepts the tarball only if its bytes equal the pin, so it refuses
+while the root is a prepared successor. `npm run check` ends with `check:pin`. It fails if the packed
+root differs from the pin (or from the prepared record, while one exists), or if any consumer (adapter dependency, lockfile entry and integrity, MCP compatibility record,
 quickstart dependency, `create-agent` starter template dependency) disagrees with it.
 
 Changing a packed file (for example `NOTICE`, `LICENSE`, `README.md`, `CHANGELOG.md`, `package.json`
@@ -94,7 +94,7 @@ permanent automation token as a workaround.
 4. The protected job downloads that immutable artifact by ID and verifies its digest against the
    preparation job's output. Publish exactly the path and integrity recorded by `check:package`;
    do not rebuild or install project dependencies between testing and publication. Release candidates
-   `0.1.0-rc.N` use `next`; approved stable `0.1.0` uses `latest`.
+   `0.1.0-rc.N` use `next`; an approved stable version uses `latest`.
 5. Verify package identity, version, repository, public access, dist-tag, dependency list, registry
    integrity and provenance. [npm provenance](https://docs.npmjs.com/generating-provenance-statements/)
    links an artifact to source/build identity; it is not a correctness or security certification.
