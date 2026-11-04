@@ -9,7 +9,7 @@
     "node": ">=22.14.0"
   },
   "dependencies": {
-    "@sess.si/sdk": "0.1.0"
+    "@sess.si/sdk": "0.1.1"
   },
   "scripts": {
     "start": "node agent.mjs"

@@ -368,7 +368,7 @@ The adapter is an independent package with its own lockfile. `package.json` alwa
 exact SDK version from the repository's single pin, `release/sdk-candidate.json` (name, version,
 filename, SHA-256, SHA-512). `package-lock.json` is a maintainer file only; npm never ships it to
 consumers. The lock resolves the SDK to the genuine npm registry tarball
-(`https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.0.tgz`, dist-tag `latest`) with the pinned
+(`https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.1.tgz`, dist-tag `latest`) with the pinned
 integrity, so no local SDK build or pack is needed. `compatibility.json` mirrors the pin;
 `npm run pin:update` at the root keeps both, the lockfile and the dependency in step after a
 deliberate change, and the root `npm run check` fails on drift.
