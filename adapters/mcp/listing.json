@@ -6,7 +6,7 @@
   "registryName": "si.sess/sess",
   "copy": {
     "status": "approved",
-    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent, with the one-line description (registry, oneLiner) changed to the line here, which is also the first line of adapters/mcp/README.md. The signature is on the words; the test cases stay not yet run (providers.agentPlugin.openai.testCasesStatus).",
+    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent, with the one-line description (registry, oneLiner) changed to the line here, which is also the first line of adapters/mcp/README.md. Test-case prompts 2-5 are his rewording of 21:20Z. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus).",
     "short": "Ask a person, get the answer",
     "registry": "Ask a person a question and continue with their verified answer.",
     "oneLiner": "Ask a person a question and continue with their verified answer.",
@@ -146,7 +146,7 @@
   },
   "remote": {
     "status": "qualified",
-    "note": "Production endpoint. Qualified for the hosts production proved, not for every host: the claude.ai rounds in providers.claudeConnector.qualificationEvidence. Each host packet carries its own status (providers.claudeConnector.remoteStatus, providers.cursorInstall.remoteStatus). https://mcp.sess.si/version read back 2026-11-04 (git_sha 1a5f43a97fce11882c9f34e6994636bc199a0f59, built 2026-11-04T04:40:18Z), a later deployment than the last claude.ai round, which was not repeated on it.",
+    "note": "Production endpoint. Qualified for the hosts production proved, not for every host: the claude.ai rounds in providers.claudeConnector.qualificationEvidence. Each host packet carries its own status (providers.claudeConnector.remoteStatus, providers.cursorInstall.remoteStatus). https://mcp.sess.si/version read back 2026-11-04 (git_sha 1a5f43a97fce11882c9f34e6994636bc199a0f59, built 2026-11-04T04:40:18Z), the deployment the founder's claude.ai test-case run of 2026-11-04 used.",
     "type": "streamable-http",
     "url": "https://mcp.sess.si/mcp",
     "auth": {
@@ -224,25 +224,25 @@
           },
           {
             "description": "Ask for an approval before acting",
-            "prompt": "Before you write the summary, ask me to approve the title 'Q3 plan'.",
+            "prompt": "Ask me through Sess to approve the title 'Q3 plan' before you write the summary.",
             "tools": ["sess_request", "sess_response"],
             "expected_behavior": "Shows the title with approve and reject buttons, shares the link and reports the choice after it is submitted."
           },
           {
             "description": "Show a second step on the same link",
-            "prompt": "Ask me which city I am visiting, then ask which day I arrive.",
+            "prompt": "Ask me through Sess which city I am visiting, then which day I arrive.",
             "tools": ["sess_ask", "sess_response", "sess_publish"],
             "expected_behavior": "After the first answer, the same link shows the second question; reports both answers."
           },
           {
             "description": "Finish after the answer",
-            "prompt": "Ask me to confirm the meeting time, then close the form.",
+            "prompt": "Ask me through Sess to confirm the meeting time, then close the form.",
             "tools": ["sess_ask", "sess_response", "sess_complete"],
             "expected_behavior": "Reports the confirmed time, then says the form is closed."
           },
           {
             "description": "Not answered yet",
-            "prompt": "Ask me for my lunch choice. (Wait more than a minute before answering.)",
+            "prompt": "Ask me through Sess for my lunch choice.",
             "tools": ["sess_ask", "sess_response"],
             "expected_behavior": "Says the form is still open and to ask again after submitting; does not create a second form. After the reviewer submits and asks again, reports the choice."
           }

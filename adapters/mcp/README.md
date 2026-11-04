@@ -121,6 +121,27 @@ A synthetic sample of what the agent sends (sample content, not from a real repo
 Text blocks are shown as plain paragraphs, so send a summary of the change rather than a raw diff;
 line breaks are kept in multiline fields.
 
+## Cline
+
+_Untested._ In Cline, open **MCP Servers**, then **Configure MCP Servers**, and add this to
+`cline_mcp_settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "sess": {
+      "type": "streamableHttp",
+      "url": "https://mcp.sess.si/mcp"
+    }
+  }
+}
+```
+
+When Cline connects, sign in to your Sess account in the browser. No key goes in the file.
+
+Try it: "Ask me on my phone which time works for a call tomorrow." Cline shares a Sess link. Answer
+it, and Cline reports your choice.
+
 ## Tools (`sess-mcp-tools/4`)
 
 | Tool            | Input                                                                         | Result `interaction.state`                                    |

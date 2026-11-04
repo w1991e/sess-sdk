@@ -8,8 +8,9 @@ Tool names, titles and annotations come from `src/tools.ts`, and the version and
 `server.json` or plugin bundle is never evidence of an accepted listing. Submissions are owner
 actions; record "submitted" and "accepted" separately, with the provider's own confirmation. The
 descriptions, categories and test cases in `listing.json`, and the Cline issue text generated from
-it, were signed by the founder on 2026-11-04 at 20:45Z (`copy.status` is `approved`). Signed words
-are not a run test: the test cases have not been run.
+it, were signed by the founder on 2026-11-04 at 20:45Z (`copy.status` is `approved`), with test-case
+prompts 2–5 as he reworded them at 21:20Z. Signed words are not a run test: the claude.ai run is in
+[Test cases on claude.ai](#test-cases-on-claudeai), and OpenAI's run has not happened.
 
 ## Commands
 
@@ -107,20 +108,16 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
 
 `npm run check:listing` lists what is still open. Today:
 
-- for Claude: the founder runs the five positive test cases on claude.ai on the qualification
-  account before that submission, and the results are recorded here from his message (founder
-  2026-11-04). They have not been run;
 - for Cursor: the founder runs one production round through the one-click install before that
-  submission; until then its packet stays unqualified (founder 2026-11-04);
+  submission. `https://mcp.sess.si/mcp` passed production host qualification on claude.ai (see
+  [Claude](#claude-connector-directory-review)), so `remote.status` is `qualified`, but
+  `providers.cursorInstall.remoteStatus` stays `unqualified` until that round's evidence (founder
+  2026-11-04);
 - for OpenAI: the ChatGPT run exists (w1991e/sess
   `EXECUTION/evidence/host-runs-production-2026-10-28/chatgpt.md`, PASS at `66f5dc09`) but is not
   marked qualified, and Codex has no production run;
-- for Docker: OAuth through Docker's Toolkit is untested (see [Docker](#docker));
-- for Cursor only: a production Cursor run. `https://mcp.sess.si/mcp` passed production host
-  qualification on claude.ai (see [Claude](#claude-connector-directory-review)), so `remote.status`
-  is `qualified`, but no production Cursor run is our evidence, so
-  `providers.cursorInstall.remoteStatus` stays `unqualified`; set it to `qualified` only with that
-  run's evidence;
+- for Docker: OAuth through Docker's Toolkit is untested; the founder tests it with
+  `docker mcp oauth authorize sess` (see [Docker](#docker));
 - to list the npm stdio package in the MCP Registry entry (today it is remote-only): a successor
   `@sess.si/mcp` candidate declaring `mcpName` `si.sess/sess` (the published 0.1.0 declares
   `io.github.w1991e/sess`); then set `providers.mcpRegistry.npmPackage.status` to `listed`;
@@ -241,8 +238,8 @@ organization and the Apps Management Write role.
 ### Claude (connector directory review)
 
 Eligible for the remote endpoint with OAuth; Anthropic no longer accepts MCPB bundles there. Every
-tool has a title and read-only/destructive hints. First the founder runs the five positive test cases on
-claude.ai on the qualification account (founder 2026-11-04). Then submit at claude.ai/directory/manage (Submit new,
+tool has a title and read-only/destructive hints. The five positive test cases passed on claude.ai (see
+[Test cases on claude.ai](#test-cases-on-claudeai)). Submit at claude.ai/directory/manage (Submit new,
 MCP connector) with the values in `listings/claude-connector.json`: name, one-liner, description,
 categories, documentation and privacy policy URLs, support contact `ask@sess.si`, and the icon
 `listings/plugin/assets/icon-512.png` (its `icon` field). Add the permanent slug (the owner's
@@ -328,7 +325,7 @@ text is `listings/cline-issue.md`; resolve its `OWNER:` lines.
    resized copy. A GET of its URL must return 200 with
    `image/png`; put that URL in Logo Image.
 2. Watch Cline set the server up from the README or `llms-install.md` alone. The submitter ticks
-   that box only after doing so; that has not been done. The README has no Cline section today.
+   that box only after doing so; that has not been done. The README's Cline section is the path to test.
 3. Tick "The server is stable and ready for public use" only if you confirm it.
 4. Open the issue from the owner's account:
    - GitHub Repository URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`
@@ -349,6 +346,30 @@ Sess lets you ask a person a question through a Sess link and continue with thei
 3. Try it: "Ask me on my phone which time works for a call tomorrow." Cline shares a Sess link;
    answer it, and Cline reports your choice.
 ```
+
+### Test cases on claude.ai
+
+Founder run, claude.ai (web), 2026-11-04 20:48Z–21:18Z, on production `1a5f43a9`, as a custom connector at the
+hosted endpoint on the qualification account. Recorded from the founder's message: **5 of 5 PASS** with
+prompts 2–5 naming Sess. As first written, prompts 2 and 3 missed routing: the host answered in the
+chat and called no tool, in two chats for prompt 2 and one for prompt 3. `listing.json` now holds the
+prompts that passed. Case 5 was answered inside the wait, so the delayed path it describes was
+exercised in the runs of prompts 2 and 4. This run does not count as OpenAI's, whose status stays as
+`listing.json` gives it.
+
+Findings:
+
+- **F-LT-1, routing.** A prompt that only says "ask me" is answered in the chat on claude.ai. One that
+  says "through Sess" or "on my phone" reaches the tools.
+- **F-LT-2, the 45-second wait.** When the person answers after the wait returns, the host says the form
+  is still open and asks to be told to continue. The person's page keeps the waiting shape until the
+  host completes. This is designed behaviour.
+- **F-LT-3, two devices on one link.** The link was open on the desktop and answered on the phone. The
+  desktop form didn't switch to the answered state by itself; a submit there was refused as already
+  answered, which is correct. Medium.
+- **F-LT-4, re-wait.** The wait returned before the answer in three of five runs. The host then stops
+  until told "continue". A mitigation is to call `sess_response` again up to three times before asking.
+  High. Not implemented.
 
 ### Docker
 
