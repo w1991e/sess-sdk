@@ -94,8 +94,8 @@ export const COMPLETE_RULE =
  * at the 45-second ceiling are about two minutes, then the person is asked to say continue.
  */
 const REWAIT_STEPS =
-  'call sess_response again with the same handle and revision and no wait_ms, up to three times after your first call (about two minutes). ' +
-  'If there is still no answer, stop, tell the person the form is still open and ask them to say continue once they have answered; call it again when they do. ' +
+  'call sess_response again with the same handle and revision and no wait_ms, up to three times after your first call (about two minutes more). ' +
+  'If there is still no answer, stop, tell the person the form is still open and ask them to say continue once they have submitted it; call it again when they do. ' +
   'Do not poll beyond that, and do not ask the same question again.';
 
 /** The re-wait, verbatim in the server instructions and the sess_response description. */

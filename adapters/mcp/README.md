@@ -160,7 +160,7 @@ for the next step. Only to show a follow-up does the agent call `sess_publish` i
 instructions and both tool descriptions say this.
 
 While there is no answer yet, the host calls `sess_response` again, up to three times after its
-first call (about two minutes at the 45-second ceiling), then asks the person to say continue. The
+first call (about two minutes more at the 45-second ceiling), then asks the person to say continue. The
 server instructions, the `sess_response` description and the text of a `waiting` or `needs_resume`
 result say this. The server keeps no count; the host does.
 

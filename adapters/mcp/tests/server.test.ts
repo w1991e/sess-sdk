@@ -106,9 +106,19 @@ describe('MCP server', () => {
   });
 
   const REWAIT =
-    'call sess_response again with the same handle and revision and no wait_ms, up to three times after your first call (about two minutes). ' +
-    'If there is still no answer, stop, tell the person the form is still open and ask them to say continue once they have answered; call it again when they do. ' +
+    'call sess_response again with the same handle and revision and no wait_ms, up to three times after your first call (about two minutes more). ' +
+    'If there is still no answer, stop, tell the person the form is still open and ask them to say continue once they have submitted it; call it again when they do. ' +
     'Do not poll beyond that, and do not ask the same question again.';
+  it('the plugin skill and the server carry the same re-wait text, byte for byte (founder 2026-11-04 22:50Z)', () => {
+    const shared = REWAIT.slice(REWAIT.indexOf('up to three times after your first call'));
+    const skill = readFileSync(
+      join(import.meta.dirname, '..', 'listings/plugin/skills/ask-a-person/SKILL.md'),
+      'utf8',
+    );
+    expect(shared).toContain('(about two minutes more)');
+    expect(skill).toContain(shared);
+  });
+
   const UNBOUNDED =
     /poll (until|forever|repeatedly|indefinitely)|keep (calling|polling)|without limit|as many times|poll in a loop/i;
 
@@ -116,7 +126,8 @@ describe('MCP server', () => {
     const { client } = await connect(new FakeSess());
     const rule = `While sess_response returns state "waiting" or "needs_resume", the form is open and there is no answer yet: ${REWAIT}`;
     const instructions = client.getInstructions()!;
-    expect(instructions).toContain(`Then call sess_response once; it waits up to 45 seconds. ${rule}`);
+    expect(instructions).toContain(`Then call sess_response; it waits up to 45 seconds. ${rule}`);
+    expect(instructions).not.toMatch(/sess_response once/);
     expect(instructions).not.toMatch(UNBOUNDED);
     const { tools } = await client.listTools();
     const description = tools.find((t) => t.name === 'sess_response')!.description!;
