@@ -932,7 +932,7 @@ export function validate(inputs, files, schemaTexts) {
   blockers.push(`OpenAI: test cases are ${ap.openai.testCasesStatus}`);
   blockers.push(`OpenAI: ${ap.openai.qualificationNote}`);
   blockers.push(
-    'Claude: the five positive test cases on claude.ai on the qualification account, run by the founder, before submitting; Cursor: one production round through the one-click install, run by the founder, before submitting (founder 2026-11-04)',
+    'Cursor: one production round through the one-click install, run by the founder, before submitting (founder 2026-11-04)',
   );
   blockers.push(`Docker: ${listing.providers.docker.qualificationNote}`);
   blockers.push(

@@ -122,7 +122,7 @@ describe('listing.json artifacts', () => {
     // The signature is on the words: the test cases still have to be run.
     expect(text).toMatch(/OpenAI: test cases are not yet run against a Sess test account/);
     expect(text).toMatch(
-      /Claude: the five positive test cases on claude\.ai on the qualification account, run by the founder, before submitting; Cursor: one production round through the one-click install/,
+      /Cursor: one production round through the one-click install, run by the founder, before submitting/,
     );
     // Hosts and stores with no qualified packet say so; none is promoted.
     expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);

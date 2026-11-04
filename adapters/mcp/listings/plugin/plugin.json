@@ -48,25 +48,25 @@
             },
             {
               "description": "Ask for an approval before acting",
-              "prompt": "Before you write the summary, ask me to approve the title 'Q3 plan'.",
+              "prompt": "Ask me through Sess to approve the title 'Q3 plan' before you write the summary.",
               "tools_triggered": "sess_request, sess_response",
               "expected_behavior": "Shows the title with approve and reject buttons, shares the link and reports the choice after it is submitted."
             },
             {
               "description": "Show a second step on the same link",
-              "prompt": "Ask me which city I am visiting, then ask which day I arrive.",
+              "prompt": "Ask me through Sess which city I am visiting, then which day I arrive.",
               "tools_triggered": "sess_ask, sess_response, sess_publish",
               "expected_behavior": "After the first answer, the same link shows the second question; reports both answers."
             },
             {
               "description": "Finish after the answer",
-              "prompt": "Ask me to confirm the meeting time, then close the form.",
+              "prompt": "Ask me through Sess to confirm the meeting time, then close the form.",
               "tools_triggered": "sess_ask, sess_response, sess_complete",
               "expected_behavior": "Reports the confirmed time, then says the form is closed."
             },
             {
               "description": "Not answered yet",
-              "prompt": "Ask me for my lunch choice. (Wait more than a minute before answering.)",
+              "prompt": "Ask me through Sess for my lunch choice.",
               "tools_triggered": "sess_ask, sess_response",
               "expected_behavior": "Says the form is still open and to ask again after submitting; does not create a second form. After the reviewer submits and asks again, reports the choice."
             }

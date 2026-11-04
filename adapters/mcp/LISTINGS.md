@@ -107,9 +107,6 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
 
 `npm run check:listing` lists what is still open. Today:
 
-- for Claude: the founder runs the five positive test cases on claude.ai on the qualification
-  account before that submission, and the results are recorded here from his message (founder
-  2026-11-04). They have not been run;
 - for Cursor: the founder runs one production round through the one-click install before that
   submission. `https://mcp.sess.si/mcp` passed production host qualification on claude.ai (see
   [Claude](#claude-connector-directory-review)), so `remote.status` is `qualified`, but
@@ -240,8 +237,8 @@ organization and the Apps Management Write role.
 ### Claude (connector directory review)
 
 Eligible for the remote endpoint with OAuth; Anthropic no longer accepts MCPB bundles there. Every
-tool has a title and read-only/destructive hints. First the founder runs the five positive test cases on
-claude.ai on the qualification account (founder 2026-11-04). Then submit at claude.ai/directory/manage (Submit new,
+tool has a title and read-only/destructive hints. The five positive test cases passed on claude.ai (see
+[Test cases on claude.ai](#test-cases-on-claudeai)). Submit at claude.ai/directory/manage (Submit new,
 MCP connector) with the values in `listings/claude-connector.json`: name, one-liner, description,
 categories, documentation and privacy policy URLs, support contact `ask@sess.si`, and the icon
 `listings/plugin/assets/icon-512.png` (its `icon` field). Add the permanent slug (the owner's
@@ -348,6 +345,28 @@ Sess lets you ask a person a question through a Sess link and continue with thei
 3. Try it: "Ask me on my phone which time works for a call tomorrow." Cline shares a Sess link;
    answer it, and Cline reports your choice.
 ```
+
+### Test cases on claude.ai
+
+Founder run, claude.ai (web), 2026-11-04 20:48Z–21:18Z, on production `1a5f43a9`, as a custom connector at the
+hosted endpoint on the qualification account. Recorded from the founder's message: **5 of 5 PASS** with
+prompts 2–5 naming Sess. As first written, prompts 2 and 3 missed routing: the host answered in the
+chat and called no tool, in two chats for prompt 2 and one for prompt 3. `listing.json` now holds the
+prompts that passed. These are not OpenAI's test cases, whose status stays as `listing.json` gives it.
+
+Findings:
+
+- **F-LT-1, routing.** A prompt that only says "ask me" is answered in the chat on claude.ai. One that
+  says "through Sess" or "on my phone" reaches the tools.
+- **F-LT-2, the 45-second wait.** When the person answers after the wait returns, the host says the form
+  is still open and asks to be told to continue. The person's page keeps the waiting shape until the
+  host completes. This is designed behaviour.
+- **F-LT-3, two devices on one link.** The link was open on the desktop and answered on the phone. The
+  desktop form didn't switch to the answered state by itself; a submit there was refused as already
+  answered, which is correct. Medium.
+- **F-LT-4, re-wait.** The wait returned before the answer in three of five runs. The host then stops
+  until told "continue". A mitigation is to call `sess_response` again up to three times before asking.
+  High. Not implemented.
 
 ### Docker
 
