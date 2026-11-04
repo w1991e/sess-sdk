@@ -166,11 +166,7 @@ function serverJson({ listing, manifest }) {
     name: listing.registryName,
     title: listing.displayName,
     description: listing.copy.registry,
-    repository: {
-      url: listing.repository.url,
-      source: listing.repository.source,
-      subfolder: manifest.repository.directory,
-    },
+    websiteUrl: listing.homepage,
     // In step with the package on every release candidate (2026-10-20): package.json's
     // exact version, for the server and the package; never a dist-tag.
     version: manifest.version,
@@ -215,7 +211,6 @@ function pluginJson({ listing, manifest, tools }) {
     description: listing.copy.registry,
     author: { name: listing.publisher.name, url: listing.publisher.url },
     homepage: listing.homepage,
-    repository: listing.repository.url,
     license: listing.license,
     keywords: listing.copy.keywords,
     extensions: {
@@ -264,7 +259,7 @@ const hintLine = (t) => {
   return `- \`${t.name}\`: ${t.title} (${notes.join(', ')})`;
 };
 
-function pluginReadme({ listing, manifest, tools }) {
+function pluginReadme({ listing, tools }) {
   const docs = url(listing.urls.docs);
   const support = url(listing.urls.support);
   return [
@@ -283,7 +278,6 @@ function pluginReadme({ listing, manifest, tools }) {
     '## Help',
     '',
     ...(support ? [`- Support: ${support}`] : []),
-    `- Source: ${listing.repository.url}/tree/master/${manifest.repository.directory}`,
     `- License: ${listing.license}`,
     '',
   ].join('\n');
@@ -329,7 +323,8 @@ function cursorInstall({ listing, manifest }) {
       {
         name: listing.name,
         transport: listing.remote.type,
-        status: listing.remote.status,
+        // Cursor's own status: another host's qualifying run says nothing about Cursor.
+        status: listing.providers.cursorInstall.remoteStatus,
         config: remote,
         deeplink: cursorDeeplink(listing.name, remote),
       },
@@ -354,7 +349,7 @@ function claudeConnector({ listing, tools }) {
     categories: listing.categories,
     serverUrl: listing.remote.url,
     transport: listing.remote.type,
-    status: listing.remote.status,
+    status: listing.providers.claudeConnector.remoteStatus,
     authentication: {
       type: listing.remote.auth.type,
       authorizationServer: listing.remote.auth.issuer,
@@ -369,6 +364,55 @@ function claudeConnector({ listing, tools }) {
     icon: primaryIcon(listing)?.path,
     tools: toolRows(tools),
   });
+}
+
+/**
+ * Cline's "MCP Server Submission" issue form (providers.cline.source), field by field. Only true
+ * values are filled in; what is unknown or still to be done is an OWNER: line, and no box is ticked.
+ */
+function clineIssue({ listing, manifest }) {
+  const cline = listing.providers.cline;
+  return [
+    '# Cline submission issue',
+    '',
+    `Signed text, not opened. Open it only after the ${ICON.cline}x${ICON.cline} icon is merged and deployed and the README-alone install test has passed: ${cline.form}`,
+    '',
+    'Every OWNER: line is for the owner to do, then delete. Everything else in the sections below `## Title` goes into the form as written.',
+    '',
+    '## Title',
+    '',
+    `\`[Server Submission]: ${listing.displayName}\``,
+    '',
+    '## GitHub Repository URL',
+    '',
+    `${listing.repository.url}/tree/master/${manifest.repository.directory}`,
+    '',
+    '## Logo Image',
+    '',
+    `OWNER: put the URL of the deployed ${ICON.cline}x${ICON.cline} PNG here, after a GET of it returns 200 with image/png. It is not deployed yet. Do not resize another icon.`,
+    '',
+    '## Installation Testing',
+    '',
+    '- [ ] I have tested that Cline can successfully set up this server using only the README.md and/or llms-install.md file',
+    '',
+    'OWNER: tick this only after watching Cline set up the server from the README alone. That has not been done.',
+    '',
+    '- [ ] The server is stable and ready for public use',
+    '',
+    'OWNER: tick this only if you confirm it.',
+    '',
+    '## Additional Information',
+    '',
+    listing.copy.oneLiner,
+    '',
+    `- Hosted server: ${listing.remote.url} (Streamable HTTP; you sign in with your ${listing.displayName} account)`,
+    `- npm package: https://www.npmjs.com/package/${manifest.name}, version ${manifest.version} (stdio; needs \`SESS_API_KEY\`)`,
+    `- Website: ${url(listing.urls.website)}`,
+    `- Docs: ${url(listing.urls.docs)}`,
+    `- Support: ${listing.supportContact}`,
+    `- License: ${listing.license}`,
+    '',
+  ].join('\n');
 }
 
 // A YAML plain scalar, refused when it would need quoting (the generator writes no quotes).
@@ -420,6 +464,7 @@ export function generate(inputs) {
     [`${PLUGIN_DIR}/skills/${skill}/SKILL.md`, skillMd(inputs)],
     [listing.providers.cursorInstall.output, formatJson(cursorInstall(inputs))],
     [listing.providers.claudeConnector.output, formatJson(claudeConnector(inputs))],
+    [listing.providers.cline.output, clineIssue(inputs)],
     ...dockerFiles(inputs),
   ]);
 }
@@ -441,6 +486,10 @@ function dockerFiles(inputs) {
 // Validation
 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const isEvidence = (value) =>
+  Array.isArray(value) &&
+  value.length > 0 &&
+  value.every((s) => typeof s === 'string' && s.trim().length > 0);
 
 function compile(ajvClass, schemaText, pin, errors, label) {
   if (sha256(schemaText) !== pin.sha256) {
@@ -597,6 +646,8 @@ export function validate(inputs, files, schemaTexts) {
     'server.json',
   );
   if (server.$schema !== registry.schema.id) errors.push('server.json $schema is not the pinned schema');
+  if (server.websiteUrl !== listing.homepage)
+    errors.push('server.json websiteUrl must be listing.json homepage');
   if (server.name !== listing.registryName)
     errors.push('server.json name drifts from listing.json registryName');
   if (listsPackage && server.name !== manifest.mcpName)
@@ -737,9 +788,44 @@ export function validate(inputs, files, schemaTexts) {
       if (!/^\$\{env:[A-Z0-9_]+\}$/.test(value))
         errors.push(`cursor ${entry.transport}: env values must be \${env:NAME}`);
   }
+  const cursorRemote = cursor.entries.find((entry) => entry.transport === listing.remote.type);
+  if (cursorRemote?.config.url !== PRODUCTION_REMOTE)
+    errors.push(`cursor remote link must install the production endpoint ${PRODUCTION_REMOTE}`);
 
   // Claude custom connector values: HTTPS, OAuth, every tool titled with read-only/destructive hints.
   const claude = json(listing.providers.claudeConnector.output);
+
+  // Each host packet carries its own remote status; qualified needs that host's production evidence.
+  for (const [host, provider, artifactStatus] of [
+    ['Claude', listing.providers.claudeConnector, claude.status],
+    ['Cursor', listing.providers.cursorInstall, cursorRemote?.status],
+  ]) {
+    if (provider.remoteStatus !== 'qualified' && provider.remoteStatus !== 'unqualified')
+      errors.push(`${host}: remoteStatus must be qualified or unqualified`);
+    if (provider.remoteStatus === 'qualified' && !isEvidence(provider.qualificationEvidence))
+      errors.push(`${host}: remoteStatus qualified needs qualificationEvidence from a production run`);
+    if (provider.qualificationEvidence !== undefined && !isEvidence(provider.qualificationEvidence))
+      errors.push(`${host}: qualificationEvidence must be a non-empty array of non-empty strings`);
+    if (artifactStatus !== provider.remoteStatus)
+      errors.push(`${host}: the artifact's status must be its provider's remoteStatus`);
+    if (provider.remoteStatus !== 'qualified')
+      blockers.push(
+        `${host} remote: ${listing.remote.url} is ${provider.remoteStatus} on ${host} (${provider.qualificationNote})`,
+      );
+  }
+  // The shared status claims only what a host packet has proved.
+  if (listing.remote.status !== 'qualified' && listing.remote.status !== 'unqualified')
+    errors.push('remote.status must be qualified or unqualified');
+  if (
+    listing.remote.status === 'qualified' &&
+    ![listing.providers.claudeConnector, listing.providers.cursorInstall].some(
+      (p) => p.remoteStatus === 'qualified' && isEvidence(p.qualificationEvidence),
+    )
+  )
+    errors.push('remote.status qualified needs a provider qualified with qualificationEvidence');
+  if (listing.stdio.status !== 'published' && listing.stdio.status !== 'unpublished')
+    errors.push('stdio.status must be published or unpublished');
+
   if (!httpsUrl(claude.serverUrl) || claude.authentication.type !== 'oauth')
     errors.push('claude-connector.json needs an HTTPS server URL and OAuth');
   if (JSON.stringify(claude.tools) !== JSON.stringify(toolRows(tools)))
@@ -837,10 +923,19 @@ export function validate(inputs, files, schemaTexts) {
     );
   if (!committed.some((f) => f.size === ICON.cline))
     blockers.push(
-      `Cline: needs a ${ICON.cline}x${ICON.cline} PNG; the Sess logos script generates none yet (see LISTINGS.md)`,
+      `Cline: needs a ${ICON.cline}x${ICON.cline} PNG at a deployed URL; ${listing.providers.cline.iconNote} (see LISTINGS.md)`,
     );
+  blockers.push(
+    `Cline: ${listing.providers.cline.output} has OWNER: lines to resolve, including watching Cline set the server up from the README alone`,
+  );
   if (ap.openai.demoRecordingUrl === null) blockers.push('OpenAI: no demo recording URL');
   blockers.push(`OpenAI: test cases are ${ap.openai.testCasesStatus}`);
+  blockers.push(`OpenAI: ${ap.openai.qualificationNote}`);
+  if (ap.openai.testCasesStatus.startsWith('not yet run'))
+    blockers.push(
+      'Claude: the five positive test cases on claude.ai on the qualification account, run by the founder, before submitting; Cursor: one production round through the one-click install, run by the founder, before submitting (founder 2026-11-04)',
+    );
+  blockers.push(`Docker: ${listing.providers.docker.qualificationNote}`);
   blockers.push(
     'OpenAI and Claude: a reviewer test account is needed (for OpenAI it must sign in without email or SMS codes or magic links); enter it in the portal, never in the package',
   );
