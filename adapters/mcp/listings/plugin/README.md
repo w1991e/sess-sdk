@@ -20,5 +20,4 @@ Anyone who has the link can answer, so share it only with the person you mean. A
 ## Help
 
 - Support: https://docs.sess.si/support/
-- Source: https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp
 - License: Apache-2.0

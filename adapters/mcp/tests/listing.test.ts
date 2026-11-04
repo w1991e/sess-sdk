@@ -114,12 +114,26 @@ describe('listing.json artifacts', () => {
     );
     expect(text).not.toMatch(/Claude remote/);
     expect(text).not.toMatch(/production host qualification pending/);
-    expect(text).toMatch(/PROPOSED and awaits the founder’s line-by-line sign-off/);
+    // Signed copy is no blocker; a change back to proposed is.
+    expect(text).not.toMatch(/PROPOSED/);
+    const proposed = inputs();
+    proposed.listing.copy.status = 'proposed';
+    expect(check(proposed).blockers.join('\n')).toMatch(/PROPOSED and awaits the founder’s/);
+    // The signature is on the words: the test cases still have to be run.
+    expect(text).toMatch(/OpenAI: test cases are not yet run against a Sess test account/);
+    expect(text).toMatch(
+      /Claude and Cursor: run the five positive test cases once on the qualification account before submitting/,
+    );
+    // Hosts and stores with no qualified packet say so; none is promoted.
+    expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);
+    expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
     // Production serves the icon URLs and npm serves 0.1.0, so neither is a blocker; Cline's
     // 400x400 stays one until it is deployed and committed here.
     expect(text).not.toMatch(/icon URLs/);
     expect(text).not.toMatch(/on npm$/m);
-    expect(text).toMatch(/Cline: needs a 400x400 PNG at a deployed URL/);
+    expect(text).toMatch(
+      /Cline: needs a 400x400 PNG at a deployed URL; it is in w1991e\/sess PR #1019, not merged at this writing and not deployed until Thursday's window/,
+    );
     expect(text).toMatch(/Cline: listings\/cline-issue\.md has OWNER: lines to resolve/);
     expect(text).not.toMatch(/no PNG icon yet/);
     expect(text).not.toMatch(/urls\.(privacy|terms)/);
@@ -129,8 +143,64 @@ describe('listing.json artifacts', () => {
     );
   });
 
-  it('every store description is the README’s first line, word for word', () => {
-    const readmeFirstLine = readFileSync(join(base, '../../README.md'), 'utf8').split('\n')[2];
+  it('remote.status and stdio.status take allowed values, and each blocks while it is not there', () => {
+    const remote = inputs();
+    remote.listing.remote.status = 'maybe';
+    expect(check(remote).errors).toContain('remote.status must be qualified or unqualified');
+    const stdio = inputs();
+    stdio.listing.stdio.status = 'maybe';
+    expect(check(stdio).errors).toContain('stdio.status must be published or unpublished');
+
+    // The remote blocker fires when no host is qualified.
+    const unqualified = inputs();
+    unqualified.listing.remote.status = 'unqualified';
+    const { errors, blockers } = check(unqualified);
+    expect(errors).toEqual([]);
+    expect(blockers).toContain(
+      'all remote entries: https://mcp.sess.si/mcp is unqualified (production host qualification pending)',
+    );
+    const unpublished = inputs();
+    unpublished.listing.stdio.status = 'unpublished';
+    expect(check(unpublished).blockers).toContain(
+      'MCP Registry and Cursor stdio: @sess.si/mcp is unpublished on npm',
+    );
+
+    // remote.status qualified needs a host proved by evidence.
+    const noProof = inputs();
+    noProof.listing.providers.claudeConnector.remoteStatus = 'unqualified';
+    expect(check(noProof).errors).toContain(
+      'remote.status qualified needs a provider qualified with qualificationEvidence',
+    );
+    for (const evidence of [[], [''], ['  '], 'a run', [1]]) {
+      const bad = inputs();
+      bad.listing.providers.claudeConnector.qualificationEvidence = evidence;
+      expect(check(bad).errors).toEqual([
+        'Claude: remoteStatus qualified needs qualificationEvidence from a production run',
+        'Claude: qualificationEvidence must be a non-empty array of non-empty strings',
+        'remote.status qualified needs a provider qualified with qualificationEvidence',
+      ]);
+    }
+  });
+
+  it('server.json and plugin.json point at sess.si and carry no optional repository', () => {
+    const i = inputs();
+    const files = generate(i);
+    const server = JSON.parse(files.get('server.json')!);
+    expect(server.websiteUrl).toBe('https://sess.si');
+    expect(server.repository).toBeUndefined();
+    const plugin = JSON.parse(files.get('listings/plugin/plugin.json')!);
+    expect(plugin.homepage).toBe('https://sess.si');
+    expect(plugin.repository).toBeUndefined();
+    expect(files.get('listings/plugin/README.md')).not.toContain('github.com');
+    const drifted = edit(files, 'server.json', (s) => {
+      s.websiteUrl = 'https://example.com';
+    });
+    expect(check(i, drifted).errors).toContain('server.json websiteUrl must be listing.json homepage');
+  });
+
+  it('the one-line description fields (copy.registry, copy.oneLiner) are the MCP adapter README’s first line, word for word', () => {
+    const readmeFirstLine = read('README.md').split('\n')[2];
+    expect(readmeFirstLine).toBe('Ask a person a question and continue with their verified answer.');
     const { listing } = inputs();
     expect(listing.copy.registry).toBe(readmeFirstLine);
     expect(listing.copy.oneLiner).toBe(readmeFirstLine);
@@ -190,6 +260,10 @@ describe('listing.json artifacts', () => {
     ])
       expect(issue).toContain(`\n${heading}\n`);
     expect(issue).toContain('`[Server Submission]: Sess`');
+    // Only the sections below the title are form content: the preamble is not.
+    expect(issue).toContain(
+      'Everything else in the sections below `## Title` goes into the form as written.',
+    );
     expect(issue).toContain('\nhttps://github.com/w1991e/sess-sdk/tree/master/adapters/mcp\n');
     // Neither required box is ticked; each has an OWNER: line, and so does the undeployed logo.
     expect(issue).not.toMatch(/- \[x\]/i);
@@ -239,9 +313,7 @@ describe('listing.json artifacts', () => {
     const server = JSON.parse(generate(i).get('server.json')!);
     expect(server.version).toBe(i.manifest.version);
     expect(server.packages[0].version).toBe(i.manifest.version);
-    expect(server.description).toBe(
-      'Ask a person a question from your server and continue with their verified answer.',
-    );
+    expect(server.description).toBe('Ask a person a question and continue with their verified answer.');
     expect(i.listing.providers.mcpRegistry.version).toBeUndefined();
     for (const version of ['0.1.0-rc.4', '0.1.0']) {
       const next = inputs();
@@ -646,7 +718,7 @@ describe('directory packets', () => {
         '    - remote',
         'about:',
         '  title: Sess',
-        '  description: Ask a person a question from your server and continue with their verified answer.',
+        '  description: Ask a person a question and continue with their verified answer.',
         '  icon: https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png',
         'remote:',
         '  transport_type: streamable-http',

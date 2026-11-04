@@ -30,11 +30,9 @@ describe('MCP registry metadata (server.json, schema 2025-12-11)', () => {
     expect(JSON.stringify(server)).not.toMatch(/"next"|@next|"latest"|@latest/);
     expect(server.description.length).toBeGreaterThan(0);
     expect(server.description.length).toBeLessThanOrEqual(100);
-    expect(server.repository).toEqual({
-      url: 'https://github.com/w1991e/sess-sdk',
-      source: 'github',
-      subfolder: manifest.repository.directory,
-    });
+    // Optional in the pinned schema: the entry points at sess.si, not at the source.
+    expect(server.websiteUrl).toBe('https://sess.si');
+    expect(server.repository).toBeUndefined();
   });
 
   it('the stdio entry, once listed, declares only real owner configuration; the key is required and secret', () => {

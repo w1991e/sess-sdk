@@ -8,8 +8,8 @@ Tool names, titles and annotations come from `src/tools.ts`, and the version and
 `server.json` or plugin bundle is never evidence of an accepted listing. Submissions are owner
 actions; record "submitted" and "accepted" separately, with the provider's own confirmation. The
 descriptions, categories and test cases in `listing.json`, and the Cline issue text generated from
-it, are **proposed** copy and wait for the founder's line-by-line sign-off (`copy.status` becomes
-`approved` only after it).
+it, were signed by the founder on 2026-11-04 at 20:45Z (`copy.status` is `approved`). Signed words
+are not a run test: the test cases have not been run.
 
 ## Commands
 
@@ -73,9 +73,9 @@ Their HTTPS URLs, which the MCP Registry and Docker need, are
 
 Sizes the stores need: OpenAI and Claude take a square PNG of at least 48x48 (the 512 is the
 primary icon, the 192 OpenAI's composer icon); the MCP Registry takes any size named in `sizes`;
-Docker takes a URL. **Cline asks for 400x400, which is not deployed yet.** It is being added in a
-separate w1991e/sess pull request. `listing.json` names no URL for it and this repository holds no
-copy of it until it is deployed. That change also moves the `icons.json` version, so recheck the
+Docker takes a URL. **Cline asks for 400x400, which is not deployed yet.** It is in w1991e/sess
+PR #1019, not merged at this writing and not deployed until Thursday's window. `listing.json` names
+no URL for it and this repository holds no copy of it until it is deployed. That change also moves the `icons.json` version, so recheck the
 `24eb73d4a4d9` URLs after that deploy.
 
 Vendored schemas in `listings/schemas/` are byte-identical to their sources and pinned by SHA-256
@@ -107,7 +107,12 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
 
 `npm run check:listing` lists what is still open. Today:
 
-- the founder signs off the proposed copy, categories, test cases and Cline issue text;
+- for Claude and Cursor: the five positive test cases run once on the qualification account before
+  those submissions (founder 2026-11-04). They have not been run;
+- for OpenAI: the ChatGPT run exists (w1991e/sess
+  `EXECUTION/evidence/host-runs-production-2026-10-28/chatgpt.md`, PASS at `66f5dc09`) but is not
+  marked qualified, and Codex has no production run;
+- for Docker: OAuth through Docker's Toolkit is untested (see [Docker](#docker));
 - for Cursor only: a production Cursor run. `https://mcp.sess.si/mcp` passed production host
   qualification on claude.ai (see [Claude](#claude-connector-directory-review)), so `remote.status`
   is `qualified`, but no production Cursor run is our evidence, so
@@ -116,17 +121,19 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
 - to list the npm stdio package in the MCP Registry entry (today it is remote-only): a successor
   `@sess.si/mcp` candidate declaring `mcpName` `si.sess/sess` (the published 0.1.0 declares
   `io.github.w1991e/sess`); then set `providers.mcpRegistry.npmPackage.status` to `listed`;
-- for Cline only: the 400x400 PNG deployed (see [Icon](#icon)), and watching Cline set the server up
-  from the README alone (see [Cline](#cline));
+- for Cline only: the 400x400 PNG deployed (w1991e/sess PR #1019; see [Icon](#icon)), and watching
+  Cline set the server up from the README alone (see [Cline](#cline));
 - a demo recording URL (OpenAI), and a reviewer test account entered in each portal, never in the
   package. OpenAI requires one that signs in without email or SMS codes or magic links.
 
 After any change to `listing.json`, run `npm run listing` and commit the result.
 
+`compatibility.json` still has stale lines (it calls 0.1.0 "prepared" and "unpublished"; npm has it
+on `latest`). It ships in the package, so they are corrected at the next release.
+
 ## Owner submission steps
 
-Every description quoted below is `listing.json`'s **proposed** copy; paste it only after the
-founder signs it. `npm run check:listing` fails when these steps stop quoting listing.json's
+Every description quoted below is `listing.json`'s signed copy. `npm run check:listing` fails when these steps stop quoting listing.json's
 current values.
 
 ### MCP Registry
@@ -138,7 +145,7 @@ Official registry only (`registry.modelcontextprotocol.io`), under the domain na
 which the owner keeps in the macOS Keychain item `sess-mcp-registry-ed25519`. The key never goes
 into this repository, a file, a log, a chat or an agent prompt.
 
-**The entry is remote-only for now.** `server.json` lists the one `streamable-http` remote
+**The entry is remote-only at 0.1.0** (founder 2026-11-04 20:00Z, option 1). `server.json` lists the one `streamable-http` remote
 `https://mcp.sess.si/mcp` and no `packages`. The registry checks a listed npm package's `mcpName`
 against the server name (https://modelcontextprotocol.io/registry/package-types), and the published
 `@sess.si/mcp@0.1.0` declares `io.github.w1991e/sess`, so `si.sess/sess` cannot list it;
@@ -152,22 +159,24 @@ stays in step with it on every release candidate (2026-10-20): `npm run listing`
 it, and `npm run check:listing`, the registry-metadata test and the release guard fail when they
 differ. It never names a dist-tag. The registry does not verify the remote URL;
 `https://mcp.sess.si/mcp` passed production host qualification on claude.ai (see
-[Claude](#claude-connector-directory-review)). `server.json` `icons` lists the two icon URLs
-(`512x512` and `192x192`, `image/png`), which answer (see [Icon](#icon)).
+[Claude](#claude-connector-directory-review)). The entry also reaches hosts and indexes with no
+production run of ours, such as VS Code, Zed and PulseMCP; publishing it qualifies none of them.
+`server.json` `icons` lists the two icon URLs (`512x512` and `192x192`, `image/png`), which answer
+(see [Icon](#icon)). `websiteUrl` is `https://sess.si`; the optional `repository` is left out.
 
 `npm run check:listing` validates `server.json` against the pinned 2025-12-11 schema, and CI also
 runs the registry's own validator (`mcp-publisher validate`, pinned v1.8.1 by SHA-256; no login,
 no publish).
 
-Owner commands, in the owner's own terminal, after the founder signs the copy:
+Owner commands, in the owner's own terminal:
 
 1. Install the pinned publisher (macOS arm64 shown; other platforms from the same release):
    `curl -fsSLO https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_darwin_arm64.tar.gz`,
    check `shasum -a 256` is
    `e45e520892460732a4bdf37255576415d4a53ec171f8b913faf15bb1aef7cb77`, then
    `tar -xzf mcp-publisher_darwin_arm64.tar.gz mcp-publisher`.
-2. From `adapters/mcp` at the released commit: `../../mcp-publisher validate server.json` (or the
-   path you extracted it to).
+2. From `adapters/mcp` at the commit that carries the signed copy (master after this merge, not the
+   `mcp-v0.1.0` tag): `../../mcp-publisher validate server.json` (or the path you extracted it to).
 3. Check the TXT record is still served: `dig +short TXT sess.si` shows a `v=MCPv1; k=ed25519;`
    entry.
 4. Log in with DNS authentication. The key is read from the Keychain into a shell variable and
@@ -219,6 +228,8 @@ organization and the Apps Management Write role.
   `https://mcp.sess.si/mcp` and its status is `unqualified`: no production Cursor run is our
   evidence. The stdio link names `@sess.si/mcp@0.1.0`, which is published on npm; published is not
   qualified either. They belong on the setup page once Cursor is qualified.
+- Before the Cursor submission, run the five positive test cases once on the qualification account
+  (founder 2026-11-04). This does not qualify Cursor; only a production Cursor run does.
 - The plugin bundle is submitted as a public Git repository at https://cursor.com/marketplace/publish.
   Confirm that a subfolder (`adapters/mcp/listings/plugin`) is accepted; otherwise the owner decides
   whether to mirror it into its own repository.
@@ -226,7 +237,8 @@ organization and the Apps Management Write role.
 ### Claude (connector directory review)
 
 Eligible for the remote endpoint with OAuth; Anthropic no longer accepts MCPB bundles there. Every
-tool has a title and read-only/destructive hints. Submit at claude.ai/directory/manage (Submit new,
+tool has a title and read-only/destructive hints. First run the five positive test cases once on the
+qualification account (founder 2026-11-04). Then submit at claude.ai/directory/manage (Submit new,
 MCP connector) with the values in `listings/claude-connector.json`: name, one-liner, description,
 categories, documentation and privacy policy URLs, support contact `ask@sess.si`, and the icon
 `listings/plugin/assets/icon-512.png` (its `icon` field). Add the permanent slug (the owner's
@@ -255,8 +267,8 @@ nothing in front of `mcp.sess.si` may block it, or answer it with `403`.
    `smithery mcp publish "https://mcp.sess.si/mcp" -n @<org>/sess` (`<org>` is the owner's
    Smithery namespace).
 3. Listing values: name `Sess`; description
-   `Ask a person a question from your server and continue with their verified answer.`;
-   homepage `https://sess.si`; repository `https://github.com/w1991e/sess-sdk`; icon
+   `Ask a person a question and continue with their verified answer.`;
+   homepage `https://sess.si`; icon
    `https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png` (or upload
    `listings/plugin/assets/icon-512.png`).
 
@@ -284,7 +296,7 @@ connector page.
   `/.well-known/glama.json` on the server's domain, with a maintainer email (not confirmed from
   Glama's pages; from the brief). That is a w1991e/sess runtime change: **open question** below.
 - Listing values: name `Sess`; description
-  `Ask a person a question from your server and continue with their verified answer.`;
+  `Ask a person a question and continue with their verified answer.`;
   server URL `https://mcp.sess.si/mcp`; support `ask@sess.si`.
 
 ### mcp.so
@@ -295,7 +307,7 @@ reads the README.
 
 - GitHub URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`
 - Description:
-  `Ask a person a question from your server and continue with their verified answer.`
+  `Ask a person a question and continue with their verified answer.`
 - Tags: `human-in-the-loop`, `forms`, `approvals`, `receipts`, `mcp`
 - Category: `Productivity` (the nearest of the form's categories, if it differs)
 - Server URL, if asked: `https://mcp.sess.si/mcp`
@@ -307,16 +319,17 @@ Source: https://github.com/cline/mcp-marketplace (README and the template
 `cline/mcp-marketplace` with the "MCP Server Submission" template, not a pull request. The exact
 text is `listings/cline-issue.md`; resolve its `OWNER:` lines.
 
-1. Wait for the 400x400 PNG to be merged and deployed in w1991e/sess. **It is not deployed yet**
-   (see [Icon](#icon)); do not submit a resized copy. A GET of its URL must return 200 with
+1. Wait for the 400x400 PNG, w1991e/sess PR #1019, to be merged and deployed. **It is not merged at
+   this writing and not deployed until Thursday's window** (see [Icon](#icon)); do not submit a
+   resized copy. A GET of its URL must return 200 with
    `image/png`; put that URL in Logo Image.
 2. Watch Cline set the server up from the README or `llms-install.md` alone. The submitter ticks
    that box only after doing so; that has not been done. The README has no Cline section today.
 3. Tick "The server is stable and ready for public use" only if you confirm it.
-4. Open the issue from the owner's account, after the founder signs the text:
+4. Open the issue from the owner's account:
    - GitHub Repository URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`
    - Additional Information opens with
-     `Ask a person a question from your server and continue with their verified answer.`
+     `Ask a person a question and continue with their verified answer.`
 
 `llms-install.md` is optional. A draft, not committed (Cline's remote setting names and its OAuth
 sign-in are unverified):
@@ -344,9 +357,13 @@ description), `about.icon` `https://sess.si/assets/icons/24eb73d4a4d9/icon-512.p
 `streamable-http` at `https://mcp.sess.si/mcp`, and `oauth`), `tools.json` (`[]`: tools are
 discovered) and `readme.md` (the documentation link).
 
-Before the pull request, test it locally as the guide shows: `task catalog -- sess`, then
-`docker mcp catalog import`, `docker mcp server enable sess` and `docker mcp oauth authorize sess`.
-Test credentials go to Docker through its own form, never into the pull request.
+The pull request is open: docker/mcp-registry#6618. Submitted is not accepted. Its OAuth test is not
+done; test it locally as the guide shows: `task catalog -- sess`, then `docker mcp catalog import`,
+`docker mcp server enable sess` and `docker mcp oauth authorize sess`.
+
+Its answer on test credentials is self-serve sign-in: any email address, an emailed code, the free
+plan. No account is created or shared for Docker, and credentials never go into the pull request. If
+Docker requires fixed credentials, that goes to the founder.
 
 The `oauth` entry (`provider` `sess`, `secret` `sess.personal_access_token`, `env`
 `SESS_PERSONAL_ACCESS_TOKEN`) follows the remote wizard's convention. **Open question** below:
@@ -366,7 +383,4 @@ Not applicable to this server. ClawHub lists the native OpenClaw plugin; see
   pattern of a client registered with Docker in advance. Sess registers clients by client-ID
   metadata documents and dynamic client registration and has no pre-registered client secret.
   Whether Docker's broker supports either is not documented in CONTRIBUTING.md; confirm with
-  Docker (an issue in `docker/mcp-registry`) or by the local `docker mcp oauth authorize` test
-  before the pull request.
-- **The Registry's npm package.** Published `@sess.si/mcp@0.1.0` declares `io.github.w1991e/sess`,
-  so the `si.sess/sess` entry cannot list it and stays remote-only. `package.json` is unchanged.
+  Docker (on docker/mcp-registry#6618) or by the local `docker mcp oauth authorize` test.

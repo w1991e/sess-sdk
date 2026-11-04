@@ -166,11 +166,7 @@ function serverJson({ listing, manifest }) {
     name: listing.registryName,
     title: listing.displayName,
     description: listing.copy.registry,
-    repository: {
-      url: listing.repository.url,
-      source: listing.repository.source,
-      subfolder: manifest.repository.directory,
-    },
+    websiteUrl: listing.homepage,
     // In step with the package on every release candidate (2026-10-20): package.json's
     // exact version, for the server and the package; never a dist-tag.
     version: manifest.version,
@@ -215,7 +211,6 @@ function pluginJson({ listing, manifest, tools }) {
     description: listing.copy.registry,
     author: { name: listing.publisher.name, url: listing.publisher.url },
     homepage: listing.homepage,
-    repository: listing.repository.url,
     license: listing.license,
     keywords: listing.copy.keywords,
     extensions: {
@@ -264,7 +259,7 @@ const hintLine = (t) => {
   return `- \`${t.name}\`: ${t.title} (${notes.join(', ')})`;
 };
 
-function pluginReadme({ listing, manifest, tools }) {
+function pluginReadme({ listing, tools }) {
   const docs = url(listing.urls.docs);
   const support = url(listing.urls.support);
   return [
@@ -283,7 +278,6 @@ function pluginReadme({ listing, manifest, tools }) {
     '## Help',
     '',
     ...(support ? [`- Support: ${support}`] : []),
-    `- Source: ${listing.repository.url}/tree/master/${manifest.repository.directory}`,
     `- License: ${listing.license}`,
     '',
   ].join('\n');
@@ -383,7 +377,7 @@ function clineIssue({ listing, manifest }) {
     '',
     `Proposed text, not signed and not opened. Open it only after the founder signs the copy and the ${ICON.cline}x${ICON.cline} icon is merged and deployed: ${cline.form}`,
     '',
-    'Every OWNER: line is for the owner to do, then delete. Everything else goes into the form as written.',
+    'Every OWNER: line is for the owner to do, then delete. Everything else in the sections below `## Title` goes into the form as written.',
     '',
     '## Title',
     '',
@@ -492,6 +486,10 @@ function dockerFiles(inputs) {
 // Validation
 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const isEvidence = (value) =>
+  Array.isArray(value) &&
+  value.length > 0 &&
+  value.every((s) => typeof s === 'string' && s.trim().length > 0);
 
 function compile(ajvClass, schemaText, pin, errors, label) {
   if (sha256(schemaText) !== pin.sha256) {
@@ -648,6 +646,8 @@ export function validate(inputs, files, schemaTexts) {
     'server.json',
   );
   if (server.$schema !== registry.schema.id) errors.push('server.json $schema is not the pinned schema');
+  if (server.websiteUrl !== listing.homepage)
+    errors.push('server.json websiteUrl must be listing.json homepage');
   if (server.name !== listing.registryName)
     errors.push('server.json name drifts from listing.json registryName');
   if (listsPackage && server.name !== manifest.mcpName)
@@ -802,8 +802,10 @@ export function validate(inputs, files, schemaTexts) {
   ]) {
     if (provider.remoteStatus !== 'qualified' && provider.remoteStatus !== 'unqualified')
       errors.push(`${host}: remoteStatus must be qualified or unqualified`);
-    if (provider.remoteStatus === 'qualified' && !provider.qualificationEvidence?.length)
+    if (provider.remoteStatus === 'qualified' && !isEvidence(provider.qualificationEvidence))
       errors.push(`${host}: remoteStatus qualified needs qualificationEvidence from a production run`);
+    if (provider.qualificationEvidence !== undefined && !isEvidence(provider.qualificationEvidence))
+      errors.push(`${host}: qualificationEvidence must be a non-empty array of non-empty strings`);
     if (artifactStatus !== provider.remoteStatus)
       errors.push(`${host}: the artifact's status must be its provider's remoteStatus`);
     if (provider.remoteStatus !== 'qualified')
@@ -811,6 +813,18 @@ export function validate(inputs, files, schemaTexts) {
         `${host} remote: ${listing.remote.url} is ${provider.remoteStatus} on ${host} (${provider.qualificationNote})`,
       );
   }
+  // The shared status claims only what a host packet has proved.
+  if (listing.remote.status !== 'qualified' && listing.remote.status !== 'unqualified')
+    errors.push('remote.status must be qualified or unqualified');
+  if (
+    listing.remote.status === 'qualified' &&
+    ![listing.providers.claudeConnector, listing.providers.cursorInstall].some(
+      (p) => p.remoteStatus === 'qualified' && isEvidence(p.qualificationEvidence),
+    )
+  )
+    errors.push('remote.status qualified needs a provider qualified with qualificationEvidence');
+  if (listing.stdio.status !== 'published' && listing.stdio.status !== 'unpublished')
+    errors.push('stdio.status must be published or unpublished');
 
   if (!httpsUrl(claude.serverUrl) || claude.authentication.type !== 'oauth')
     errors.push('claude-connector.json needs an HTTPS server URL and OAuth');
@@ -909,13 +923,19 @@ export function validate(inputs, files, schemaTexts) {
     );
   if (!committed.some((f) => f.size === ICON.cline))
     blockers.push(
-      `Cline: needs a ${ICON.cline}x${ICON.cline} PNG at a deployed URL; it is being added in a w1991e/sess pull request and is not deployed (see LISTINGS.md)`,
+      `Cline: needs a ${ICON.cline}x${ICON.cline} PNG at a deployed URL; ${listing.providers.cline.iconNote} (see LISTINGS.md)`,
     );
   blockers.push(
     `Cline: ${listing.providers.cline.output} has OWNER: lines to resolve, including watching Cline set the server up from the README alone`,
   );
   if (ap.openai.demoRecordingUrl === null) blockers.push('OpenAI: no demo recording URL');
   blockers.push(`OpenAI: test cases are ${ap.openai.testCasesStatus}`);
+  blockers.push(`OpenAI: ${ap.openai.qualificationNote}`);
+  if (ap.openai.testCasesStatus.startsWith('not yet run'))
+    blockers.push(
+      'Claude and Cursor: run the five positive test cases once on the qualification account before submitting (founder 2026-11-04)',
+    );
+  blockers.push(`Docker: ${listing.providers.docker.qualificationNote}`);
   blockers.push(
     'OpenAI and Claude: a reviewer test account is needed (for OpenAI it must sign in without email or SMS codes or magic links); enter it in the portal, never in the package',
   );

@@ -2,12 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "si.sess/sess",
   "title": "Sess",
-  "description": "Ask a person a question from your server and continue with their verified answer.",
-  "repository": {
-    "url": "https://github.com/w1991e/sess-sdk",
-    "source": "github",
-    "subfolder": "adapters/mcp"
-  },
+  "description": "Ask a person a question and continue with their verified answer.",
+  "websiteUrl": "https://sess.si",
   "version": "0.1.0",
   "icons": [
     {

@@ -2,7 +2,7 @@
 
 Proposed text, not signed and not opened. Open it only after the founder signs the copy and the 400x400 icon is merged and deployed: https://github.com/cline/mcp-marketplace/issues/new?template=mcp-server-submission.yml
 
-Every OWNER: line is for the owner to do, then delete. Everything else goes into the form as written.
+Every OWNER: line is for the owner to do, then delete. Everything else in the sections below `## Title` goes into the form as written.
 
 ## Title
 
@@ -28,7 +28,7 @@ OWNER: tick this only if you confirm it.
 
 ## Additional Information
 
-Ask a person a question from your server and continue with their verified answer.
+Ask a person a question and continue with their verified answer.
 
 - Hosted server: https://mcp.sess.si/mcp (Streamable HTTP; you sign in with your Sess account)
 - npm package: https://www.npmjs.com/package/@sess.si/mcp, version 0.1.0 (stdio; needs `SESS_API_KEY`)

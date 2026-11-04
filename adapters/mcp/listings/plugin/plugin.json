@@ -2,13 +2,12 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "sess",
   "version": "0.1.0",
-  "description": "Ask a person a question from your server and continue with their verified answer.",
+  "description": "Ask a person a question and continue with their verified answer.",
   "author": {
     "name": "Sess",
     "url": "https://sess.si"
   },
   "homepage": "https://sess.si",
-  "repository": "https://github.com/w1991e/sess-sdk",
   "license": "Apache-2.0",
   "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp"],
   "extensions": {
