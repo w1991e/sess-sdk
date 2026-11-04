@@ -1,9 +1,8 @@
 # Compatibility and evidence
 
-SDK version: **0.1.1**, prepared for the `latest` dist-tag; its API is that of 0.1.0. **0.1.0**, the
-first stable release, is published on npm under `latest` with provenance and pinned in
-[release/sdk-candidate.json](../release/sdk-candidate.json) until the registry transition. Its API
-is that of 0.1.0-rc.10, unchanged; `next` stays at the last release candidate, `0.1.0-rc.10`. Its
+SDK version: **0.1.1**, published on npm under the `latest` dist-tag with provenance and pinned in
+[release/sdk-candidate.json](../release/sdk-candidate.json). Its API is that of 0.1.0, unchanged.
+**0.1.0**, the first stable release, remains published; its API is that of 0.1.0-rc.10, unchanged; `next` stays at the last release candidate, `0.1.0-rc.10`. Its
 contract snapshot is unchanged from rc.8: Sess runtime commit
 `2f8500e3da894c00b2a9ac2c4be413851b711c5b`. **0.1.0-rc.10** (short-link redaction in request
 identifiers and a plain message for a key Sess does not accept), **0.1.0-rc.9** (the commerce

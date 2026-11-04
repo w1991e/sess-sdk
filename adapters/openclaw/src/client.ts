@@ -52,7 +52,7 @@ export function guardFetch(
 
 /**
  * The product token Sess classifies this plugin's requests by. The plugin passes it as the SDK's
- * `userAgent` option, so the SDK (0.1.0, the current pin) sends
+ * `userAgent` option, so the SDK (0.1.1, the current pin) sends
  * `sess-openclaw/<version> sess-sdk/<version> node/<version>`: this plugin first, then the SDK's own.
  */
 export const USER_AGENT = `sess-openclaw/${PLUGIN_VERSION}`;
