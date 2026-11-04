@@ -8,8 +8,9 @@ Tool names, titles and annotations come from `src/tools.ts`, and the version and
 `server.json` or plugin bundle is never evidence of an accepted listing. Submissions are owner
 actions; record "submitted" and "accepted" separately, with the provider's own confirmation. The
 descriptions, categories and test cases in `listing.json`, and the Cline issue text generated from
-it, were signed by the founder on 2026-11-04 at 20:45Z (`copy.status` is `approved`). Signed words
-are not a run test: the test cases have not been run.
+it, were signed by the founder on 2026-11-04 at 20:45Z (`copy.status` is `approved`), with test-case
+prompts 2–5 as he reworded them at 21:20Z. Signed words are not a run test: the claude.ai run is in
+[Test cases on claude.ai](#test-cases-on-claudeai), and OpenAI's run has not happened.
 
 ## Commands
 
@@ -352,7 +353,9 @@ Founder run, claude.ai (web), 2026-11-04 20:48Z–21:18Z, on production `1a5f43a
 hosted endpoint on the qualification account. Recorded from the founder's message: **5 of 5 PASS** with
 prompts 2–5 naming Sess. As first written, prompts 2 and 3 missed routing: the host answered in the
 chat and called no tool, in two chats for prompt 2 and one for prompt 3. `listing.json` now holds the
-prompts that passed. These are not OpenAI's test cases, whose status stays as `listing.json` gives it.
+prompts that passed. Case 5 was answered inside the wait, so the delayed path it describes was
+exercised in the runs of prompts 2 and 4. This run does not count as OpenAI's, whose status stays as
+`listing.json` gives it.
 
 Findings:
 

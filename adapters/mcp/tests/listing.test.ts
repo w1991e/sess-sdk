@@ -119,7 +119,8 @@ describe('listing.json artifacts', () => {
     const proposed = inputs();
     proposed.listing.copy.status = 'proposed';
     expect(check(proposed).blockers.join('\n')).toMatch(/PROPOSED and awaits the founder’s/);
-    // The signature is on the words: the test cases still have to be run.
+    // The claude.ai run is recorded (founder 2026-11-04 21:20Z); OpenAI's and Cursor's are not.
+    expect(text).not.toMatch(/Claude: the five positive test cases/);
     expect(text).toMatch(/OpenAI: test cases are not yet run against a Sess test account/);
     expect(text).toMatch(
       /Cursor: one production round through the one-click install, run by the founder, before submitting/,
