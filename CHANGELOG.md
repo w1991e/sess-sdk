@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 — 2026-11-04
+
+- The npm package page only: `keywords`, and `homepage` now points at the docs quickstart. The API
+  is that of 0.1.0, unchanged, and so are the runtime dependencies. The default `User-Agent` names
+  the new version.
+
 ## 0.1.0 — 2026-10-31
 
 - The first stable release, published to the `latest` dist-tag. The API is that of

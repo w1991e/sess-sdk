@@ -1,9 +1,19 @@
 {
   "name": "@sess.si/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Ask a person from your server and continue with their verified answer. Sess API client with receipt and webhook verification.",
   "type": "module",
   "license": "Apache-2.0",
+  "keywords": [
+    "mcp",
+    "agent",
+    "human-in-the-loop",
+    "approval",
+    "form",
+    "receipt",
+    "claude",
+    "openai"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/w1991e/sess-sdk.git"
@@ -11,7 +21,7 @@
   "bugs": {
     "url": "https://github.com/w1991e/sess-sdk/issues"
   },
-  "homepage": "https://github.com/w1991e/sess-sdk#readme",
+  "homepage": "https://docs.sess.si/quickstart/",
   "engines": {
     "node": ">=22.14.0"
   },
