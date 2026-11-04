@@ -310,7 +310,7 @@
       "source": "https://github.com/cline/mcp-marketplace/blob/main/.github/ISSUE_TEMPLATE/mcp-server-submission.yml",
       "templateBlob": "48d6e184c68f21558a89677d6369f7d1e50eae49",
       "retrieved": "2026-11-04",
-      "iconNote": "it is in w1991e/sess PR #1019, not merged at this writing and not deployed until Thursday's window",
+      "iconNote": "it is in w1991e/sess PR #1019, not merged at this writing and not deployed until a founder window",
       "note": "Text for a submission issue; the owner opens it after the 400x400 icon is merged and deployed. Nothing here opens an issue."
     },
     "clawhub": {

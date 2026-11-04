@@ -122,7 +122,7 @@ describe('listing.json artifacts', () => {
     // The signature is on the words: the test cases still have to be run.
     expect(text).toMatch(/OpenAI: test cases are not yet run against a Sess test account/);
     expect(text).toMatch(
-      /Claude and Cursor: run the five positive test cases once on the qualification account before submitting/,
+      /Claude: the five positive test cases on claude\.ai on the qualification account, run by the founder, before submitting; Cursor: one production round through the one-click install/,
     );
     // Hosts and stores with no qualified packet say so; none is promoted.
     expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);
@@ -132,7 +132,7 @@ describe('listing.json artifacts', () => {
     expect(text).not.toMatch(/icon URLs/);
     expect(text).not.toMatch(/on npm$/m);
     expect(text).toMatch(
-      /Cline: needs a 400x400 PNG at a deployed URL; it is in w1991e\/sess PR #1019, not merged at this writing and not deployed until Thursday's window/,
+      /Cline: needs a 400x400 PNG at a deployed URL; it is in w1991e\/sess PR #1019, not merged at this writing and not deployed until a founder window/,
     );
     expect(text).toMatch(/Cline: listings\/cline-issue\.md has OWNER: lines to resolve/);
     expect(text).not.toMatch(/no PNG icon yet/);

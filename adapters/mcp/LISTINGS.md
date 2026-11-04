@@ -74,7 +74,7 @@ Their HTTPS URLs, which the MCP Registry and Docker need, are
 Sizes the stores need: OpenAI and Claude take a square PNG of at least 48x48 (the 512 is the
 primary icon, the 192 OpenAI's composer icon); the MCP Registry takes any size named in `sizes`;
 Docker takes a URL. **Cline asks for 400x400, which is not deployed yet.** It is in w1991e/sess
-PR #1019, not merged at this writing and not deployed until Thursday's window. `listing.json` names
+PR #1019, not merged at this writing and not deployed until a founder window. `listing.json` names
 no URL for it and this repository holds no copy of it until it is deployed. That change also moves the `icons.json` version, so recheck the
 `24eb73d4a4d9` URLs after that deploy.
 
@@ -107,8 +107,11 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
 
 `npm run check:listing` lists what is still open. Today:
 
-- for Claude and Cursor: the five positive test cases run once on the qualification account before
-  those submissions (founder 2026-11-04). They have not been run;
+- for Claude: the founder runs the five positive test cases on claude.ai on the qualification
+  account before that submission, and the results are recorded here from his message (founder
+  2026-11-04). They have not been run;
+- for Cursor: the founder runs one production round through the one-click install before that
+  submission; until then its packet stays unqualified (founder 2026-11-04);
 - for OpenAI: the ChatGPT run exists (w1991e/sess
   `EXECUTION/evidence/host-runs-production-2026-10-28/chatgpt.md`, PASS at `66f5dc09`) but is not
   marked qualified, and Codex has no production run;
@@ -228,8 +231,9 @@ organization and the Apps Management Write role.
   `https://mcp.sess.si/mcp` and its status is `unqualified`: no production Cursor run is our
   evidence. The stdio link names `@sess.si/mcp@0.1.0`, which is published on npm; published is not
   qualified either. They belong on the setup page once Cursor is qualified.
-- Before the Cursor submission, run the five positive test cases once on the qualification account
-  (founder 2026-11-04). This does not qualify Cursor; only a production Cursor run does.
+- Before the Cursor submission, the founder runs one production round through the one-click install
+  (founder 2026-11-04). Set `providers.cursorInstall.remoteStatus` to `qualified` only with that
+  round's evidence.
 - The plugin bundle is submitted as a public Git repository at https://cursor.com/marketplace/publish.
   Confirm that a subfolder (`adapters/mcp/listings/plugin`) is accepted; otherwise the owner decides
   whether to mirror it into its own repository.
@@ -237,8 +241,8 @@ organization and the Apps Management Write role.
 ### Claude (connector directory review)
 
 Eligible for the remote endpoint with OAuth; Anthropic no longer accepts MCPB bundles there. Every
-tool has a title and read-only/destructive hints. First run the five positive test cases once on the
-qualification account (founder 2026-11-04). Then submit at claude.ai/directory/manage (Submit new,
+tool has a title and read-only/destructive hints. First the founder runs the five positive test cases on
+claude.ai on the qualification account (founder 2026-11-04). Then submit at claude.ai/directory/manage (Submit new,
 MCP connector) with the values in `listings/claude-connector.json`: name, one-liner, description,
 categories, documentation and privacy policy URLs, support contact `ask@sess.si`, and the icon
 `listings/plugin/assets/icon-512.png` (its `icon` field). Add the permanent slug (the owner's
@@ -320,7 +324,7 @@ Source: https://github.com/cline/mcp-marketplace (README and the template
 text is `listings/cline-issue.md`; resolve its `OWNER:` lines.
 
 1. Wait for the 400x400 PNG, w1991e/sess PR #1019, to be merged and deployed. **It is not merged at
-   this writing and not deployed until Thursday's window** (see [Icon](#icon)); do not submit a
+   this writing and not deployed until a founder window** (see [Icon](#icon)); do not submit a
    resized copy. A GET of its URL must return 200 with
    `image/png`; put that URL in Logo Image.
 2. Watch Cline set the server up from the README or `llms-install.md` alone. The submitter ticks

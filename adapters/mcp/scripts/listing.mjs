@@ -375,7 +375,7 @@ function clineIssue({ listing, manifest }) {
   return [
     '# Cline submission issue',
     '',
-    `Proposed text, not signed and not opened. Open it only after the founder signs the copy and the ${ICON.cline}x${ICON.cline} icon is merged and deployed: ${cline.form}`,
+    `Signed text, not opened. Open it only after the ${ICON.cline}x${ICON.cline} icon is merged and deployed and the README-alone install test has passed: ${cline.form}`,
     '',
     'Every OWNER: line is for the owner to do, then delete. Everything else in the sections below `## Title` goes into the form as written.',
     '',
@@ -933,7 +933,7 @@ export function validate(inputs, files, schemaTexts) {
   blockers.push(`OpenAI: ${ap.openai.qualificationNote}`);
   if (ap.openai.testCasesStatus.startsWith('not yet run'))
     blockers.push(
-      'Claude and Cursor: run the five positive test cases once on the qualification account before submitting (founder 2026-11-04)',
+      'Claude: the five positive test cases on claude.ai on the qualification account, run by the founder, before submitting; Cursor: one production round through the one-click install, run by the founder, before submitting (founder 2026-11-04)',
     );
   blockers.push(`Docker: ${listing.providers.docker.qualificationNote}`);
   blockers.push(
