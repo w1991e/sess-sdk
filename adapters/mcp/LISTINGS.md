@@ -111,16 +111,15 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
   account before that submission, and the results are recorded here from his message (founder
   2026-11-04). They have not been run;
 - for Cursor: the founder runs one production round through the one-click install before that
-  submission; until then its packet stays unqualified (founder 2026-11-04);
+  submission. `https://mcp.sess.si/mcp` passed production host qualification on claude.ai (see
+  [Claude](#claude-connector-directory-review)), so `remote.status` is `qualified`, but
+  `providers.cursorInstall.remoteStatus` stays `unqualified` until that round's evidence (founder
+  2026-11-04);
 - for OpenAI: the ChatGPT run exists (w1991e/sess
   `EXECUTION/evidence/host-runs-production-2026-10-28/chatgpt.md`, PASS at `66f5dc09`) but is not
   marked qualified, and Codex has no production run;
-- for Docker: OAuth through Docker's Toolkit is untested (see [Docker](#docker));
-- for Cursor only: a production Cursor run. `https://mcp.sess.si/mcp` passed production host
-  qualification on claude.ai (see [Claude](#claude-connector-directory-review)), so `remote.status`
-  is `qualified`, but no production Cursor run is our evidence, so
-  `providers.cursorInstall.remoteStatus` stays `unqualified`; set it to `qualified` only with that
-  run's evidence;
+- for Docker: OAuth through Docker's Toolkit is untested; the founder tests it with
+  `docker mcp oauth authorize sess` (see [Docker](#docker));
 - to list the npm stdio package in the MCP Registry entry (today it is remote-only): a successor
   `@sess.si/mcp` candidate declaring `mcpName` `si.sess/sess` (the published 0.1.0 declares
   `io.github.w1991e/sess`); then set `providers.mcpRegistry.npmPackage.status` to `listed`;
@@ -328,7 +327,7 @@ text is `listings/cline-issue.md`; resolve its `OWNER:` lines.
    resized copy. A GET of its URL must return 200 with
    `image/png`; put that URL in Logo Image.
 2. Watch Cline set the server up from the README or `llms-install.md` alone. The submitter ticks
-   that box only after doing so; that has not been done. The README has no Cline section today.
+   that box only after doing so; that has not been done. The README's Cline section is the path to test.
 3. Tick "The server is stable and ready for public use" only if you confirm it.
 4. Open the issue from the owner's account:
    - GitHub Repository URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`

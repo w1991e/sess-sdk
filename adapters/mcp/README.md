@@ -68,6 +68,27 @@ _Untested._ Cursor reads `.cursor/mcp.json` (project) or `~/.cursor/mcp.json`:
 }
 ```
 
+### Cline
+
+_Untested._ In Cline, open **MCP Servers**, then **Configure MCP Servers**, and add this to
+`cline_mcp_settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "sess": {
+      "type": "streamableHttp",
+      "url": "https://mcp.sess.si/mcp"
+    }
+  }
+}
+```
+
+When Cline connects, sign in to your Sess account in the browser. No key goes in the file.
+
+Try it: "Ask me on my phone which time works for a call tomorrow." Cline shares a Sess link. Answer
+it, and Cline reports your choice.
+
 ### First interaction: approve before acting
 
 Have your agent check with you before it commits a change or sends a reply. Ask it something like:

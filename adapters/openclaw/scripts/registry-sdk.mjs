@@ -1,7 +1,7 @@
 // The adapter's only production dependency is the published @sess.si/sdk at the exact version pinned
 // in the repository's release/sdk-candidate.json (name, version, sha256, sha512 integrity; kept
 // consistent by the root `npm run pin:update` and verified by the root `npm run check`). It installs
-// from the public npm registry by that exact version (0.1.0 is on the `latest` dist-tag; a tag is
+// from the public npm registry by that exact version (0.1.1 is on the `latest` dist-tag; a tag is
 // never what resolves it). This check refuses any drift between the pin, package.json, package-lock.json and the installed SDK.
 //
 // Usage: node scripts/registry-sdk.mjs              (after npm ci: manifest, lock, installed tree)
