@@ -89,6 +89,7 @@ describe('listing.json artifacts', () => {
     expect([...files.keys()].sort()).toEqual(
       [
         'listings/claude-connector.json',
+        'listings/cline-issue.md',
         'listings/cursor-install.json',
         'listings/docker/readme.md',
         'listings/docker/server.yaml',
@@ -107,20 +108,98 @@ describe('listing.json artifacts', () => {
     const { errors, blockers } = check(inputs());
     expect(errors).toEqual([]);
     const text = blockers.join('\n');
+    // Production proved claude.ai, not Cursor: only Cursor's remote is still a blocker.
     expect(text).toMatch(
-      /https:\/\/mcp\.sess\.si\/mcp is unqualified \(production host qualification pending\)/,
+      /Cursor remote: https:\/\/mcp\.sess\.si\/mcp is unqualified on Cursor \(no production Cursor run is our evidence\)/,
     );
+    expect(text).not.toMatch(/Claude remote/);
+    expect(text).not.toMatch(/production host qualification pending/);
     expect(text).toMatch(/PROPOSED and awaits the founder’s line-by-line sign-off/);
-    // The icon is the logos script's output; its URLs stay a blocker until production serves them,
-    // and Cline's 400x400 stays one until the script generates it.
-    expect(text).toMatch(/MCP Registry and Docker: icon URLs pending-deploy/);
-    expect(text).toMatch(/Cline: needs a 400x400 PNG/);
+    // Production serves the icon URLs and npm serves 0.1.0, so neither is a blocker; Cline's
+    // 400x400 stays one until it is deployed and committed here.
+    expect(text).not.toMatch(/icon URLs/);
+    expect(text).not.toMatch(/on npm$/m);
+    expect(text).toMatch(/Cline: needs a 400x400 PNG at a deployed URL/);
+    expect(text).toMatch(/Cline: listings\/cline-issue\.md has OWNER: lines to resolve/);
     expect(text).not.toMatch(/no PNG icon yet/);
     expect(text).not.toMatch(/urls\.(privacy|terms)/);
     // The npm package is deferred: adding it needs a successor candidate carrying si.sess/sess.
     expect(text).toMatch(
-      /MCP Registry npm package: deferred \(remote-only entry\); adding @sess\.si\/mcp needs a successor candidate whose mcpName is si\.sess\/sess \(@sess\.si\/mcp@0\.1\.0-rc\.4 on npm declares io\.github\.w1991e\/sess\)/,
+      /MCP Registry npm package: deferred \(remote-only entry\); adding @sess\.si\/mcp needs a successor candidate whose mcpName is si\.sess\/sess \(@sess\.si\/mcp@0\.1\.0 on npm declares io\.github\.w1991e\/sess\)/,
     );
+  });
+
+  it('every store description is the README’s first line, word for word', () => {
+    const readmeFirstLine = readFileSync(join(base, '../../README.md'), 'utf8').split('\n')[2];
+    const { listing } = inputs();
+    expect(listing.copy.registry).toBe(readmeFirstLine);
+    expect(listing.copy.oneLiner).toBe(readmeFirstLine);
+    const files = generate(inputs());
+    expect(JSON.parse(files.get('server.json')!).description).toBe(readmeFirstLine);
+    expect(JSON.parse(files.get('listings/plugin/plugin.json')!).description).toBe(readmeFirstLine);
+    expect(JSON.parse(files.get('listings/claude-connector.json')!).oneLiner).toBe(readmeFirstLine);
+    expect(files.get('listings/docker/server.yaml')).toContain(`  description: ${readmeFirstLine}\n`);
+    expect(files.get('listings/cline-issue.md')).toContain(`\n${readmeFirstLine}\n`);
+  });
+
+  it('Claude and Cursor each carry their own status; qualified needs that host’s evidence', () => {
+    const files = generate(inputs());
+    const claude = () => JSON.parse(files.get('listings/claude-connector.json')!);
+    const cursor = () => JSON.parse(files.get('listings/cursor-install.json')!);
+    expect(claude().status).toBe('qualified');
+    expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
+      ['streamable-http', 'unqualified'],
+      ['stdio', 'published'],
+    ]);
+    expect(files.get('listings/cursor-install.json')).not.toMatch(/"qualified"/);
+
+    // The shared remote.status feeds neither artifact.
+    const shared = inputs();
+    shared.listing.remote.status = 'something-else';
+    const sharedFiles = generate(shared);
+    expect(JSON.parse(sharedFiles.get('listings/claude-connector.json')!).status).toBe('qualified');
+    expect(JSON.parse(sharedFiles.get('listings/cursor-install.json')!).entries[0].status).toBe(
+      'unqualified',
+    );
+
+    // Qualifying a host without evidence is refused; a hand-edited artifact is refused.
+    const noEvidence = inputs();
+    noEvidence.listing.providers.cursorInstall.remoteStatus = 'qualified';
+    expect(check(noEvidence).errors).toContain(
+      'Cursor: remoteStatus qualified needs qualificationEvidence from a production run',
+    );
+    const unknown = inputs();
+    unknown.listing.providers.claudeConnector.remoteStatus = 'maybe';
+    expect(check(unknown).errors).toContain('Claude: remoteStatus must be qualified or unqualified');
+    const i = inputs();
+    const edited = edit(generate(i), 'listings/cursor-install.json', (c) => {
+      c.entries[0].status = 'qualified';
+    });
+    expect(check(i, edited).errors).toContain(
+      "Cursor: the artifact's status must be its provider's remoteStatus",
+    );
+  });
+
+  it('the Cline issue fills Cline’s template with true values and ticks nothing', () => {
+    const issue = generate(inputs()).get('listings/cline-issue.md')!;
+    for (const heading of [
+      '## GitHub Repository URL',
+      '## Logo Image',
+      '## Installation Testing',
+      '## Additional Information',
+    ])
+      expect(issue).toContain(`\n${heading}\n`);
+    expect(issue).toContain('`[Server Submission]: Sess`');
+    expect(issue).toContain('\nhttps://github.com/w1991e/sess-sdk/tree/master/adapters/mcp\n');
+    // Neither required box is ticked; each has an OWNER: line, and so does the undeployed logo.
+    expect(issue).not.toMatch(/- \[x\]/i);
+    expect(issue.match(/^- \[ \] /gm)).toHaveLength(2);
+    expect(issue.match(/^OWNER: /gm)).toHaveLength(3);
+    // No PNG exists to point at yet: the only icons are the deployed set, and none is named here.
+    expect(issue).not.toMatch(/icon-\d+\.png|\/assets\/icons\//);
+    expect(issue).toContain('https://mcp.sess.si/mcp');
+    expect(issue).toContain('https://sess.si');
+    expect(issue).toContain('https://www.npmjs.com/package/@sess.si/mcp');
   });
 
   it('server.json is remote-only under si.sess/sess, and the package keeps its published mcpName', () => {
@@ -161,7 +240,7 @@ describe('listing.json artifacts', () => {
     expect(server.version).toBe(i.manifest.version);
     expect(server.packages[0].version).toBe(i.manifest.version);
     expect(server.description).toBe(
-      'Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.',
+      'Ask a person a question from your server and continue with their verified answer.',
     );
     expect(i.listing.providers.mcpRegistry.version).toBeUndefined();
     for (const version of ['0.1.0-rc.4', '0.1.0']) {
@@ -419,6 +498,21 @@ describe('listing.json artifacts', () => {
       );
     }
     expect(cursor.entries[1].config.env).toEqual({ SESS_API_KEY: '${env:SESS_API_KEY}' });
+    // The remote link installs the production endpoint, and nothing else.
+    const remoteLink = new URL(cursor.entries[0].deeplink);
+    expect(
+      JSON.parse(Buffer.from(remoteLink.searchParams.get('config')!, 'base64').toString('utf8')),
+    ).toEqual({
+      url: 'https://mcp.sess.si/mcp',
+    });
+    const preview = inputs();
+    const previewFiles = edit(generate(preview), 'listings/cursor-install.json', (c) => {
+      c.entries[0].config.url = 'https://mcp.preview.example/mcp';
+      c.entries[0].deeplink = cursorDeeplink('sess', c.entries[0].config);
+    });
+    expect(check(preview, previewFiles).errors).toContain(
+      'cursor remote link must install the production endpoint https://mcp.sess.si/mcp',
+    );
     const i = inputs();
     const files = edit(generate(i), 'listings/cursor-install.json', (c) => {
       c.entries[1].config.env.SESS_API_KEY = 'a-literal-value';
@@ -552,7 +646,7 @@ describe('directory packets', () => {
         '    - remote',
         'about:',
         '  title: Sess',
-        '  description: Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.',
+        '  description: Ask a person a question from your server and continue with their verified answer.',
         '  icon: https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png',
         'remote:',
         '  transport_type: streamable-http',

@@ -329,7 +329,8 @@ function cursorInstall({ listing, manifest }) {
       {
         name: listing.name,
         transport: listing.remote.type,
-        status: listing.remote.status,
+        // Cursor's own status: another host's qualifying run says nothing about Cursor.
+        status: listing.providers.cursorInstall.remoteStatus,
         config: remote,
         deeplink: cursorDeeplink(listing.name, remote),
       },
@@ -354,7 +355,7 @@ function claudeConnector({ listing, tools }) {
     categories: listing.categories,
     serverUrl: listing.remote.url,
     transport: listing.remote.type,
-    status: listing.remote.status,
+    status: listing.providers.claudeConnector.remoteStatus,
     authentication: {
       type: listing.remote.auth.type,
       authorizationServer: listing.remote.auth.issuer,
@@ -369,6 +370,55 @@ function claudeConnector({ listing, tools }) {
     icon: primaryIcon(listing)?.path,
     tools: toolRows(tools),
   });
+}
+
+/**
+ * Cline's "MCP Server Submission" issue form (providers.cline.source), field by field. Only true
+ * values are filled in; what is unknown or still to be done is an OWNER: line, and no box is ticked.
+ */
+function clineIssue({ listing, manifest }) {
+  const cline = listing.providers.cline;
+  return [
+    '# Cline submission issue',
+    '',
+    `Proposed text, not signed and not opened. Open it only after the founder signs the copy and the ${ICON.cline}x${ICON.cline} icon is merged and deployed: ${cline.form}`,
+    '',
+    'Every OWNER: line is for the owner to do, then delete. Everything else goes into the form as written.',
+    '',
+    '## Title',
+    '',
+    `\`[Server Submission]: ${listing.displayName}\``,
+    '',
+    '## GitHub Repository URL',
+    '',
+    `${listing.repository.url}/tree/master/${manifest.repository.directory}`,
+    '',
+    '## Logo Image',
+    '',
+    `OWNER: put the URL of the deployed ${ICON.cline}x${ICON.cline} PNG here, after a GET of it returns 200 with image/png. It is not deployed yet. Do not resize another icon.`,
+    '',
+    '## Installation Testing',
+    '',
+    '- [ ] I have tested that Cline can successfully set up this server using only the README.md and/or llms-install.md file',
+    '',
+    'OWNER: tick this only after watching Cline set up the server from the README alone. That has not been done.',
+    '',
+    '- [ ] The server is stable and ready for public use',
+    '',
+    'OWNER: tick this only if you confirm it.',
+    '',
+    '## Additional Information',
+    '',
+    listing.copy.oneLiner,
+    '',
+    `- Hosted server: ${listing.remote.url} (Streamable HTTP; you sign in with your ${listing.displayName} account)`,
+    `- npm package: https://www.npmjs.com/package/${manifest.name}, version ${manifest.version} (stdio; needs \`SESS_API_KEY\`)`,
+    `- Website: ${url(listing.urls.website)}`,
+    `- Docs: ${url(listing.urls.docs)}`,
+    `- Support: ${listing.supportContact}`,
+    `- License: ${listing.license}`,
+    '',
+  ].join('\n');
 }
 
 // A YAML plain scalar, refused when it would need quoting (the generator writes no quotes).
@@ -420,6 +470,7 @@ export function generate(inputs) {
     [`${PLUGIN_DIR}/skills/${skill}/SKILL.md`, skillMd(inputs)],
     [listing.providers.cursorInstall.output, formatJson(cursorInstall(inputs))],
     [listing.providers.claudeConnector.output, formatJson(claudeConnector(inputs))],
+    [listing.providers.cline.output, clineIssue(inputs)],
     ...dockerFiles(inputs),
   ]);
 }
@@ -737,9 +788,30 @@ export function validate(inputs, files, schemaTexts) {
       if (!/^\$\{env:[A-Z0-9_]+\}$/.test(value))
         errors.push(`cursor ${entry.transport}: env values must be \${env:NAME}`);
   }
+  const cursorRemote = cursor.entries.find((entry) => entry.transport === listing.remote.type);
+  if (cursorRemote?.config.url !== PRODUCTION_REMOTE)
+    errors.push(`cursor remote link must install the production endpoint ${PRODUCTION_REMOTE}`);
 
   // Claude custom connector values: HTTPS, OAuth, every tool titled with read-only/destructive hints.
   const claude = json(listing.providers.claudeConnector.output);
+
+  // Each host packet carries its own remote status; qualified needs that host's production evidence.
+  for (const [host, provider, artifactStatus] of [
+    ['Claude', listing.providers.claudeConnector, claude.status],
+    ['Cursor', listing.providers.cursorInstall, cursorRemote?.status],
+  ]) {
+    if (provider.remoteStatus !== 'qualified' && provider.remoteStatus !== 'unqualified')
+      errors.push(`${host}: remoteStatus must be qualified or unqualified`);
+    if (provider.remoteStatus === 'qualified' && !provider.qualificationEvidence?.length)
+      errors.push(`${host}: remoteStatus qualified needs qualificationEvidence from a production run`);
+    if (artifactStatus !== provider.remoteStatus)
+      errors.push(`${host}: the artifact's status must be its provider's remoteStatus`);
+    if (provider.remoteStatus !== 'qualified')
+      blockers.push(
+        `${host} remote: ${listing.remote.url} is ${provider.remoteStatus} on ${host} (${provider.qualificationNote})`,
+      );
+  }
+
   if (!httpsUrl(claude.serverUrl) || claude.authentication.type !== 'oauth')
     errors.push('claude-connector.json needs an HTTPS server URL and OAuth');
   if (JSON.stringify(claude.tools) !== JSON.stringify(toolRows(tools)))
@@ -837,8 +909,11 @@ export function validate(inputs, files, schemaTexts) {
     );
   if (!committed.some((f) => f.size === ICON.cline))
     blockers.push(
-      `Cline: needs a ${ICON.cline}x${ICON.cline} PNG; the Sess logos script generates none yet (see LISTINGS.md)`,
+      `Cline: needs a ${ICON.cline}x${ICON.cline} PNG at a deployed URL; it is being added in a w1991e/sess pull request and is not deployed (see LISTINGS.md)`,
     );
+  blockers.push(
+    `Cline: ${listing.providers.cline.output} has OWNER: lines to resolve, including watching Cline set the server up from the README alone`,
+  );
   if (ap.openai.demoRecordingUrl === null) blockers.push('OpenAI: no demo recording URL');
   blockers.push(`OpenAI: test cases are ${ap.openai.testCasesStatus}`);
   blockers.push(

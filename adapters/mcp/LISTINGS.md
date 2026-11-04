@@ -7,8 +7,9 @@ Tool names, titles and annotations come from `src/tools.ts`, and the version and
 **Generating a file is not submitting it, and submitting is not acceptance.** A generated
 `server.json` or plugin bundle is never evidence of an accepted listing. Submissions are owner
 actions; record "submitted" and "accepted" separately, with the provider's own confirmation. The
-descriptions, categories and test cases in `listing.json` are **proposed** copy and wait for the
-founder's line-by-line sign-off (`copy.status` becomes `approved` only after it).
+descriptions, categories and test cases in `listing.json`, and the Cline issue text generated from
+it, are **proposed** copy and wait for the founder's line-by-line sign-off (`copy.status` becomes
+`approved` only after it).
 
 ## Commands
 
@@ -27,6 +28,7 @@ The provider rules it enforces (read 2026-10-23):
 | Claude       | name 100, one-liner 200, description 2,000, 1-5 distinct categories, HTTPS documentation and privacy policy URLs, a support contact (email or HTTPS URL), OAuth over HTTPS, a title and hints on every tool                                                                                                                                                                                                                                |
 | MCP Registry | the pinned 2025-12-11 schema; the name in the `si.sess/*` namespace that DNS authentication of `sess.si` grants; exactly one `streamable-http` remote, the production URL; while the npm package is deferred, no packages (remote-only); once listed, exactly one npm stdio package (this package, at `package.json`'s version) and the name equal to `mcpName`                                                                            |
 | Icons        | every committed PNG in `icons.files` exists, is a square PNG of its stated size (read from its IHDR), at least 48x48, and has its recorded SHA-256; `icons.value` names the same icons, in order, as `image/png` with their `sizes`, at `https://sess.si/assets/icons/<icons.json version>/<file>`; `server.json`, `plugin.json` (`logo`, `composerIcon`), `claude-connector.json` (`icon`) and Docker's `about.icon` take them from there |
+| Host status  | Claude's and Cursor's artifacts each carry their own `remoteStatus` from `listing.json`; `qualified` needs that host's `qualificationEvidence`; the Cursor remote link decodes to the production URL                                                                                                                                                                                                                                       |
 | Packets      | the owner submission steps below quote listing.json's current short, registry and one-line descriptions, the remote URL, the repository, the support contact and the icon URLs                                                                                                                                                                                                                                                             |
 
 Sources: https://developers.openai.com/apps-sdk/deploy/submission.md,
@@ -36,14 +38,15 @@ https://modelcontextprotocol.io/registry/authentication.
 
 ## Artifacts
 
-| File                                    | For                                                     | Validated against                                             |
-| --------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------- |
-| `server.json`                           | MCP Registry (the remote; remote-only for now)          | MCP Registry `server.schema.json` 2025-12-11                  |
-| `listings/plugin/` (`plugin.json`, ...) | OpenAI (ChatGPT and Codex) and Cursor plugin bundle     | Agent Plugins 1.0.0 `plugin` and `mcp` schemas, plus rules    |
-| `listings/cursor-install.json`          | Cursor install links (remote and stdio)                 | decodes to its config; no secret in it                        |
-| `listings/claude-connector.json`        | Values for Anthropic's connector submission form        | documented requirements (no published schema)                 |
-| `listings/docker/` (`server.yaml`, ...) | A pull request to docker/mcp-registry (`servers/sess/`) | generated only; Docker's own CI checks it on the pull request |
-| `listings/plugin/assets/` (the icons)   | Every store that takes an icon upload                   | PNG IHDR size and pinned SHA-256 (copied, not generated)      |
+| File                                    | For                                                       | Validated against                                                 |
+| --------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------- |
+| `server.json`                           | MCP Registry (the remote; remote-only for now)            | MCP Registry `server.schema.json` 2025-12-11                      |
+| `listings/plugin/` (`plugin.json`, ...) | OpenAI (ChatGPT and Codex) and Cursor plugin bundle       | Agent Plugins 1.0.0 `plugin` and `mcp` schemas, plus rules        |
+| `listings/cursor-install.json`          | Cursor install links (remote and stdio)                   | decodes to its config; no secret in it                            |
+| `listings/claude-connector.json`        | Values for Anthropic's connector submission form          | documented requirements (no published schema)                     |
+| `listings/docker/` (`server.yaml`, ...) | A pull request to docker/mcp-registry (`servers/sess/`)   | generated only; Docker's own CI checks it on the pull request     |
+| `listings/cline-issue.md`               | The text of a submission issue in `cline/mcp-marketplace` | generated only; `OWNER:` lines mark what is not yet true or known |
+| `listings/plugin/assets/` (the icons)   | Every store that takes an icon upload                     | PNG IHDR size and pinned SHA-256 (copied, not generated)          |
 
 The plugin bundle holds `plugin.json`, `mcp.json` (exactly one server: the remote endpoint), a
 `README.md`, one skill stub, `skills/ask-a-person/SKILL.md`, and the icons in `assets/`. No ZIP is
@@ -65,17 +68,15 @@ w1991e/sess `8dc6f040`, where the icon files are unchanged since `43f16910`.
 
 Their HTTPS URLs, which the MCP Registry and Docker need, are
 `https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png` and
-`https://sess.si/assets/icons/24eb73d4a4d9/icon-192.png`. **They answer only after the Wednesday
-production deploy of #776** (both returned 404 on 2026-10-28), so `icons.status` is
-`pending-deploy`; set it to `live` after a GET of each returns 200 with `image/png`.
+`https://sess.si/assets/icons/24eb73d4a4d9/icon-192.png`. A GET of each returned 200 with
+`image/png` on 2026-11-04, with the SHA-256s above, so `icons.status` is `live`.
 
 Sizes the stores need: OpenAI and Claude take a square PNG of at least 48x48 (the 512 is the
 primary icon, the 192 OpenAI's composer icon); the MCP Registry takes any size named in `sizes`;
-Docker takes a URL. **Cline asks for 400x400, which the script does not generate yet.** Adding it
-is a w1991e/sess change: one entry in `ICON_RASTERS` (`packages/design-tokens/src/icons.ts`),
-`{ name: 'icon-400.png', size: 400, shape: 'tile', scale: MARK_SCALE, opaque: false }`, plus
-`'icon-400.png'` in `ICON_FILES`, then `logos.ts` to regenerate. That changes the `icons.json`
-version, and so the icon URLs above.
+Docker takes a URL. **Cline asks for 400x400, which is not deployed yet.** It is being added in a
+separate w1991e/sess pull request. `listing.json` names no URL for it and this repository holds no
+copy of it until it is deployed. That change also moves the `icons.json` version, so recheck the
+`24eb73d4a4d9` URLs after that deploy.
 
 Vendored schemas in `listings/schemas/` are byte-identical to their sources and pinned by SHA-256
 in `listing.json`; the check refuses a modified copy. Retrieved 2026-10-15; the registry schema was
@@ -106,16 +107,17 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
 
 `npm run check:listing` lists what is still open. Today:
 
-- the founder signs off the proposed copy, categories and test cases in `listing.json`;
-- `https://mcp.sess.si/mcp` passes production host qualification (it is deployed: `/version` was
-  read back on 2026-10-23); then set `remote.status` to `qualified`;
+- the founder signs off the proposed copy, categories, test cases and Cline issue text;
+- for Cursor only: a production Cursor run. `https://mcp.sess.si/mcp` passed production host
+  qualification on claude.ai (see [Claude](#claude-connector-directory-review)), so `remote.status`
+  is `qualified`, but no production Cursor run is our evidence, so
+  `providers.cursorInstall.remoteStatus` stays `unqualified`; set it to `qualified` only with that
+  run's evidence;
 - to list the npm stdio package in the MCP Registry entry (today it is remote-only): a successor
-  `@sess.si/mcp` candidate declaring `mcpName` `si.sess/sess` (the published 0.1.0-rc.4 declares
-  `io.github.w1991e/sess`), after the re-pin freeze ends on 3 Nov; then set
-  `providers.mcpRegistry.npmPackage.status` to `listed`;
-- the icon URLs answer on production (the Wednesday deploy of #776); then set `icons.status` to
-  `live`. The PNGs are committed (see [Icon](#icon));
-- for Cline only: a 400x400 PNG from the logos script (see [Icon](#icon));
+  `@sess.si/mcp` candidate declaring `mcpName` `si.sess/sess` (the published 0.1.0 declares
+  `io.github.w1991e/sess`); then set `providers.mcpRegistry.npmPackage.status` to `listed`;
+- for Cline only: the 400x400 PNG deployed (see [Icon](#icon)), and watching Cline set the server up
+  from the README alone (see [Cline](#cline));
 - a demo recording URL (OpenAI), and a reviewer test account entered in each portal, never in the
   package. OpenAI requires one that signs in without email or SMS codes or magic links.
 
@@ -138,24 +140,26 @@ into this repository, a file, a log, a chat or an agent prompt.
 
 **The entry is remote-only for now.** `server.json` lists the one `streamable-http` remote
 `https://mcp.sess.si/mcp` and no `packages`. The registry checks a listed npm package's `mcpName`
-against the server name, and the published `@sess.si/mcp@0.1.0-rc.4` declares
-`io.github.w1991e/sess`; `package.json` keeps that value so the published package's identity is
-unchanged. Listing the stdio package (`providers.mcpRegistry.npmPackage.status` `listed`) needs a
+against the server name (https://modelcontextprotocol.io/registry/package-types), and the published
+`@sess.si/mcp@0.1.0` declares `io.github.w1991e/sess`, so `si.sess/sess` cannot list it;
+`package.json` keeps that value so the published package's identity is unchanged. The entry's
+version is 0.1.0. Listing the stdio package (`providers.mcpRegistry.npmPackage.status` `listed`) needs a
 successor candidate declaring `mcpName` `si.sess/sess`; the checks and the release guard then
 require the two to be equal again.
 
 `server.json` names `package.json`'s exact version (and, once listed, the npm package's), and
 stays in step with it on every release candidate (2026-10-20): `npm run listing` writes
 it, and `npm run check:listing`, the registry-metadata test and the release guard fail when they
-differ. It never names a dist-tag. The registry does not verify the remote URL, so publish only
-after `https://mcp.sess.si/mcp` passes production host qualification. `server.json` `icons` lists
-the two icon URLs (`512x512` and `192x192`, `image/png`); publish after they answer.
+differ. It never names a dist-tag. The registry does not verify the remote URL;
+`https://mcp.sess.si/mcp` passed production host qualification on claude.ai (see
+[Claude](#claude-connector-directory-review)). `server.json` `icons` lists the two icon URLs
+(`512x512` and `192x192`, `image/png`), which answer (see [Icon](#icon)).
 
 `npm run check:listing` validates `server.json` against the pinned 2025-12-11 schema, and CI also
 runs the registry's own validator (`mcp-publisher validate`, pinned v1.8.1 by SHA-256; no login,
 no publish).
 
-Owner commands, in the owner's own terminal, after production host qualification has passed:
+Owner commands, in the owner's own terminal, after the founder signs the copy:
 
 1. Install the pinned publisher (macOS arm64 shown; other platforms from the same release):
    `curl -fsSLO https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_darwin_arm64.tar.gz`,
@@ -211,8 +215,10 @@ organization and the Apps Management Write role.
 
 ### Cursor
 
-- Install links (`listings/cursor-install.json`) need no submission; they belong on the setup page
-  once their status is deployed or published.
+- Install links (`listings/cursor-install.json`) need no submission. The remote link decodes to
+  `https://mcp.sess.si/mcp` and its status is `unqualified`: no production Cursor run is our
+  evidence. The stdio link names `@sess.si/mcp@0.1.0`, which is published on npm; published is not
+  qualified either. They belong on the setup page once Cursor is qualified.
 - The plugin bundle is submitted as a public Git repository at https://cursor.com/marketplace/publish.
   Confirm that a subfolder (`adapters/mcp/listings/plugin`) is accepted; otherwise the owner decides
   whether to mirror it into its own repository.
@@ -226,6 +232,12 @@ categories, documentation and privacy policy URLs, support contact `ask@sess.si`
 `listings/plugin/assets/icon-512.png` (its `icon` field). Add the permanent slug (the owner's
 choice), a test account with every step, the data-handling answers and the acknowledgements in the
 portal.
+
+The packet's status is `qualified` from two production rounds on claude.ai as a custom connector,
+in w1991e/sess `EXECUTION/evidence/`: `host-runs-production-2026-10-28/claude-ai.md` (PASS on the
+second prompt, recorded as a pass with one re-orientation) and
+`host-runs-production-2026-11-01/claude-ai.md` (PASS, the hosted `/mcp` at `@sess.si/mcp` 0.1.0,
+#947). That is not a submission to Anthropic's review, and nothing here has been accepted by it.
 
 ### Smithery
 
@@ -243,7 +255,7 @@ nothing in front of `mcp.sess.si` may block it, or answer it with `403`.
    `smithery mcp publish "https://mcp.sess.si/mcp" -n @<org>/sess` (`<org>` is the owner's
    Smithery namespace).
 3. Listing values: name `Sess`; description
-   `Your agent sends a Sess link, a person answers on any device, and the agent gets a verified answer.`;
+   `Ask a person a question from your server and continue with their verified answer.`;
    homepage `https://sess.si`; repository `https://github.com/w1991e/sess-sdk`; icon
    `https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png` (or upload
    `listings/plugin/assets/icon-512.png`).
@@ -272,7 +284,7 @@ connector page.
   `/.well-known/glama.json` on the server's domain, with a maintainer email (not confirmed from
   Glama's pages; from the brief). That is a w1991e/sess runtime change: **open question** below.
 - Listing values: name `Sess`; description
-  `Your agent sends a Sess link, a person answers on any device, and the agent continues with their typed, receipt-checked answer.`;
+  `Ask a person a question from your server and continue with their verified answer.`;
   server URL `https://mcp.sess.si/mcp`; support `ask@sess.si`.
 
 ### mcp.so
@@ -283,23 +295,28 @@ reads the README.
 
 - GitHub URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`
 - Description:
-  `Your agent sends a Sess link, a person answers on any device, and the agent continues with their typed, receipt-checked answer.`
+  `Ask a person a question from your server and continue with their verified answer.`
 - Tags: `human-in-the-loop`, `forms`, `approvals`, `receipts`, `mcp`
 - Category: `Productivity` (the nearest of the form's categories, if it differs)
 - Server URL, if asked: `https://mcp.sess.si/mcp`
 
 ### Cline
 
-Source: https://github.com/cline/mcp-marketplace (README, read 2026-10-28). Submission is a new
-issue in `cline/mcp-marketplace` with the "MCP Server Submission" template.
+Source: https://github.com/cline/mcp-marketplace (README and the template
+`.github/ISSUE_TEMPLATE/mcp-server-submission.yml`, read 2026-11-04). Submission is a new issue in
+`cline/mcp-marketplace` with the "MCP Server Submission" template, not a pull request. The exact
+text is `listings/cline-issue.md`; resolve its `OWNER:` lines.
 
-- GitHub Repo URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`
-- Logo Image: a 400x400 PNG. **Not available yet** (see [Icon](#icon)); do not submit a resized
-  copy.
-- Reason for Addition:
-  `Your agent sends a Sess link, a person answers on any device, and the agent continues with their typed, receipt-checked answer.`
-- Confirmation: Cline must be able to set the server up from the README or `llms-install.md`. The
-  submitter confirms it only after watching Cline do so; that has not been done.
+1. Wait for the 400x400 PNG to be merged and deployed in w1991e/sess. **It is not deployed yet**
+   (see [Icon](#icon)); do not submit a resized copy. A GET of its URL must return 200 with
+   `image/png`; put that URL in Logo Image.
+2. Watch Cline set the server up from the README or `llms-install.md` alone. The submitter ticks
+   that box only after doing so; that has not been done. The README has no Cline section today.
+3. Tick "The server is stable and ready for public use" only if you confirm it.
+4. Open the issue from the owner's account, after the founder signs the text:
+   - GitHub Repository URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`
+   - Additional Information opens with
+     `Ask a person a question from your server and continue with their verified answer.`
 
 `llms-install.md` is optional. A draft, not committed (Cline's remote setting names and its OAuth
 sign-in are unverified):
@@ -351,4 +368,5 @@ Not applicable to this server. ClawHub lists the native OpenClaw plugin; see
   Whether Docker's broker supports either is not documented in CONTRIBUTING.md; confirm with
   Docker (an issue in `docker/mcp-registry`) or by the local `docker mcp oauth authorize` test
   before the pull request.
-- **Cline 400x400.** Needs the one-entry change to the logos script described in [Icon](#icon).
+- **The Registry's npm package.** Published `@sess.si/mcp@0.1.0` declares `io.github.w1991e/sess`,
+  so the `si.sess/sess` entry cannot list it and stays remote-only. `package.json` is unchanged.
