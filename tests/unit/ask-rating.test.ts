@@ -183,8 +183,8 @@ describe('the one-to-one feedback example in docs/api.md', () => {
     return block;
   }
 
-  it('is examples/feedback.ts, line for line', async () => {
-    const source = await readFile(new URL('../../examples/feedback.ts', import.meta.url), 'utf8');
+  it('is tests/fixtures/feedback-example.ts (typechecked SDK code), line for line', async () => {
+    const source = await readFile(new URL('../fixtures/feedback-example.ts', import.meta.url), 'utf8');
     expect(await example()).toBe(source.replace(/\r\n/g, '\n').trimEnd());
   });
 
