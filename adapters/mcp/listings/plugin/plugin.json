@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "sess",
   "version": "0.1.0",
-  "description": "Ask a person a question and continue with their verified answer.",
+  "description": "Let your agent ask a person and continue with their answer.",
   "author": {
     "name": "Sess",
     "url": "https://sess.si"
@@ -15,7 +15,7 @@
       "interface": {
         "displayName": "Sess",
         "shortDescription": "Ask a person, get the answer",
-        "longDescription": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
+        "longDescription": "Let your agent ask a person and continue with their answer. People answer through a link on any device. Sess returns their response with a signed receipt. Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
         "developerName": "Sess",
         "category": "Productivity",
         "capabilities": [

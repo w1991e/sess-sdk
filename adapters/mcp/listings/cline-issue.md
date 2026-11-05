@@ -28,7 +28,7 @@ OWNER: tick this only if you confirm it.
 
 ## Additional Information
 
-Ask a person a question and continue with their verified answer.
+Let your agent ask a person and continue with their answer.
 
 - Hosted server: https://mcp.sess.si/mcp (Streamable HTTP; you sign in with your Sess account)
 - npm package: https://www.npmjs.com/package/@sess.si/mcp, version 0.1.0 (stdio; needs `SESS_API_KEY`)
