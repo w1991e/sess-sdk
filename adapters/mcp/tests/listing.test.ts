@@ -111,10 +111,8 @@ describe('listing.json artifacts', () => {
     const { errors, blockers } = check(inputs());
     expect(errors).toEqual([]);
     const text = blockers.join('\n');
-    // Production proved claude.ai, not Cursor: only Cursor's remote is still a blocker.
-    expect(text).toMatch(
-      /Cursor remote: https:\/\/mcp\.sess\.si\/mcp is unqualified on Cursor \(no production Cursor run is our evidence\)/,
-    );
+    // Production proved claude.ai and Cursor: neither host's remote is a blocker.
+    expect(text).not.toMatch(/Cursor remote/);
     expect(text).not.toMatch(/Claude remote/);
     expect(text).not.toMatch(/production host qualification pending/);
     // Signed copy is no blocker; a change back to proposed is.
@@ -122,10 +120,17 @@ describe('listing.json artifacts', () => {
     const proposed = inputs();
     proposed.listing.copy.status = 'proposed';
     expect(check(proposed).blockers.join('\n')).toMatch(/PROPOSED and awaits the founder’s/);
-    // The claude.ai run is recorded (founder 2026-11-04 21:20Z); OpenAI's and Cursor's are not.
+    // The claude.ai run is recorded (founder 2026-11-04 21:20Z); OpenAI's is not.
     expect(text).not.toMatch(/Claude: the five positive test cases/);
     expect(text).toMatch(/OpenAI: test cases are not yet run against a Sess test account/);
-    expect(text).toMatch(
+    // The founder's Cursor round is done (2026-11-05), so it is no longer owed; an unqualified Cursor
+    // owes it again, with its remote blocker.
+    expect(text).not.toMatch(/Cursor: one production round/);
+    const unproved = inputs();
+    unproved.listing.providers.cursorInstall.remoteStatus = 'unqualified';
+    const owed = check(unproved).blockers.join('\n');
+    expect(owed).toMatch(/Cursor remote: https:\/\/mcp\.sess\.si\/mcp is unqualified on Cursor/);
+    expect(owed).toMatch(
       /Cursor: one production round through the one-click install, run by the founder, before submitting/,
     );
     // Hosts and stores with no qualified packet say so; none is promoted.
@@ -172,11 +177,19 @@ describe('listing.json artifacts', () => {
     // remote.status qualified needs a host proved by evidence.
     const noProof = inputs();
     noProof.listing.providers.claudeConnector.remoteStatus = 'unqualified';
+    noProof.listing.providers.cursorInstall.remoteStatus = 'unqualified';
     expect(check(noProof).errors).toContain(
       'remote.status qualified needs a provider qualified with qualificationEvidence',
     );
+    // One proved host is enough: Cursor alone, or Claude alone, carries the shared status.
+    for (const other of ['claudeConnector', 'cursorInstall'] as const) {
+      const one = inputs();
+      one.listing.providers[other].remoteStatus = 'unqualified';
+      expect(check(one).errors).toEqual([]);
+    }
     for (const evidence of [[], [''], ['  '], 'a run', [1]]) {
       const bad = inputs();
+      bad.listing.providers.cursorInstall.remoteStatus = 'unqualified';
       bad.listing.providers.claudeConnector.qualificationEvidence = evidence;
       expect(check(bad).errors).toEqual([
         'Claude: remoteStatus qualified needs qualificationEvidence from a production run',
@@ -234,23 +247,26 @@ describe('listing.json artifacts', () => {
     const cursor = () => JSON.parse(files.get('listings/cursor-install.json')!);
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
-      ['streamable-http', 'unqualified'],
+      ['streamable-http', 'qualified'],
+      // The round used the remote link: the stdio link is published and no more than that.
       ['stdio', 'published'],
     ]);
-    expect(files.get('listings/cursor-install.json')).not.toMatch(/"qualified"/);
+    // Cursor's evidence is the founder's round, and it claims no outside user.
+    const cursorProvider = inputs().listing.providers.cursorInstall;
+    expect(cursorProvider.qualificationEvidence.join(' ')).toMatch(/Founder's message, 2026-11-05/);
+    expect(cursorProvider.qualificationNote).toMatch(/no outside user/);
+    expect(cursorProvider.qualificationNote).toMatch(/C-3/);
 
     // The shared remote.status feeds neither artifact.
     const shared = inputs();
     shared.listing.remote.status = 'something-else';
     const sharedFiles = generate(shared);
     expect(JSON.parse(sharedFiles.get('listings/claude-connector.json')!).status).toBe('qualified');
-    expect(JSON.parse(sharedFiles.get('listings/cursor-install.json')!).entries[0].status).toBe(
-      'unqualified',
-    );
+    expect(JSON.parse(sharedFiles.get('listings/cursor-install.json')!).entries[0].status).toBe('qualified');
 
     // Qualifying a host without evidence is refused; a hand-edited artifact is refused.
     const noEvidence = inputs();
-    noEvidence.listing.providers.cursorInstall.remoteStatus = 'qualified';
+    delete noEvidence.listing.providers.cursorInstall.qualificationEvidence;
     expect(check(noEvidence).errors).toContain(
       'Cursor: remoteStatus qualified needs qualificationEvidence from a production run',
     );
@@ -259,11 +275,30 @@ describe('listing.json artifacts', () => {
     expect(check(unknown).errors).toContain('Claude: remoteStatus must be qualified or unqualified');
     const i = inputs();
     const edited = edit(generate(i), 'listings/cursor-install.json', (c) => {
-      c.entries[0].status = 'qualified';
+      c.entries[0].status = 'unqualified';
     });
     expect(check(i, edited).errors).toContain(
       "Cursor: the artifact's status must be its provider's remoteStatus",
     );
+  });
+
+  it('every prompt that reaches Cursor names Sess; the negative cases do not', () => {
+    const files = generate(inputs());
+    const openai = JSON.parse(files.get('listings/plugin/plugin.json')!).extensions['com.openai'];
+    // On Cursor a plain "Ask me…" is answered by its own question panel (founder 2026-11-05, C-2).
+    expect(openai.interface.defaultPrompt).toEqual([
+      'Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.',
+      'Use Sess to ask me to approve the report before you send it, then tell me what I chose.',
+      'Use Sess to ask me three quick questions to plan my weekend, then tell me what I chose.',
+    ]);
+    const positive = openai.review.test_cases.positive.map((c: { prompt: string }) => c.prompt);
+    expect(positive).toHaveLength(5);
+    for (const prompt of positive) expect(prompt).toMatch(/\bSess\b/);
+    // The negative cases test staying out of Sess, so they stay as they are.
+    for (const c of openai.review.test_cases.negative) expect(c.prompt).not.toMatch(/\bSess\b/);
+    // The skill and the listing copy carry no plain "Ask me…" prompt.
+    for (const path of ['listings/plugin/skills/ask-a-person/SKILL.md', 'listings/plugin/README.md'])
+      expect(files.get(path)).not.toMatch(/\bask me\b/i);
   });
 
   it('the Cline issue fills Cline’s template with true values and ticks nothing', () => {

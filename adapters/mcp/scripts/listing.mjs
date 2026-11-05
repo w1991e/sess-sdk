@@ -932,9 +932,10 @@ export function validate(inputs, files, schemaTexts) {
   if (ap.openai.demoRecordingUrl === null) blockers.push('OpenAI: no demo recording URL');
   blockers.push(`OpenAI: test cases are ${ap.openai.testCasesStatus}`);
   blockers.push(`OpenAI: ${ap.openai.qualificationNote}`);
-  blockers.push(
-    'Cursor: one production round through the one-click install, run by the founder, before submitting (founder 2026-11-04)',
-  );
+  if (listing.providers.cursorInstall.remoteStatus !== 'qualified')
+    blockers.push(
+      'Cursor: one production round through the one-click install, run by the founder, before submitting (founder 2026-11-04)',
+    );
   blockers.push(`Docker: ${listing.providers.docker.qualificationNote}`);
   blockers.push(
     'OpenAI and Claude: a reviewer test account is needed (for OpenAI it must sign in without email or SMS codes or magic links); enter it in the portal, never in the package',

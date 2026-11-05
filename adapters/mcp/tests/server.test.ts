@@ -66,6 +66,11 @@ describe('MCP server', () => {
     const descriptionOf = (name: string) => tools.find((t) => t.name === name)!.description;
     expect(descriptionOf('sess_response')).toContain(rule);
     expect(descriptionOf('sess_complete')).toMatch(/^Required once you are done with the person’s answer/);
+    // What it does, said once (founder's ruling on #43).
+    expect(descriptionOf('sess_complete')).toContain(
+      'It closes the page to new answers and does not delete what was given. Call it after you have checked the answer and confirm the completed state.',
+    );
+    expect(descriptionOf('sess_complete')).not.toContain('Close the interaction');
     // The earlier optional wording is gone.
     expect(client.getInstructions()).not.toContain('Finish with sess_complete, or');
   });
@@ -209,6 +214,14 @@ describe('MCP server', () => {
       title: 'Read the person’s Sess answer',
       readOnlyHint: true,
       destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    });
+    // The hint a host reads for sess_complete: terminal, so marked destructive (founder's ruling on #43).
+    expect(TOOLS.find((t) => t.name === 'sess_complete')!.annotations).toEqual({
+      title: 'Finish the Sess interaction',
+      readOnlyHint: false,
+      destructiveHint: true,
       idempotentHint: true,
       openWorldHint: true,
     });

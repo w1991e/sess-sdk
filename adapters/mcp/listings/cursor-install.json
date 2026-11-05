@@ -5,7 +5,7 @@
     {
       "name": "sess",
       "transport": "streamable-http",
-      "status": "unqualified",
+      "status": "qualified",
       "config": {
         "url": "https://mcp.sess.si/mcp"
       },

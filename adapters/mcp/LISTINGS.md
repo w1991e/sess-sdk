@@ -110,15 +110,17 @@ limits above. Recheck them, and the schema versions, before each submission.
 
 Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` schemas. Each tool's `annotations.title` equals its `title`, because Anthropic's connector submission reads it from there (founder 2026-11-05 00:55Z).
 
+`sess_complete` is marked destructive because it is terminal (founder's ruling on #43). Cursor's run approval isn't established to depend on this hint: its MCP and Run Modes pages (read 2026-11-05) say it asks for approval on MCP tools by default, and they name no annotation.
+
 ## Before any submission
 
 `npm run check:listing` lists what is still open. Today:
 
-- for Cursor: the founder runs one production round through the one-click install before that
-  submission. `https://mcp.sess.si/mcp` passed production host qualification on claude.ai (see
-  [Claude](#claude-connector-directory-review)), so `remote.status` is `qualified`, but
-  `providers.cursorInstall.remoteStatus` stays `unqualified` until that round's evidence (founder
-  2026-11-04);
+- for Cursor: `https://mcp.sess.si/mcp` passed on claude.ai (see
+  [Claude](#claude-connector-directory-review)) and in the founder's Cursor round (see
+  [Cursor](#cursor)), so `remote.status` and `providers.cursorInstall.remoteStatus` are `qualified`.
+  The reconnect defect C-3 is being fixed server-side in w1991e/sess, and the prompts, signed 2026-11-05
+  05:50Z, are not yet run on any host;
 - for OpenAI: the ChatGPT run exists (w1991e/sess
   `EXECUTION/evidence/host-runs-production-2026-10-28/chatgpt.md`, PASS at `66f5dc09`) but is not
   marked qualified, and Codex has no production run;
@@ -231,12 +233,21 @@ organization and the Apps Management Write role.
 ### Cursor
 
 - Install links (`listings/cursor-install.json`) need no submission. The remote link decodes to
-  `https://mcp.sess.si/mcp` and its status is `unqualified`: no production Cursor run is our
-  evidence. The stdio link names `@sess.si/mcp@0.1.0`, which is published on npm; published is not
-  qualified either. They belong on the setup page once Cursor is qualified.
-- Before the Cursor submission, the founder runs one production round through the one-click install
-  (founder 2026-11-04). Set `providers.cursorInstall.remoteStatus` to `qualified` only with that
-  round's evidence.
+  `https://mcp.sess.si/mcp` and its status is `qualified`, from the founder's production round through
+  the one-click install, 2026-11-05, on the drill account, with no outside user: authorization PASS in
+  Chrome and Safari, exchange PASS (`sess_ask`, link, answer, `sess_response`, `sess_complete`,
+  receipt). Recorded from his message, which names no deployed `git_sha`. The test cases weren't run
+  (see [Requalification](#requalification-on-production)). This is not a submission to, or an
+  acceptance by, Cursor's marketplace.
+- A reconnect defect (C-3) is being fixed server-side in w1991e/sess.
+- The stdio link names `@sess.si/mcp@0.1.0`, which is published on npm. Its status stays `published`:
+  the round used the remote link, and published is not qualified.
+- These links belong on the setup page. Nothing here puts them there: that page is built in
+  w1991e/sess from its own host matrix, whose Cursor entry has its own `qualified` field.
+- On Cursor, a plain "Ask me…" prompt is answered by Cursor's own question panel (founder 2026-11-05,
+  C-2). `copy.defaultPrompts` and test-case prompt 1 now name Sess, in his form "Use Sess to ask me …, then tell
+  me what I chose." The exact sentences are signed (2026-11-05 05:50Z), and no host has run them. The plugin bundle is
+  shared, so OpenAI's listing receives them too.
 - The plugin bundle is submitted as a public Git repository at https://cursor.com/marketplace/publish.
   Confirm that a subfolder (`adapters/mcp/listings/plugin`) is accepted; otherwise the owner decides
   whether to mirror it into its own repository.
@@ -360,7 +371,8 @@ Founder run, claude.ai (web), 2026-11-04 20:48Z–21:18Z, on production `1a5f43a
 hosted endpoint on the qualification account. Recorded from the founder's message: **5 of 5 PASS** with
 prompts 2–5 naming Sess. As first written, prompts 2 and 3 missed routing: the host answered in the
 chat and called no tool, in two chats for prompt 2 and one for prompt 3. `listing.json` now holds the
-prompts that passed. Case 5 was answered inside the wait, so the delayed path it describes was
+prompts that passed, except prompt 1: as run it read "Ask me on my phone which time works for a call
+tomorrow.", and it has since gained Sess's name (founder 2026-11-05, C-2). Case 5 was answered inside the wait, so the delayed path it describes was
 exercised in the runs of prompts 2 and 4. This run does not count as OpenAI's, whose status stays as
 `listing.json` gives it.
 
@@ -387,11 +399,16 @@ Cursor. Record pass or fail per host from his message, never from a generated fi
 positive test cases in `listing.json`. The two negative cases check that the routing lines don't pull an
 ordinary question into a form (founder 2026-11-04 22:50Z); the guard isn't tightened before they're measured.
 
-| Case   | Prompt or kind                                                 | Expected                    | claude.ai | Cursor  |
-| ------ | -------------------------------------------------------------- | --------------------------- | --------- | ------- |
-| 1 to 5 | as in `listing.json`                                           | as in `listing.json`        | not run   | not run |
-| N1     | "What do you think I should name this file? Ask me if unsure." | stays in chat, no Sess tool | not run   | not run |
-| N2     | a plain clarifying question with no tool named                 | stays in chat, no Sess tool | not run   | not run |
+| Case     | Prompt or kind                                                 | Expected                    | claude.ai | Cursor   |
+| -------- | -------------------------------------------------------------- | --------------------------- | --------- | -------- |
+| 1 to 5   | as in `listing.json`                                           | as in `listing.json`        | not run   | not run  |
+| N1       | "What do you think I should name this file? Ask me if unsure." | stays in chat, no Sess tool | not run   | not run  |
+| N2       | a plain clarifying question with no tool named                 | stays in chat, no Sess tool | not run   | not run  |
+| Exchange | the qualifying round: `sess_ask` through to the receipt        | a receipt-checked answer    | not run   | PASS (a) |
+
+(a) The founder's round of 2026-11-05, recorded from his message, before 0.1.1 exists on npm. It
+qualifies the Cursor packet and is not the requalification above. His message marks no listed case, so
+cases 1 to 5, N1 and N2 stay not run on Cursor.
 
 ### Docker
 
