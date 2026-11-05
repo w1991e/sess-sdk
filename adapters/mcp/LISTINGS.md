@@ -108,7 +108,7 @@ limits above. Recheck them, and the schema versions, before each submission.
 | `sess_complete` | no        | **yes**     | yes        | yes        | Terminal: the link stops accepting answers and never reopens. Changed from `false`.                  |
 | `sess_ask`      | no        | no          | no         | yes        | The same create as `sess_request`.                                                                   |
 
-Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` schemas.
+Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` schemas. Each tool's `annotations.title` equals its `title`, because Anthropic's connector submission reads it from there (founder 2026-11-05 00:55Z).
 
 ## Before any submission
 
