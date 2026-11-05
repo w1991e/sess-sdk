@@ -31,6 +31,13 @@ function inputs(): ListingInputs {
   };
 }
 /** A successor candidate that lists the npm package: its mcpName is the registry name. */
+/** The remote-only path the generator keeps for a package that is not listed. */
+function deferred(): ListingInputs {
+  const i = inputs();
+  i.listing.providers.mcpRegistry.npmPackage.status = 'deferred';
+  i.manifest.mcpName = 'io.github.w1991e/sess';
+  return i;
+}
 function listed(): ListingInputs {
   const i = inputs();
   i.listing.providers.mcpRegistry.npmPackage.status = 'listed';
@@ -136,20 +143,19 @@ describe('listing.json artifacts', () => {
     // Hosts and stores with no qualified packet say so; none is promoted.
     expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);
     expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
-    // Production serves the icon URLs and npm serves 0.1.0, so neither is a blocker; Cline's
-    // 400x400 stays one until it is deployed and committed here.
+    // Production serves the icon URLs, so that is no blocker. 0.1.1 is prepared, not published, so
+    // the Registry and Cursor's stdio link wait for it. Cline's 400x400 stays a blocker until it is
+    // deployed and committed here.
     expect(text).not.toMatch(/icon URLs/);
-    expect(text).not.toMatch(/on npm$/m);
+    expect(text).toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
     expect(text).toMatch(
       /Cline: needs a 400x400 PNG at a deployed URL; it is in w1991e\/sess PR #1019, not merged at this writing and not deployed until a founder window/,
     );
     expect(text).toMatch(/Cline: listings\/cline-issue\.md has OWNER: lines to resolve/);
     expect(text).not.toMatch(/no PNG icon yet/);
     expect(text).not.toMatch(/urls\.(privacy|terms)/);
-    // The npm package is deferred: adding it needs a successor candidate carrying si.sess/sess.
-    expect(text).toMatch(
-      /MCP Registry npm package: deferred \(remote-only entry\); adding @sess\.si\/mcp needs a successor candidate whose mcpName is si\.sess\/sess \(@sess\.si\/mcp@0\.1\.0 on npm declares io\.github\.w1991e\/sess\)/,
-    );
+    // 0.1.0, on npm until 0.1.1 is published, declares the old name.
+    expect(text).toMatch(/MCP Registry: @sess\.si\/mcp@0\.1\.0 on npm declares mcpName io\.github\.w1991e\/sess/);
   });
 
   it('remote.status and stdio.status take allowed values, and each blocks while it is not there', () => {
@@ -199,12 +205,12 @@ describe('listing.json artifacts', () => {
     }
   });
 
-  it('server.json and plugin.json point at sess.si and carry no optional repository', () => {
+  it('server.json and plugin.json point at sess.si; server.json names the repository, plugin.json does not', () => {
     const i = inputs();
     const files = generate(i);
     const server = JSON.parse(files.get('server.json')!);
     expect(server.websiteUrl).toBe('https://sess.si');
-    expect(server.repository).toBeUndefined();
+    expect(server.repository).toEqual({ url: 'https://github.com/w1991e/sess-sdk', source: 'github' });
     const plugin = JSON.parse(files.get('listings/plugin/plugin.json')!);
     expect(plugin.homepage).toBe('https://sess.si');
     expect(plugin.repository).toBeUndefined();
@@ -248,8 +254,8 @@ describe('listing.json artifacts', () => {
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
       ['streamable-http', 'qualified'],
-      // The round used the remote link: the stdio link is published and no more than that.
-      ['stdio', 'published'],
+      // The round used the remote link. The stdio link names 0.1.1, prepared and not yet on npm.
+      ['stdio', 'unpublished'],
     ]);
     // Cursor's evidence is the founder's round, and it claims no outside user.
     const cursorProvider = inputs().listing.providers.cursorInstall;
@@ -327,8 +333,8 @@ describe('listing.json artifacts', () => {
     expect(issue).toContain('https://www.npmjs.com/package/@sess.si/mcp');
   });
 
-  it('server.json is remote-only under si.sess/sess, and the package keeps its published mcpName', () => {
-    const i = inputs();
+  it('a deferred package leaves server.json remote-only under si.sess/sess', () => {
+    const i = deferred();
     const server = JSON.parse(generate(i).get('server.json')!);
     expect(server.name).toBe('si.sess/sess');
     expect(server.packages).toBeUndefined();

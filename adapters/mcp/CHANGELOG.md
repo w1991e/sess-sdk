@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 — 2026-11-05
+
+For owners and the MCP Registry: `mcpName` is now `si.sess/sess`, so the Registry entry can list this
+package; the package description is the listing's one line.
 
 Tool schemas stay `sess-mcp-tools/4`; `structuredContent` is unchanged. Annotations gain `title`; their hints are unchanged.
 
