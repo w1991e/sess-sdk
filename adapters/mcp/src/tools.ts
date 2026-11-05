@@ -378,7 +378,13 @@ export const TOOLS = [
       properties: { interaction: interactionSchema, expires_in: expiresIn },
     },
     outputSchema: resultSchema,
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    annotations: {
+      title: 'Ask a person through Sess',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
     _meta: meta,
   },
   {
@@ -401,7 +407,13 @@ export const TOOLS = [
       },
     },
     outputSchema: resultSchema,
-    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    annotations: {
+      title: 'Read the person’s Sess answer',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     _meta: meta,
   },
   {
@@ -422,7 +434,13 @@ export const TOOLS = [
       },
     },
     outputSchema: resultSchema,
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    annotations: {
+      title: 'Show the next Sess step',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     _meta: meta,
   },
   {
@@ -441,7 +459,13 @@ export const TOOLS = [
     outputSchema: resultSchema,
     // Destructive in the MCP sense: completion is a terminal, non-additive change. The person's link
     // stops accepting answers and the interaction never reopens. Nothing is deleted on SESS.
-    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    annotations: {
+      title: 'Finish the Sess interaction',
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     _meta: meta,
   },
   {
@@ -500,7 +524,13 @@ export const TOOLS = [
       },
     },
     outputSchema: resultSchema,
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    annotations: {
+      title: 'Ask a short question through Sess',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
     _meta: meta,
   },
 ] as const;

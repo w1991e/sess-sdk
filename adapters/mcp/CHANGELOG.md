@@ -16,6 +16,7 @@ Tool schemas stay `sess-mcp-tools/4`; annotations and `structuredContent` are un
   details only the person can give, even if the prompt names no tool or device. Both say that a
   receipt records what was shown and chosen, not who answered. The signed first line of the
   `sess_ask` description is unchanged; the new line follows it, then the mechanics, unchanged.
+- Every tool's `annotations.title` is set to its title, byte for byte; the top-level `title` stays. Anthropic's connector submission reads the title from there.
 
 ## 0.1.0 — 2026-11-01
 

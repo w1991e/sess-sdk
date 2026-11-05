@@ -169,6 +169,22 @@ describe('MCP server', () => {
     expect(JSON.parse((answered.content as any)[0].text)).toEqual(answered.structuredContent);
   });
 
+  // `annotations.title` is the one later addition (founder 2026-11-05 00:55Z); the pins stand without it.
+  const withoutAnnotationTitle = (rest: { annotations: { title?: string } }) => {
+    const { title: _title, ...annotations } = rest.annotations;
+    return { ...rest, annotations };
+  };
+
+  it('every tool sets annotations.title to its title, byte for byte, in the list a host reads', async () => {
+    const { client } = await connect(new FakeSess());
+    const { tools } = await client.listTools();
+    expect(tools).toHaveLength(TOOLS.length);
+    for (const tool of tools) {
+      expect(tool.title?.length).toBeGreaterThan(0);
+      expect(tool.annotations?.title).toBe(tool.title);
+    }
+  });
+
   it('leaves the tool contract as it was: titles, schemas, annotations and meta pinned, no tool added or removed', () => {
     // sha256 of each tool without its name and description, taken at origin/master 60acd57, before
     // the re-wait and routing text. A different hash is a contract change: an input or output schema
@@ -176,7 +192,9 @@ describe('MCP server', () => {
     const contract = Object.fromEntries(
       TOOLS.map(({ name, description: _, ...rest }) => [
         name,
-        createHash('sha256').update(JSON.stringify(rest)).digest('hex'),
+        createHash('sha256')
+          .update(JSON.stringify(withoutAnnotationTitle(rest)))
+          .digest('hex'),
       ]),
     );
     expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/4');
@@ -188,6 +206,7 @@ describe('MCP server', () => {
       sess_ask: '3381af7c60482668fb9c1f9884d11a4f063fa7bb04c7e47ab5a4f0e7cd92b2a4',
     });
     expect(TOOLS.find((t) => t.name === 'sess_response')!.annotations).toEqual({
+      title: 'Read the person’s Sess answer',
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,

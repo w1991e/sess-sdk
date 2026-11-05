@@ -618,6 +618,7 @@ export function validate(inputs, files, schemaTexts) {
     errors.push('tool list does not match TOOL_NAMES');
   for (const t of tools) {
     if (typeof t.title !== 'string' || t.title.length === 0) errors.push(`${t.name}: missing title`);
+    if (t.annotations?.title !== t.title) errors.push(`${t.name}: annotations.title must equal its title`);
     for (const hint of ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint'])
       if (typeof t.annotations?.[hint] !== 'boolean') errors.push(`${t.name}: ${hint} must be a boolean`);
     if (t.annotations?.readOnlyHint && t.annotations.destructiveHint)
