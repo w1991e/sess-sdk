@@ -199,6 +199,18 @@ describe('listing.json artifacts', () => {
     expect(check(i, drifted).errors).toContain('server.json websiteUrl must be listing.json homepage');
   });
 
+  it('a multi-sentence description opens with the one-liner, then the supporting line (founder 2026-11-05 01:05Z)', () => {
+    const opening =
+      'Let your agent ask a person and continue with their answer. People answer through a link on any device. Sess returns their response with a signed receipt. ';
+    const { listing } = inputs();
+    expect(listing.copy.long.startsWith(opening)).toBe(true);
+    expect(JSON.parse(read('listings/claude-connector.json')).description.startsWith(opening)).toBe(true);
+    expect(read('listings/plugin/plugin.json')).toContain(`"longDescription": "${opening}`);
+    for (const single of [listing.copy.registry, listing.copy.oneLiner]) {
+      expect(single).toBe('Let your agent ask a person and continue with their answer.');
+    }
+  });
+
   it('the one-line description fields (copy.registry, copy.oneLiner) are the MCP adapter README’s first line, word for word', () => {
     const readmeFirstLine = read('README.md').split('\n')[2];
     expect(readmeFirstLine).toBe('Let your agent ask a person and continue with their answer.');
