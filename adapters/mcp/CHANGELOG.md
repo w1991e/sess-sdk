@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Tool schemas stay `sess-mcp-tools/4`; annotations and `structuredContent` are unchanged.
+Tool schemas stay `sess-mcp-tools/4`; `structuredContent` is unchanged. Annotations gain `title`; their hints are unchanged.
 
 - While `sess_response` has no answer, the host is told to call it again, up to three times after
   its first call (about two minutes more at the 45-second ceiling), then ask the person to say
