@@ -155,7 +155,9 @@ describe('listing.json artifacts', () => {
     expect(text).not.toMatch(/no PNG icon yet/);
     expect(text).not.toMatch(/urls\.(privacy|terms)/);
     // 0.1.0, on npm until 0.1.1 is published, declares the old name.
-    expect(text).toMatch(/MCP Registry: @sess\.si\/mcp@0\.1\.0 on npm declares mcpName io\.github\.w1991e\/sess/);
+    expect(text).toMatch(
+      /MCP Registry: @sess\.si\/mcp@0\.1\.0 on npm declares mcpName io\.github\.w1991e\/sess/,
+    );
   });
 
   it('remote.status and stdio.status take allowed values, and each blocks while it is not there', () => {
