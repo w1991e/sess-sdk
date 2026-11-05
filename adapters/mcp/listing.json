@@ -6,7 +6,7 @@
   "registryName": "si.sess/sess",
   "copy": {
     "status": "approved",
-    "note": "Signed by the founder on 2026-11-04 at 20:45Z, with the one-line description and the first sentence of the long description as he signed them on 2026-11-05 at 00:50Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent, with the one-line description (registry, oneLiner) changed to the line here, which is also the first line of adapters/mcp/README.md. Test-case prompts 2-5 are his rewording of 21:20Z. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus).",
+    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent. Test-case prompts 2-5 are his rewording of 21:20Z. The one-line description (registry, oneLiner, also the first line of adapters/mcp/README.md) and the supporting line that opens long are his of 2026-11-05 00:50Z; the supporting line is not in registry, because the Registry schema caps the description at 100 characters. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus).",
     "short": "Ask a person, get the answer",
     "registry": "Let your agent ask a person and continue with their answer.",
     "oneLiner": "Let your agent ask a person and continue with their answer.",
