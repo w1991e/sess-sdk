@@ -47,7 +47,7 @@ describe('MCP server', () => {
     ]);
     for (const tool of tools) {
       expect(tool.inputSchema.additionalProperties).toBe(false);
-      expect(tool._meta?.['si.sess/toolSchema']).toBe('sess-mcp-tools/4');
+      expect(tool._meta?.['si.sess/toolSchema']).toBe('sess-mcp-tools/5');
       expect(tool.outputSchema).toBeDefined();
       expect(Object.keys(tool.inputSchema.properties ?? {})).not.toEqual(
         expect.arrayContaining(['api_key', 'origin', 'session_id', 'workspace_id']),
@@ -193,7 +193,9 @@ describe('MCP server', () => {
   it('leaves the tool contract as it was: titles, schemas, annotations and meta pinned, no tool added or removed', () => {
     // sha256 of each tool without its name and description, taken at origin/master 60acd57, before
     // the re-wait and routing text. A different hash is a contract change: an input or output schema
-    // change needs a new sess-mcp-tools version (src/tools.ts); then renew these pins.
+    // change needs a new sess-mcp-tools version (src/tools.ts); then renew these pins. Renewed for
+    // sess-mcp-tools/5 (the rating field): every tool's meta names the new version; sess_request,
+    // sess_publish and sess_ask take the rating.
     const contract = Object.fromEntries(
       TOOLS.map(({ name, description: _, ...rest }) => [
         name,
@@ -202,13 +204,13 @@ describe('MCP server', () => {
           .digest('hex'),
       ]),
     );
-    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/4');
+    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/5');
     expect(contract).toEqual({
-      sess_request: '1901839cc4c7c38c14cc5cee0afe721d23c59b706813b14277d49eeabc5ff033',
-      sess_response: '0192e86f87ba3726a798197de0159852c229f83918cff494d69d6f79c4ce5e40',
-      sess_publish: '9c79570bf42265d8ba79884b12856af31b6fc2d98233ee0cd3643a16a2eb3f59',
-      sess_complete: 'dda8b5310d126b48e0749ffafd3c1daaed13dc53ba110d0cc60aeef1e819878f',
-      sess_ask: '3381af7c60482668fb9c1f9884d11a4f063fa7bb04c7e47ab5a4f0e7cd92b2a4',
+      sess_request: '89a558f1c9e7f8af49ada4ec048b9f11c33f1457fb7dd8cf3e0bb79624b1ac26',
+      sess_response: 'd9401c9e03b3bad4c0a4c4496d057d5869460c9da9b7e4db11bbcc066f5af9d8',
+      sess_publish: 'd86d63d694c1b8468285aac82f42b316eee1c6c7e47699a009a994aa825a6b66',
+      sess_complete: 'd8a0e150608bbb93f973aef20a521feef41efd84c6e3138b02678aef261b0540',
+      sess_ask: '64fbec96a84d84246a580144c898bff5705f2c06fc9cd02718259bca3a5aca3d',
     });
     expect(TOOLS.find((t) => t.name === 'sess_response')!.annotations).toEqual({
       title: 'Read the person’s Sess answer',

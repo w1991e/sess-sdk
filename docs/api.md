@@ -90,6 +90,7 @@ It is a convenience over the operations below for one question; it adds no endpo
 | `boolean`      | Boolean, always present (unchecked is `false`) | none                             |
 | `choice`       | One of `options`                               | `options`: 1–100 unique strings  |
 | `multi_choice` | Unique list of `options`, always present       | `options`: 1–100 unique strings  |
+| `rating`       | Whole number from 1 to `max`                   | `max`, `low`, `high` (below)     |
 
 Every field has a unique `name` (`^[a-z][a-z0-9_]{0,63}$`, the key in the answer), a `label`
 (short, 1–60 characters), optional `required` (default `true`, `false` for `boolean`) and optional
@@ -101,6 +102,37 @@ compiles to one interactive Surface: a text component for `details`, one field c
 with its runtime schema, and one `submit` action. Invalid input fails with `SessError` kind
 `configuration`, code `INVALID_QUESTION`, outcome `not_sent`, before credential lookup or network
 access; messages name the path, never your values.
+
+### A rating
+
+`{ type: 'rating' }` asks for five stars; the answer is the number chosen, 1 to 5. `max` (2–10)
+sets the largest choice: up to 5 the person sees stars, above it numbered choices, so
+`{ type: 'rating', max: 10 }` is a scale from 1 to 10. `low` and `high` are optional words at the
+two ends, at most 24 characters each, such as `Not likely` and `Very likely`. A rating plus an
+optional comment, the feedback one person gives after a visit:
+
+<!-- example:feedback -->
+
+```ts
+import { Sess } from '@sess.si/sdk';
+const sess = new Sess({ apiKey: process.env.SESS_API_KEY });
+const feedback = await sess.ask({
+  question: 'How did we do?',
+  fields: [
+    { name: 'satisfaction', label: 'Your visit', type: 'rating' },
+    { name: 'comment', label: 'Anything else?', type: 'text', multiline: true, required: false },
+  ],
+});
+console.log(`Send this Sess link to the person: ${feedback.link}`);
+const { satisfaction, comment } = await feedback.answer(); // verified; satisfaction is 1 to 5
+console.log(`Rated ${satisfaction} of 5.${comment ? ` They said: ${comment}` : ''}`);
+```
+
+<!-- /example:feedback -->
+
+In the API a rating is a field with `rating: { low?, high? }` and the schema exactly
+`{ "type": "integer", "minimum": 1, "maximum": N }`, N from 2 to 10; any other schema is refused
+with `INVALID_SCHEMA`. Corrections, receipts and revisions work as for every field.
 
 ### Length limits
 
@@ -118,6 +150,7 @@ Surface:
 | `record` `label` (caption)                         | A few words                    | 200      |
 | `record` key / string value                        | As written                     | 40 / 200 |
 | `text` component                                   | Plain text                     | 4,000    |
+| Rating end label (`rating.low`, `rating.high`)     | A word or two                  | 24       |
 
 At most 5 actions. A display Session's title is also at most 80 (the same title message); its
 description stays at most 4,000. A choice without an `option_labels` entry shows its enum ID, so

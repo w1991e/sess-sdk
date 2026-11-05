@@ -39,6 +39,20 @@ export type AskField =
     })
   | (AskFieldBase & { readonly type: 'boolean'; readonly default?: boolean })
   | (AskFieldBase & {
+      /**
+       * A rating: a whole number from 1 to `max`. The person sees stars up to 5 and numbered
+       * choices above it; the answer is the chosen number.
+       */
+      readonly type: 'rating';
+      /** The largest choice, 2–10. Default 5 (five stars). */
+      readonly max?: number;
+      /** Optional words by the lowest choice: a word or two; at most 24. Example: `Not likely` */
+      readonly low?: string;
+      /** Optional words by the highest choice: a word or two; at most 24. Example: `Very likely` */
+      readonly high?: string;
+      readonly default?: number;
+    })
+  | (AskFieldBase & {
       readonly type: 'choice';
       /** 1–100 choices. The words shown for one choice: short; at most 60. Example: `Next Monday` */
       readonly options: readonly [string, ...string[]];
@@ -77,7 +91,7 @@ export interface AskInput<F extends readonly AskField[] = readonly AskField[]> {
 
 type AskValue<T> = T extends { type: 'text' }
   ? string
-  : T extends { type: 'number' | 'integer' }
+  : T extends { type: 'number' | 'integer' | 'rating' }
     ? number
     : T extends { type: 'boolean' }
       ? boolean
@@ -158,8 +172,12 @@ const LIMITS = Object.freeze({
   submitLabel: 24,
   label: 60,
   option: 60,
+  /** A rating's end label (`low`, `high`). */
+  ratingLabel: 24,
 });
-const TYPES = ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice'] as const;
+/** A rating's largest choice: 2–10, default 5 (stars up to 5, numbered above). */
+const RATING = Object.freeze({ min: 2, max: 10, default: 5 });
+const TYPES = ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice', 'rating'] as const;
 type AskType = (typeof TYPES)[number];
 const FIELD_NAME = /^[a-z][a-z0-9_]{0,63}$/;
 const RESERVED = new Set(['__proto__', 'constructor', 'prototype']);
@@ -285,6 +303,7 @@ function validValue(field: CompiledField, value: unknown): boolean {
       return typeof value === 'string' && value.isWellFormed() && codePoints(value) <= LIMITS.textMax;
     case 'number':
     case 'integer':
+    case 'rating':
       return (
         typeof value === 'number' &&
         Number.isFinite(value) &&
@@ -310,7 +329,20 @@ function compileField(raw: Json, path: string, names: Set<string>) {
   closed(
     f,
     path,
-    ['name', 'label', 'type', 'required', 'options', 'default', 'multiline', 'minimum', 'maximum'],
+    [
+      'name',
+      'label',
+      'type',
+      'required',
+      'options',
+      'default',
+      'multiline',
+      'minimum',
+      'maximum',
+      'max',
+      'low',
+      'high',
+    ],
     ['name', 'label', 'type'],
   );
   if (typeof f.name !== 'string' || !FIELD_NAME.test(f.name) || RESERVED.has(f.name))
@@ -330,12 +362,29 @@ function compileField(raw: Json, path: string, names: Set<string>) {
   if (f.multiline !== undefined && type !== 'text') invalid(`${path}.multiline`, 'is only allowed for text');
   if ((f.minimum !== undefined || f.maximum !== undefined) && type !== 'number' && type !== 'integer')
     invalid(path, 'minimum/maximum are only allowed for number and integer');
+  if ((f.max !== undefined || f.low !== undefined || f.high !== undefined) && type !== 'rating')
+    invalid(path, 'max/low/high are only allowed for rating');
   for (const key of ['required', 'multiline'] as const)
     if (f[key] !== undefined && typeof f[key] !== 'boolean') invalid(`${path}.${key}`, 'must be a boolean');
   const required = f.required === undefined ? type !== 'boolean' : f.required === true;
   const compiled: CompiledField = { name, type, required };
   let schema: FieldSchema;
+  let rating: { low?: string; high?: string } | undefined;
   switch (type) {
+    case 'rating': {
+      const max = f.max === undefined ? RATING.default : f.max;
+      if (typeof max !== 'number' || !Number.isInteger(max) || max < RATING.min || max > RATING.max)
+        invalid(`${path}.max`, `must be a whole number from ${RATING.min} to ${RATING.max}`);
+      compiled.minimum = 1;
+      compiled.maximum = max;
+      // Sess's rating: exactly this schema, and the end labels only when given.
+      schema = { type: 'integer', minimum: 1, maximum: max };
+      rating = {
+        ...(f.low !== undefined ? { low: text(f.low, `${path}.low`, LIMITS.ratingLabel) } : {}),
+        ...(f.high !== undefined ? { high: text(f.high, `${path}.high`, LIMITS.ratingLabel) } : {}),
+      };
+      break;
+    }
     case 'text':
       schema = { type: 'string' };
       break;
@@ -381,6 +430,7 @@ function compileField(raw: Json, path: string, names: Set<string>) {
     required,
     schema,
     ...(f.multiline !== undefined ? { multiline: f.multiline as boolean } : {}),
+    ...(rating !== undefined ? { rating } : {}),
     ...(f.default !== undefined ? { value: f.default } : {}),
   };
   return { component, compiled: Object.freeze(compiled) };

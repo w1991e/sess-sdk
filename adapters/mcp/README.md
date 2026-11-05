@@ -159,7 +159,7 @@ When Cline connects, sign in to your Sess account in the browser. No key goes in
 Try it: "Ask me on my phone which time works for a call tomorrow." Cline shares a Sess link. Answer
 it, and Cline reports your choice.
 
-## Tools (`sess-mcp-tools/4`)
+## Tools (`sess-mcp-tools/5`)
 
 | Tool            | Input                                                                         | Result `interaction.state`                                    |
 | --------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |

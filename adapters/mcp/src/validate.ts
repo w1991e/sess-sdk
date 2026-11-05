@@ -40,7 +40,12 @@ export const TEXT_LIMITS = Object.freeze({
   enumValue: 200,
   schemaTitle: 200,
   schemaDescription: 1000,
+  /** A rating's end label (`rating.low`, `rating.high`; sess_ask `low`, `high`). */
+  ratingLabel: 24,
 });
+
+/** A rating: an integer from 1 to its maximum, 2–10; sess_ask's default is 5 (five stars). */
+export const RATING = Object.freeze({ min: 2, max: 10, default: 5 });
 
 export const HANDLE_PATTERN = /^sh_[A-Za-z0-9_-]{22}$/;
 export const EVENT_ID_PATTERN = /^evt_[0-9A-HJKMNP-TV-Z]{26}$/;
@@ -243,7 +248,18 @@ function component(value: JsonValue, path: string, names: Set<string>): boolean 
       closed(
         c,
         path,
-        ['type', 'name', 'label', 'description', 'required', 'multiline', 'option_labels', 'schema', 'value'],
+        [
+          'type',
+          'name',
+          'label',
+          'description',
+          'required',
+          'multiline',
+          'option_labels',
+          'rating',
+          'schema',
+          'value',
+        ],
         ['type', 'name', 'label', 'schema'],
       );
       const name = pattern(c.name, `${path}.name`, FIELD_NAME);
@@ -268,6 +284,7 @@ function component(value: JsonValue, path: string, names: Set<string>): boolean 
         }
       }
       fieldSchema(c.schema, `${path}.schema`);
+      if (c.rating !== undefined) ratingField(c, path);
       effectiveOptionLabels(c, path);
       if (c.value !== undefined) {
         const v = c.value;
@@ -281,6 +298,33 @@ function component(value: JsonValue, path: string, names: Set<string>): boolean 
     default:
       return invalid(`${path}.type`, 'must be heading, text, record or field');
   }
+}
+
+/**
+ * A rating (Sess's `rating` field): end labels `low` and `high`, each a shown text of at most 24,
+ * and the schema exactly `{type: integer, minimum: 1, maximum: N}` with N from 2 to 10 (title and
+ * description allowed), as Sess checks it.
+ */
+function ratingField(c: JsonObject, path: string): void {
+  const rating = object(c.rating, `${path}.rating`);
+  closed(rating, `${path}.rating`, ['low', 'high'], []);
+  for (const end of ['low', 'high'] as const)
+    if (rating[end] !== undefined) text(rating[end], `${path}.rating.${end}`, TEXT_LIMITS.ratingLabel);
+  const schema = c.schema as JsonObject;
+  const max = schema.maximum;
+  if (
+    Object.keys(schema).some((k) => !['type', 'minimum', 'maximum', 'title', 'description'].includes(k)) ||
+    schema.type !== 'integer' ||
+    schema.minimum !== 1 ||
+    typeof max !== 'number' ||
+    !Number.isInteger(max) ||
+    max < RATING.min ||
+    max > RATING.max
+  )
+    invalid(
+      `${path}.schema`,
+      `must be exactly {"type": "integer", "minimum": 1, "maximum": N} for a rating, with N from ${RATING.min} to ${RATING.max}`,
+    );
 }
 
 /**
@@ -444,14 +488,27 @@ export function parseCompleteArgs(raw: unknown): CompleteArgs {
 
 /** sess_ask: a question plus a small field list, expanded into an ordinary interaction. */
 export const ASK_LIMITS = Object.freeze({ fields: 12, options: LIMITS.enumValues });
-const ASK_TYPES = ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice'] as const;
+const ASK_TYPES = ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice', 'rating'] as const;
 
 function askField(value: JsonValue | undefined, path: string): JsonObject {
   const f = object(value, path);
   closed(
     f,
     path,
-    ['name', 'label', 'type', 'required', 'options', 'default', 'multiline', 'minimum', 'maximum'],
+    [
+      'name',
+      'label',
+      'type',
+      'required',
+      'options',
+      'default',
+      'multiline',
+      'minimum',
+      'maximum',
+      'max',
+      'low',
+      'high',
+    ],
     ['name', 'label', 'type'],
   );
   const type = f.type as (typeof ASK_TYPES)[number];
@@ -465,11 +522,25 @@ function askField(value: JsonValue | undefined, path: string): JsonObject {
   if (f.multiline !== undefined && type !== 'text') invalid(`${path}.multiline`, 'is only allowed for text');
   if ((f.minimum !== undefined || f.maximum !== undefined) && type !== 'number' && type !== 'integer')
     invalid(path, 'minimum/maximum are only allowed for number and integer');
+  if ((f.max !== undefined || f.low !== undefined || f.high !== undefined) && type !== 'rating')
+    invalid(path, 'max/low/high are only allowed for rating');
   // Checked here so a length error names the sess_ask argument (/fields/0/label), not the
   // compiled interaction.
   text(f.label, `${path}.label`, TEXT_LIMITS.label);
   let schema: JsonObject;
+  let rating: JsonObject | undefined;
   switch (type) {
+    case 'rating': {
+      const max = f.max === undefined ? RATING.default : f.max;
+      if (typeof max !== 'number' || !Number.isInteger(max) || max < RATING.min || max > RATING.max)
+        invalid(`${path}.max`, `must be a whole number from ${RATING.min} to ${RATING.max}`);
+      schema = { type: 'integer', minimum: 1, maximum: max };
+      // Named at the sess_ask argument (/fields/0/low), the end labels only when given.
+      rating = {};
+      for (const end of ['low', 'high'] as const)
+        if (f[end] !== undefined) rating[end] = text(f[end], `${path}.${end}`, TEXT_LIMITS.ratingLabel);
+      break;
+    }
     case 'text':
       schema = { type: 'string' };
       break;
@@ -506,6 +577,7 @@ function askField(value: JsonValue | undefined, path: string): JsonObject {
     required: f.required === undefined ? type !== 'boolean' : f.required,
     schema,
     ...(f.multiline !== undefined ? { multiline: f.multiline } : {}),
+    ...(rating !== undefined ? { rating } : {}),
     ...(f.default !== undefined ? { value: f.default } : {}),
   };
 }

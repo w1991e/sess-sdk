@@ -53,8 +53,8 @@ const edit = (files: Map<string, string>, path: string, change: (value: any) => 
 };
 
 describe('tool annotation audit', () => {
-  it('matches each tool’s behaviour; schemas are sess-mcp-tools/4', () => {
-    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/4');
+  it('matches each tool’s behaviour; schemas are sess-mcp-tools/5', () => {
+    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/5');
     // The hints; annotations.title is pinned in server.test.ts.
     const table = Object.fromEntries(
       TOOLS.map(({ name, annotations: { title: _title, ...hints } }) => [name, hints]),

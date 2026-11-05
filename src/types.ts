@@ -142,6 +142,12 @@ export type SurfaceComponent =
       description?: string;
       /** The words shown for one choice: short; at most 60. Example: `Next Monday` */
       option_labels?: { [key: string]: string };
+      /**
+       * A rating: with it the schema must be exactly `{ type: 'integer', minimum: 1, maximum: N }`,
+       * N from 2 to 10 (stars up to 5, numbered choices above; the answer is the integer).
+       * `low` and `high` are optional words at the two ends: a word or two; at most 24 each.
+       */
+      rating?: { low?: string; high?: string };
       schema: FieldSchema;
     })
   | ItemsComponent;

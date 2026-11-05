@@ -1,4 +1,7 @@
-import { ASK_LIMITS, LIMITS, TEXT_LIMITS as L } from './validate.js';
+import { ASK_LIMITS, LIMITS, RATING, TEXT_LIMITS as L } from './validate.js';
+
+/** Sess's rating field in one sentence (the runtime's RATING_DOCS), on sess_request's `rating`. */
+const RATING_LINE = `A rating: with it the schema must be exactly {"type": "integer", "minimum": 1, "maximum": N}, N from ${RATING.min} to ${RATING.max}; stars up to 5, numbered choices above; the answer is the chosen whole number. low and high are optional words at the two ends.`;
 
 /**
  * Versioned tool contract. Changing any input or output schema requires a new version. Titles and
@@ -6,8 +9,10 @@ import { ASK_LIMITS, LIMITS, TEXT_LIMITS as L } from './validate.js';
  * sess-mcp-tools/4: Sess's length limits for what a person reads (title 80, button 24, labels 60,
  * help 160, description 280, heading 60, record key 40 and value 200), with a purpose, style and
  * examples on every such field.
+ * sess-mcp-tools/5: the rating field (Sess P2-24(h)): sess_ask's `type: 'rating'` with `max` (2–10,
+ * default 5), `low` and `high`; sess_request's field `rating: { low?, high? }`.
  */
-export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/4';
+export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/5';
 export const TOOL_NAMES = [
   'sess_request',
   'sess_response',
@@ -74,6 +79,10 @@ export const TEXT_DOCS = {
   actionLabel: {
     line: `A button: a verb, 1–3 words; at most ${L.actionLabel}.`,
     examples: ['Approve', 'Send refund'],
+  },
+  ratingLabel: {
+    line: `Optional words at one end of a rating, shown by its lowest (low) or highest (high) choice: a word or two; at most ${L.ratingLabel}.`,
+    examples: ['Not likely', 'Very likely'],
   },
 } as const satisfies Record<string, Docs>;
 
@@ -285,6 +294,15 @@ export const interactionSchema = {
                     description:
                       'Display labels for enum values. A value without a label is shown as written, so it is then held to 60 characters too; give a long ID a short label.',
                     additionalProperties: shown(L.optionLabel, TEXT_DOCS.optionLabel),
+                  },
+                  rating: {
+                    type: 'object',
+                    additionalProperties: false,
+                    description: RATING_LINE,
+                    properties: {
+                      low: shown(L.ratingLabel, TEXT_DOCS.ratingLabel),
+                      high: shown(L.ratingLabel, TEXT_DOCS.ratingLabel),
+                    },
                   },
                   schema: fieldSchema,
                   value: {
@@ -501,7 +519,7 @@ export const TOOLS = [
             properties: {
               name: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,63}$' },
               label: labelSchema,
-              type: { enum: ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice'] },
+              type: { enum: ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice', 'rating'] },
               required: { type: 'boolean', description: 'Default true, except boolean fields.' },
               options: {
                 type: 'array',
@@ -518,6 +536,14 @@ export const TOOLS = [
               multiline: { type: 'boolean' },
               minimum: { type: 'number' },
               maximum: { type: 'number' },
+              max: {
+                type: 'integer',
+                minimum: RATING.min,
+                maximum: RATING.max,
+                description: `rating only: the largest choice, ${RATING.min}-${RATING.max}; default ${RATING.default} (five stars). Stars up to 5, numbered choices above; the answer is the chosen whole number.`,
+              },
+              low: shown(L.ratingLabel, TEXT_DOCS.ratingLabel),
+              high: shown(L.ratingLabel, TEXT_DOCS.ratingLabel),
             },
           },
         },

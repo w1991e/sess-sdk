@@ -3,7 +3,7 @@
   "package": {
     "name": "@sess.si/mcp",
     "version": "0.1.1",
-    "toolSchema": "sess-mcp-tools/4"
+    "toolSchema": "sess-mcp-tools/5"
   },
   "status": "0.1.1 prepared on @sess.si/sdk 0.1.1 for npm dist-tag latest, unpublished; 0.1.0 published on latest on 2026-11-01; next stays at 0.1.0-rc.4.",
   "recordedAt": "2026-11-05",
