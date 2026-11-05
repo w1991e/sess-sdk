@@ -8,7 +8,7 @@ immediately, the person answers on any device, and the agent continues on the sa
 
 **Release status:** `@sess.si/mcp@0.1.0` is the first stable release, on the `latest` dist-tag. `next` stays at `0.1.0-rc.4`. It depends on `@sess.si/sdk@0.1.0`. The [changelog](CHANGELOG.md) describes each version; `npm view @sess.si/mcp dist-tags` shows what the registry serves now. Everything below marked _tested_ was run from a packed, installed tarball; everything marked _untested_ is the intended registry form. See [compatibility.json](compatibility.json) for the exact tuple.
 
-## Set up with Claude Code (connection tested) or Cursor (hosted endpoint passed one round; local server untested)
+## Set up with Claude Code (connection tested) or Cursor
 
 You need Node 22.14 or later on 22.x, or Node 24 (qualified on 22.14.0 and 24.21.0), and a Sess
 developer API key from [the Sess developer portal](https://app.sess.si). Never paste the key into
@@ -54,12 +54,20 @@ Enterprise-managed Claude Code installations may forbid adding MCP servers
 
 ### Cursor
 
-The hosted endpoint, `https://mcp.sess.si/mcp`, passed one production round through Cursor's
-one-click install on 2026-11-05: sign-in in Chrome and Safari and one exchange, on our own test
-account, with no outside user. A reconnect defect is being fixed on the Sess side.
+Let your agent ask a person and continue with their answer. People answer through a link on any device. Sess returns their response with a signed receipt.
 
-On Cursor, name Sess in your prompt: "Use Sess to ask me…". Cursor's own question panel answers a
-plain "Ask me…".
+1. Add the entry to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json`:
+
+   ```json
+   {
+     "mcpServers": {
+       "sess": { "url": "https://mcp.sess.si/mcp" }
+     }
+   }
+   ```
+
+2. Allow in the browser.
+3. Try it: "Use Sess to ask me which time works for a call tomorrow, then tell me what I chose."
 
 The local server is _untested_ on Cursor. Cursor reads `.cursor/mcp.json` (project) or
 `~/.cursor/mcp.json`:
@@ -328,7 +336,8 @@ blocks like a definitive rejection.
   records need owner review; the server never leaves those states on its own (see below). If a
   confirmed create cannot be saved locally, `CREATED_NOT_SAVED` says not to repeat the request.
   After completion the link
-  and answer data are removed from the record. At most 100 unfinished interactions are kept per
+  and answer data are removed from this server's own local record; that clears its copy only, and
+  the hosted Session and receipt follow their own retention. At most 100 unfinished interactions are kept per
   profile.
 - **No wake-up.** A wait is one bounded read of at most 45 seconds. The host is told to call again up
   to three times, then stop. The server cannot wake an agent after its turn ends; the person says

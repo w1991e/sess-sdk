@@ -287,9 +287,9 @@ describe('listing.json artifacts', () => {
     const openai = JSON.parse(files.get('listings/plugin/plugin.json')!).extensions['com.openai'];
     // On Cursor a plain "Ask me…" is answered by its own question panel (founder 2026-11-05, C-2).
     expect(openai.interface.defaultPrompt).toEqual([
-      'Use Sess to ask me on my phone which time works for a call tomorrow.',
-      'Before you send the report, use Sess to ask me to approve it.',
-      'Use Sess to ask me three quick questions to plan my weekend.',
+      'Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.',
+      'Use Sess to ask me to approve the report before you send it, then tell me what I chose.',
+      'Use Sess to ask me three quick questions to plan my weekend, then tell me what I chose.',
     ]);
     const positive = openai.review.test_cases.positive.map((c: { prompt: string }) => c.prompt);
     expect(positive).toHaveLength(5);

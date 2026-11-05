@@ -30,9 +30,9 @@
         "privacyPolicyURL": "https://sess.si/privacy/",
         "termsOfServiceURL": "https://sess.si/terms/",
         "defaultPrompt": [
-          "Use Sess to ask me on my phone which time works for a call tomorrow.",
-          "Before you send the report, use Sess to ask me to approve it.",
-          "Use Sess to ask me three quick questions to plan my weekend."
+          "Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.",
+          "Use Sess to ask me to approve the report before you send it, then tell me what I chose.",
+          "Use Sess to ask me three quick questions to plan my weekend, then tell me what I chose."
         ],
         "composerIcon": "./assets/icon-192.png",
         "logo": "./assets/icon-512.png"
@@ -42,7 +42,7 @@
           "positive": [
             {
               "description": "Ask a short question and read the answer",
-              "prompt": "Use Sess to ask me on my phone which time works for a call tomorrow.",
+              "prompt": "Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.",
               "tools_triggered": "sess_ask, sess_response",
               "expected_behavior": "Shares a Sess link at once. After the reviewer submits the form, reports the chosen time."
             },

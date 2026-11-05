@@ -448,8 +448,8 @@ export const TOOLS = [
     title: 'Finish the Sess interaction',
     description:
       'Required once you are done with the person’s answer: until you call it, their page keeps waiting for your next step. ' +
-      'It closes the page to new answers and keeps what was given. ' +
-      'Call it after the verified answer and confirm the completed state. ' +
+      'It closes the page to new answers and does not delete what was given. ' +
+      'Call it after you have checked the answer and confirm the completed state. ' +
       'If the outcome is unknown, repeat the identical call.',
     inputSchema: {
       type: 'object',

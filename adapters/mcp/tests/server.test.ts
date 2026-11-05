@@ -68,7 +68,7 @@ describe('MCP server', () => {
     expect(descriptionOf('sess_complete')).toMatch(/^Required once you are done with the person’s answer/);
     // What it does, said once (founder's ruling on #43).
     expect(descriptionOf('sess_complete')).toContain(
-      'It closes the page to new answers and keeps what was given.',
+      'It closes the page to new answers and does not delete what was given. Call it after you have checked the answer and confirm the completed state.',
     );
     expect(descriptionOf('sess_complete')).not.toContain('Close the interaction');
     // The earlier optional wording is gone.

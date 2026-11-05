@@ -17,9 +17,9 @@ Tool schemas stay `sess-mcp-tools/4`; `structuredContent` is unchanged. Annotati
   receipt records what was shown and chosen, not who answered. The signed first line of the
   `sess_ask` description is unchanged; the new line follows it, then the mechanics, unchanged.
 - Every tool's `annotations.title` is set to its title, byte for byte; the top-level `title` stays. Anthropic's connector submission reads the title from there.
-- The `sess_complete` description says what it does: "It closes the page to new answers and keeps
-  what was given." That sentence replaces "Close the interaction" in the next one, which now begins
-  "Call it after the verified answer".
+- The `sess_complete` description says what it does: "It closes the page to new answers and does not
+  delete what was given. Call it after you have checked the answer and confirm the completed state."
+  This replaces "Close the interaction after its verified answer and confirm the completed state."
 - In the listings, not in this package: the suggested prompts and test-case prompt 1 name Sess
   ("Use Sess to ask me…"), because Cursor's own question panel answers a plain "Ask me…". The plugin
   bundle that carries them is shared with OpenAI. The sentences are awaiting sign-off.
