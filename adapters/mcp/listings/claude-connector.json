@@ -48,7 +48,7 @@
       "name": "sess_complete",
       "title": "Finish the Sess interaction",
       "readOnlyHint": false,
-      "destructiveHint": false,
+      "destructiveHint": true,
       "idempotentHint": true,
       "openWorldHint": true
     },

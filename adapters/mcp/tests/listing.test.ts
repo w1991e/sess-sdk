@@ -73,11 +73,10 @@ describe('tool annotation audit', () => {
       idempotentHint: true,
       openWorldHint: true,
     });
-    // Ends the waiting page and finishes the Session, and deletes nothing (founder 2026-11-05, C-2).
-    // Terminal, but not marked destructive: LISTINGS.md records how that reads against the rules.
+    // Terminal: the link stops accepting answers and the interaction never reopens.
     expect(table.sess_complete).toEqual({
       readOnlyHint: false,
-      destructiveHint: false,
+      destructiveHint: true,
       idempotentHint: true,
       openWorldHint: true,
     });
@@ -302,17 +301,6 @@ describe('listing.json artifacts', () => {
       expect(files.get(path)).not.toMatch(/\bask me\b/i);
   });
 
-  it('the artifacts read sess_complete as not destructive', () => {
-    const files = generate(inputs());
-    const claude = JSON.parse(files.get('listings/claude-connector.json')!);
-    expect(claude.tools.find((t: { name: string }) => t.name === 'sess_complete').destructiveHint).toBe(
-      false,
-    );
-    expect(files.get('listings/plugin/README.md')).toContain(
-      '`sess_complete`: Finish the Sess interaction (writes, safe to repeat)',
-    );
-  });
-
   it('the Cline issue fills Cline’s template with true values and ticks nothing', () => {
     const issue = generate(inputs()).get('listings/cline-issue.md')!;
     for (const heading of [
@@ -401,7 +389,7 @@ describe('listing.json artifacts', () => {
 
   it('a changed tool title or annotation changes the artifacts, so the up-to-date check fails', () => {
     const changed = inputs();
-    changed.tools[3].annotations.destructiveHint = true;
+    changed.tools[3].annotations.destructiveHint = false;
     changed.tools[0].title = 'Something else';
     const files = generate(changed);
     expect(files.get('listings/claude-connector.json')).not.toBe(read('listings/claude-connector.json'));

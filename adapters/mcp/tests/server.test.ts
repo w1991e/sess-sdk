@@ -66,6 +66,11 @@ describe('MCP server', () => {
     const descriptionOf = (name: string) => tools.find((t) => t.name === name)!.description;
     expect(descriptionOf('sess_response')).toContain(rule);
     expect(descriptionOf('sess_complete')).toMatch(/^Required once you are done with the person’s answer/);
+    // What it does, said once (founder's ruling on #43).
+    expect(descriptionOf('sess_complete')).toContain(
+      'It closes the page to new answers and keeps what was given.',
+    );
+    expect(descriptionOf('sess_complete')).not.toContain('Close the interaction');
     // The earlier optional wording is gone.
     expect(client.getInstructions()).not.toContain('Finish with sess_complete, or');
   });
@@ -187,9 +192,8 @@ describe('MCP server', () => {
 
   it('leaves the tool contract as it was: titles, schemas, annotations and meta pinned, no tool added or removed', () => {
     // sha256 of each tool without its name and description, taken at origin/master 60acd57, before
-    // the re-wait and routing text; sess_complete's was renewed for destructiveHint false (founder
-    // 2026-11-05, C-2), a hint and no schema. A different hash is a contract change: an input or
-    // output schema change needs a new sess-mcp-tools version (src/tools.ts); then renew these pins.
+    // the re-wait and routing text. A different hash is a contract change: an input or output schema
+    // change needs a new sess-mcp-tools version (src/tools.ts); then renew these pins.
     const contract = Object.fromEntries(
       TOOLS.map(({ name, description: _, ...rest }) => [
         name,
@@ -203,7 +207,7 @@ describe('MCP server', () => {
       sess_request: '1901839cc4c7c38c14cc5cee0afe721d23c59b706813b14277d49eeabc5ff033',
       sess_response: '0192e86f87ba3726a798197de0159852c229f83918cff494d69d6f79c4ce5e40',
       sess_publish: '9c79570bf42265d8ba79884b12856af31b6fc2d98233ee0cd3643a16a2eb3f59',
-      sess_complete: 'ed37f0986b004b6aea11bd7af64d75b961fbad6be80ee067e4b5f92cb2afd3e6',
+      sess_complete: 'dda8b5310d126b48e0749ffafd3c1daaed13dc53ba110d0cc60aeef1e819878f',
       sess_ask: '3381af7c60482668fb9c1f9884d11a4f063fa7bb04c7e47ab5a4f0e7cd92b2a4',
     });
     expect(TOOLS.find((t) => t.name === 'sess_response')!.annotations).toEqual({
@@ -213,11 +217,11 @@ describe('MCP server', () => {
       idempotentHint: true,
       openWorldHint: true,
     });
-    // The hint a host reads for sess_complete: it finishes the Session and deletes nothing.
+    // The hint a host reads for sess_complete: terminal, so marked destructive (founder's ruling on #43).
     expect(TOOLS.find((t) => t.name === 'sess_complete')!.annotations).toEqual({
       title: 'Finish the Sess interaction',
       readOnlyHint: false,
-      destructiveHint: false,
+      destructiveHint: true,
       idempotentHint: true,
       openWorldHint: true,
     });

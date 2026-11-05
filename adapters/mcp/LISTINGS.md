@@ -105,12 +105,12 @@ limits above. Recheck them, and the schema versions, before each submission.
 | `sess_request`  | no        | no          | no         | yes        | Creates a Session and a human link (additive); a repeat creates another one.                         |
 | `sess_response` | yes       | no          | yes        | yes        | Reads or waits for the answer; changes nothing on Sess.                                              |
 | `sess_publish`  | no        | no          | yes        | yes        | Appends the next immutable revision; the answered one stays. An identical replay is answered as one. |
-| `sess_complete` | no        | no          | yes        | yes        | Ends the waiting page, finishes the Session, deletes nothing. Terminal. Was `true` until C-2.        |
+| `sess_complete` | no        | **yes**     | yes        | yes        | Terminal: the link stops accepting answers and never reopens. Changed from `false`.                  |
 | `sess_ask`      | no        | no          | no         | yes        | The same create as `sess_request`.                                                                   |
 
 Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` schemas. Each tool's `annotations.title` equals its `title`, because Anthropic's connector submission reads it from there (founder 2026-11-05 00:55Z).
 
-`sess_complete`'s `destructiveHint` is `false` by the founder's instruction of 2026-11-05 (C-2), after Cursor asked for run approval on it. It deletes nothing, and it is terminal: the link stops accepting answers and the interaction never reopens. Three texts read against that (read 2026-11-05). MCP: `false` means "only additive updates". OpenAI's guidelines: `true` for "potentially destructive or irreversible effects", naming cancellation and access revocation, and `false` "only for additive writes"; its automated review can flag an annotation, and an appeal is open. Anthropic's review criteria: `destructiveHint: true` for tools that "modify or delete data", and such tools "always prompt". Cursor's MCP and Run Modes pages say it asks for approval on MCP tools by default and name no annotation, so whether this hint changes Cursor's prompt isn't established. Recheck before each store submission.
+`sess_complete` is marked destructive because it is terminal (founder's ruling on #43). Cursor's run approval isn't established to depend on this hint: its MCP and Run Modes pages (read 2026-11-05) say it asks for approval on MCP tools by default, and they name no annotation.
 
 ## Before any submission
 

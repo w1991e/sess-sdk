@@ -448,7 +448,8 @@ export const TOOLS = [
     title: 'Finish the Sess interaction',
     description:
       'Required once you are done with the person’s answer: until you call it, their page keeps waiting for your next step. ' +
-      'Close the interaction after its verified answer and confirm the completed state. ' +
+      'It closes the page to new answers and keeps what was given. ' +
+      'Call it after the verified answer and confirm the completed state. ' +
       'If the outcome is unknown, repeat the identical call.',
     inputSchema: {
       type: 'object',
@@ -457,14 +458,12 @@ export const TOOLS = [
       properties: { handle, expected_revision: revision, response_event_id: eventId },
     },
     outputSchema: resultSchema,
-    // Not marked destructive (2026-11-05): it ends the person's waiting page and finishes the Session,
-    // and deletes nothing on Sess. It is still terminal: the link stops accepting answers and the
-    // interaction never reopens. LISTINGS.md records how this reads against the MCP hint and the
-    // stores' rules.
+    // Destructive in the MCP sense: completion is a terminal, non-additive change. The person's link
+    // stops accepting answers and the interaction never reopens. Nothing is deleted on SESS.
     annotations: {
       title: 'Finish the Sess interaction',
       readOnlyHint: false,
-      destructiveHint: false,
+      destructiveHint: true,
       idempotentHint: true,
       openWorldHint: true,
     },
