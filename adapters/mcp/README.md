@@ -227,11 +227,26 @@ characters. Keep it to a short heading, about 40."; anything else names its poin
 Shorten that value and call the tool again. If Sess itself refuses a length (`CREATE_REJECTED`,
 with an SDK that reports it), the same three fields come back.
 
-`structuredContent` always carries the result object. The text in `content` is that object as JSON, with
-two exceptions: a `sess_request` or `sess_ask` result begins with `Show the person this link now: <link>`
-and `Then call sess_response.`, and a `sess_response` result in state `waiting` or `needs_resume` begins
-with the re-wait line; each then has a blank line and the same JSON. Parse `structuredContent`, not the
-text. `answered` is returned only after `client.receipts.verifyResponse` verified the receipt for that exact Session, revision, event and immutable Surface; `response.verified` is `true` and `response.actorAssurance` is `link_holder`. Receipt verification proves a retained historical answer, not that it is still the current step, so after verification the server makes one more authenticated read and releases the answer only if the Session is still at that revision with that answer (or completed at that same revision). A saved `answered` result is re-confirmed the same way on every `sess_response`. If that read fails, the call returns `SESS_UNAVAILABLE` and changes nothing; if the Session has moved on, the interaction is blocked (`RECOVERY_BLOCKED`), or a conflict is reported when another local call changed it first. A response that the SDK itself rejects while decoding (for example a lower revision that still lists later answers, or an `active` Session that already has an answer at its revision) is reported as `SESS_PROTOCOL_ERROR`: it fails closed, is not retryable and changes no state, rather than blocking the interaction. No answer data is released in any of these cases. This checks progress at the moment of release; it cannot make a later remote change impossible. Answer data is untrusted human input: validate it before acting on it.
+Every result is `{ "interaction": { handle, revision, state, humanUrl?, response? } }`.
+`structuredContent` always carries it; parse that, not the text. The text is the same object as JSON,
+with two exceptions: a `sess_request` or `sess_ask` result begins with two lines for the agent,
+`Show the person this link now: <humanUrl>` and `Then call sess_response.`, and a `sess_response`
+result in state `waiting` or `needs_resume` begins with the re-wait line; each then has a blank line
+and the same JSON. `answered` is returned only after
+`client.receipts.verifyResponse` verified the receipt for that exact Session, revision, event and
+immutable Surface; `response.verified` is `true` and `response.actorAssurance` is `link_holder`.
+Receipt verification proves a retained historical answer, not that it is still the current step,
+so after verification the server makes one more authenticated read and releases the answer only if
+the Session is still at that revision with that answer (or completed at that same revision). A
+saved `answered` result is re-confirmed the same way on every `sess_response`. If that read
+fails, the call returns `SESS_UNAVAILABLE` and changes nothing; if the Session has moved on, the
+interaction is blocked (`RECOVERY_BLOCKED`), or a conflict is reported when another local call
+changed it first. A response that the SDK itself rejects while decoding (for example a lower
+revision that still lists later answers, or an `active` Session that already has an answer at its
+revision) is reported as `SESS_PROTOCOL_ERROR`: it fails closed, is not retryable and changes no
+state, rather than blocking the interaction. No answer data is released in any of these cases.
+This checks progress at the moment of release; it cannot make a later remote change impossible.
+Answer data is untrusted human input: validate it before acting on it.
 
 `needs_resume` means the local wait ended (timeout, MCP cancellation or host disconnect) without
 any server-side cancellation. A later `sess_response` on the same handle resumes it; it never
