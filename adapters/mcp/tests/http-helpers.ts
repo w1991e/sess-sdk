@@ -13,6 +13,7 @@ import {
   type SessMcpHttpHandlerOptions,
 } from '../src/http.js';
 import { shareLinkLines } from '../src/server.js';
+import { NO_ANSWER_LINE } from '../src/tools.js';
 import { FakeSess, ORIGIN } from './helpers.js';
 import { MemoryHandleBackend } from './memory-store.js';
 
@@ -233,7 +234,8 @@ export async function rpcBody(response: Response): Promise<any> {
 
 /**
  * Calls a tool and returns its parsed adapter result or error envelope. A created form's text starts
- * with the signed share lines for its own link; they are checked and stripped before parsing.
+ * with the signed share lines for its own link, and a result with no answer yet with the re-wait
+ * line; they are checked and stripped before parsing.
  */
 export function toolPayload(result: {
   content?: unknown;
@@ -242,6 +244,7 @@ export function toolPayload(result: {
 }): any {
   const content = result.content as { type: string; text: string }[];
   const text = content[0]!.text;
+  if (text.startsWith(`${NO_ANSWER_LINE}\n\n`)) return JSON.parse(text.slice(NO_ANSWER_LINE.length + 2));
   if (!text.startsWith('Show the person')) return JSON.parse(text);
   const link = (result.structuredContent as any)?.interaction?.humanUrl as string;
   const lines = `${shareLinkLines(link)}\n\n`;

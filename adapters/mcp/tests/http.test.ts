@@ -8,7 +8,7 @@ import {
   decodeRecord,
   grantBinding,
 } from '../src/http.js';
-import { TOOLS } from '../src/tools.js';
+import { NO_ANSWER_LINE, TOOLS } from '../src/tools.js';
 import { ANSWER_1, FakeSess, ORIGIN, ROUND_1 } from './helpers.js';
 import {
   MODERN_META,
@@ -189,6 +189,8 @@ describe('stateless HTTP: declared revisions and the five tools', () => {
       wait_ms: 30_000,
     });
     expect(toolPayload(waited).interaction.state).toBe('needs_resume');
+    // The hosted composition carries the re-wait line too.
+    expect((waited.content as { text: string }[])[0]!.text.startsWith(`${NO_ANSWER_LINE}\n\n`)).toBe(true);
     expect(Date.now() - started).toBeLessThan(10_000);
     expect(h.backend.record(handle).state).toBe('needs_resume');
   });

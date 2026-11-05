@@ -360,7 +360,8 @@ exercised in the runs of prompts 2 and 4. This run does not count as OpenAI's, w
 Findings:
 
 - **F-LT-1, routing.** A prompt that only says "ask me" is answered in the chat on claude.ai. One that
-  says "through Sess" or "on my phone" reaches the tools.
+  says "through Sess" or "on my phone" reaches the tools. The `sess_ask` and `sess_request`
+  descriptions now name this case; not yet released or requalified.
 - **F-LT-2, the 45-second wait.** When the person answers after the wait returns, the host says the form
   is still open and asks to be told to continue. The person's page keeps the waiting shape until the
   host completes. This is designed behaviour.
@@ -369,7 +370,21 @@ Findings:
   answered, which is correct. Medium.
 - **F-LT-4, re-wait.** The wait returned before the answer in three of five runs. The host then stops
   until told "continue". A mitigation is to call `sess_response` again up to three times before asking.
-  High. Not implemented.
+  High. The server instructions, the `sess_response` description and its waiting result now ask for
+  this; not yet released or requalified.
+
+### Requalification on production
+
+The founder runs this on production after `@sess.si/mcp` 0.1.1 is pinned and deployed, on claude.ai and
+Cursor. Record pass or fail per host from his message, never from a generated file. Cases 1 to 5 are the
+positive test cases in `listing.json`. The two negative cases check that the routing lines don't pull an
+ordinary question into a form (founder 2026-11-04 22:50Z); the guard isn't tightened before they're measured.
+
+| Case   | Prompt or kind                                                 | Expected                    | claude.ai | Cursor  |
+| ------ | -------------------------------------------------------------- | --------------------------- | --------- | ------- |
+| 1 to 5 | as in `listing.json`                                           | as in `listing.json`        | not run   | not run |
+| N1     | "What do you think I should name this file? Ask me if unsure." | stays in chat, no Sess tool | not run   | not run |
+| N2     | a plain clarifying question with no tool named                 | stays in chat, no Sess tool | not run   | not run |
 
 ### Docker
 
