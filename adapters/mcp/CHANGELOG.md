@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Tool schemas stay `sess-mcp-tools/4`; `structuredContent` is unchanged. Annotations gain `title`; their hints are unchanged.
+Tool schemas stay `sess-mcp-tools/4`; `structuredContent` is unchanged. Annotations gain `title`; `sess_complete`'s `destructiveHint` changes, and the other hints are unchanged.
 
 - While `sess_response` has no answer, the host is told to call it again, up to three times after
   its first call (about two minutes more at the 45-second ceiling), then ask the person to say
@@ -17,6 +17,13 @@ Tool schemas stay `sess-mcp-tools/4`; `structuredContent` is unchanged. Annotati
   receipt records what was shown and chosen, not who answered. The signed first line of the
   `sess_ask` description is unchanged; the new line follows it, then the mechanics, unchanged.
 - Every tool's `annotations.title` is set to its title, byte for byte; the top-level `title` stays. Anthropic's connector submission reads the title from there.
+- `sess_complete` has `destructiveHint: false` (was `true`), because Cursor asked for run approval
+  on it. It ends the person's waiting page and finishes the Session, and deletes nothing; it is still
+  terminal and never reopens. `readOnlyHint` stays `false`; `idempotentHint` and `openWorldHint` stay
+  `true`. Whether Cursor's prompt goes away isn't measured.
+- In the listings, not in this package: the suggested prompts and test-case prompt 1 name Sess
+  ("Use Sess to ask me…"), because Cursor's own question panel answers a plain "Ask me…". The plugin
+  bundle that carries them is shared with OpenAI. The sentences are awaiting sign-off.
 
 ## 0.1.0 — 2026-11-01
 

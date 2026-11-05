@@ -6,16 +6,16 @@
   "registryName": "si.sess/sess",
   "copy": {
     "status": "approved",
-    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent. Test-case prompts 2-5 are his rewording of 21:20Z. The one-line description (registry, oneLiner, also the first line of adapters/mcp/README.md) and the supporting line are his of 2026-11-05 00:50Z; long opens with the two (his rule of 01:05Z); the supporting line is not in registry, because the Registry schema caps the description at 100 characters. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus).",
+    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent. Test-case prompts 2-5 are his rewording of 21:20Z. The one-line description (registry, oneLiner, also the first line of adapters/mcp/README.md) and the supporting line are his of 2026-11-05 00:50Z; long opens with the two (his rule of 01:05Z); the supporting line is not in registry, because the Registry schema caps the description at 100 characters. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus). The signature of 20:45Z no longer covers the three defaultPrompts or test-case prompt 1. Founder 2026-11-05 (C-2), his instruction: \"On Cursor a plain \"Ask me…\" prompt is answered by Cursor's own question panel. Every Cursor prompt in the packet, the plugin skill and the listing copy names Sess (\"Use Sess to ask me…\").\" The form \"Use Sess to ask me…\" is his. The exact sentences are PROPOSED for his signature, not signed: \"Use Sess to ask me on my phone which time works for a call tomorrow.\"; \"Before you send the report, use Sess to ask me to approve it.\"; \"Use Sess to ask me three quick questions to plan my weekend.\" Test-case prompt 1 uses the first of them. Test-case prompts 2-5 already name Sess and stay his words of 21:20Z.",
     "short": "Ask a person, get the answer",
     "registry": "Let your agent ask a person and continue with their answer.",
     "oneLiner": "Let your agent ask a person and continue with their answer.",
     "long": "Let your agent ask a person and continue with their answer. People answer through a link on any device. Sess returns their response with a signed receipt. Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
     "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp"],
     "defaultPrompts": [
-      "Ask me on my phone which time works for a call tomorrow.",
-      "Before you send the report, ask me to approve it.",
-      "Ask me three quick questions to plan my weekend."
+      "Use Sess to ask me on my phone which time works for a call tomorrow.",
+      "Before you send the report, use Sess to ask me to approve it.",
+      "Use Sess to ask me three quick questions to plan my weekend."
     ],
     "releaseNotes": "First release: ask a person through a Sess link and continue with their receipt-checked answer."
   },
@@ -146,7 +146,7 @@
   },
   "remote": {
     "status": "qualified",
-    "note": "Production endpoint. Qualified for the hosts production proved, not for every host: the claude.ai rounds in providers.claudeConnector.qualificationEvidence. Each host packet carries its own status (providers.claudeConnector.remoteStatus, providers.cursorInstall.remoteStatus). https://mcp.sess.si/version read back 2026-11-04 (git_sha 1a5f43a97fce11882c9f34e6994636bc199a0f59, built 2026-11-04T04:40:18Z), the deployment the founder's claude.ai test-case run of 2026-11-04 used.",
+    "note": "Production endpoint. Qualified for the hosts production proved, not for every host: the claude.ai rounds in providers.claudeConnector.qualificationEvidence and the founder's Cursor round in providers.cursorInstall.qualificationEvidence. Each host packet carries its own status (providers.claudeConnector.remoteStatus, providers.cursorInstall.remoteStatus). https://mcp.sess.si/version read back 2026-11-04 (git_sha 1a5f43a97fce11882c9f34e6994636bc199a0f59, built 2026-11-04T04:40:18Z), the deployment the founder's claude.ai test-case run of 2026-11-04 used.",
     "type": "streamable-http",
     "url": "https://mcp.sess.si/mcp",
     "auth": {
@@ -218,7 +218,7 @@
         "positive": [
           {
             "description": "Ask a short question and read the answer",
-            "prompt": "Ask me on my phone which time works for a call tomorrow.",
+            "prompt": "Use Sess to ask me on my phone which time works for a call tomorrow.",
             "tools": ["sess_ask", "sess_response"],
             "expected_behavior": "Shares a Sess link at once. After the reviewer submits the form, reports the chosen time."
           },
@@ -271,8 +271,11 @@
       "output": "listings/cursor-install.json",
       "source": "https://cursor.com/docs/mcp/install-links.md",
       "retrieved": "2026-10-15",
-      "remoteStatus": "unqualified",
-      "qualificationNote": "no production Cursor run is our evidence"
+      "remoteStatus": "qualified",
+      "qualificationEvidence": [
+        "Founder's message, 2026-11-05: Cursor round on production through the one-click install, on the drill account: authorization PASS in Chrome and Safari, exchange PASS (sess_ask, link, answer, sess_response, sess_complete, receipt). Recorded from his message: no evidence file at w1991e/sess 2600a900e, and the message names no deployed git_sha."
+      ],
+      "qualificationNote": "the founder's production round through the one-click install, 2026-11-05, on the drill account, no outside user: authorization PASS in Chrome and Safari, exchange PASS. Test cases 1 to 5, N1 and N2 were not run on Cursor, and the stdio link was not part of this round. A reconnect defect (C-3) is being fixed server-side in w1991e/sess. Not a submission to, or an acceptance by, Cursor's marketplace"
     },
     "claudeConnector": {
       "mapping": 1,

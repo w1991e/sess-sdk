@@ -14,7 +14,7 @@ Anyone who has the link can answer, so share it only with the person you mean. A
 - `sess_request`: Ask a person through Sess (writes)
 - `sess_response`: Read the person’s Sess answer (read-only, safe to repeat)
 - `sess_publish`: Show the next Sess step (writes, safe to repeat)
-- `sess_complete`: Finish the Sess interaction (writes, cannot be undone, safe to repeat)
+- `sess_complete`: Finish the Sess interaction (writes, safe to repeat)
 - `sess_ask`: Ask a short question through Sess (writes)
 
 ## Help

@@ -457,12 +457,14 @@ export const TOOLS = [
       properties: { handle, expected_revision: revision, response_event_id: eventId },
     },
     outputSchema: resultSchema,
-    // Destructive in the MCP sense: completion is a terminal, non-additive change. The person's link
-    // stops accepting answers and the interaction never reopens. Nothing is deleted on SESS.
+    // Not marked destructive (2026-11-05): it ends the person's waiting page and finishes the Session,
+    // and deletes nothing on Sess. It is still terminal: the link stops accepting answers and the
+    // interaction never reopens. LISTINGS.md records how this reads against the MCP hint and the
+    // stores' rules.
     annotations: {
       title: 'Finish the Sess interaction',
       readOnlyHint: false,
-      destructiveHint: true,
+      destructiveHint: false,
       idempotentHint: true,
       openWorldHint: true,
     },
