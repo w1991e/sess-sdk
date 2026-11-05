@@ -1,8 +1,8 @@
 {
   "about": "Values for Anthropic's connector submission form, generated from listing.json. There is no published schema; listing.mjs checks the documented requirements. Generation is not submission.",
   "name": "Sess",
-  "oneLiner": "Ask a person a question and continue with their verified answer.",
-  "description": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
+  "oneLiner": "Let your agent ask a person and continue with their answer.",
+  "description": "People answer through a link on any device. Sess returns their response with a signed receipt. Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
   "categories": ["Productivity", "Developer Tools"],
   "serverUrl": "https://mcp.sess.si/mcp",
   "transport": "streamable-http",

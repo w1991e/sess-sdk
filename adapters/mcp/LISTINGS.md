@@ -268,7 +268,7 @@ nothing in front of `mcp.sess.si` may block it, or answer it with `403`.
    `smithery mcp publish "https://mcp.sess.si/mcp" -n @<org>/sess` (`<org>` is the owner's
    Smithery namespace).
 3. Listing values: name `Sess`; description
-   `Ask a person a question and continue with their verified answer.`;
+   `Let your agent ask a person and continue with their answer.`;
    homepage `https://sess.si`; icon
    `https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png` (or upload
    `listings/plugin/assets/icon-512.png`).
@@ -297,7 +297,7 @@ connector page.
   `/.well-known/glama.json` on the server's domain, with a maintainer email (not confirmed from
   Glama's pages; from the brief). That is a w1991e/sess runtime change: **open question** below.
 - Listing values: name `Sess`; description
-  `Ask a person a question and continue with their verified answer.`;
+  `Let your agent ask a person and continue with their answer.`;
   server URL `https://mcp.sess.si/mcp`; support `ask@sess.si`.
 
 ### mcp.so
@@ -308,7 +308,7 @@ reads the README.
 
 - GitHub URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`
 - Description:
-  `Ask a person a question and continue with their verified answer.`
+  `Let your agent ask a person and continue with their answer.`
 - Tags: `human-in-the-loop`, `forms`, `approvals`, `receipts`, `mcp`
 - Category: `Productivity` (the nearest of the form's categories, if it differs)
 - Server URL, if asked: `https://mcp.sess.si/mcp`
@@ -330,7 +330,7 @@ text is `listings/cline-issue.md`; resolve its `OWNER:` lines.
 4. Open the issue from the owner's account:
    - GitHub Repository URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`
    - Additional Information opens with
-     `Ask a person a question and continue with their verified answer.`
+     `Let your agent ask a person and continue with their answer.`
 
 `llms-install.md` is optional. A draft, not committed (Cline's remote setting names and its OAuth
 sign-in are unverified):

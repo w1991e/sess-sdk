@@ -201,7 +201,7 @@ describe('listing.json artifacts', () => {
 
   it('the one-line description fields (copy.registry, copy.oneLiner) are the MCP adapter README’s first line, word for word', () => {
     const readmeFirstLine = read('README.md').split('\n')[2];
-    expect(readmeFirstLine).toBe('Ask a person a question and continue with their verified answer.');
+    expect(readmeFirstLine).toBe('Let your agent ask a person and continue with their answer.');
     const { listing } = inputs();
     expect(listing.copy.registry).toBe(readmeFirstLine);
     expect(listing.copy.oneLiner).toBe(readmeFirstLine);
@@ -314,7 +314,7 @@ describe('listing.json artifacts', () => {
     const server = JSON.parse(generate(i).get('server.json')!);
     expect(server.version).toBe(i.manifest.version);
     expect(server.packages[0].version).toBe(i.manifest.version);
-    expect(server.description).toBe('Ask a person a question and continue with their verified answer.');
+    expect(server.description).toBe('Let your agent ask a person and continue with their answer.');
     expect(i.listing.providers.mcpRegistry.version).toBeUndefined();
     for (const version of ['0.1.0-rc.4', '0.1.0']) {
       const next = inputs();
@@ -719,7 +719,7 @@ describe('directory packets', () => {
         '    - remote',
         'about:',
         '  title: Sess',
-        '  description: Ask a person a question and continue with their verified answer.',
+        '  description: Let your agent ask a person and continue with their answer.',
         '  icon: https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png',
         'remote:',
         '  transport_type: streamable-http',

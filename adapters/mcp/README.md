@@ -1,6 +1,6 @@
 # Sess MCP server (`@sess.si/mcp`)
 
-Ask a person a question and continue with their verified answer.
+Let your agent ask a person and continue with their answer.
 
 A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent ask a person through
 a hosted Sess form and receive a receipt-verified answer. The agent gets the Sess link
