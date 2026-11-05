@@ -119,8 +119,8 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
 - for Cursor: `https://mcp.sess.si/mcp` passed on claude.ai (see
   [Claude](#claude-connector-directory-review)) and in the founder's Cursor round (see
   [Cursor](#cursor)), so `remote.status` and `providers.cursorInstall.remoteStatus` are `qualified`.
-  The reconnect defect C-3 is being fixed server-side in w1991e/sess, and the proposed prompts await
-  his signature;
+  The reconnect defect C-3 is being fixed server-side in w1991e/sess, and the prompts, signed 2026-11-05
+  05:50Z, are not yet run on any host;
 - for OpenAI: the ChatGPT run exists (w1991e/sess
   `EXECUTION/evidence/host-runs-production-2026-10-28/chatgpt.md`, PASS at `66f5dc09`) but is not
   marked qualified, and Codex has no production run;
@@ -245,8 +245,8 @@ organization and the Apps Management Write role.
 - These links belong on the setup page. Nothing here puts them there: that page is built in
   w1991e/sess from its own host matrix, whose Cursor entry has its own `qualified` field.
 - On Cursor, a plain "Ask me…" prompt is answered by Cursor's own question panel (founder 2026-11-05,
-  C-2). `copy.defaultPrompts` and test-case prompt 1 now name Sess, in his form "Use Sess to ask me…".
-  The exact sentences are proposed for his signature, and no host has run them. The plugin bundle is
+  C-2). `copy.defaultPrompts` and test-case prompt 1 now name Sess, in his form "Use Sess to ask me …, then tell
+  me what I chose." The exact sentences are signed (2026-11-05 05:50Z), and no host has run them. The plugin bundle is
   shared, so OpenAI's listing receives them too.
 - The plugin bundle is submitted as a public Git repository at https://cursor.com/marketplace/publish.
   Confirm that a subfolder (`adapters/mcp/listings/plugin`) is accepted; otherwise the owner decides

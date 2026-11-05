@@ -22,7 +22,7 @@ Tool schemas stay `sess-mcp-tools/4`; `structuredContent` is unchanged. Annotati
   This replaces "Close the interaction after its verified answer and confirm the completed state."
 - In the listings, not in this package: the suggested prompts and test-case prompt 1 name Sess
   ("Use Sess to ask me…"), because Cursor's own question panel answers a plain "Ask me…". The plugin
-  bundle that carries them is shared with OpenAI. The sentences are awaiting sign-off.
+  bundle that carries them is shared with OpenAI. The sentences are signed; no host has run them yet.
 
 ## 0.1.0 — 2026-11-01
 
