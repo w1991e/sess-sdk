@@ -14,25 +14,24 @@ describe('MCP registry metadata (server.json, schema 2025-12-11)', () => {
     expect(server.version).toBe(manifest.version);
   });
 
-  it('is remote-only under si.sess/sess while the npm package is deferred; the package keeps its published mcpName', () => {
+  it('lists @sess.si/mcp under si.sess/sess beside the remote, with the repository; the package declares that name', () => {
     expect(server.$schema).toBe(
       'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json',
     );
     expect(server.name).toBe('si.sess/sess');
-    expect(listing.providers.mcpRegistry.npmPackage.status).toBe('deferred');
-    // No package is listed, so the registry cross-checks no published package's mcpName.
-    expect(server.packages).toBeUndefined();
+    expect(listing.providers.mcpRegistry.npmPackage.status).toBe('listed');
+    // The registry cross-checks a listed package's mcpName against the server name.
+    expect(manifest.mcpName).toBe('si.sess/sess');
+    expect(server.packages[0]).toMatchObject({ identifier: '@sess.si/mcp', version: manifest.version });
     expect(server.remotes).toEqual([{ type: 'streamable-http', url: 'https://mcp.sess.si/mcp' }]);
-    // The published @sess.si/mcp@0.1.0-rc.3's identity is unchanged.
-    expect(manifest.mcpName).toBe('io.github.w1991e/sess');
-    expect(listing.providers.mcpRegistry.npmPackage.publishedMcpName).toBe(manifest.mcpName);
+    // 0.1.0, on npm until 0.1.1 is published, declares the old name; check:listing keeps that a blocker.
+    expect(listing.providers.mcpRegistry.npmPackage.publishedMcpName).toBe('io.github.w1991e/sess');
     // A version, never a dist-tag.
     expect(JSON.stringify(server)).not.toMatch(/"next"|@next|"latest"|@latest/);
     expect(server.description.length).toBeGreaterThan(0);
     expect(server.description.length).toBeLessThanOrEqual(100);
-    // Optional in the pinned schema: the entry points at sess.si, not at the source.
     expect(server.websiteUrl).toBe('https://sess.si');
-    expect(server.repository).toBeUndefined();
+    expect(server.repository).toEqual({ url: 'https://github.com/w1991e/sess-sdk', source: 'github' });
   });
 
   it('the stdio entry, once listed, declares only real owner configuration; the key is required and secret', () => {

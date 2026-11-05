@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "package": {
     "name": "@sess.si/mcp",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "toolSchema": "sess-mcp-tools/4"
   },
-  "status": "0.1.0 prepared on @sess.si/sdk 0.1.0 for npm dist-tag latest, unpublished; 0.1.0-rc.4 (2026-10-27), 0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next is 0.1.0-rc.4, on @sess.si/sdk 0.1.0-rc.8, and stays there",
-  "recordedAt": "2026-10-31",
+  "status": "0.1.1 prepared on @sess.si/sdk 0.1.1 for npm dist-tag latest, unpublished; 0.1.0 published on latest on 2026-11-01; next stays at 0.1.0-rc.4.",
+  "recordedAt": "2026-11-05",
   "node": {
     "engines": ">=22.14.0 <25",
     "qualified": ["22.14.0", "24.21.0"],
@@ -144,7 +144,11 @@
       ]
     }
   ],
-  "untestedClients": ["Cursor", "Claude Desktop", "any other MCP host"],
+  "untestedClients": [
+    "Cursor (stdio; the hosted endpoint is qualified separately, listing.json)",
+    "Claude Desktop",
+    "any other MCP host"
+  ],
   "sessSdk": {
     "name": "@sess.si/sdk",
     "version": "0.1.1",
@@ -169,30 +173,42 @@
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "0.1.0 prepared on @sess.si/sdk 0.1.0, unpublished; the tag mcp-v0.1.0 stages it for npm dist-tag latest (release.prepared). @sess.si/mcp@0.1.0-rc.4 published on npm dist-tag next on 2026-10-27, on @sess.si/sdk 0.1.0-rc.8; 0.1.0-rc.3 on 2026-10-23, 0.1.0-rc.2 on 2026-10-19 and 0.1.0-rc.1 on 2026-10-17 (each staged by the release workflow, approved by a maintainer with npm 2FA). latest stays on the deprecated 0.0.0-stage placeholder until 0.1.0 is approved; next stays at 0.1.0-rc.4. The SDK dependency is in registry mode.",
+    "status": "0.1.1 prepared on @sess.si/sdk 0.1.1, unpublished; the tag mcp-v0.1.1 stages it for npm dist-tag latest (release.prepared). @sess.si/mcp@0.1.0 published on latest on 2026-11-01; next stays at 0.1.0-rc.4. The SDK dependency is in registry mode.",
     "prepared": {
-      "version": "0.1.0",
+      "version": "0.1.1",
       "distTag": "latest",
-      "tag": "mcp-v0.1.0",
-      "sessSdk": "0.1.0 (registry, dist-tag latest)",
-      "note": "Prepared and unpublished. The release guard derives latest for a version without -rc.N. Once the stage is approved and read back, this entry becomes release.published and 0.1.0-rc.4 moves to release.earlier."
+      "tag": "mcp-v0.1.1",
+      "sessSdk": "0.1.1 (registry, dist-tag latest)",
+      "mcpName": "si.sess/sess",
+      "note": "Prepared and unpublished. The release guard derives latest for a version without -rc.N. Once the stage is approved and read back, this entry becomes release.published and 0.1.0 moves to release.earlier."
     },
     "published": {
-      "version": "0.1.0-rc.4",
-      "distTag": "next",
-      "publishedAt": "2026-10-27T17:49:04.120Z",
-      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0-rc.4.tgz",
-      "sha256": "f27a763492a7ea7c6ed5547b72ecd002212474798161ea437a0b102665c533d7",
-      "integrity": "sha512-+3EwdJWGtBd/8HdSm0alTOgXW7tm5HHgHisoIg0c0t6laQbXm/kQXarl3a6M70AxeYYZmbFDEvmdHQx1CRbKhQ==",
-      "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
-      "sourceCommit": "2c0908c9b1f4150b01cc42758b9a5b3cc440091d",
-      "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/40469984410",
+      "version": "0.1.0",
+      "distTag": "latest",
+      "publishedAt": "2026-11-01T03:37:03.279Z",
+      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0.tgz",
+      "sha256": "f237ed93a601f20721dfda3b2e6fa0fef97753b202974f5809c46e1a3e39c015",
+      "integrity": "sha512-eAr2sbDyDIBy8seEyaF/VBeu94MOqT45qoLUPCzeDcrRJPnv29n2QfJZ7knIRIuDpmtRQ4xnH+Qij7OfWtMipQ==",
+      "sessSdk": "0.1.0 (registry)",
       "mcpName": "io.github.w1991e/sess",
-      "sessSdk": "0.1.0-rc.8, which bundles the sess-html-form-1 and sess-html-form-2 renderer identities",
-      "readBack": "2026-10-27: npm view time, dist.integrity, dist.attestations and dist-tags.next; the registry tarball's SHA-256 and integrity equal release/rc4-packet.md",
-      "registryInstall": "not yet qualified: npx -y @sess.si/mcp@0.1.0-rc.4 has not been run as a recorded test"
+      "readBack": "2026-11-05: registry time, dist.integrity, dist.attestations and dist-tags; the registry tarball's SHA-256 and integrity equal release/v0.1.0-packet.md"
     },
     "earlier": [
+      {
+        "version": "0.1.0-rc.4",
+        "distTag": "next",
+        "publishedAt": "2026-10-27T17:49:04.120Z",
+        "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0-rc.4.tgz",
+        "sha256": "f27a763492a7ea7c6ed5547b72ecd002212474798161ea437a0b102665c533d7",
+        "integrity": "sha512-+3EwdJWGtBd/8HdSm0alTOgXW7tm5HHgHisoIg0c0t6laQbXm/kQXarl3a6M70AxeYYZmbFDEvmdHQx1CRbKhQ==",
+        "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
+        "sourceCommit": "2c0908c9b1f4150b01cc42758b9a5b3cc440091d",
+        "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/40469984410",
+        "mcpName": "io.github.w1991e/sess",
+        "sessSdk": "0.1.0-rc.8, which bundles the sess-html-form-1 and sess-html-form-2 renderer identities",
+        "readBack": "2026-10-27: npm view time, dist.integrity, dist.attestations and dist-tags.next; the registry tarball's SHA-256 and integrity equal release/rc4-packet.md",
+        "registryInstall": "not yet qualified: npx -y @sess.si/mcp@0.1.0-rc.4 has not been run as a recorded test"
+      },
       {
         "version": "0.1.0-rc.3",
         "distTag": "next",

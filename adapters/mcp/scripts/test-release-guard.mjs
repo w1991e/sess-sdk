@@ -23,9 +23,10 @@ import {
 const adapter = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (name) => JSON.parse(readFileSync(join(adapter, name), 'utf8'));
 const manifest = read('package.json');
-// The committed entry is remote-only while the npm package is deferred; the identity tests below
-// exercise the listed form (the npm package beside the remote, under the package's mcpName).
-const remoteOnly = read('server.json');
+// The committed entry lists the npm package under the package's mcpName, as 0.1.1 does. The identity
+// tests also exercise the remote-only form, under a name the guard must not cross-check.
+const remoteOnly = { ...read('server.json'), name: 'si.sess/remote-only' };
+delete remoteOnly.packages;
 const server = {
   ...remoteOnly,
   name: manifest.mcpName,

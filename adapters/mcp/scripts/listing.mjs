@@ -167,6 +167,7 @@ function serverJson({ listing, manifest }) {
     title: listing.displayName,
     description: listing.copy.registry,
     websiteUrl: listing.homepage,
+    repository: listing.repository,
     // In step with the package on every release candidate (2026-10-20): package.json's
     // exact version, for the server and the package; never a dist-tag.
     version: manifest.version,

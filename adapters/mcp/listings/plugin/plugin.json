@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "sess",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Let your agent ask a person and continue with their answer.",
   "author": {
     "name": "Sess",

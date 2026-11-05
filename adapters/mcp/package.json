@@ -1,8 +1,8 @@
 {
   "name": "@sess.si/mcp",
-  "version": "0.1.0",
-  "mcpName": "io.github.w1991e/sess",
-  "description": "Local stdio MCP server that lets an agent ask a person through a hosted Sess form and receive a receipt-verified answer.",
+  "version": "0.1.1",
+  "mcpName": "si.sess/sess",
+  "description": "Let your agent ask a person and continue with their answer.",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
