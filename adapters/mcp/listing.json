@@ -6,11 +6,11 @@
   "registryName": "si.sess/sess",
   "copy": {
     "status": "approved",
-    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent, with the one-line description (registry, oneLiner) changed to the line here, which is also the first line of adapters/mcp/README.md. Test-case prompts 2-5 are his rewording of 21:20Z. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus).",
+    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent. Test-case prompts 2-5 are his rewording of 21:20Z. The one-line description (registry, oneLiner, also the first line of adapters/mcp/README.md) and the supporting line that opens long are his of 2026-11-05 00:50Z; the supporting line is not in registry, because the Registry schema caps the description at 100 characters. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus).",
     "short": "Ask a person, get the answer",
-    "registry": "Ask a person a question and continue with their verified answer.",
-    "oneLiner": "Ask a person a question and continue with their verified answer.",
-    "long": "Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
+    "registry": "Let your agent ask a person and continue with their answer.",
+    "oneLiner": "Let your agent ask a person and continue with their answer.",
+    "long": "People answer through a link on any device. Sess returns their response with a signed receipt. Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
     "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp"],
     "defaultPrompts": [
       "Ask me on my phone which time works for a call tomorrow.",
