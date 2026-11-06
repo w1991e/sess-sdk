@@ -494,24 +494,62 @@ describe('sess_ask with respondents: the Ask through the tools', () => {
     ).toBe('VERIFICATION_FAILED');
   });
 
-  it('an Ask created but not saved locally says its link is lost and the same sess_ask call may be made again', async () => {
+  it('refuses a changed record of an answer already released, and keeps the first (both receipts verify)', async () => {
     const asks = new FakeAsks();
-    const { client } = await connect(asks, verifierFor(asks));
-    const handles = join(dir.path, 'profiles', 'default', 'handles');
-    asks.onCreate = () => chmodSync(handles, 0o500);
-    try {
-      const result = await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } });
-      expect(result.isError).toBe(true);
-      expect(errorOf(result)).toMatchObject({ code: 'CREATED_NOT_SAVED', retryable: true });
-      expect(errorOf(result).message).toBe(
-        'Sess created the Ask, but it could not be saved locally, so its link is lost. An unused Ask reserves nothing: make the same sess_ask call again, and ask the owner to check the local state directory.',
-      );
-      expect(result.content[0]!.text).not.toContain(asks.link);
-      expect(errorOf(result).message).not.toContain('sess_request');
-    } finally {
-      chmodSync(handles, 0o700);
-    }
+    const lines: string[] = [];
+    const { client } = await connect(asks, verifierFor(asks), lines);
+    const { handle } = (await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } }))
+      .structuredContent.interaction;
+    const id = asks.start();
+    asks.answer(id, { understood: 'Yes' });
+    const first = (await call(client, 'sess_response', { handle, revision: 1 })).structuredContent
+      .interaction;
+    expect(first.ask.respondents[0].response).toMatchObject({
+      eventId: 'evt_00000000000000000000000001',
+      data: { understood: 'Yes' },
+    });
+    // The same Session and event ID, a different accepted record; the verifier accepts it too.
+    asks.page.sessions[0]!.responses[0]!.data = { understood: 'No' };
+    const second = await call(client, 'sess_response', { handle, revision: 1 });
+    expect(second.isError).toBe(true);
+    expect(errorOf(second)).toMatchObject({ code: 'VERIFICATION_FAILED' });
+    expect(errorOf(second).message).toBe(
+      'An answer to this Ask changed after it was verified. No answers were released; ask the owner to review the Ask.',
+    );
+    expect(second.content[0]!.text).not.toContain('"No"');
+    expect(lines.join('')).toContain('RECORD_BINDING_MISMATCH');
+    // The cached record was not replaced: the original record still reads, the changed one never does.
+    asks.page.sessions[0]!.responses[0]!.data = { understood: 'Yes' };
+    const third = (await call(client, 'sess_response', { handle, revision: 1 })).structuredContent
+      .interaction;
+    expect(third.ask.respondents[0].response.data).toEqual({ understood: 'Yes' });
+    asks.page.sessions[0]!.responses[0]!.data = { understood: 'No' };
+    expect(errorOf(await call(client, 'sess_response', { handle, revision: 1 })).code).toBe(
+      'VERIFICATION_FAILED',
+    );
   });
+
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'an Ask created but not saved locally says its link is lost and the same sess_ask call may be made again',
+    async () => {
+      const asks = new FakeAsks();
+      const { client } = await connect(asks, verifierFor(asks));
+      const handles = join(dir.path, 'profiles', 'default', 'handles');
+      asks.onCreate = () => chmodSync(handles, 0o500);
+      try {
+        const result = await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } });
+        expect(result.isError).toBe(true);
+        expect(errorOf(result)).toMatchObject({ code: 'CREATED_NOT_SAVED', retryable: true });
+        expect(errorOf(result).message).toBe(
+          'Sess created the Ask, but it could not be saved locally, so its link is lost. An unused Ask reserves nothing: make the same sess_ask call again, and ask the owner to check the local state directory.',
+        );
+        expect(result.content[0]!.text).not.toContain(asks.link);
+        expect(errorOf(result).message).not.toContain('sess_request');
+      } finally {
+        chmodSync(handles, 0o700);
+      }
+    },
+  );
 
   it('follows every page of the read', async () => {
     const asks = new FakeAsks();

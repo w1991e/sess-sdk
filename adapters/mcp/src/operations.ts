@@ -585,7 +585,7 @@ export class SessMcpAdapter {
     });
     await store.save(record).catch(() => {
       // Unlike a Session, the Ask's remedy is the same call again: its link is lost here, and an
-      // unused Ask reserves nothing.
+      // unused Ask reserves nothing. PROPOSED copy.
       throw new AdapterError(
         'CREATED_NOT_SAVED',
         'Sess created the Ask, but it could not be saved locally, so its link is lost. An unused Ask reserves nothing: make the same sess_ask call again, and ask the owner to check the local state directory.',
@@ -692,7 +692,17 @@ export class SessMcpAdapter {
     const key = `${askId}:${sessionId}:${accepted.event_id}`;
     const exact = canonicalJson(accepted as unknown as JsonObject);
     const known = this.#verifiedRespondents.get(key);
-    if (known === undefined || known.record !== exact) {
+    // An accepted event never changes. A different record for an event already released is refused
+    // and the first record is kept, as the SDK handle refuses it ("answer changed after it was
+    // verified"); a second signed representation can never replace data already released.
+    if (known !== undefined && known.record !== exact) {
+      this.#options.diagnostics('verification_failed', { code: 'RECORD_BINDING_MISMATCH' });
+      throw new AdapterError(
+        'VERIFICATION_FAILED',
+        'An answer to this Ask changed after it was verified. No answers were released; ask the owner to review the Ask.',
+      );
+    }
+    if (known === undefined) {
       let verified;
       try {
         verified = await client.receipts.verifyResponse(
