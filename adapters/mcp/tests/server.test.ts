@@ -206,11 +206,11 @@ describe('MCP server', () => {
     );
     expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/5');
     expect(contract).toEqual({
-      sess_request: '89a558f1c9e7f8af49ada4ec048b9f11c33f1457fb7dd8cf3e0bb79624b1ac26',
+      sess_request: 'c393e4066d6f3f7d5dee78ac5b38fb4e2d9236252b56478c5fab6eae053e0ad1',
       sess_response: 'd9401c9e03b3bad4c0a4c4496d057d5869460c9da9b7e4db11bbcc066f5af9d8',
-      sess_publish: 'd86d63d694c1b8468285aac82f42b316eee1c6c7e47699a009a994aa825a6b66',
+      sess_publish: 'b000564b40060daac60fa8cf57ada37a3911b2112e0e92b0487a4f7edd8abd02',
       sess_complete: 'd8a0e150608bbb93f973aef20a521feef41efd84c6e3138b02678aef261b0540',
-      sess_ask: '64fbec96a84d84246a580144c898bff5705f2c06fc9cd02718259bca3a5aca3d',
+      sess_ask: 'bd000cb09a1fcf4be801153870e11f682609f16572f220cab0084d5af84daf0d',
     });
     expect(TOOLS.find((t) => t.name === 'sess_response')!.annotations).toEqual({
       title: 'Read the person’s Sess answer',

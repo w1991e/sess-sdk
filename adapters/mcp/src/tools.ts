@@ -81,7 +81,7 @@ export const TEXT_DOCS = {
     examples: ['Approve', 'Send refund'],
   },
   ratingLabel: {
-    line: `Optional words at one end of a rating, shown by its lowest (low) or highest (high) choice: a word or two; at most ${L.ratingLabel}.`,
+    line: `Optional words at one end of a rating, shown by its lowest (low) or highest (high) choice: a word or two; at most ${L.ratingLabel} characters.`,
     examples: ['Not likely', 'Very likely'],
   },
 } as const satisfies Record<string, Docs>;
