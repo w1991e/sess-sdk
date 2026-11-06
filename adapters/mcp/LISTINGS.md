@@ -187,7 +187,7 @@ differ. It never names a dist-tag. The registry does not verify the remote URL;
 [Claude](#claude-connector-directory-review)). The entry also reaches hosts and indexes with no
 production run of ours, such as VS Code, Zed and PulseMCP; publishing it qualifies none of them.
 `server.json` `icons` lists the two icon URLs (`512x512` and `192x192`, `image/png`), which answer
-(see [Icon](#icon)). `websiteUrl` is `https://sess.si`; the optional `repository` is left out.
+(see [Icon](#icon)). `websiteUrl` is `https://sess.si`; `repository` names `https://github.com/w1991e/sess-sdk`.
 
 `npm run check:listing` validates `server.json` against the pinned 2025-12-11 schema, and CI also
 runs the registry's own validator (`mcp-publisher validate`, pinned v1.8.1 by SHA-256; no login,
