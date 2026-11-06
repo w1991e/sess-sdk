@@ -181,7 +181,7 @@ server instructions, the `sess_response` description and the text of a `waiting`
 result say this. The server keeps no count; the host does.
 
 `sess_ask` is a shortcut for `sess_request`: it turns a question and up to 12 simple fields
-(`text`, `number`, `integer`, `boolean`, `choice`, `multi_choice`) into an ordinary interaction,
+(`text`, `number`, `integer`, `boolean`, `choice`, `multi_choice`, `rating`) into an ordinary interaction,
 checks it with the same rules and limits, and runs the same request operation. It creates exactly
 one Session, returns the link and handle at once, never waits and never returns an answer. Continue
 with `sess_response`, `sess_publish` and `sess_complete` as usual.

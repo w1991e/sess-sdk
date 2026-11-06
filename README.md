@@ -47,8 +47,8 @@ before anything waits. The link is a bearer capability: deliver it only to the p
 logs or analytics. `answer()` waits for the person (ten minutes by default), verifies the signed
 receipt against the exact question, checks that the answer is still the current step, completes the
 Session and returns the values typed from your fields. Completion closes the Session: the link no
-longer accepts answers. Field types are `text`, `number`, `integer`, `boolean`, `choice` and
-`multi_choice` ([API reference](docs/api.md#ask-one-question)).
+longer accepts answers. Field types are `text`, `number`, `integer`, `boolean`, `choice`,
+`multi_choice` and `rating` ([API reference](docs/api.md#ask-one-question)).
 
 If the wait times out (`wait_ended`, code `WAIT_TIMEOUT`) or you abort it, nothing changes remotely:
 call `answer()` again on the same handle. An error with `outcome: "unknown"` means completion is not
