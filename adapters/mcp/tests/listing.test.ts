@@ -144,19 +144,23 @@ describe('listing.json artifacts', () => {
     // Hosts and stores with no qualified packet say so; none is promoted.
     expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);
     expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
-    // Production serves the icon URLs, so that is no blocker. 0.1.1 is prepared, not published, so
-    // the Registry and Cursor's stdio link wait for it. Cline's 400x400 stays a blocker until it is
-    // deployed and committed here.
+    // Production serves the icon URLs, so that is no blocker. 0.1.1 is published on npm and listed
+    // in the Registry (founder 2026-11-06 02:50Z), so neither npm blocker remains. Cline's 400x400
+    // stays a blocker until it is deployed and committed here.
     expect(text).not.toMatch(/icon URLs/);
-    expect(text).toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
+    expect(text).not.toMatch(/MCP Registry and Cursor stdio/);
+    expect(text).not.toMatch(/MCP Registry( npm package)?:/);
     expect(text).toMatch(
       /Cline: needs a 400x400 PNG at a deployed URL; it is in w1991e\/sess PR #1019, not merged at this writing and not deployed until a founder window/,
     );
     expect(text).toMatch(/Cline: listings\/cline-issue\.md has OWNER: lines to resolve/);
     expect(text).not.toMatch(/no PNG icon yet/);
     expect(text).not.toMatch(/urls\.(privacy|terms)/);
-    // 0.1.0, on npm until 0.1.1 is published, declares the old name.
-    expect(text).toMatch(
+    // A listed package whose npm readback still names an older version or the old name blocks.
+    const stale = inputs();
+    stale.listing.providers.mcpRegistry.npmPackage.publishedVersion = '0.1.0';
+    stale.listing.providers.mcpRegistry.npmPackage.publishedMcpName = 'io.github.w1991e/sess';
+    expect(check(stale).blockers.join('\n')).toMatch(
       /MCP Registry: @sess\.si\/mcp@0\.1\.0 on npm declares mcpName io\.github\.w1991e\/sess/,
     );
   });
@@ -323,8 +327,8 @@ describe('listing.json artifacts', () => {
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
       ['streamable-http', 'qualified'],
-      // The round used the remote link. The stdio link names 0.1.1, prepared and not yet on npm.
-      ['stdio', 'unpublished'],
+      // The round used the remote link. The stdio link names 0.1.1, published on npm, not qualified.
+      ['stdio', 'published'],
     ]);
     // Cursor's evidence is the founder's round, and it claims no outside user.
     const cursorProvider = inputs().listing.providers.cursorInstall;

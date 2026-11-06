@@ -50,7 +50,7 @@ The provider rules it enforces (read 2026-10-23):
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | OpenAI       | display name and subtitle 30, long description 4,000, at most 3 unique default prompts of 128 with no @mentions; no "MCP" or "Plugin" in the name; website, support, privacy and terms URLs all HTTPS; exactly 5 positive cases (description, prompt, tools, expected result) and 3 negative cases (why not to act, prompt, expected refusal); no credentials or reviewer instructions in the package                                      |
 | Claude       | name 100, one-liner 200, description 2,000, 1-5 distinct categories, HTTPS documentation and privacy policy URLs, a support contact (email or HTTPS URL), OAuth over HTTPS, a title and hints on every tool                                                                                                                                                                                                                                |
-| MCP Registry | the pinned 2025-12-11 schema; the name in the `si.sess/*` namespace that DNS authentication of `sess.si` grants; exactly one `streamable-http` remote, the production URL; while the npm package is deferred, no packages (remote-only); once listed, exactly one npm stdio package (this package, at `package.json`'s version) and the name equal to `mcpName`                                                                            |
+| MCP Registry | the pinned 2025-12-11 schema; the name in the `si.sess/*` namespace that DNS authentication of `sess.si` grants; exactly one `streamable-http` remote, the production URL; with the npm package listed, exactly one npm stdio package (this package, at `package.json`'s version) and the name equal to `mcpName` (were it set back to `deferred`, no packages)                                                                            |
 | Icons        | every committed PNG in `icons.files` exists, is a square PNG of its stated size (read from its IHDR), at least 48x48, and has its recorded SHA-256; `icons.value` names the same icons, in order, as `image/png` with their `sizes`, at `https://sess.si/assets/icons/<icons.json version>/<file>`; `server.json`, `plugin.json` (`logo`, `composerIcon`), `claude-connector.json` (`icon`) and Docker's `about.icon` take them from there |
 | Host status  | Claude's and Cursor's artifacts each carry their own `remoteStatus` from `listing.json`; `qualified` needs that host's `qualificationEvidence`; the Cursor remote link decodes to the production URL                                                                                                                                                                                                                                       |
 | Packets      | the owner submission steps below quote listing.json's current short, registry and one-line descriptions, the remote URL, the repository, the support contact and the icon URLs                                                                                                                                                                                                                                                             |
@@ -64,7 +64,7 @@ https://modelcontextprotocol.io/registry/authentication.
 
 | File                                    | For                                                       | Validated against                                                 |
 | --------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------- |
-| `server.json`                           | MCP Registry (the remote; remote-only for now)            | MCP Registry `server.schema.json` 2025-12-11                      |
+| `server.json`                           | MCP Registry (the remote and the npm stdio package)       | MCP Registry `server.schema.json` 2025-12-11                      |
 | `listings/plugin/` (`plugin.json`, ...) | OpenAI (ChatGPT and Codex) and Cursor plugin bundle       | Agent Plugins 1.0.0 `plugin` and `mcp` schemas, plus rules        |
 | `listings/cursor-install.json`          | Cursor install links (remote and stdio)                   | decodes to its config; no secret in it                            |
 | `listings/claude-connector.json`        | Values for Anthropic's connector submission form          | documented requirements (no published schema)                     |
@@ -144,9 +144,6 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
   marked qualified, and Codex has no production run;
 - for Docker: OAuth through Docker's Toolkit is untested; the founder tests it with
   `docker mcp oauth authorize sess` (see [Docker](#docker));
-- to list the npm stdio package in the MCP Registry entry (today it is remote-only): a successor
-  `@sess.si/mcp` candidate declaring `mcpName` `si.sess/sess` (the published 0.1.0 declares
-  `io.github.w1991e/sess`); then set `providers.mcpRegistry.npmPackage.status` to `listed`;
 - for Cline only: the 400x400 PNG deployed (w1991e/sess PR #1019; see [Icon](#icon)), and watching
   Cline set the server up from the README alone (see [Cline](#cline));
 - a demo recording URL (OpenAI), and a reviewer test account entered in each portal, never in the
@@ -154,8 +151,9 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` sc
 
 After any change to `listing.json`, run `npm run listing` and commit the result.
 
-`compatibility.json` still has stale lines (it calls 0.1.0 "prepared" and "unpublished"; npm has it
-on `latest`). It ships in the package, so they are corrected at the next release.
+`compatibility.json` still has stale lines (it calls 0.1.1 "prepared" and "unpublished", and its
+`registry` block calls the entry remote-only and not submitted; npm has 0.1.1 on `latest`, and the
+Registry lists it). It ships in the package, so they are corrected at the next release.
 
 ## Owner submission steps
 
@@ -171,16 +169,17 @@ Official registry only (`registry.modelcontextprotocol.io`), under the domain na
 which the owner keeps in the macOS Keychain item `sess-mcp-registry-ed25519`. The key never goes
 into this repository, a file, a log, a chat or an agent prompt.
 
-**The entry is remote-only at 0.1.0** (founder 2026-11-04 20:00Z, option 1). `server.json` lists the one `streamable-http` remote
-`https://mcp.sess.si/mcp` and no `packages`. The registry checks a listed npm package's `mcpName`
-against the server name (https://modelcontextprotocol.io/registry/package-types), and the published
-`@sess.si/mcp@0.1.0` declares `io.github.w1991e/sess`, so `si.sess/sess` cannot list it;
-`package.json` keeps that value so the published package's identity is unchanged. The entry's
-version is 0.1.0. Listing the stdio package (`providers.mcpRegistry.npmPackage.status` `listed`) needs a
-successor candidate declaring `mcpName` `si.sess/sess`; the checks and the release guard then
-require the two to be equal again.
+**0.1.1 is published and listed** (founder 2026-11-06 02:50Z). The founder published it from
+master's `server.json` at about 02:49Z (validate, DNS TXT, DNS login and publish all OK). The
+Registry's public API read back `si.sess/sess` 0.1.1, status `active`, `publishedAt`
+2026-11-06T02:49:36Z, `isLatest` true, with one remote, `https://mcp.sess.si/mcp`
+(`streamable-http`), and one package, the npm stdio package `@sess.si/mcp` 0.1.1. The registry
+checks a listed npm package's `mcpName` against the server name
+(https://modelcontextprotocol.io/registry/package-types); `@sess.si/mcp@0.1.1`, on npm `latest`,
+declares `si.sess/sess` (`providers.mcpRegistry.npmPackage.status` `listed`). 0.1.0 remains as a
+prior version: remote-only, `active`, published 2026-11-05T00:33:45Z, not latest.
 
-`server.json` names `package.json`'s exact version (and, once listed, the npm package's), and
+`server.json` names `package.json`'s exact version (and the listed npm package's), and
 stays in step with it on every release candidate (2026-10-20): `npm run listing` writes
 it, and `npm run check:listing`, the registry-metadata test and the release guard fail when they
 differ. It never names a dist-tag. The registry does not verify the remote URL;
@@ -201,8 +200,8 @@ Owner commands, in the owner's own terminal:
    check `shasum -a 256` is
    `e45e520892460732a4bdf37255576415d4a53ec171f8b913faf15bb1aef7cb77`, then
    `tar -xzf mcp-publisher_darwin_arm64.tar.gz mcp-publisher`.
-2. From `adapters/mcp` at the commit that carries the signed copy (master after this merge, not the
-   `mcp-v0.1.0` tag): `../../mcp-publisher validate server.json` (or the path you extracted it to).
+2. From `adapters/mcp` at the commit that carries the signed copy (master, as for the 0.1.1
+   publish): `../../mcp-publisher validate server.json` (or the path you extracted it to).
 3. Check the TXT record is still served: `dig +short TXT sess.si` shows a `v=MCPv1; k=ed25519;`
    entry.
 4. Log in with DNS authentication. The key is read from the Keychain into a shell variable and
@@ -217,6 +216,10 @@ Owner commands, in the owner's own terminal:
    If the Keychain item holds the PEM key rather than the hex key, derive the hex form inside the
    same substitution, as the registry documents:
    `PRIVATE_KEY="$(security find-generic-password -s sess-mcp-registry-ed25519 -w | openssl pkey -noout -text | grep -A3 'priv:' | tail -n +2 | tr -d ' :\n')"`.
+
+   `mcp-publisher` accepts the private key only as a command argument, so this login step exposes
+   it briefly on the owner's machine (the process list while it runs, and shell history if the
+   command is typed carelessly). The procedure is unchanged for now (founder 2026-11-06 02:50Z).
 
 5. `mcp-publisher publish`.
 6. Read the entry back:
@@ -258,7 +261,7 @@ organization and the Apps Management Write role.
   (see [Requalification](#requalification-on-production)). This is not a submission to, or an
   acceptance by, Cursor's marketplace.
 - A reconnect defect (C-3) is being fixed server-side in w1991e/sess.
-- The stdio link names `@sess.si/mcp@0.1.0`, which is published on npm. Its status stays `published`:
+- The stdio link names `@sess.si/mcp@0.1.1`, which is published on npm (`latest`). Its status stays `published`:
   the round used the remote link, and published is not qualified.
 - These links belong on the setup page. Nothing here puts them there: that page is built in
   w1991e/sess from its own host matrix, whose Cursor entry has its own `qualified` field.
@@ -301,6 +304,11 @@ second prompt, recorded as a pass with one re-orientation) and
 #947). That is not a submission to Anthropic's review, and nothing here has been accepted by it.
 
 ### Smithery
+
+**Not available (closed 2026-10-31; curated directory).** Smithery closed self-service publishing on
+2026-10-31 and is now a curated directory (founder 2026-11-06, about 02:55Z). No submission was
+made, and Smithery is not a pending or next submission. The steps below are kept as history only;
+they no longer work.
 
 Sources: https://smithery.ai/docs/build/publish and https://smithery.ai/docs/build/external (read
 2026-10-28). Smithery lists a remote server by its URL; it needs Streamable HTTP and, for a server

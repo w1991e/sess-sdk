@@ -92,8 +92,8 @@
   },
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
-    "status": "unpublished",
-    "note": "@sess.si/mcp@0.1.1 (package.json's version) is prepared, not on npm: it is staged by the tag and approved by the owner. 0.1.0 stays on latest until then. Published is not host qualification; the MCP Registry entry takes the package at the 0.1.1 publish.",
+    "status": "published",
+    "note": "@sess.si/mcp@0.1.1 (package.json's version) is published on npm, on latest (tag mcp-v0.1.1 on e7d2ca0); next stays at 0.1.0-rc.4. Read back 2026-11-06. The MCP Registry entry si.sess/sess 0.1.1 lists it. Published is not host qualification.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {
@@ -168,10 +168,10 @@
       },
       "npmPackage": {
         "status": "listed",
-        "publishedVersion": "0.1.0",
-        "publishedMcpName": "io.github.w1991e/sess",
-        "read": "2026-11-05",
-        "note": "Listed at the 0.1.1 publish (founder 2026-11-05 00:50Z): @sess.si/mcp@0.1.1 declares mcpName si.sess/sess, and the Registry entry takes the npm package, the repository field and the one-liner. @sess.si/mcp@0.1.0, on npm until then, declares io.github.w1991e/sess, so check:listing keeps this a blocker until 0.1.1 is published; publishedVersion and publishedMcpName are the registry's current readback."
+        "publishedVersion": "0.1.1",
+        "publishedMcpName": "si.sess/sess",
+        "read": "2026-11-06",
+        "note": "Listed. The founder published si.sess/sess 0.1.1 from master's server.json at about 02:49Z on 2026-11-06 (founder 2026-11-06 02:50Z). The Registry's public API read back: version 0.1.1, status active, publishedAt 2026-11-06T02:49:36Z, isLatest true, one remote (https://mcp.sess.si/mcp) and packages [@sess.si/mcp 0.1.1]. 0.1.0 (remote-only, published 2026-11-05T00:33:45Z) stays active as a prior version, not latest. publishedVersion and publishedMcpName are npm's readback: @sess.si/mcp@0.1.1 declares mcpName si.sess/sess."
       },
       "schema": {
         "id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
