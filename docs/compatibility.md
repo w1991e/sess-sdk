@@ -1,9 +1,12 @@
 # Compatibility and evidence
 
-SDK version: **0.1.1**, published on npm under the `latest` dist-tag with provenance and pinned in
-[release/sdk-candidate.json](../release/sdk-candidate.json). Its API is that of 0.1.0, unchanged.
+SDK version: **0.2.0**, prepared for the `latest` dist-tag: the rating field and respondents (the
+Ask) in `sess.ask`. Their types (the field's `rating`, `/v1/asks`) are written by hand from the
+Sess contract until the reviewed snapshot carries them. **0.1.1** is published on npm under
+`latest` with provenance and pinned in [release/sdk-candidate.json](../release/sdk-candidate.json)
+until the registry transition; its API is that of 0.1.0, unchanged.
 **0.1.0**, the first stable release, remains published; its API is that of 0.1.0-rc.10, unchanged; `next` stays at the last release candidate, `0.1.0-rc.10`. Its
-contract snapshot is unchanged from rc.8: Sess runtime commit
+contract snapshot is unchanged from rc.8 (0.2.0 included): Sess runtime commit
 `2f8500e3da894c00b2a9ac2c4be413851b711c5b`. **0.1.0-rc.10** (short-link redaction in request
 identifiers and a plain message for a key Sess does not accept), **0.1.0-rc.9** (the commerce
 builders `money()`, `items()`, `invoice()`, `receipt()`, `quote()`, `refund()`, `purchaseOrder()`

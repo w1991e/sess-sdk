@@ -325,7 +325,14 @@ function ratingField(c: JsonObject, path: string): void {
       `${path}.schema`,
       `must be exactly {"type": "integer", "minimum": 1, "maximum": N} for a rating, with N from ${RATING.min} to ${RATING.max}`,
     );
+  // The proposed value is one of the choices, as Sess checks it against the field schema.
+  if (c.value !== undefined && !onScale(c.value, max))
+    invalid(`${path}.value`, 'the proposed value is not valid against the field schema');
 }
+
+/** A rating's value: a whole number from 1 to the scale's maximum. */
+const onScale = (value: JsonValue, max: number) =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= max;
 
 /**
  * The words shown for each choice are its `option_labels` entry, otherwise the enum ID itself.
@@ -590,6 +597,9 @@ function askField(value: JsonValue | undefined, path: string): JsonObject {
       if (typeof max !== 'number' || !Number.isInteger(max) || max < RATING.min || max > RATING.max)
         invalid(`${path}.max`, `must be a whole number from ${RATING.min} to ${RATING.max}`);
       schema = { type: 'integer', minimum: 1, maximum: max };
+      // Checked here so a default off the scale names the sess_ask argument (/fields/0/default).
+      if (f.default !== undefined && !onScale(f.default, max))
+        invalid(`${path}.default`, `must be a whole number from 1 to ${max}`);
       // Named at the sess_ask argument (/fields/0/low), the end labels only when given.
       rating = {};
       for (const end of ['low', 'high'] as const)
