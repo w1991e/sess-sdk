@@ -7,8 +7,8 @@ tarball only after a maintainer approves the protected environment, and nothing 
 until a maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`) go to
 `next`, never to `latest`; a stable version (no `-rc.N`) goes to `latest`.
 
-The current release, `0.1.1`, is prepared and unpublished: the tag `mcp-v0.1.1` stages it for
-`latest`, replacing `0.1.0`. Its contents are the `0.1.1` entry in [CHANGELOG.md](CHANGELOG.md), and
+The current release, `0.1.1`, is published on `latest` (tag `mcp-v0.1.1`, 2026-11-06), replacing
+`0.1.0`. Its contents are the `0.1.1` entry in [CHANGELOG.md](CHANGELOG.md), and
 [release/v0.1.1-packet.md](release/v0.1.1-packet.md) is its order. `next` stays at the last release
 candidate, `0.1.0-rc.4`.
 
@@ -52,8 +52,8 @@ maintainer steps are historical: they were executed and are not re-run.
    match every OIDC identity field exactly. Do not install an automation token as a workaround.
 5. **MCP registry namespace — `si.sess/sess`.** The owner chose the domain namespace `si.sess/*`
    (DNS authentication of `sess.si`) for the registry entry, replacing `io.github.w1991e/sess`.
-   `0.1.0` on npm still declares `io.github.w1991e/sess`, so the entry stays remote-only on the
-   Registry until `0.1.1`, whose `mcpName` is `si.sess/sess`, is published. Submitting `server.json`
+   `0.1.0` on npm declares `io.github.w1991e/sess`, so its entry was remote-only; `0.1.1`, whose
+   `mcpName` is `si.sess/sess`, is published and listed with the npm package (2026-11-06). Submitting `server.json`
    is a separate owner action, with `mcp-publisher login dns` and the owner's key (`LISTINGS.md`).
 
 ## Cutting a release
