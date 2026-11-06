@@ -46,20 +46,22 @@ All methods return `{data, meta}`. Metadata contains HTTP `status`, `attempts`, 
 `requestId`, `etag`, `workspaceId` and `idempotencyKey`. Create/retrieve/publish/complete validate
 and require strong quoted ETags. ETags are opaque; preserve their quotes and original value.
 
-| Method                                             | HTTP                                                       | Successful data                                        |
-| -------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------ |
-| `sessions.create(body, options?)`                  | POST `/v1/sessions` → 201                                  | `CreateSessionResponse`                                |
-| `sessions.retrieve(id, options?)`                  | GET `/v1/sessions/{id}` → 200                              | `Session` display/interactive union                    |
-| `sessions.publish(id, body, options)`              | PATCH `/v1/sessions/{id}` → 200                            | Active `InteractiveSession`                            |
-| `sessions.complete(id, options)`                   | POST `/v1/sessions/{id}/complete` → 200                    | Completed `InteractiveSession`                         |
-| `sessions.listEvents(id, options?)`                | GET `/v1/sessions/{id}/events` → 200                       | `SessionEvents`; current full unpaginated history      |
-| `sessions.retrieveSurface(id, revision, options?)` | GET `/v1/sessions/{id}/surfaces/{revision}` → 200          | Exact immutable display/interactive `SurfaceRevision`  |
-| `sessions.listDeliveries(id, options?)`            | GET `/v1/sessions/{id}/deliveries` → 200                   | `Deliveries` diagnostics                               |
-| `sessions.redeliverEvent(id, eventId, options?)`   | POST `/v1/sessions/{id}/events/{event_id}/redeliver` → 202 | `RedeliverResponse` containing `delivery`              |
-| `webhooks.register({url}, options?)`               | PUT `/v1/webhook` → 201                                    | `WebhookRegisterResponse`; secret may be returned once |
-| `webhooks.retrieve(options?)`                      | GET `/v1/webhook` → 200                                    | `WebhookResponse`                                      |
-| `webhooks.verifyEndpoint(options?)`                | POST `/v1/webhook/verify` → 200                            | `WebhookVerifyResponse` containing `endpoint`          |
-| `webhooks.rotateSecret(options?)`                  | POST `/v1/webhook/secrets/rotate` → 201                    | `WebhookRotateResponse`; once-returned secret          |
+| Method                                             | HTTP                                                       | Successful data                                                  |
+| -------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------- |
+| `sessions.create(body, options?)`                  | POST `/v1/sessions` → 201                                  | `CreateSessionResponse`                                          |
+| `sessions.retrieve(id, options?)`                  | GET `/v1/sessions/{id}` → 200                              | `Session` display/interactive union                              |
+| `sessions.publish(id, body, options)`              | PATCH `/v1/sessions/{id}` → 200                            | Active `InteractiveSession`                                      |
+| `sessions.complete(id, options)`                   | POST `/v1/sessions/{id}/complete` → 200                    | Completed `InteractiveSession`                                   |
+| `sessions.listEvents(id, options?)`                | GET `/v1/sessions/{id}/events` → 200                       | `SessionEvents`; current full unpaginated history                |
+| `sessions.retrieveSurface(id, revision, options?)` | GET `/v1/sessions/{id}/surfaces/{revision}` → 200          | Exact immutable display/interactive `SurfaceRevision`            |
+| `sessions.listDeliveries(id, options?)`            | GET `/v1/sessions/{id}/deliveries` → 200                   | `Deliveries` diagnostics                                         |
+| `sessions.redeliverEvent(id, eventId, options?)`   | POST `/v1/sessions/{id}/events/{event_id}/redeliver` → 202 | `RedeliverResponse` containing `delivery`                        |
+| `webhooks.register({url}, options?)`               | PUT `/v1/webhook` → 201                                    | `WebhookRegisterResponse`; secret may be returned once           |
+| `webhooks.retrieve(options?)`                      | GET `/v1/webhook` → 200                                    | `WebhookResponse`                                                |
+| `webhooks.verifyEndpoint(options?)`                | POST `/v1/webhook/verify` → 200                            | `WebhookVerifyResponse` containing `endpoint`                    |
+| `webhooks.rotateSecret(options?)`                  | POST `/v1/webhook/secrets/rotate` → 201                    | `WebhookRotateResponse`; once-returned secret                    |
+| `asks.retrieve(id, {cursor?, limit?, ...options})` | GET `/v1/asks/{id}` → 200                                  | `AskResponse`; one page of respondents, answers not yet verified |
+| `asks.close(id, options?)`                         | POST `/v1/asks/{id}/close` → 200                           | `AskCloseResponse`; safe to repeat                               |
 
 Publish is a complete next interaction, not JSON merge patch. Publish/complete options require
 `ifMatch` and accept `idempotencyKey`. An omitted key is generated once and returned, providing
@@ -80,7 +82,8 @@ See [Security](security.md) for offline verifier inputs and trust requirements.
 
 `sess.ask({ question, fields, details?, submit_label? }, options?)` takes the question-plus-fields
 shape of the MCP `sess_ask` tool and resolves to a handle `{ link, sessionId, revision, answer() }`.
-It is a convenience over the operations below for one question; it adds no endpoint.
+It is a convenience over the operations below for one question; it adds no endpoint. With
+`respondents` it asks many people through one link instead ([below](#one-link-many-people)).
 
 | Field `type`   | Answer value                                   | Extra properties                 |
 | -------------- | ---------------------------------------------- | -------------------------------- |
@@ -133,6 +136,96 @@ console.log(`Rated ${satisfaction} of 5.${comment ? ` They said: ${comment}` : '
 In the API a rating is a field with `rating: { low?, high? }` and the schema exactly
 `{ "type": "integer", "minimum": 1, "maximum": N }`, N from 2 to 10; any other schema is refused
 with `INVALID_SCHEMA`. Corrections, receipts and revisions work as for every field.
+
+### One link, many people
+
+Add `respondents: { max }` and the same question goes to many people through one link: Sess
+creates an Ask instead of one Session. Share this link with everyone who should answer. Each
+person gets their own page. The handle is `{ askId, link, max, expiresAt, read(), close() }`.
+`read()` returns `{ status, closedBy, closedAt, counts, respondents, nextCursor }`; each respondent
+has their own `sessionId`, `status`, `startedAt`, `completedAt` and `answer`, verified by its signed
+receipt and typed by the fields (`null` until they answer). A class at the end of a lesson:
+
+<!-- example:classroom -->
+
+```ts
+import { Sess } from '@sess.si/sdk';
+const sess = new Sess({ apiKey: process.env.SESS_API_KEY });
+const check = await sess.ask({
+  question: 'End of class check',
+  fields: [
+    {
+      name: 'understood',
+      label: 'Did today’s lesson make sense?',
+      type: 'choice',
+      options: ['Yes', 'Mostly', 'No'],
+    },
+  ],
+  respondents: { max: 20 },
+});
+console.log(`Share this link with the class: ${check.link}`);
+const { counts, respondents } = await check.read(); // each answer verified and typed
+const no = respondents.filter((r) => r.answer?.understood === 'No').length;
+console.log(`${counts.answered} of ${check.max} answered. ${no} said no.`);
+```
+
+<!-- /example:classroom -->
+
+The feedback above, from every guest of the day:
+
+<!-- example:feedback-respondents -->
+
+```ts
+import { Sess } from '@sess.si/sdk';
+const sess = new Sess({ apiKey: process.env.SESS_API_KEY });
+const feedback = await sess.ask({
+  question: 'How did we do?',
+  fields: [
+    { name: 'satisfaction', label: 'Your visit', type: 'rating' },
+    { name: 'comment', label: 'Anything else?', type: 'text', multiline: true, required: false },
+  ],
+  respondents: { max: 25 },
+});
+console.log(`Share this link with today’s guests: ${feedback.link}`);
+const { respondents } = await feedback.read();
+const ratings = respondents.flatMap((r) => (r.answer ? [r.answer.satisfaction] : []));
+const average = ratings.reduce((sum, n) => sum + n, 0) / ratings.length;
+console.log(ratings.length ? `${ratings.length} rated us ${average.toFixed(1)} of 5.` : 'No ratings yet.');
+```
+
+<!-- /example:feedback-respondents -->
+
+A respondent is a browser, not a person. The cap is exact: it is checked when a person starts, so
+it cannot be overshot. `max` is at least 2 and at most your plan's active-Session limit (Free 25,
+Starter 50, Pro 100). The Ask closes at its last place, when you call `close()`, or at its
+deadline; `closedBy` says which (`max`, `owner` or `deadline`). Closing ends the links of people
+who have not answered yet; those who answered keep their pages and receipts. Without
+`respondents`, `sess.ask` is exactly as above.
+
+<details>
+<summary>Advanced</summary>
+
+- `respondents.name: true` adds one required "Your name" field before the first field; each
+  answer then has `name` (typed data, never verified). Default false. A field of your own named
+  `name` is refused.
+- `respondents.expires_in` is the Ask's one deadline, in seconds (30 up to your plan's link
+  lifetime; absent, that lifetime). After it no one new may start and every respondent's link has
+  ended. The top-level `expires_in` is for one person's link and is refused with `respondents`.
+- `respondents.respondent_expires_in` is each respondent's link life from their Start, at least
+  30 seconds, clamped to what remains of the Ask. Absent: what remains of the Ask.
+- `respondents.auto_complete` (default true) completes each respondent's Session when their
+  answer is accepted. With `false`, continue each one yourself with `sess.sessions` (publish and
+  complete), using their `sessionId`.
+- Returning an answer in `read()` is that respondent's retrieval, as reading a Session is. Up to
+  100 respondents a page (`limit`); pass `nextCursor` as `cursor` for the next. `read()` checks
+  each answer's receipt once and remembers it for later reads of the same handle.
+- After a restart, read or close an Ask by its ID with `sess.asks.retrieve(askId)` and
+  `sess.asks.close(askId)`; those answers are the raw records, not yet verified.
+- Creation is attempted once. An uncertain outcome is `unknown_outcome`; an unused Ask reserves
+  nothing, so creating it again is safe. A Start refused by your plan shows the person the paused
+  page; the Ask stays open, and `counts.refused` counts it by reason.
+
+</details>
 
 ### Length limits
 

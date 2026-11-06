@@ -31,9 +31,62 @@ import {
 export interface SessClient {
   sessions: Pick<Sess['sessions'], 'create' | 'retrieve' | 'waitForResponse' | 'publish' | 'complete'>;
   receipts: Pick<Sess['receipts'], 'verifyResponse'>;
+  /** The Ask (sess_ask with respondents); absent with an SDK that has none (before 0.2.0). */
+  respondents?: AskOperations;
 }
 
-export type InteractionState = 'waiting' | 'answered' | 'completed' | 'needs_resume' | 'expired';
+/** One respondent as the Ask read lists them (`GET /v1/asks/{id}`). */
+export interface AskRespondentRecord {
+  id: string;
+  status: 'active' | 'responded' | 'completed' | 'purged';
+  started_at: string;
+  completed_at: string | null;
+  responses: AcceptedResponse[];
+}
+/** One page of the Ask read. */
+export interface AskPage {
+  status: 'open' | 'closed';
+  closed_by: 'max' | 'owner' | 'deadline' | null;
+  max: number;
+  counts: { started: number; answered: number; completed: number; refused: Record<string, number> };
+  sessions: AskRespondentRecord[];
+  next_cursor: string | null;
+}
+/** What the Ask needs from the SDK: `sess.ask({ ..., respondents })` and `sess.asks.retrieve`. */
+export interface AskOperations {
+  /** Creates once; an uncertain outcome is never retried. */
+  create(input: JsonObject): Promise<{ askId: string; link: string; expiresAt: string; max: number }>;
+  retrieve(id: string, options?: { cursor?: string; signal?: AbortSignal }): Promise<{ data: AskPage }>;
+}
+
+/**
+ * The adapter's client from the SDK. The Ask is wired only when the SDK carries it (@sess.si/sdk
+ * 0.2.0: `sess.ask` with `respondents`, and `sess.asks`); with an earlier SDK, sess_ask with
+ * respondents is refused before anything is sent.
+ */
+export function sdkClient(sess: Sess): SessClient {
+  const client: SessClient = { sessions: sess.sessions, receipts: sess.receipts };
+  const asks = (sess as unknown as { asks?: { retrieve?: unknown } }).asks;
+  if (asks && typeof asks.retrieve === 'function') {
+    const ask = sess.ask as unknown as (input: JsonObject) => Promise<Record<string, unknown>>;
+    const retrieve = asks.retrieve as AskOperations['retrieve'];
+    client.respondents = {
+      async create(input) {
+        const handle = await ask.call(sess, input);
+        return {
+          askId: handle.askId as string,
+          link: handle.link as string,
+          expiresAt: handle.expiresAt as string,
+          max: handle.max as number,
+        };
+      },
+      retrieve: (id, options) => retrieve.call(asks, id, options),
+    };
+  }
+  return client;
+}
+
+export type InteractionState = 'waiting' | 'answered' | 'completed' | 'needs_resume' | 'expired' | 'closed';
 
 /** Reason saved on a record whose link expired with no answer (state `blocked`, reported as `expired`). */
 const LINK_EXPIRED = 'LINK_EXPIRED';
@@ -42,6 +95,8 @@ const LINK_EXPIRED = 'LINK_EXPIRED';
  * (the same grace as the SDK wait).
  */
 const LINK_EXPIRY_GRACE_MS = 2000;
+/** An Ask read follows at most this many pages (100 respondents each; the largest cap is 100). */
+const ASK_MAX_PAGES = 10;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 
 function instant(value: unknown): number | undefined {
@@ -115,7 +170,23 @@ export interface AdapterResult {
     /** When the link stops taking answers (`action_expires_at`), on create. */
     expiresAt?: string;
     response?: VerifiedResponseResult;
+    /** Only for sess_ask with respondents. */
+    ask?: AskResult;
   };
+}
+/** An Ask in a result: on create its ID and cap, from sess_response also its state and respondents. */
+export interface AskResult {
+  id: string;
+  max: number;
+  status?: 'open' | 'closed';
+  closedBy?: 'max' | 'owner' | 'deadline' | null;
+  counts?: AskPage['counts'];
+  respondents?: {
+    status: AskRespondentRecord['status'];
+    startedAt: string;
+    completedAt?: string;
+    response?: VerifiedResponseResult;
+  }[];
 }
 
 /**
@@ -166,14 +237,16 @@ function digest(value: JsonObject): string {
 }
 
 function defaultClient(config: AdapterConfig): SessClient {
-  return new Sess({
-    apiKey: config.apiKey,
-    baseUrl: config.origin,
-    allowInsecureLocalhost: config.allowInsecureLocalhost,
-    userAgent: USER_AGENT,
-    ...(config.receiptIssuer ? { receiptIssuer: config.receiptIssuer } : {}),
-    ...(config.expectedWorkspaceId ? { expectedWorkspaceId: config.expectedWorkspaceId } : {}),
-  });
+  return sdkClient(
+    new Sess({
+      apiKey: config.apiKey,
+      baseUrl: config.origin,
+      allowInsecureLocalhost: config.allowInsecureLocalhost,
+      userAgent: USER_AGENT,
+      ...(config.receiptIssuer ? { receiptIssuer: config.receiptIssuer } : {}),
+      ...(config.expectedWorkspaceId ? { expectedWorkspaceId: config.expectedWorkspaceId } : {}),
+    }),
+  );
 }
 
 /** A SESS error code only if it has the stable public shape; anything else is dropped. */
@@ -271,6 +344,8 @@ export class SessMcpAdapter {
    * grace again, which only ever delays the end, never reports it early.
    */
   #unplacedSince = new Map<string, { at: number; resolutionMs: number; server: boolean }>();
+  /** Respondents' answers already verified, by Ask, Session and event, with the exact record. */
+  #verifiedRespondents = new Map<string, { record: string }>();
 
   constructor(options: AdapterOptions) {
     this.#options = options;
@@ -342,6 +417,7 @@ export class SessMcpAdapter {
 
   /** request: persist intent, create exactly once, persist, then return URL and handle immediately. */
   async request(args: RequestArgs): Promise<AdapterResult> {
+    if (args.ask) return this.#createAsk(args.interaction, args.ask);
     const { store, client } = await this.#ctx();
     await store.assertCapacity();
     const body = {
@@ -441,10 +517,213 @@ export class SessMcpAdapter {
     });
   }
 
+  /**
+   * sess_ask with respondents: one Ask, created once through the SDK's `sess.ask`. Its outcome is
+   * never uncertain here: a create that may have happened is not kept, because an unused Ask
+   * reserves nothing (Sess Decision 0011), so the same call may simply be made again.
+   */
+  async #createAsk(interaction: JsonObject, ask: NonNullable<RequestArgs['ask']>): Promise<AdapterResult> {
+    const { store, client } = await this.#ctx();
+    const operations = client.respondents;
+    if (!operations)
+      throw new AdapterError(
+        'NOT_CONFIGURED',
+        'This Sess MCP server cannot ask many people yet: its Sess SDK has no respondents. Nothing was created; leave out respondents to ask one person.',
+      );
+    await store.assertCapacity();
+    const now = this.#now();
+    const record: HandleRecord = {
+      schema: RECORD_SCHEMA,
+      handle: store.newHandle(),
+      binding: store.binding,
+      state: 'create_intent',
+      createdAt: now,
+      updatedAt: now,
+      requestDigest: digest({ interaction, ...ask.body } as unknown as JsonObject),
+      revision: 1,
+      processed: [],
+    };
+    await store.save(record);
+    let created;
+    try {
+      created = await operations.create(ask.input);
+    } catch (error) {
+      await store.discard(record.handle);
+      if (error instanceof SessError && (error.outcome === 'not_sent' || error.outcome === 'rejected')) {
+        this.#options.diagnostics('create_rejected', { code: sessCode(error) });
+        const tooLong = sessLength(error);
+        if (tooLong)
+          throw new AdapterError(
+            'CREATE_REJECTED',
+            `Sess did not create the Ask: ${lengthMessage(tooLong.field, tooLong.limit, tooLong.length)}`,
+            false,
+            tooLong,
+          );
+        const code = safeCode(error);
+        throw new AdapterError('CREATE_REJECTED', `Sess did not create the Ask${code ? ` (${code})` : ''}.`);
+      }
+      this.#options.diagnostics('create_unknown', { code: sessCode(error) });
+      throw new AdapterError(
+        'CREATE_OUTCOME_UNKNOWN',
+        'Sess may have created the Ask but did not confirm it, so its link is unknown. An unused Ask reserves nothing: make the same sess_ask call again.',
+        true,
+      );
+    }
+    this.#secrets.push(created.link);
+    Object.assign(record, {
+      state: 'waiting',
+      askId: created.askId,
+      humanUrl: created.link,
+      updatedAt: this.#now(),
+    });
+    await store.save(record).catch(() => {
+      throw createdNotSaved();
+    });
+    this.#options.diagnostics('created', { revision: 1 });
+    return this.#result(record, 'waiting', {
+      humanUrl: created.link,
+      expiresAt: created.expiresAt,
+      ask: { id: created.askId, max: created.max },
+    });
+  }
+
+  /**
+   * sess_response for an Ask: one read (no wait), every page, each respondent's answer to round one
+   * fully verified by its receipt before it is released. `closed` once no more answers can come.
+   */
+  async #readAsk(record: HandleRecord, revision: number, signal?: AbortSignal): Promise<AdapterResult> {
+    const { store, client } = await this.#ctx();
+    if (revision !== 1) throw this.#revisionMismatch(record);
+    const operations = client.respondents;
+    if (!operations)
+      throw new AdapterError(
+        'NOT_CONFIGURED',
+        'This Sess MCP server cannot read an Ask: its Sess SDK has no respondents. Nothing was changed.',
+      );
+    const askId = record.askId!;
+    let page: AskPage | undefined;
+    const sessions: AskRespondentRecord[] = [];
+    try {
+      let cursor: string | undefined;
+      for (let pages = 0; pages < ASK_MAX_PAGES; pages++) {
+        page = (
+          await operations.retrieve(askId, {
+            ...(cursor !== undefined ? { cursor } : {}),
+            ...(signal ? { signal } : {}),
+          })
+        ).data;
+        sessions.push(...page.sessions);
+        if (page.next_cursor === null) break;
+        cursor = page.next_cursor;
+      }
+    } catch (error) {
+      throw unavailable(error);
+    }
+    const respondents: NonNullable<AskResult['respondents']> = [];
+    for (const s of sessions) {
+      const accepted = s.status === 'purged' ? undefined : s.responses.find((r) => r.revision === 1);
+      respondents.push({
+        status: s.status,
+        startedAt: s.started_at,
+        ...(s.completed_at !== null ? { completedAt: s.completed_at } : {}),
+        ...(accepted ? { response: await this.#verifyRespondent(askId, s.id, accepted, signal) } : {}),
+      });
+    }
+    const last = page!;
+    // Closed, and no one admitted can still answer: at the deadline every link has ended; the
+    // owner's close ended every unanswered one; at the last place, once everyone has answered.
+    const final =
+      last.status === 'closed' && (last.closed_by !== 'max' || sessions.every((s) => s.status !== 'active'));
+    if (final && record.state !== 'completed')
+      await store.withLock(record.handle, async () => {
+        const current = await this.#load(store, record.handle);
+        if (current.state === 'completed') return;
+        current.state = 'completed';
+        delete current.humanUrl;
+        current.updatedAt = this.#now();
+        await store.save(current);
+        this.#options.diagnostics('completed', { revision: 1 });
+      });
+    return this.#result(record, final ? 'closed' : 'waiting', {
+      ask: {
+        id: askId,
+        max: last.max,
+        status: last.status,
+        closedBy: last.closed_by,
+        counts: last.counts,
+        respondents,
+      },
+    });
+  }
+
+  /** One respondent's answer, released only after full receipt verification (cached per adapter). */
+  async #verifyRespondent(
+    askId: string,
+    sessionId: string,
+    accepted: AcceptedResponse,
+    signal?: AbortSignal,
+  ): Promise<VerifiedResponseResult> {
+    const { client } = await this.#ctx();
+    const key = `${askId}:${sessionId}:${accepted.event_id}`;
+    const exact = canonicalJson(accepted as unknown as JsonObject);
+    const known = this.#verifiedRespondents.get(key);
+    if (known === undefined || known.record !== exact) {
+      let verified;
+      try {
+        verified = await client.receipts.verifyResponse(
+          { sessionId, response: accepted },
+          signal ? { signal } : {},
+        );
+      } catch (error) {
+        const verification = classifyVerification(error);
+        if (verification === 'transient')
+          throw new AdapterError(
+            'SESS_UNAVAILABLE',
+            'An answer arrived, but Sess receipt keys could not be loaded right now. Nothing was released or changed; call sess_response again shortly.',
+            true,
+          );
+        if (verification === 'configuration')
+          throw new AdapterError(
+            'NOT_CONFIGURED',
+            'The answers cannot be verified because no trusted workspace is known. Set SESS_EXPECTED_WORKSPACE_ID in the MCP server environment and call sess_response again. Nothing was released or changed.',
+          );
+        if (verification === 'genuine') {
+          this.#options.diagnostics('verification_failed', { code: sessCode(error) });
+          throw new AdapterError(
+            'VERIFICATION_FAILED',
+            'An answer to this Ask arrived but its Sess receipt did not verify. No answers were released; ask the owner to review the Ask.',
+          );
+        }
+        throw unavailable(error);
+      }
+      const response = verified.response;
+      if (
+        response.event_id !== accepted.event_id ||
+        response.revision !== 1 ||
+        verified.surface.revision !== 1 ||
+        verified.surface.id !== sessionId ||
+        response.actor.assurance !== 'link_holder'
+      )
+        throw new AdapterError(
+          'VERIFICATION_FAILED',
+          'An answer to this Ask did not match its question. No answers were released; ask the owner to review the Ask.',
+        );
+      this.#verifiedRespondents.set(key, { record: exact });
+    }
+    return {
+      eventId: accepted.event_id,
+      actionId: accepted.action_id,
+      data: plainJson(JSON.parse(JSON.stringify(accepted.data)), 'data') as JsonObject,
+      verified: true,
+      actorAssurance: 'link_holder',
+    };
+  }
+
   /** response: authorize, then read or perform one bounded wait for the exact revision; verify fully. */
   async response(args: ResponseArgs, signal?: AbortSignal): Promise<AdapterResult> {
     const { maxWaitMs, store, client } = await this.#ctx();
     const record = await this.#load(store, args.handle);
+    if (record.askId !== undefined) return this.#readAsk(record, args.revision, signal);
     if (record.state === 'answered') return this.#releaseCached(record, args.revision, signal);
     const settled = this.#settledWithoutAnswer(record, args.revision);
     if (settled) return settled;
@@ -819,6 +1098,11 @@ export class SessMcpAdapter {
     const { store } = await this.#ctx();
     return store.withLock(args.handle, async () => {
       const record = await this.#load(store, args.handle);
+      if (record.askId !== undefined)
+        throw new AdapterError(
+          'INVALID_STATE',
+          `This handle is an Ask: each person’s page completes on its own, so there is nothing to ${operation}. Read their answers with sess_response. Nothing was sent.`,
+        );
       const pendingState = operation === 'publish' ? 'publish_pending' : 'complete_pending';
       if (record.state === pendingState) {
         const p = record.pending!;

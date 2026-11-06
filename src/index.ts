@@ -2,6 +2,16 @@ export { Sess } from './client.js';
 export { SessError } from './errors.js';
 export type { SessErrorKind, SessErrorDetails, WriteOutcome } from './errors.js';
 export type { AskAnswer, AskAnswerOptions, AskField, AskHandle, AskInput, AskOptions } from './ask.js';
+export type {
+  AskClosed,
+  AskRead,
+  AskRespondent,
+  AskRespondents,
+  AskRespondentsAnswer,
+  AskRespondentsHandle,
+  AskRespondentsInput,
+} from './ask.js';
+export type { AskReadOptions, Asks } from './asks.js';
 export * from './types.js';
 export { ITEMS_DEFAULT_LABELS, ITEMS_LIMITS, items, money } from './commerce/items.js';
 export type {
