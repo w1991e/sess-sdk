@@ -195,7 +195,10 @@ describe('MCP server', () => {
     // the re-wait and routing text. A different hash is a contract change: an input or output schema
     // change needs a new sess-mcp-tools version (src/tools.ts); then renew these pins. Renewed for
     // sess-mcp-tools/5 (the rating field): every tool's meta names the new version; sess_request,
-    // sess_publish and sess_ask take the rating.
+    // sess_publish and sess_ask take the rating. Renewed again within the unreleased
+    // sess-mcp-tools/5 for the Ask (Sess P2-24(d)): sess_ask takes `respondents`, and sess_ask and
+    // sess_response return `interaction.ask` and the state `closed`. sess_request, sess_publish and
+    // sess_complete are unchanged.
     const contract = Object.fromEntries(
       TOOLS.map(({ name, description: _, ...rest }) => [
         name,
@@ -207,10 +210,10 @@ describe('MCP server', () => {
     expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/5');
     expect(contract).toEqual({
       sess_request: 'c393e4066d6f3f7d5dee78ac5b38fb4e2d9236252b56478c5fab6eae053e0ad1',
-      sess_response: 'd9401c9e03b3bad4c0a4c4496d057d5869460c9da9b7e4db11bbcc066f5af9d8',
+      sess_response: '3fdcb3e97f04658f55b79d2150937d0a88aa85789d65289a5d0d783793fd6d25',
       sess_publish: 'b000564b40060daac60fa8cf57ada37a3911b2112e0e92b0487a4f7edd8abd02',
       sess_complete: 'd8a0e150608bbb93f973aef20a521feef41efd84c6e3138b02678aef261b0540',
-      sess_ask: 'bd000cb09a1fcf4be801153870e11f682609f16572f220cab0084d5af84daf0d',
+      sess_ask: '07a90c9735e2db2f9189b060e3e4927733d3d64ac33dfc6e59a9607b08a1ac2d',
     });
     expect(TOOLS.find((t) => t.name === 'sess_response')!.annotations).toEqual({
       title: 'Read the person’s Sess answer',

@@ -190,6 +190,17 @@ export interface HandleRecord {
   /** SHA-256 of the canonical create request; a create intent never stores a second body. */
   requestDigest: string;
   sessionId?: string;
+  /**
+   * An Ask (sess_ask with respondents) instead of one Session: no sessionId, answer or pending
+   * mutation; `waiting` until it is closed and no more answers can come, then `completed`.
+   */
+  askId?: string;
+  /**
+   * With `askId` only: SHA-256 of round one's canonical interaction as each respondent's Session
+   * stores it. A respondent's answer is released only when its verified surface has this digest.
+   * Optional in record schema 2: records without an Ask never carry it.
+   */
+  askSurfaceDigest?: string;
   /** Bearer capability, kept privately until the interaction is terminal. */
   humanUrl?: string;
   /** The revision the agent is currently waiting on or has an answer for. */
@@ -204,6 +215,7 @@ export interface HandleRecord {
 }
 
 const SESSION_ID = /^ses_[0-9A-HJKMNP-TV-Z]{26}$/;
+const ASK_ID = /^ask_[0-9A-HJKMNP-TV-Z]{26}$/;
 const ETAG = /^"[\x21\x23-\x7e\x80-\xff]{0,1024}"$/;
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9_.:-]{1,128}$/;
 const GENERATION = /^cg1_[A-Za-z0-9_-]{22}$/;
@@ -266,9 +278,28 @@ export function decodeRecord(raw: unknown, expectedHandle: string): HandleRecord
   }
   const state = r.state as RecoveryState;
   if (r.sessionId !== undefined && !str(r.sessionId, SESSION_ID)) corrupt();
+  if (r.askId !== undefined) {
+    if (
+      !str(r.askId, ASK_ID) ||
+      !str(r.askSurfaceDigest, /^[0-9a-f]{64}$/) ||
+      r.sessionId !== undefined ||
+      r.answer !== undefined ||
+      r.pending !== undefined ||
+      r.etag !== undefined ||
+      r.revision !== 1 ||
+      (state !== 'waiting' && state !== 'completed')
+    )
+      corrupt();
+  } else if (r.askSurfaceDigest !== undefined) corrupt();
   if (r.humanUrl !== undefined && !str(r.humanUrl, /^https?:\/\/[\x21-\x7e]{1,4096}$/)) corrupt();
   if (r.etag !== undefined && !str(r.etag, ETAG)) corrupt();
-  if (state !== 'create_intent' && state !== 'create_unknown' && state !== 'blocked' && !r.sessionId)
+  if (
+    state !== 'create_intent' &&
+    state !== 'create_unknown' &&
+    state !== 'blocked' &&
+    !r.sessionId &&
+    !r.askId
+  )
     corrupt();
   if (r.answer !== undefined) {
     const a = obj(r.answer);

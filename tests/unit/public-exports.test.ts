@@ -119,6 +119,22 @@ const ADDED = {
     'Money',
     'RefundInput',
     'TextLintFinding',
+    // Sess Decision 0011 (0.2.0): the Ask, `respondents` in sess.ask, and `sess.asks`.
+    'AskCloseResponse',
+    'AskClosed',
+    'AskCounts',
+    'AskRead',
+    'AskReadOptions',
+    'AskRespondent',
+    'AskRespondentRecord',
+    'AskRespondents',
+    'AskRespondentsAnswer',
+    'AskRespondentsHandle',
+    'AskRespondentsInput',
+    'AskResponse',
+    'Asks',
+    'CreateAskRequest',
+    'CreateAskResponse',
     'invoice',
     'items',
     'lintText',
@@ -231,9 +247,15 @@ describe('public exports', () => {
     expect(Object.keys(qrHelper).sort()).toEqual(['QR_HEADING', 'QR_TITLE', 'printQr', 'qr']);
   });
 
-  it('keep every existing client resource and add only the ask method', () => {
+  it('keep every existing client resource and add only the ask method and the Ask read/close', () => {
     const sess = new Sess({ apiKey: API_KEY, fetch: () => Promise.reject(new Error('no network')) });
-    expect(Object.keys(sess)).toEqual(['sessions', 'webhooks', 'receipts']);
+    // Sess Decision 0011: `asks` reads and closes an Ask by ID; it has no create (one verb: ask).
+    expect(Object.keys(sess)).toEqual(['sessions', 'webhooks', 'receipts', 'asks']);
+    expect(Object.getOwnPropertyNames(Object.getPrototypeOf(sess.asks)).sort()).toEqual([
+      'close',
+      'constructor',
+      'retrieve',
+    ]);
     expect(Object.getOwnPropertyNames(Sess.prototype).sort()).toEqual(['ask', 'constructor']);
     expect(Object.getOwnPropertyNames(Object.getPrototypeOf(sess.sessions)).sort()).toEqual([
       'complete',
