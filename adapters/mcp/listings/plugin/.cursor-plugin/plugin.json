@@ -1,0 +1,12 @@
+{
+  "name": "sess",
+  "version": "0.1.1",
+  "description": "Let your agent ask a person and continue with their answer.",
+  "author": { "name": "Sess" },
+  "homepage": "https://sess.si",
+  "repository": "https://github.com/w1991e/sess-cursor-plugin",
+  "license": "Apache-2.0",
+  "keywords": ["human-in-the-loop", "ask", "approval", "mcp"],
+  "logo": "assets/icon-512.png",
+  "mcpServers": "./mcp.json"
+}

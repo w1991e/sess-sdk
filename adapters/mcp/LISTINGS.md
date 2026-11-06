@@ -18,6 +18,22 @@ plugin's description, Smithery, Glama, Cline) carries the one-liner alone; a mul
 rest of the signed description. Signed words are not a run test: the claude.ai run is in
 [Test cases on claude.ai](#test-cases-on-claudeai), and OpenAI's run has not happened.
 
+Signed (founder 2026-11-06), the listing copy of the Cursor submission. It is `copy.long`, word for
+word, and replaces the long description of 2026-11-04 wherever it is generated (the plugin
+`README.md`, OpenAI's long description, Claude's description). It opens with the one-liner alone, not
+the supporting line:
+
+> Let your agent ask a person and continue with their answer. Your agent describes a form and gets a
+> link at once. The person answers on any device, and your agent continues with a typed answer and a
+> signed receipt.
+>
+> Anyone with the link can answer, so share it only with the person you mean. The receipt records
+> what Sess accepted, not who answered. Check answers before your agent acts on them. You sign in
+> with a Sess account. The person answering needs none.
+
+With it, the plugin `README.md` lists `sess_ask` first, and its Connect bullet no longer says how
+to sign in; the copy says it.
+
 ## Commands
 
 - `npm run listing` builds the server and regenerates every artifact from `listing.json`.
@@ -55,7 +71,8 @@ https://modelcontextprotocol.io/registry/authentication.
 | `listings/cline-issue.md`               | The text of a submission issue in `cline/mcp-marketplace` | generated only; `OWNER:` lines mark what is not yet true or known |
 | `listings/plugin/assets/` (the icons)   | Every store that takes an icon upload                     | PNG IHDR size and pinned SHA-256 (copied, not generated)          |
 
-The plugin bundle holds `plugin.json`, `mcp.json` (exactly one server: the remote endpoint), a
+The plugin bundle holds `plugin.json`, Cursor's `.cursor-plugin/plugin.json` (see [Cursor](#cursor)),
+`mcp.json` (exactly one server: the remote endpoint), a
 `README.md`, one skill stub, `skills/ask-a-person/SKILL.md`, and the icons in `assets/`. No ZIP is
 checked in; build one when submitting.
 
@@ -248,9 +265,18 @@ organization and the Apps Management Write role.
   C-2). `copy.defaultPrompts` and test-case prompt 1 now name Sess, in his form "Use Sess to ask me …, then tell
   me what I chose." The exact sentences are signed (2026-11-05 05:50Z), and no host has run them. The plugin bundle is
   shared, so OpenAI's listing receives them too.
-- The plugin bundle is submitted as a public Git repository at https://cursor.com/marketplace/publish.
-  Confirm that a subfolder (`adapters/mcp/listings/plugin`) is accepted; otherwise the owner decides
-  whether to mirror it into its own repository.
+- Submitted 2026-11-06 (02:13Z), awaiting Cursor's review; not listed, not accepted. The founder
+  submitted a publisher application at https://cursor.com/marketplace/publish: organization Sess,
+  publisher handle `sess`, logo `https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png`, website
+  `https://sess.si`, and the public repository https://github.com/w1991e/sess-cursor-plugin, with
+  the plugin at its root: `.cursor-plugin/plugin.json` plus this bundle at tag `mcp-v0.1.1`.
+  Requalification with `@sess.si/mcp` 0.1.1 passed on production at about 01:49Z that day.
+- `listings/plugin/.cursor-plugin/plugin.json` is generated from `listing.json`
+  (`providers.cursorPlugin`) and is the submitted file byte for byte; `check:listing` holds it to
+  this server, `package.json`'s version, the bundle's `mcp.json` and the primary icon.
+- The public repository is regenerated from this bundle (`listings/plugin/`, copied to its root),
+  and the founder pushes it. Nothing here pushes it. Record acceptance or a listing only from
+  Cursor's own confirmation.
 
 ### Claude (connector directory review)
 
@@ -325,7 +351,7 @@ reads the README.
 
 - GitHub URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`
 - Description: `copy.long` from `listing.json`. It opens with
-  `Let your agent ask a person and continue with their answer. People answer through a link on any device. Sess returns their response with a signed receipt.`;
+  `Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once.`;
   if the form holds only that, paste that part.
 - Tags: `human-in-the-loop`, `forms`, `approvals`, `receipts`, `mcp`
 - Category: `Productivity` (the nearest of the form's categories, if it differs)
