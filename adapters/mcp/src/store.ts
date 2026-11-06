@@ -195,6 +195,12 @@ export interface HandleRecord {
    * mutation; `waiting` until it is closed and no more answers can come, then `completed`.
    */
   askId?: string;
+  /**
+   * With `askId` only: SHA-256 of round one's canonical interaction as each respondent's Session
+   * stores it. A respondent's answer is released only when its verified surface has this digest.
+   * Optional in record schema 2: records without an Ask never carry it.
+   */
+  askSurfaceDigest?: string;
   /** Bearer capability, kept privately until the interaction is terminal. */
   humanUrl?: string;
   /** The revision the agent is currently waiting on or has an answer for. */
@@ -275,6 +281,7 @@ export function decodeRecord(raw: unknown, expectedHandle: string): HandleRecord
   if (r.askId !== undefined) {
     if (
       !str(r.askId, ASK_ID) ||
+      !str(r.askSurfaceDigest, /^[0-9a-f]{64}$/) ||
       r.sessionId !== undefined ||
       r.answer !== undefined ||
       r.pending !== undefined ||
@@ -283,7 +290,7 @@ export function decodeRecord(raw: unknown, expectedHandle: string): HandleRecord
       (state !== 'waiting' && state !== 'completed')
     )
       corrupt();
-  }
+  } else if (r.askSurfaceDigest !== undefined) corrupt();
   if (r.humanUrl !== undefined && !str(r.humanUrl, /^https?:\/\/[\x21-\x7e]{1,4096}$/)) corrupt();
   if (r.etag !== undefined && !str(r.etag, ETAG)) corrupt();
   if (

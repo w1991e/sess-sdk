@@ -142,7 +142,7 @@ describe('sess.ask with respondents: the create', () => {
     expect(error).toMatchObject({ kind: 'api', code: 'INVALID_SCHEMA', status: 400, outcome: 'rejected' });
   });
 
-  it('is the same create body as the MCP sess_ask tool with respondents', () => {
+  it('is the same create body, and the same round-one binding, as the MCP sess_ask tool with respondents', () => {
     for (const respondents of [
       { max: 20 },
       { max: 3, name: true, expires_in: 3600, respondent_expires_in: 600 },
@@ -152,6 +152,8 @@ describe('sess.ask with respondents: the create', () => {
       const mcp = parseAskArgs({ ...classroom, respondents });
       expect(mcp.interaction).toEqual(compiled.interaction);
       expect(mcp.ask!.body).toEqual(compiled.respondents!.body);
+      // Both release an answer only from a Session whose surface is exactly this round one.
+      expect(mcp.ask!.surface).toEqual({ ...compiled.respondents!.surface, response_policy: 'first' });
     }
   });
 });

@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { chmodSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
@@ -19,6 +19,44 @@ const QUESTION = {
   fields: [{ name: 'understood', label: 'Did it make sense?', type: 'choice', options: ['Yes', 'No'] }],
 };
 
+/** QUESTION's round one as each respondent's Session stores it, written out independently. */
+const ROUND_ONE = {
+  mode: 'interactive',
+  title: 'End of class check',
+  source: {
+    kind: 'sess_surface',
+    components: [
+      {
+        type: 'field',
+        name: 'understood',
+        label: 'Did it make sense?',
+        required: true,
+        schema: { type: 'string', enum: ['Yes', 'No'] },
+      },
+    ],
+  },
+  actions: [{ id: 'submit', label: 'Send', intent: 'submit' }],
+  response_policy: 'first',
+};
+/** The same with Sess's "Your name" field (`respondents.name: true`), before the first field. */
+const ROUND_ONE_NAMED = {
+  ...ROUND_ONE,
+  source: {
+    kind: 'sess_surface',
+    components: [
+      {
+        type: 'field',
+        name: 'name',
+        label: 'Your name',
+        required: true,
+        schema: { type: 'string', minLength: 1, maxLength: 80 },
+      },
+      ...ROUND_ONE.source.components,
+    ],
+  },
+};
+const HOUR = 3_600_000;
+
 /**
  * An in-memory stand-in for the two SDK operations the adapter uses for an Ask (the pinned SDK
  * before 0.2.0 has neither): `sess.ask({ ..., respondents })` and `sess.asks.retrieve`.
@@ -26,21 +64,30 @@ const QUESTION = {
 class FakeAsks implements AskOperations {
   inputs: JsonObject[] = [];
   reads = 0;
-  link = 'https://app.sess.test/n/synthetic-one-link-token';
+  // Synthetic and shorter than a real short-link token, so the tracked-source scan never flags it.
+  link = 'https://app.sess.test/n/synthetic-link';
   page: AskPage = {
     status: 'open',
     closed_by: null,
     max: 3,
+    action_expires_at: new Date(Date.now() + HOUR).toISOString(),
     counts: { started: 0, answered: 0, completed: 0, refused: { full: 0, paused: 0 } },
     sessions: [],
     next_cursor: null,
   };
+  /** The interaction each respondent's Session stores (what verification returns as its surface). */
+  stored = new Map<string, unknown>();
+  roundOne: unknown = ROUND_ONE;
+  /** The runtime's clock for reads (`meta.serverDate`); absent, the adapter uses its own. */
+  serverDate: number | undefined;
   createFailure: SessError | undefined;
+  onCreate: (() => void) | undefined;
   pageSize = 100;
   async create(input: JsonObject) {
     this.inputs.push(structuredClone(input));
     if (this.createFailure) throw this.createFailure;
-    return { askId: ASK_ID, link: this.link, expiresAt: '2026-11-12T10:00:00.000Z', max: 3 };
+    this.onCreate?.();
+    return { askId: ASK_ID, link: this.link, expiresAt: this.page.action_expires_at, max: 3 };
   }
   async retrieve(id: string, options: { cursor?: string } = {}) {
     this.reads++;
@@ -54,10 +101,12 @@ class FakeAsks implements AskOperations {
         sessions,
         next_cursor: more ? String(from + this.pageSize) : null,
       },
+      meta: this.serverDate === undefined ? {} : { serverDate: this.serverDate },
     };
   }
   start(): string {
     const id = `ses_01JRESP${String(this.page.sessions.length + 1).padStart(19, '0')}`;
+    this.stored.set(id, structuredClone(this.roundOne));
     this.page.sessions.push({
       id,
       status: 'active',
@@ -94,7 +143,10 @@ class FakeAsks implements AskOperations {
 }
 
 type Verify = SessClient['receipts']['verifyResponse'];
-/** Accepts what the fake Ask holds for that respondent (receipt verification itself is the SDK's). */
+/**
+ * Accepts what the fake runtime holds for that Session and returns its stored surface, as the
+ * SDK's verifyResponse does after checking the receipt (receipt cryptography itself is the SDK's).
+ */
 function verifierFor(asks: FakeAsks, calls: string[] = []): Verify {
   return (async ({ sessionId, response }: { sessionId: string; response: AcceptedResponse }) => {
     calls.push(sessionId);
@@ -104,7 +156,7 @@ function verifierFor(asks: FakeAsks, calls: string[] = []): Verify {
     return {
       claims: {},
       response,
-      surface: { id: sessionId, revision: 1, interaction: {}, response_schema: {} },
+      surface: { id: sessionId, revision: 1, interaction: asks.stored.get(sessionId), response_schema: {} },
     };
   }) as unknown as Verify;
 }
@@ -115,9 +167,8 @@ beforeEach(() => {
 });
 afterEach(() => dir.cleanup());
 
-async function connect(asks: FakeAsks | undefined, verify?: Verify) {
+async function connect(asks: FakeAsks | undefined, verify?: Verify, lines: string[] = []) {
   const fake = new FakeSess();
-  const lines: string[] = [];
   let secrets: () => readonly string[] = () => [];
   const base = clientFor(fake);
   const created = createSessMcpServer({
@@ -246,7 +297,7 @@ describe('sess_ask with respondents: the Ask through the tools', () => {
       revision: 1,
       state: 'waiting',
       humanUrl: asks.link,
-      expiresAt: '2026-11-12T10:00:00.000Z',
+      expiresAt: asks.page.action_expires_at,
       ask: { id: ASK_ID, max: 3 },
     });
     const text = created.content[0]!.text;
@@ -326,27 +377,139 @@ describe('sess_ask with respondents: the Ask through the tools', () => {
     expect(record.humanUrl).toBeUndefined();
   });
 
-  it('the owner’s close or the deadline is final at once; a purged respondent is listed without an answer', async () => {
-    for (const closedBy of ['owner', 'deadline'] as const) {
-      const asks = new FakeAsks();
-      const { client } = await connect(asks, verifierFor(asks));
-      const { handle } = (await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } }))
-        .structuredContent.interaction;
-      asks.start();
-      const purged = asks.start();
-      asks.answer(purged, { understood: 'Yes' });
-      const s = asks.page.sessions[1]!;
-      s.status = 'purged';
-      s.responses = [];
-      asks.page.status = 'closed';
-      asks.page.closed_by = closedBy;
-      const read = (await call(client, 'sess_response', { handle, revision: 1 })).structuredContent
-        .interaction;
-      expect(read.state).toBe('closed');
-      expect(read.ask.respondents.map((r: any) => [r.status, r.response])).toEqual([
-        ['active', undefined],
-        ['purged', undefined],
-      ]);
+  it('the owner’s close is final at once; a purged respondent is listed without an answer', async () => {
+    const asks = new FakeAsks();
+    const { client } = await connect(asks, verifierFor(asks));
+    const { handle } = (await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } }))
+      .structuredContent.interaction;
+    asks.start();
+    const purged = asks.start();
+    asks.answer(purged, { understood: 'Yes' });
+    const s = asks.page.sessions[1]!;
+    s.status = 'purged';
+    s.responses = [];
+    asks.page.status = 'closed';
+    asks.page.closed_by = 'owner';
+    const read = (await call(client, 'sess_response', { handle, revision: 1 })).structuredContent.interaction;
+    expect(read.state).toBe('closed');
+    expect(read.ask.respondents.map((r: any) => [r.status, r.response])).toEqual([
+      ['active', undefined],
+      ['purged', undefined],
+    ]);
+  });
+
+  it('closed by its deadline is final only once the runtime’s clock is past it by the grace, as for one person', async () => {
+    const asks = new FakeAsks();
+    const { client } = await connect(asks, verifierFor(asks));
+    const { handle } = (await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } }))
+      .structuredContent.interaction;
+    asks.start();
+    const deadline = Date.now() - 500;
+    asks.page.action_expires_at = new Date(deadline).toISOString();
+    asks.page.status = 'closed';
+    asks.page.closed_by = 'deadline';
+    // An answer accepted just before the deadline may still be landing.
+    asks.serverDate = deadline + 1000;
+    let read = (await call(client, 'sess_response', { handle, revision: 1 })).structuredContent.interaction;
+    expect(read.state).toBe('waiting');
+    asks.serverDate = deadline + 2000;
+    read = (await call(client, 'sess_response', { handle, revision: 1 })).structuredContent.interaction;
+    expect(read.state).toBe('closed');
+  });
+
+  it('closed at its last place with someone who never answers is final once the deadline has passed', async () => {
+    const asks = new FakeAsks();
+    const { client } = await connect(asks, verifierFor(asks));
+    const { handle } = (await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } }))
+      .structuredContent.interaction;
+    const ids = [asks.start(), asks.start(), asks.start()];
+    asks.answer(ids[0]!, { understood: 'Yes' });
+    asks.answer(ids[1]!, { understood: 'No' });
+    const deadline = Date.parse(asks.page.action_expires_at);
+    asks.serverDate = deadline - 60_000;
+    let read = (await call(client, 'sess_response', { handle, revision: 1 })).structuredContent.interaction;
+    expect(read).toMatchObject({ state: 'waiting', ask: { status: 'closed', closedBy: 'max' } });
+    asks.serverDate = deadline + 1999;
+    read = (await call(client, 'sess_response', { handle, revision: 1 })).structuredContent.interaction;
+    expect(read.state).toBe('waiting');
+    // The third respondent never answers: their link ended by the deadline, so nothing more comes.
+    asks.serverDate = deadline + 2000;
+    read = (await call(client, 'sess_response', { handle, revision: 1 })).structuredContent.interaction;
+    expect(read.state).toBe('closed');
+    expect(read.ask.respondents.map((r: any) => r.status)).toEqual(['completed', 'completed', 'active']);
+  });
+
+  it('releases no answer from a Session that does not hold this Ask’s round one (another Session of the workspace)', async () => {
+    const asks = new FakeAsks();
+    const lines: string[] = [];
+    const { client } = await connect(asks, verifierFor(asks), lines);
+    const { handle } = (await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } }))
+      .structuredContent.interaction;
+    asks.answer(asks.start(), { understood: 'Yes' });
+    // A read that lists a respondent whose Session holds a different question, receipt and all.
+    const other = asks.start();
+    asks.stored.set(other, { ...ROUND_ONE, title: 'Approve the refund?' });
+    asks.answer(other, { understood: 'Yes' });
+    const read = await call(client, 'sess_response', { handle, revision: 1 });
+    expect(read.isError).toBe(true);
+    expect(errorOf(read)).toMatchObject({ code: 'VERIFICATION_FAILED' });
+    expect(errorOf(read).message).toBe(
+      'An answer to this Ask did not match its question. No answers were released; ask the owner to review the Ask.',
+    );
+    expect(read.content[0]!.text).not.toContain('understood');
+    expect(lines.join('')).toContain('RECORD_BINDING_MISMATCH');
+  });
+
+  it('releases no answer given by another action than submit', async () => {
+    const asks = new FakeAsks();
+    const { client } = await connect(asks, verifierFor(asks));
+    const { handle } = (await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } }))
+      .structuredContent.interaction;
+    const id = asks.start();
+    asks.answer(id, { understood: 'Yes' });
+    asks.page.sessions[0]!.responses[0]!.action_id = 'approve';
+    expect(errorOf(await call(client, 'sess_response', { handle, revision: 1 })).code).toBe(
+      'VERIFICATION_FAILED',
+    );
+  });
+
+  it('with name: binds to round one with Sess’s "Your name" field and releases the name', async () => {
+    const asks = new FakeAsks();
+    asks.roundOne = ROUND_ONE_NAMED;
+    const { client } = await connect(asks, verifierFor(asks));
+    const { handle } = (await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3, name: true } }))
+      .structuredContent.interaction;
+    asks.answer(asks.start(), { name: 'Ada', understood: 'Yes' });
+    const read = (await call(client, 'sess_response', { handle, revision: 1 })).structuredContent.interaction;
+    expect(read.ask.respondents[0].response.data).toEqual({ name: 'Ada', understood: 'Yes' });
+    // The same Session without the name field is not this Ask's round one.
+    const plain = new FakeAsks();
+    const second = await connect(plain, verifierFor(plain));
+    const named = (
+      await call(second.client, 'sess_ask', { ...QUESTION, respondents: { max: 3, name: true } })
+    ).structuredContent.interaction;
+    plain.answer(plain.start(), { understood: 'Yes' });
+    expect(
+      errorOf(await call(second.client, 'sess_response', { handle: named.handle, revision: 1 })).code,
+    ).toBe('VERIFICATION_FAILED');
+  });
+
+  it('an Ask created but not saved locally says its link is lost and the same sess_ask call may be made again', async () => {
+    const asks = new FakeAsks();
+    const { client } = await connect(asks, verifierFor(asks));
+    const handles = join(dir.path, 'profiles', 'default', 'handles');
+    asks.onCreate = () => chmodSync(handles, 0o500);
+    try {
+      const result = await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } });
+      expect(result.isError).toBe(true);
+      expect(errorOf(result)).toMatchObject({ code: 'CREATED_NOT_SAVED', retryable: true });
+      expect(errorOf(result).message).toBe(
+        'Sess created the Ask, but it could not be saved locally, so its link is lost. An unused Ask reserves nothing: make the same sess_ask call again, and ask the owner to check the local state directory.',
+      );
+      expect(result.content[0]!.text).not.toContain(asks.link);
+      expect(errorOf(result).message).not.toContain('sess_request');
+    } finally {
+      chmodSync(handles, 0o700);
     }
   });
 

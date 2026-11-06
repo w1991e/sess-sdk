@@ -423,9 +423,30 @@ export interface RequestArgs {
   /**
    * sess_ask with `respondents` (a Sess Ask, Decision 0011): the create body's members besides
    * `interaction`, exactly as given (Sess applies the defaults), and the checked arguments, which
-   * the SDK's `sess.ask` takes as they are.
+   * the SDK's `sess.ask` takes as they are. `surface` is round one exactly as each respondent's
+   * Session stores it (Sess's "Your name" field added when `name` is true, response policy
+   * `first`): every released answer must be bound to it.
    */
-  ask?: { body: AskBody; input: JsonObject };
+  ask?: { body: AskBody; input: JsonObject; surface: JsonObject };
+}
+
+/** Sess's respondent name field (`respondents.name: true`), exactly as the runtime adds it. */
+const NAME_FIELD: JsonObject = {
+  type: 'field',
+  name: 'name',
+  label: 'Your name',
+  required: true,
+  schema: { type: 'string', minLength: 1, maxLength: 80 },
+};
+/** Round one as a respondent's Session stores it: the name field before the first field, when asked. */
+function askSurface(interaction: JsonObject, named: boolean): JsonObject {
+  const source = interaction.source as JsonObject;
+  const components = [...(source.components as JsonObject[])];
+  if (named) {
+    const at = components.findIndex((c) => c.type === 'field');
+    components.splice(at < 0 ? components.length : at, 0, structuredClone(NAME_FIELD));
+  }
+  return { ...interaction, source: { ...source, components }, response_policy: 'first' };
 }
 export interface AskBody {
   respondents: { max: number; name?: boolean };
@@ -646,7 +667,12 @@ export function parseAskArgs(raw: unknown): RequestArgs {
     actions: [{ id: 'submit', label: submit, intent: 'submit' }],
   };
   const checked = validateInteraction(interaction);
-  if (a.respondents !== undefined)
-    return { interaction: checked, ask: { body: respondents(a.respondents, expanded), input: a } };
+  if (a.respondents !== undefined) {
+    const body = respondents(a.respondents, expanded);
+    return {
+      interaction: checked,
+      ask: { body, input: a, surface: askSurface(checked, body.respondents.name === true) },
+    };
+  }
   return { interaction: checked, ...linkLifetime(a.expires_in) };
 }

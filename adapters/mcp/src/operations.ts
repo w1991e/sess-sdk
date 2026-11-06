@@ -48,6 +48,8 @@ export interface AskPage {
   status: 'open' | 'closed';
   closed_by: 'max' | 'owner' | 'deadline' | null;
   max: number;
+  /** The Ask's deadline (ISO 8601): every respondent's link has ended by it. */
+  action_expires_at: string;
   counts: { started: number; answered: number; completed: number; refused: Record<string, number> };
   sessions: AskRespondentRecord[];
   next_cursor: string | null;
@@ -56,7 +58,11 @@ export interface AskPage {
 export interface AskOperations {
   /** Creates once; an uncertain outcome is never retried. */
   create(input: JsonObject): Promise<{ askId: string; link: string; expiresAt: string; max: number }>;
-  retrieve(id: string, options?: { cursor?: string; signal?: AbortSignal }): Promise<{ data: AskPage }>;
+  /** `meta.serverDate` (the runtime's HTTP Date, as the SDK reports it) dates the read when given. */
+  retrieve(
+    id: string,
+    options?: { cursor?: string; signal?: AbortSignal },
+  ): Promise<{ data: AskPage; meta?: { serverDate?: number } }>;
 }
 
 /**
@@ -573,11 +579,18 @@ export class SessMcpAdapter {
     Object.assign(record, {
       state: 'waiting',
       askId: created.askId,
+      askSurfaceDigest: digest(ask.surface),
       humanUrl: created.link,
       updatedAt: this.#now(),
     });
     await store.save(record).catch(() => {
-      throw createdNotSaved();
+      // Unlike a Session, the Ask's remedy is the same call again: its link is lost here, and an
+      // unused Ask reserves nothing.
+      throw new AdapterError(
+        'CREATED_NOT_SAVED',
+        'Sess created the Ask, but it could not be saved locally, so its link is lost. An unused Ask reserves nothing: make the same sess_ask call again, and ask the owner to check the local state directory.',
+        true,
+      );
     });
     this.#options.diagnostics('created', { revision: 1 });
     return this.#result(record, 'waiting', {
@@ -601,17 +614,19 @@ export class SessMcpAdapter {
         'This Sess MCP server cannot read an Ask: its Sess SDK has no respondents. Nothing was changed.',
       );
     const askId = record.askId!;
+    const surfaceDigest = record.askSurfaceDigest!;
     let page: AskPage | undefined;
+    let meta: object = {};
     const sessions: AskRespondentRecord[] = [];
     try {
       let cursor: string | undefined;
       for (let pages = 0; pages < ASK_MAX_PAGES; pages++) {
-        page = (
-          await operations.retrieve(askId, {
-            ...(cursor !== undefined ? { cursor } : {}),
-            ...(signal ? { signal } : {}),
-          })
-        ).data;
+        const read = await operations.retrieve(askId, {
+          ...(cursor !== undefined ? { cursor } : {}),
+          ...(signal ? { signal } : {}),
+        });
+        page = read.data;
+        meta = read.meta ?? {};
         sessions.push(...page.sessions);
         if (page.next_cursor === null) break;
         cursor = page.next_cursor;
@@ -626,14 +641,23 @@ export class SessMcpAdapter {
         status: s.status,
         startedAt: s.started_at,
         ...(s.completed_at !== null ? { completedAt: s.completed_at } : {}),
-        ...(accepted ? { response: await this.#verifyRespondent(askId, s.id, accepted, signal) } : {}),
+        ...(accepted
+          ? { response: await this.#verifyRespondent(askId, surfaceDigest, s.id, accepted, signal) }
+          : {}),
       });
     }
     const last = page!;
-    // Closed, and no one admitted can still answer: at the deadline every link has ended; the
-    // owner's close ended every unanswered one; at the last place, once everyone has answered.
+    // Closed, and no one admitted can still answer. The owner's close ended every unanswered link
+    // at once. Every respondent's link ends by the deadline, so past it (on the runtime's clock,
+    // with the one-person path's grace) nothing more can come, also after a close at the last
+    // place with someone who never answered; before it, that close is final once all answered.
+    const deadline = instant(last.action_expires_at);
+    const pastDeadline = deadline !== undefined && observed(meta).at >= deadline + LINK_EXPIRY_GRACE_MS;
     const final =
-      last.status === 'closed' && (last.closed_by !== 'max' || sessions.every((s) => s.status !== 'active'));
+      last.status === 'closed' &&
+      (last.closed_by === 'owner' ||
+        pastDeadline ||
+        (last.closed_by === 'max' && sessions.every((s) => s.status !== 'active')));
     if (final && record.state !== 'completed')
       await store.withLock(record.handle, async () => {
         const current = await this.#load(store, record.handle);
@@ -659,6 +683,7 @@ export class SessMcpAdapter {
   /** One respondent's answer, released only after full receipt verification (cached per adapter). */
   async #verifyRespondent(
     askId: string,
+    surfaceDigest: string,
     sessionId: string,
     accepted: AcceptedResponse,
     signal?: AbortSignal,
@@ -700,14 +725,20 @@ export class SessMcpAdapter {
       if (
         response.event_id !== accepted.event_id ||
         response.revision !== 1 ||
+        response.action_id !== 'submit' ||
         verified.surface.revision !== 1 ||
         verified.surface.id !== sessionId ||
+        // Bound to this Ask's round one, as the SDK's handle binds it: another Session of the same
+        // workspace listed in the read is never released as this question's answer.
+        digest(verified.surface.interaction as unknown as JsonObject) !== surfaceDigest ||
         response.actor.assurance !== 'link_holder'
-      )
+      ) {
+        this.#options.diagnostics('verification_failed', { code: 'RECORD_BINDING_MISMATCH' });
         throw new AdapterError(
           'VERIFICATION_FAILED',
           'An answer to this Ask did not match its question. No answers were released; ask the owner to review the Ask.',
         );
+      }
       this.#verifiedRespondents.set(key, { record: exact });
     }
     return {
