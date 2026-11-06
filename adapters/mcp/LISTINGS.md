@@ -15,7 +15,8 @@ pinned schema caps it at 100 characters and the two sentences come to 154, so `s
 the one-liner alone. His rule of 2026-11-05 01:05Z: a single-line field (Registry, Docker, the
 plugin's description, Smithery, Glama, Cline) carries the one-liner alone; a multi-sentence description
 (Claude, mcp.so, OpenAI's long description) opens with the one-liner, then the supporting line, then the
-rest of the signed description. Signed words are not a run test: the claude.ai run is in
+rest of the signed description. For Claude's and OpenAI's long descriptions this rule is superseded by
+the Cursor submission's signed copy of 2026-11-06 below. Signed words are not a run test: the claude.ai run is in
 [Test cases on claude.ai](#test-cases-on-claudeai), and OpenAI's run has not happened.
 
 Signed (founder 2026-11-06), the listing copy of the Cursor submission. It is `copy.long`, word for
@@ -270,7 +271,11 @@ organization and the Apps Management Write role.
   publisher handle `sess`, logo `https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png`, website
   `https://sess.si`, and the public repository https://github.com/w1991e/sess-cursor-plugin, with
   the plugin at its root: `.cursor-plugin/plugin.json` plus this bundle at tag `mcp-v0.1.1`.
-  Requalification with `@sess.si/mcp` 0.1.1 passed on production at about 01:49Z that day.
+  The founder's requalification round on production passed (founder-reported, corrected 02:27Z). It started
+  about 01:49Z on the production deployment then serving `@sess.si/mcp` 0.1.0, and completed about
+  20 minutes later, after the deployment serving 0.1.1 read back at 01:57Z. Cursor kept polling
+  across the deploy and completed with no continue step. This is not a claim that the round ran
+  wholly on 0.1.1, and the per-case table under Requalification is unchanged.
 - `listings/plugin/.cursor-plugin/plugin.json` is generated from `listing.json`
   (`providers.cursorPlugin`) and is the submitted file byte for byte; `check:listing` holds it to
   this server, `package.json`'s version, the bundle's `mcp.json` and the primary icon.
