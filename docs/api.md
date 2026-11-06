@@ -83,7 +83,7 @@ See [Security](security.md) for offline verifier inputs and trust requirements.
 `sess.ask({ question, fields, details?, submit_label? }, options?)` takes the question-plus-fields
 shape of the MCP `sess_ask` tool and resolves to a handle `{ link, sessionId, revision, answer() }`.
 It is a convenience over the operations below for one question; it adds no endpoint. With
-`respondents` it asks many people through one link instead ([below](#one-link-many-people)).
+`respondents` it asks many people through one link instead ([below](#ask-many-people)).
 
 | Field `type`   | Answer value                                   | Extra properties                 |
 | -------------- | ---------------------------------------------- | -------------------------------- |
@@ -137,7 +137,7 @@ In the API a rating is a field with `rating: { low?, high? }` and the schema exa
 `{ "type": "integer", "minimum": 1, "maximum": N }`, N from 2 to 10; any other schema is refused
 with `INVALID_SCHEMA`. Corrections, receipts and revisions work as for every field.
 
-### One link, many people
+### Ask many people
 
 Add `respondents: { max }` and the same question goes to many people through one link: Sess
 creates an Ask instead of one Session. Share this link with everyone who should answer. Each
