@@ -11,6 +11,8 @@ export interface Operation<T> {
   name: string;
   method: 'GET' | 'POST' | 'PATCH' | 'PUT';
   path: string;
+  /** Query parameters, encoded here; the path itself never carries a query. */
+  query?: Readonly<Record<string, string>>;
   status: number;
   parse?: (value: unknown) => T;
   body?: unknown;
@@ -20,6 +22,10 @@ export interface Operation<T> {
   idempotencyKey?: string;
   authenticated?: boolean;
 }
+/** Creations, attempted once: an uncertain outcome is `unknown_outcome` and is never retried here. */
+const CREATES = new Set(['sessions.create', 'asks.create']);
+const ASK_CREATE_UNKNOWN =
+  'Ask creation may have succeeded. It was not retried automatically; an unused Ask reserves nothing, so you may create it again.';
 const transientStatuses = new Set([408, 429, 500, 502, 503, 504]);
 const rejections: Record<number, readonly string[]> = {
   400: ['INVALID_SCHEMA', 'UNKNOWN_COMPONENT', 'WEBHOOK_INVALID_URL'],
@@ -321,6 +327,8 @@ export class Transport {
       op.path.includes('?')
     )
       throw new SessError('configuration', 'Invalid API resource path.', { outcome: 'not_sent' });
+    const query = op.query === undefined ? '' : new URLSearchParams({ ...op.query }).toString();
+    const search = query ? `?${query}` : '';
     const headers: Record<string, string> = { Accept: 'application/json', 'User-Agent': this.#userAgent };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     let idempotencyKey: string | undefined;
@@ -382,7 +390,7 @@ export class Transport {
           dispatched = true;
           const pendingResponse = Promise.resolve()
             .then(() =>
-              this.#fetch(`${this.baseUrl}${op.path}`, {
+              this.#fetch(`${this.baseUrl}${op.path}${search}`, {
                 method: op.method,
                 headers: { ...headers },
                 ...(body !== undefined ? { body } : {}),
@@ -530,10 +538,13 @@ export class Transport {
             outcome,
             idempotencyKey,
           };
+          const uncertainCreate = CREATES.has(op.name) && outcome === 'unknown';
           error = new SessError(
-            op.name === 'sessions.create' && outcome === 'unknown' ? 'unknown_outcome' : error.kind,
-            op.name === 'sessions.create' && outcome === 'unknown'
-              ? 'Session creation may have succeeded. Do not automatically create again; inspect recovery information if available.'
+            uncertainCreate ? 'unknown_outcome' : error.kind,
+            uncertainCreate
+              ? op.name === 'asks.create'
+                ? ASK_CREATE_UNKNOWN
+                : 'Session creation may have succeeded. Do not automatically create again; inspect recovery information if available.'
               : error.message,
             details,
           );
@@ -558,9 +569,11 @@ export class Transport {
         });
       if (e.operation) throw e;
       throw new SessError(
-        op.name === 'sessions.create' && dispatched ? 'unknown_outcome' : e.kind,
-        op.name === 'sessions.create' && dispatched
-          ? 'Session creation may have succeeded. Do not automatically create again.'
+        CREATES.has(op.name) && dispatched ? 'unknown_outcome' : e.kind,
+        CREATES.has(op.name) && dispatched
+          ? op.name === 'asks.create'
+            ? ASK_CREATE_UNKNOWN
+            : 'Session creation may have succeeded. Do not automatically create again.'
           : e.message,
         {
           code: e.code,

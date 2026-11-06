@@ -4,9 +4,15 @@ import { SessError, lengthMessage } from './errors.js';
 import { canonicalJson } from './receipts/json.js';
 import type { ReceiptResource } from './receipts/resource.js';
 import type { Sessions } from './sessions.js';
+import { ASK_RESPONDENTS_FLOOR, type AskReadOptions, type Asks } from './asks.js';
 import { isInteractiveSession } from './types.js';
 import type {
   AcceptedResponse,
+  ApiResult,
+  AskCounts,
+  AskRespondentRecord,
+  CreateAskRequest,
+  CreateAskResponse,
   FieldSchema,
   InteractiveInteraction,
   InteractiveSession,
@@ -38,6 +44,20 @@ export type AskField =
       readonly default?: number;
     })
   | (AskFieldBase & { readonly type: 'boolean'; readonly default?: boolean })
+  | (AskFieldBase & {
+      /**
+       * A rating: a whole number from 1 to `max`. The person sees stars up to 5 and numbered
+       * choices above it; the answer is the chosen number.
+       */
+      readonly type: 'rating';
+      /** The largest choice, 2–10. Default 5 (five stars). */
+      readonly max?: number;
+      /** Optional words by the lowest choice: a word or two; at most 24. Example: `Not likely` */
+      readonly low?: string;
+      /** Optional words by the highest choice: a word or two; at most 24. Example: `Very likely` */
+      readonly high?: string;
+      readonly default?: number;
+    })
   | (AskFieldBase & {
       readonly type: 'choice';
       /** 1–100 choices. The words shown for one choice: short; at most 60. Example: `Next Monday` */
@@ -77,7 +97,7 @@ export interface AskInput<F extends readonly AskField[] = readonly AskField[]> {
 
 type AskValue<T> = T extends { type: 'text' }
   ? string
-  : T extends { type: 'number' | 'integer' }
+  : T extends { type: 'number' | 'integer' | 'rating' }
     ? number
     : T extends { type: 'boolean' }
       ? boolean
@@ -105,6 +125,112 @@ export type AskAnswer<F extends readonly AskField[]> = Simplify<
     readonly [P in F[number] as AlwaysPresent<P> extends true ? never : P['name']]?: AskValue<P>;
   }
 >;
+
+/**
+ * One link that many people can answer, each on their own page (a Sess Ask). Each person who
+ * starts gets an ordinary Session of their own; a respondent is a browser, not a person.
+ */
+export interface AskRespondents {
+  /**
+   * How many people may start: at least 2, at most your plan's active-Session limit (Free 25,
+   * Starter 50, Pro 100; Sess checks the ceiling). The cap is exact: it is checked when a person
+   * starts, so it cannot be overshot. The Ask closes at the last place.
+   */
+  readonly max: number;
+  /**
+   * Advanced: adds one required "Your name" text field, named `name`, before the first field; the
+   * answer then has `name`. Typed data to compare, never verified. Default false.
+   */
+  readonly name?: boolean;
+  /**
+   * Advanced: the one deadline, in whole seconds from creation, from 30 up to your plan's link
+   * lifetime: after it no one new may start, and every respondent's link has ended. Absent: the
+   * plan's lifetime.
+   */
+  readonly expires_in?: number;
+  /**
+   * Advanced: each respondent's link life from their Start, in whole seconds, at least 30; Sess
+   * clamps it to the plan's limit and to what remains of the Ask. Absent: what remains of the Ask.
+   */
+  readonly respondent_expires_in?: number;
+  /**
+   * Advanced: true (the default), each respondent's Session completes when their answer is
+   * accepted. False: you continue each respondent with `sess.sessions` (publish, then complete).
+   */
+  readonly auto_complete?: boolean;
+}
+/** A question for many people: the same question and fields, and `respondents` instead of `expires_in`. */
+export type AskRespondentsInput<
+  F extends readonly AskField[] = readonly AskField[],
+  R extends AskRespondents = AskRespondents,
+> = Omit<AskInput<F>, 'expires_in'> & { readonly respondents: R };
+
+type RespondentName<R> = R extends { readonly name: true }
+  ? { readonly name: string }
+  : R extends { readonly name?: false | undefined }
+    ? {}
+    : { readonly name?: string };
+/** One respondent's answer: the fields' answer, with `name` first when `respondents.name` is true. */
+export type AskRespondentsAnswer<F extends readonly AskField[], R> = Simplify<
+  RespondentName<R> & AskAnswer<F>
+>;
+
+/** One respondent: an ordinary Session of their own, and their verified answer once given. */
+export interface AskRespondent<T> {
+  /** Their Session, for continuing them through `sess.sessions` (with `auto_complete: false`). */
+  readonly sessionId: string;
+  /** Their Session's status; `purged` once its content was deleted after its retention. */
+  readonly status: AskRespondentRecord['status'];
+  /** Their Session's current revision. */
+  readonly revision: number;
+  /** When they started (ISO 8601). */
+  readonly startedAt: string;
+  readonly completedAt: string | null;
+  /**
+   * Their answer to the question, verified by its signed receipt and typed by the fields. Null
+   * until they answer, and for a purged respondent.
+   */
+  readonly answer: T | null;
+}
+/** One read of an Ask: its state and counts, and one page of respondents in the order they started. */
+export interface AskRead<T> {
+  /** `closed` once its last place was started, you closed it, or its deadline passed. */
+  readonly status: 'open' | 'closed';
+  readonly closedBy: 'max' | 'owner' | 'deadline' | null;
+  readonly closedAt: string | null;
+  /** Started, answered and completed respondents, and Starts refused by reason. */
+  readonly counts: Readonly<AskCounts>;
+  readonly respondents: readonly AskRespondent<T>[];
+  /** Pass as `cursor` to `read()` for the next page; null on the last page. */
+  readonly nextCursor: string | null;
+}
+/** The Ask after `close()`. */
+export type AskClosed = Omit<AskRead<never>, 'respondents' | 'nextCursor'>;
+
+/** A question for many people: its one link now, and their answers whenever you read them. */
+export interface AskRespondentsHandle<T> {
+  /** The Ask's ID, to read or close it later with `sess.asks`. */
+  readonly askId: string;
+  /**
+   * The one link to share with everyone who should answer. Each person gets their own page. Keep
+   * it out of logs.
+   */
+  readonly link: string;
+  readonly max: number;
+  /** The deadline (`action_expires_at`, ISO 8601): from it no one new may start. */
+  readonly expiresAt: string;
+  /**
+   * Reads the Ask: whether it is open, its counts, and each respondent with their verified, typed
+   * answer. Returning an answer here is that respondent's retrieval, as reading a Session is.
+   * Up to 100 respondents a page; pass `nextCursor` as `cursor` for the next.
+   */
+  read(options?: AskReadOptions): Promise<AskRead<T>>;
+  /**
+   * Closes the Ask now: no one new can start. Respondents who have not answered have their links
+   * ended; those who answered keep their pages and receipts. Closing a closed Ask changes nothing.
+   */
+  close(options?: RequestOptions): Promise<AskClosed>;
+}
 
 export interface AskOptions extends RequestOptions {
   /** Trusted expected receipt audience for this question; defaults to the client configuration. */
@@ -158,8 +284,12 @@ const LIMITS = Object.freeze({
   submitLabel: 24,
   label: 60,
   option: 60,
+  /** A rating's end label (`low`, `high`). */
+  ratingLabel: 24,
 });
-const TYPES = ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice'] as const;
+/** A rating's largest choice: 2–10, default 5 (stars up to 5, numbered above). */
+const RATING = Object.freeze({ min: 2, max: 10, default: 5 });
+const TYPES = ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice', 'rating'] as const;
 type AskType = (typeof TYPES)[number];
 const FIELD_NAME = /^[a-z][a-z0-9_]{0,63}$/;
 const RESERVED = new Set(['__proto__', 'constructor', 'prototype']);
@@ -180,7 +310,21 @@ export interface CompiledAsk {
   fields: readonly CompiledField[];
   /** The link lifetime in seconds, when the question set one. */
   expiresIn?: number;
+  /** Only for a question with `respondents` (an Ask). */
+  respondents?: CompiledRespondents;
 }
+interface CompiledRespondents {
+  /** The create body's members besides `interaction`, exactly as given (Sess applies the defaults). */
+  body: Omit<CreateAskRequest, 'interaction'>;
+  /**
+   * Round one as each respondent's Session stores it: the interaction, with Sess's "Your name"
+   * field before the first field when `name` is true.
+   */
+  surface: InteractiveInteraction;
+}
+
+/** Sess's respondent name field (`respondents.name: true`), exactly as the runtime adds it. */
+const NAME_FIELD = Object.freeze({ name: 'name', label: 'Your name', maxLength: 80 });
 
 /** The shortest link lifetime Sess accepts, in seconds (the ceiling is the plan's). */
 export const LINK_LIFETIME_FLOOR_SECONDS = 30;
@@ -285,6 +429,7 @@ function validValue(field: CompiledField, value: unknown): boolean {
       return typeof value === 'string' && value.isWellFormed() && codePoints(value) <= LIMITS.textMax;
     case 'number':
     case 'integer':
+    case 'rating':
       return (
         typeof value === 'number' &&
         Number.isFinite(value) &&
@@ -310,7 +455,20 @@ function compileField(raw: Json, path: string, names: Set<string>) {
   closed(
     f,
     path,
-    ['name', 'label', 'type', 'required', 'options', 'default', 'multiline', 'minimum', 'maximum'],
+    [
+      'name',
+      'label',
+      'type',
+      'required',
+      'options',
+      'default',
+      'multiline',
+      'minimum',
+      'maximum',
+      'max',
+      'low',
+      'high',
+    ],
     ['name', 'label', 'type'],
   );
   if (typeof f.name !== 'string' || !FIELD_NAME.test(f.name) || RESERVED.has(f.name))
@@ -330,12 +488,29 @@ function compileField(raw: Json, path: string, names: Set<string>) {
   if (f.multiline !== undefined && type !== 'text') invalid(`${path}.multiline`, 'is only allowed for text');
   if ((f.minimum !== undefined || f.maximum !== undefined) && type !== 'number' && type !== 'integer')
     invalid(path, 'minimum/maximum are only allowed for number and integer');
+  if ((f.max !== undefined || f.low !== undefined || f.high !== undefined) && type !== 'rating')
+    invalid(path, 'max/low/high are only allowed for rating');
   for (const key of ['required', 'multiline'] as const)
     if (f[key] !== undefined && typeof f[key] !== 'boolean') invalid(`${path}.${key}`, 'must be a boolean');
   const required = f.required === undefined ? type !== 'boolean' : f.required === true;
   const compiled: CompiledField = { name, type, required };
   let schema: FieldSchema;
+  let rating: { low?: string; high?: string } | undefined;
   switch (type) {
+    case 'rating': {
+      const max = f.max === undefined ? RATING.default : f.max;
+      if (typeof max !== 'number' || !Number.isInteger(max) || max < RATING.min || max > RATING.max)
+        invalid(`${path}.max`, `must be a whole number from ${RATING.min} to ${RATING.max}`);
+      compiled.minimum = 1;
+      compiled.maximum = max;
+      // Sess's rating: exactly this schema, and the end labels only when given.
+      schema = { type: 'integer', minimum: 1, maximum: max };
+      rating = {
+        ...(f.low !== undefined ? { low: text(f.low, `${path}.low`, LIMITS.ratingLabel) } : {}),
+        ...(f.high !== undefined ? { high: text(f.high, `${path}.high`, LIMITS.ratingLabel) } : {}),
+      };
+      break;
+    }
     case 'text':
       schema = { type: 'string' };
       break;
@@ -381,6 +556,7 @@ function compileField(raw: Json, path: string, names: Set<string>) {
     required,
     schema,
     ...(f.multiline !== undefined ? { multiline: f.multiline as boolean } : {}),
+    ...(rating !== undefined ? { rating } : {}),
     ...(f.default !== undefined ? { value: f.default } : {}),
   };
   return { component, compiled: Object.freeze(compiled) };
@@ -392,7 +568,14 @@ function compileField(raw: Json, path: string, names: Set<string>) {
  */
 export function compileAsk(input: unknown): CompiledAsk {
   const a = object(plain(input, ''), 'input');
-  closed(a, 'input', ['question', 'details', 'fields', 'submit_label', 'expires_in'], ['question', 'fields']);
+  closed(
+    a,
+    'input',
+    ['question', 'details', 'fields', 'submit_label', 'expires_in', 'respondents'],
+    ['question', 'fields'],
+  );
+  if (a.respondents !== undefined && a.expires_in !== undefined)
+    invalid('expires_in', 'is for one person’s link; with respondents, use respondents.expires_in');
   const expiresIn = a.expires_in;
   if (
     expiresIn !== undefined &&
@@ -425,11 +608,71 @@ export function compileAsk(input: unknown): CompiledAsk {
   };
   if (Buffer.byteLength(JSON.stringify(interaction), 'utf8') > SURFACE_LIMIT_BYTES)
     invalid('input', `exceeds the ${SURFACE_LIMIT_BYTES}-byte Surface limit`);
+  if (a.respondents === undefined)
+    return {
+      interaction,
+      fields: Object.freeze(compiled),
+      ...(expiresIn !== undefined ? { expiresIn: expiresIn as number } : {}),
+    };
+  const respondents = compileRespondents(a.respondents, names);
+  const named = respondents.respondents.name === true;
   return {
     interaction,
-    fields: Object.freeze(compiled),
-    ...(expiresIn !== undefined ? { expiresIn: expiresIn as number } : {}),
+    fields: Object.freeze(
+      named
+        ? [Object.freeze({ name: NAME_FIELD.name, type: 'text', required: true } as const), ...compiled]
+        : compiled,
+    ),
+    respondents: {
+      body: respondents,
+      surface: named ? withNameField(interaction) : interaction,
+    },
   };
+}
+
+function lifetime(value: Json | undefined, path: string): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < LINK_LIFETIME_FLOOR_SECONDS)
+    invalid(path, `must be a whole number of seconds, at least ${LINK_LIFETIME_FLOOR_SECONDS}`);
+  return value;
+}
+
+/** `respondents`: the floor of `max` and of each lifetime is checked here; every ceiling is the plan's. */
+function compileRespondents(raw: Json, names: ReadonlySet<string>): Omit<CreateAskRequest, 'interaction'> {
+  const r = object(raw, 'respondents');
+  closed(r, 'respondents', ['max', 'name', 'expires_in', 'respondent_expires_in', 'auto_complete'], ['max']);
+  if (typeof r.max !== 'number' || !Number.isSafeInteger(r.max) || r.max < ASK_RESPONDENTS_FLOOR)
+    invalid('respondents.max', `must be a whole number, at least ${ASK_RESPONDENTS_FLOOR}`);
+  for (const key of ['name', 'auto_complete'] as const)
+    if (r[key] !== undefined && typeof r[key] !== 'boolean')
+      invalid(`respondents.${key}`, 'must be a boolean');
+  if (r.name === true && names.has(NAME_FIELD.name))
+    invalid('respondents.name', 'adds a field named "name"; rename the field that has it');
+  const expiresIn = lifetime(r.expires_in, 'respondents.expires_in');
+  const respondentExpiresIn = lifetime(r.respondent_expires_in, 'respondents.respondent_expires_in');
+  // Only what was given is sent: Sess applies the decision's defaults (no name field, the plan's
+  // lifetime, what remains of the Ask, auto-complete).
+  return {
+    respondents: { max: r.max, ...(r.name !== undefined ? { name: r.name as boolean } : {}) },
+    ...(expiresIn !== undefined ? { expires_in: expiresIn } : {}),
+    ...(respondentExpiresIn !== undefined ? { respondent_expires_in: respondentExpiresIn } : {}),
+    ...(r.auto_complete !== undefined ? { auto_complete: r.auto_complete as boolean } : {}),
+  };
+}
+
+/** Sess's "Your name" field, before the first field of round one (the runtime's own insertion). */
+function withNameField(interaction: InteractiveInteraction): InteractiveInteraction {
+  const components = interaction.source.components;
+  const at = components.findIndex((c) => c.type === 'field');
+  const next = [...components];
+  next.splice(at < 0 ? next.length : at, 0, {
+    type: 'field',
+    name: NAME_FIELD.name,
+    label: NAME_FIELD.label,
+    required: true,
+    schema: { type: 'string', minLength: 1, maxLength: NAME_FIELD.maxLength },
+  });
+  return { ...interaction, source: { ...interaction.source, components: next } };
 }
 
 /**
@@ -643,13 +886,170 @@ class Handle<T> implements AskHandle<T> {
   }
 }
 
-/** Validates locally, creates once (the link is available before any wait) and returns the handle. */
+/** At most this many respondents' receipts are verified at once during one read. */
+const VERIFY_CONCURRENCY = 4;
+
+class RespondentsHandle<T> implements AskRespondentsHandle<T> {
+  readonly askId: string;
+  readonly max: number;
+  readonly expiresAt: string;
+  #link: string;
+  #asks: Asks;
+  #receipts: ReceiptResource;
+  #expectedWorkspaceId: string | undefined;
+  #fields: readonly CompiledField[];
+  #surface: string;
+  /** Answers already verified, by Session and event, with the exact accepted record they came from. */
+  #verified = new Map<string, { record: string; value: T }>();
+
+  constructor(context: {
+    created: CreateAskResponse;
+    asks: Asks;
+    receipts: ReceiptResource;
+    expectedWorkspaceId: string | undefined;
+    compiled: CompiledAsk;
+  }) {
+    this.askId = context.created.id;
+    this.max = context.created.max;
+    this.expiresAt = context.created.action_expires_at;
+    this.#link = context.created.human_url;
+    this.#asks = context.asks;
+    this.#receipts = context.receipts;
+    this.#expectedWorkspaceId = context.expectedWorkspaceId;
+    this.#fields = context.compiled.fields;
+    // Each respondent's Session stores round one with its only response policy.
+    this.#surface = canonicalJson({ ...context.compiled.respondents!.surface, response_policy: 'first' });
+    this.read = this.read.bind(this);
+    this.close = this.close.bind(this);
+    Object.freeze(this);
+  }
+
+  get link(): string {
+    return this.#link;
+  }
+
+  async read(options: AskReadOptions = {}): Promise<AskRead<T>> {
+    if (!options || typeof options !== 'object')
+      throw new SessError('configuration', 'read options must be an object.', { outcome: 'not_sent' });
+    const page = (await this.#asks.retrieve(this.askId, options)).data;
+    const signal = options.signal;
+    const respondents: AskRespondent<T>[] = new Array(page.sessions.length);
+    let next = 0;
+    const work = async () => {
+      while (next < page.sessions.length) {
+        const index = next++;
+        const record = page.sessions[index]!;
+        respondents[index] = Object.freeze({
+          sessionId: record.id,
+          status: record.status,
+          revision: record.revision,
+          startedAt: record.started_at,
+          completedAt: record.completed_at,
+          answer: await this.#answer(record, signal),
+        });
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(VERIFY_CONCURRENCY, page.sessions.length) }, work));
+    return Object.freeze({
+      ...summary(page),
+      respondents: Object.freeze(respondents),
+      nextCursor: page.next_cursor,
+    });
+  }
+
+  async close(options?: RequestOptions): Promise<AskClosed> {
+    return summary((await this.#asks.close(this.askId, options)).data);
+  }
+
+  /** A respondent's answer to round one, verified by its receipt and bound to this question. */
+  async #answer(record: AskRespondentRecord, signal: AbortSignal | undefined): Promise<T | null> {
+    const accepted = record.status === 'purged' ? undefined : record.responses.find((r) => r.revision === 1);
+    if (!accepted) return null;
+    const key = `${record.id}:${accepted.event_id}`;
+    const exact = canonicalJson(accepted);
+    const known = this.#verified.get(key);
+    if (known) {
+      if (known.record !== exact)
+        throw new SessError('receipt_verification', 'A respondent’s answer changed after it was verified.', {
+          code: 'RECORD_BINDING_MISMATCH',
+          sessionId: record.id,
+        });
+      return known.value;
+    }
+    const verified = await this.#receipts.verifyResponse(
+      {
+        sessionId: record.id,
+        response: accepted,
+        ...(this.#expectedWorkspaceId !== undefined
+          ? { expectedWorkspaceId: this.#expectedWorkspaceId }
+          : {}),
+      },
+      signal ? { signal } : {},
+    );
+    const response = verified.response;
+    if (
+      response.event_id !== accepted.event_id ||
+      response.revision !== 1 ||
+      response.action_id !== 'submit' ||
+      verified.surface.id !== record.id ||
+      verified.surface.revision !== 1 ||
+      canonicalJson(verified.surface.interaction) !== this.#surface
+    )
+      throw new SessError(
+        'receipt_verification',
+        'A respondent’s verified answer is not bound to this question.',
+        {
+          code: 'RECORD_BINDING_MISMATCH',
+          sessionId: record.id,
+        },
+      );
+    const value = checkAnswer(this.#fields, response.data) as T;
+    this.#verified.set(key, { record: exact, value });
+    return value;
+  }
+
+  /** The link is omitted from serialization and inspection. */
+  toJSON(): object {
+    return { askId: this.askId, max: this.max, expiresAt: this.expiresAt };
+  }
+
+  [inspect.custom](): object {
+    return this.toJSON();
+  }
+}
+
+function summary(ask: {
+  status: AskRead<never>['status'];
+  closed_by: AskRead<never>['closedBy'];
+  closed_at: string | null;
+  counts: AskCounts;
+}): AskClosed {
+  return Object.freeze({
+    status: ask.status,
+    closedBy: ask.closed_by,
+    closedAt: ask.closed_at,
+    counts: Object.freeze({ ...ask.counts, refused: Object.freeze({ ...ask.counts.refused }) }),
+  });
+}
+
+/** What `ask` needs from the client. */
+export interface AskContext {
+  sessions: Sessions;
+  receipts: ReceiptResource;
+  asks: Asks;
+  createAsk(body: CreateAskRequest, options: RequestOptions): Promise<ApiResult<CreateAskResponse>>;
+}
+
+/**
+ * Validates locally, creates once (the link is available before any wait) and returns the handle:
+ * one Session for one person, or with `respondents` one Ask for many.
+ */
 export async function ask<T>(
-  sessions: Sessions,
-  receipts: ReceiptResource,
+  context: AskContext,
   input: unknown,
   options: AskOptions = {},
-): Promise<AskHandle<T>> {
+): Promise<AskHandle<T> | AskRespondentsHandle<T>> {
+  const { sessions, receipts } = context;
   const compiled = compileAsk(input);
   if (!options || typeof options !== 'object')
     throw new SessError('configuration', 'ask options must be an object.', { outcome: 'not_sent' });
@@ -661,6 +1061,20 @@ export async function ask<T>(
     throw new SessError('configuration', 'expectedWorkspaceId must be a trusted workspace identifier.', {
       outcome: 'not_sent',
     });
+  if (compiled.respondents) {
+    // One Ask, created once with the whole round one; an uncertain outcome is unknown_outcome.
+    const created = await context.createAsk(
+      { interaction: compiled.interaction, ...compiled.respondents.body },
+      requestOptions,
+    );
+    return new RespondentsHandle<T>({
+      created: created.data,
+      asks: context.asks,
+      receipts,
+      expectedWorkspaceId,
+      compiled,
+    });
+  }
   // Creation carries the whole interaction and is attempted once. An uncertain outcome surfaces as
   // the unknown_outcome error of the client and is never retried here.
   const created = await sessions.create(

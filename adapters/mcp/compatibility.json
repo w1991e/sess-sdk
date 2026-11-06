@@ -3,10 +3,10 @@
   "package": {
     "name": "@sess.si/mcp",
     "version": "0.1.1",
-    "toolSchema": "sess-mcp-tools/4"
+    "toolSchema": "sess-mcp-tools/5"
   },
-  "status": "0.1.1 prepared on @sess.si/sdk 0.1.1 for npm dist-tag latest, unpublished; 0.1.0 published on latest on 2026-11-01; next stays at 0.1.0-rc.4.",
-  "recordedAt": "2026-11-05",
+  "status": "0.1.1 published on npm dist-tag latest on 2026-11-05, on @sess.si/sdk 0.1.1, with tool schema sess-mcp-tools/4; this tree's sess-mcp-tools/5 (the rating field and the Ask) is unreleased; next stays at 0.1.0-rc.4.",
+  "recordedAt": "2026-11-06",
   "node": {
     "engines": ">=22.14.0 <25",
     "qualified": ["22.14.0", "24.21.0"],
@@ -173,27 +173,33 @@
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "0.1.1 prepared on @sess.si/sdk 0.1.1, unpublished; the tag mcp-v0.1.1 stages it for npm dist-tag latest (release.prepared). @sess.si/mcp@0.1.0 published on latest on 2026-11-01; next stays at 0.1.0-rc.4. The SDK dependency is in registry mode.",
-    "prepared": {
+    "status": "@sess.si/mcp@0.1.1 published on latest on 2026-11-05 from the tag mcp-v0.1.1, with tool schema sess-mcp-tools/4 (release.published); 0.1.0 moved to release.earlier. This tree's sess-mcp-tools/5 is unreleased. next stays at 0.1.0-rc.4. The SDK dependency is in registry mode.",
+    "published": {
       "version": "0.1.1",
       "distTag": "latest",
-      "tag": "mcp-v0.1.1",
-      "sessSdk": "0.1.1 (registry, dist-tag latest)",
+      "publishedAt": "2026-11-05T23:42:39.201Z",
+      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.1.tgz",
+      "sha256": "0a9ced3ffbbcce9f7e9a3ead1d78310e0a8f3da2ec63402a9b9e9a725708c383",
+      "integrity": "sha512-81+xDSRbn6nmMzVIOaDydSsSb9ewkCGKWViRN93lKDrxXnHN+IE9aUtEJEzW3qnKUqhwo1XhZ4Ri8aFAFgqS5Q==",
+      "sourceCommit": "e7d2ca082a0d85074b3afbf182fc1c9679193943",
+      "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/42130554660",
+      "toolSchema": "sess-mcp-tools/4",
+      "sessSdk": "0.1.1 (registry)",
       "mcpName": "si.sess/sess",
-      "note": "Prepared and unpublished. The release guard derives latest for a version without -rc.N. Once the stage is approved and read back, this entry becomes release.published and 0.1.0 moves to release.earlier."
-    },
-    "published": {
-      "version": "0.1.0",
-      "distTag": "latest",
-      "publishedAt": "2026-11-01T03:37:03.279Z",
-      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0.tgz",
-      "sha256": "f237ed93a601f20721dfda3b2e6fa0fef97753b202974f5809c46e1a3e39c015",
-      "integrity": "sha512-eAr2sbDyDIBy8seEyaF/VBeu94MOqT45qoLUPCzeDcrRJPnv29n2QfJZ7knIRIuDpmtRQ4xnH+Qij7OfWtMipQ==",
-      "sessSdk": "0.1.0 (registry)",
-      "mcpName": "io.github.w1991e/sess",
-      "readBack": "2026-11-05: registry time, dist.integrity, dist.attestations and dist-tags; the registry tarball's SHA-256 and integrity equal release/v0.1.0-packet.md"
+      "readBack": "2026-11-06: registry time, dist.integrity, dist.attestations, dependencies, mcpName and dist-tags; the registry tarball's SHA-256 and integrity equal release/v0.1.1-packet.md"
     },
     "earlier": [
+      {
+        "version": "0.1.0",
+        "distTag": "latest",
+        "publishedAt": "2026-11-01T03:37:03.279Z",
+        "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.0.tgz",
+        "sha256": "f237ed93a601f20721dfda3b2e6fa0fef97753b202974f5809c46e1a3e39c015",
+        "integrity": "sha512-eAr2sbDyDIBy8seEyaF/VBeu94MOqT45qoLUPCzeDcrRJPnv29n2QfJZ7knIRIuDpmtRQ4xnH+Qij7OfWtMipQ==",
+        "sessSdk": "0.1.0 (registry)",
+        "mcpName": "io.github.w1991e/sess",
+        "readBack": "2026-11-05: registry time, dist.integrity, dist.attestations and dist-tags; the registry tarball's SHA-256 and integrity equal release/v0.1.0-packet.md"
+      },
       {
         "version": "0.1.0-rc.4",
         "distTag": "next",

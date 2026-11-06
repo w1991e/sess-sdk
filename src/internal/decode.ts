@@ -1,6 +1,9 @@
 import { SessError } from '../errors.js';
 import type {
   AcceptedResponse,
+  AskCloseResponse,
+  AskResponse,
+  CreateAskResponse,
   CreateSessionResponse,
   Deliveries,
   InteractiveSession,
@@ -122,7 +125,12 @@ export function decodeCreate(value: unknown, allowInsecureLocalhost = false): Cr
   integer(v.revision);
   // The link's expiry; checked when present (a runtime before the link-lifetime slice omits it).
   if (v.action_expires_at !== undefined) date(v.action_expires_at);
-  const text = string(v.human_url, /^[^\s\u0000-\u001f\u007f]+$/, 4096);
+  humanLink(v.human_url, allowInsecureLocalhost);
+  return value as CreateSessionResponse;
+}
+/** A human link: absolute HTTPS (HTTP only on explicit loopback), no credentials, query or fragment. */
+function humanLink(value: unknown, allowInsecureLocalhost: boolean): void {
+  const text = string(value, /^[^\s\u0000-\u001f\u007f]+$/, 4096);
   let url: URL;
   try {
     url = new URL(text);
@@ -140,7 +148,65 @@ export function decodeCreate(value: unknown, allowInsecureLocalhost = false): Cr
     )
   )
     protocol();
-  return value as CreateSessionResponse;
+}
+
+export const askPattern = new RegExp(`^ask_${ulid}$`);
+const ASK_REFUSALS = ['full', 'closed', 'deadline', 'minimum_time', 'burst', 'paused', 'network'] as const;
+/** `POST /v1/asks`: the Ask's id, round one, its one link, its deadline and cap. */
+export function decodeAskCreate(value: unknown, allowInsecureLocalhost = false): CreateAskResponse {
+  const v = object(value);
+  string(v.id, askPattern);
+  if (integer(v.revision) !== 1) protocol();
+  humanLink(v.human_url, allowInsecureLocalhost);
+  date(v.action_expires_at);
+  integer(v.max);
+  return value as CreateAskResponse;
+}
+function askSummary(v: Record<string, unknown>, expectedId: string): void {
+  if (string(v.id, askPattern) !== expectedId) protocol();
+  oneOf(v.status, ['open', 'closed']);
+  if (v.status === 'open' ? v.closed_by !== null || v.closed_at !== null : v.closed_by === null) protocol();
+  if (v.closed_by !== null) oneOf(v.closed_by, ['max', 'owner', 'deadline']);
+  nullableDate(v.closed_at);
+  integer(v.max);
+  date(v.action_expires_at);
+  if (typeof v.auto_complete !== 'boolean') protocol();
+  const counts = object(v.counts);
+  for (const key of ['started', 'answered', 'completed'] as const) integer(counts[key], 0);
+  const refused = object(counts.refused);
+  for (const key of ASK_REFUSALS) integer(refused[key], 0);
+}
+/** `POST /v1/asks/{id}/close`: the Ask after the close, without respondents. */
+export function decodeAskClose(value: unknown, expectedId: string): AskCloseResponse {
+  const v = object(value);
+  askSummary(v, expectedId);
+  if ('sessions' in v) protocol();
+  return value as AskCloseResponse;
+}
+/** `GET /v1/asks/{id}`: one page of respondents; each answer is an ordinary accepted response. */
+export function decodeAsk(value: unknown, expectedId: string): AskResponse {
+  const v = object(value);
+  askSummary(v, expectedId);
+  const seen = new Set<string>();
+  for (const item of array(v.sessions)) {
+    const s = object(item);
+    const id = string(s.id, sessionPattern);
+    if (seen.has(id)) protocol();
+    seen.add(id);
+    oneOf(s.status, ['active', 'responded', 'completed', 'purged']);
+    const revision = integer(s.revision);
+    date(s.started_at);
+    nullableDate(s.completed_at);
+    const revisions = new Set<number>();
+    for (const response of array(s.responses)) {
+      const r = decodeAccepted(response);
+      if (r.revision > revision || revisions.has(r.revision)) protocol();
+      revisions.add(r.revision);
+    }
+    if (s.status === 'purged' && revisions.size) protocol();
+  }
+  if (v.next_cursor !== null) string(v.next_cursor, undefined, 200);
+  return value as AskResponse;
 }
 export function isLoopback(host: string): boolean {
   return host === 'localhost' || host === '[::1]' || /^127\.(?:\d{1,3}\.){2}\d{1,3}$/.test(host);

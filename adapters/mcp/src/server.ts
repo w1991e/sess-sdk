@@ -53,6 +53,14 @@ export function shareLinkLines(link: string): string {
   return `Show the person this link now: ${link}\nThen call sess_response.`;
 }
 
+/**
+ * The first two lines of a sess_ask result with respondents (an Ask), PROPOSED copy: its one link
+ * is for everyone who should answer. Never written to diagnostics, like every human link.
+ */
+export function shareAskLinkLines(link: string): string {
+  return `Share this link with everyone who should answer: ${link}\nEach person gets their own page. Call sess_response to read their answers.`;
+}
+
 function success(result: AdapterResult): CallToolResult {
   return {
     content: [{ type: 'text', text: JSON.stringify(result) }],
@@ -64,8 +72,9 @@ function success(result: AdapterResult): CallToolResult {
 function created(result: AdapterResult): CallToolResult {
   const link = result.interaction.humanUrl;
   if (link === undefined) return success(result);
+  const lines = result.interaction.ask ? shareAskLinkLines(link) : shareLinkLines(link);
   return {
-    content: [{ type: 'text', text: `${shareLinkLines(link)}\n\n${JSON.stringify(result)}` }],
+    content: [{ type: 'text', text: `${lines}\n\n${JSON.stringify(result)}` }],
     structuredContent: result as unknown as Record<string, unknown>,
   };
 }
@@ -73,7 +82,8 @@ function created(result: AdapterResult): CallToolResult {
 /** A sess_response result: with no answer yet, the re-wait line first, then the same JSON result. */
 function read(result: AdapterResult): CallToolResult {
   const { state } = result.interaction;
-  if (state !== 'waiting' && state !== 'needs_resume') return success(result);
+  // An Ask's read carries its answers so far: the one-person re-wait line does not apply.
+  if ((state !== 'waiting' && state !== 'needs_resume') || result.interaction.ask) return success(result);
   return {
     content: [{ type: 'text', text: `${NO_ANSWER_LINE}\n\n${JSON.stringify(result)}` }],
     structuredContent: result as unknown as Record<string, unknown>,

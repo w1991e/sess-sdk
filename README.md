@@ -14,7 +14,7 @@ terminal with a verified receipt.
 **Install** the SDK in your own server project:
 
 ```sh
-npm install --save-exact @sess.si/sdk@0.1.1
+npm install --save-exact @sess.si/sdk@0.2.0
 ```
 
 ## Ask a person
@@ -47,8 +47,8 @@ before anything waits. The link is a bearer capability: deliver it only to the p
 logs or analytics. `answer()` waits for the person (ten minutes by default), verifies the signed
 receipt against the exact question, checks that the answer is still the current step, completes the
 Session and returns the values typed from your fields. Completion closes the Session: the link no
-longer accepts answers. Field types are `text`, `number`, `integer`, `boolean`, `choice` and
-`multi_choice` ([API reference](docs/api.md#ask-one-question)).
+longer accepts answers. Field types are `text`, `number`, `integer`, `boolean`, `choice`,
+`multi_choice` and `rating` ([API reference](docs/api.md#ask-one-question)).
 
 If the wait times out (`wait_ended`, code `WAIT_TIMEOUT`) or you abort it, nothing changes remotely:
 call `answer()` again on the same handle. An error with `outcome: "unknown"` means completion is not
@@ -120,9 +120,9 @@ async function askShort(question: string) {
 }
 ```
 
-**Release status:** `0.1.1` is the current release, served under the `latest` dist-tag. Its API is
-that of `0.1.0`, the first stable release. `next` stays at the last release candidate, `0.1.0-rc.10`. The [changelog](CHANGELOG.md) describes
-each version; `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
+**Release status:** `0.2.0` is the current release, served under the `latest` dist-tag. It adds
+the rating field and respondents to `sess.ask`. `next` stays at the last release candidate,
+`0.1.0-rc.10`. The [changelog](CHANGELOG.md) describes each version; `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
 
 ## Commerce
 
@@ -242,10 +242,10 @@ exact Surface and input, and the issuer's public keys. Check it on your own comp
 trust (never the keys inside the bundle):
 
 ```sh
-npx -p @sess.si/sdk@0.1.1 sess verify bundle.json --issuer https://api.sess.si --keys sess-receipt-keys.json
+npx -p @sess.si/sdk@0.2.0 sess verify bundle.json --issuer https://api.sess.si --keys sess-receipt-keys.json
 ```
 
-The `sess` command first ships in `0.1.0-rc.5`; any later version, `0.1.1` included, has it.
+The `sess` command first ships in `0.1.0-rc.5`; any later version, `0.2.0` included, has it.
 
 You'll see `Valid decision bundle.` and what was accepted, when, on which revision; or `Invalid`
 and the first reason. Exit status is 0 valid, 1 invalid, 2 usage error; add `--json` for the full

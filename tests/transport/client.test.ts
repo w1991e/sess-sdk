@@ -75,7 +75,7 @@ describe('configuration and boundaries', () => {
     const provider = vi.fn(async () => API_KEY);
     const fetch = vi.fn();
     const instance = client(fetch, { apiKey: provider });
-    expect(Object.keys(instance)).toEqual(['sessions', 'webhooks', 'receipts']);
+    expect(Object.keys(instance)).toEqual(['sessions', 'webhooks', 'receipts', 'asks']);
     expect(provider).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
     expect(inspect(instance)).not.toContain(API_KEY);

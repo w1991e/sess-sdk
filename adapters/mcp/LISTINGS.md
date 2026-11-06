@@ -126,7 +126,7 @@ limits above. Recheck them, and the schema versions, before each submission.
 | `sess_complete` | no        | **yes**     | yes        | yes        | Terminal: the link stops accepting answers and never reopens. Changed from `false`.                  |
 | `sess_ask`      | no        | no          | no         | yes        | The same create as `sess_request`.                                                                   |
 
-Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/4` schemas. Each tool's `annotations.title` equals its `title`, because Anthropic's connector submission reads it from there (founder 2026-11-05 00:55Z).
+Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/5` schemas. Each tool's `annotations.title` equals its `title`, because Anthropic's connector submission reads it from there (founder 2026-11-05 00:55Z).
 
 `sess_complete` is marked destructive because it is terminal (founder's ruling on #43). Cursor's run approval isn't established to depend on this hint: its MCP and Run Modes pages (read 2026-11-05) say it asks for approval on MCP tools by default, and they name no annotation.
 
