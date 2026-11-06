@@ -245,6 +245,39 @@ function pluginJson({ listing, manifest, tools }) {
   };
 }
 
+// Cursor's plugin manifest (.cursor-plugin/plugin.json) for the public repository the founder pushes
+// (providers.cursorPlugin.repository, the bundle at its root). One key per line, every value inline:
+// the layout of the file the founder submitted on 2026-11-06.
+function formatFlatJson(value) {
+  const inline = (v) => {
+    if (Array.isArray(v)) return `[${v.map(inline).join(', ')}]`;
+    if (v !== null && typeof v === 'object')
+      return `{ ${Object.entries(v)
+        .map(([k, x]) => `${JSON.stringify(k)}: ${inline(x)}`)
+        .join(', ')} }`;
+    return JSON.stringify(v);
+  };
+  const keys = Object.keys(value).filter((k) => value[k] !== undefined);
+  return `{\n${keys.map((k) => `  ${JSON.stringify(k)}: ${inline(value[k])}`).join(',\n')}\n}\n`;
+}
+
+function cursorPluginJson({ listing, manifest }) {
+  const cursor = listing.providers.cursorPlugin;
+  return {
+    name: listing.name,
+    version: manifest.version,
+    description: listing.copy.registry,
+    author: { name: listing.publisher.name },
+    homepage: listing.homepage,
+    repository: cursor.repository,
+    license: listing.license,
+    keywords: cursor.keywords,
+    // Bundle-relative paths, without the ./ on the logo, as submitted.
+    logo: bundlePath(primaryIcon(listing))?.slice(2),
+    mcpServers: './mcp.json',
+  };
+}
+
 function mcpJson({ listing }) {
   return {
     $schema: listing.providers.agentPlugin.schemas.mcp.id,
@@ -269,12 +302,15 @@ function pluginReadme({ listing, tools }) {
     ...listing.copy.long.split('\n\n').flatMap((p) => [p, '']),
     '## Connect',
     '',
-    `- Server URL: \`${listing.remote.url}\` (Streamable HTTP). You sign in with your ${listing.displayName} account.`,
+    `- Server URL: \`${listing.remote.url}\` (Streamable HTTP).`,
     ...(docs ? [`- Setup for each agent host: ${docs}`] : []),
     '',
     '## Tools',
     '',
-    ...tools.map(hintLine),
+    // The short question first (founder 2026-11-06), then the rest in tools.ts order.
+    ...[...tools.filter((t) => t.name === 'sess_ask'), ...tools.filter((t) => t.name !== 'sess_ask')].map(
+      hintLine,
+    ),
     '',
     '## Help',
     '',
@@ -460,6 +496,7 @@ export function generate(inputs) {
   return new Map([
     ['server.json', formatJson(serverJson(inputs))],
     [`${PLUGIN_DIR}/plugin.json`, formatJson(pluginJson(inputs))],
+    [listing.providers.cursorPlugin.output, formatFlatJson(cursorPluginJson(inputs))],
     [`${PLUGIN_DIR}/mcp.json`, formatJson(mcpJson(inputs))],
     [`${PLUGIN_DIR}/README.md`, pluginReadme(inputs)],
     [`${PLUGIN_DIR}/skills/${skill}/SKILL.md`, skillMd(inputs)],
@@ -705,6 +742,22 @@ export function validate(inputs, files, schemaTexts) {
       errors.push('mcp.json server must be remote HTTPS streamable-http');
     if (s.headers && Object.keys(s.headers).length) errors.push('mcp.json server must not carry headers');
   }
+  // Cursor's manifest in the same bundle: this server at this version, naming the bundle's own files.
+  const cursorPlugin = listing.providers.cursorPlugin;
+  if (cursorPlugin.output !== `${PLUGIN_DIR}/.cursor-plugin/plugin.json`)
+    errors.push(`providers.cursorPlugin.output must be ${PLUGIN_DIR}/.cursor-plugin/plugin.json`);
+  const cursorManifest = json(cursorPlugin.output);
+  if (cursorManifest.name !== listing.name || cursorManifest.version !== manifest.version)
+    errors.push("Cursor plugin.json must name this server at package.json's version");
+  if (
+    !httpsUrl(cursorManifest.repository ?? '') ||
+    !cursorManifest.repository.startsWith('https://github.com/')
+  )
+    errors.push('Cursor plugin.json repository must be an HTTPS GitHub URL');
+  if (cursorManifest.mcpServers !== './mcp.json' || !files.has(`${PLUGIN_DIR}/mcp.json`))
+    errors.push('Cursor plugin.json mcpServers must name the bundle’s mcp.json');
+  if (`./${cursorManifest.logo}` !== bundlePath(primaryIcon(listing)))
+    errors.push('Cursor plugin.json logo must name the primary committed icon');
   const openai = plugin.extensions['com.openai'];
   const ui = openai.interface;
   const limit = (field, max) => {

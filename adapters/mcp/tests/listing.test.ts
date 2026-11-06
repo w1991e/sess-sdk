@@ -104,6 +104,7 @@ describe('listing.json artifacts', () => {
         'listings/docker/readme.md',
         'listings/docker/server.yaml',
         'listings/docker/tools.json',
+        'listings/plugin/.cursor-plugin/plugin.json',
         'listings/plugin/README.md',
         'listings/plugin/mcp.json',
         'listings/plugin/plugin.json',
@@ -143,19 +144,23 @@ describe('listing.json artifacts', () => {
     // Hosts and stores with no qualified packet say so; none is promoted.
     expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);
     expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
-    // Production serves the icon URLs, so that is no blocker. 0.1.1 is prepared, not published, so
-    // the Registry and Cursor's stdio link wait for it. Cline's 400x400 stays a blocker until it is
-    // deployed and committed here.
+    // Production serves the icon URLs, so that is no blocker. 0.1.1 is published on npm and listed
+    // in the Registry (founder 2026-11-06 02:50Z), so neither npm blocker remains. Cline's 400x400
+    // stays a blocker until it is deployed and committed here.
     expect(text).not.toMatch(/icon URLs/);
-    expect(text).toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
+    expect(text).not.toMatch(/MCP Registry and Cursor stdio/);
+    expect(text).not.toMatch(/MCP Registry( npm package)?:/);
     expect(text).toMatch(
       /Cline: needs a 400x400 PNG at a deployed URL; it is in w1991e\/sess PR #1019, not merged at this writing and not deployed until a founder window/,
     );
     expect(text).toMatch(/Cline: listings\/cline-issue\.md has OWNER: lines to resolve/);
     expect(text).not.toMatch(/no PNG icon yet/);
     expect(text).not.toMatch(/urls\.(privacy|terms)/);
-    // 0.1.0, on npm until 0.1.1 is published, declares the old name.
-    expect(text).toMatch(
+    // A listed package whose npm readback still names an older version or the old name blocks.
+    const stale = inputs();
+    stale.listing.providers.mcpRegistry.npmPackage.publishedVersion = '0.1.0';
+    stale.listing.providers.mcpRegistry.npmPackage.publishedMcpName = 'io.github.w1991e/sess';
+    expect(check(stale).blockers.join('\n')).toMatch(
       /MCP Registry: @sess\.si\/mcp@0\.1\.0 on npm declares mcpName io\.github\.w1991e\/sess/,
     );
   });
@@ -223,16 +228,82 @@ describe('listing.json artifacts', () => {
     expect(check(i, drifted).errors).toContain('server.json websiteUrl must be listing.json homepage');
   });
 
-  it('a multi-sentence description opens with the one-liner, then the supporting line (founder 2026-11-05 01:05Z)', () => {
-    const opening =
-      'Let your agent ask a person and continue with their answer. People answer through a link on any device. Sess returns their response with a signed receipt. ';
+  it('the long description is the signed listing copy of 2026-11-06, word for word, everywhere it is generated', () => {
+    // Founder 2026-11-06: it replaces the long of 2026-11-04 and opens with the one-liner alone, not
+    // the supporting line of 2026-11-05 00:50Z.
+    const signed =
+      'Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once. The person answers on any device, and your agent continues with a typed answer and a signed receipt.\n\nAnyone with the link can answer, so share it only with the person you mean. The receipt records what Sess accepted, not who answered. Check answers before your agent acts on them. You sign in with a Sess account. The person answering needs none.';
     const { listing } = inputs();
-    expect(listing.copy.long.startsWith(opening)).toBe(true);
-    expect(JSON.parse(read('listings/claude-connector.json')).description.startsWith(opening)).toBe(true);
-    expect(read('listings/plugin/plugin.json')).toContain(`"longDescription": "${opening}`);
+    expect(listing.copy.long).toBe(signed);
+    expect(JSON.parse(read('listings/claude-connector.json')).description).toBe(signed);
+    expect(
+      JSON.parse(read('listings/plugin/plugin.json')).extensions['com.openai'].interface.longDescription,
+    ).toBe(signed);
+    expect(read('listings/plugin/README.md')).toContain(`\n\n${signed}\n\n## Connect\n`);
     for (const single of [listing.copy.registry, listing.copy.oneLiner]) {
       expect(single).toBe('Let your agent ask a person and continue with their answer.');
+      expect(signed.startsWith(`${single} `)).toBe(true);
     }
+  });
+
+  it('the plugin README lists sess_ask first, and its Connect bullet leaves sign-in to the signed copy', () => {
+    const readme = generate(inputs()).get('listings/plugin/README.md')!;
+    expect(readme).toContain('\n- Server URL: `https://mcp.sess.si/mcp` (Streamable HTTP).\n');
+    expect(readme.match(/sign in/gi)).toHaveLength(1);
+    const listed = [...readme.matchAll(/^- `(sess_[a-z]+)`/gm)].map((m) => m[1]);
+    expect(listed).toEqual(['sess_ask', ...TOOL_NAMES.filter((n) => n !== 'sess_ask')]);
+  });
+
+  it('the Cursor manifest is the file submitted in w1991e/sess-cursor-plugin, byte for byte', () => {
+    // Read from the public repository on 2026-11-06 (blob 7af49dfe), the founder's submission of 02:13Z.
+    const submitted = [
+      '{',
+      '  "name": "sess",',
+      '  "version": "0.1.1",',
+      '  "description": "Let your agent ask a person and continue with their answer.",',
+      '  "author": { "name": "Sess" },',
+      '  "homepage": "https://sess.si",',
+      '  "repository": "https://github.com/w1991e/sess-cursor-plugin",',
+      '  "license": "Apache-2.0",',
+      '  "keywords": ["human-in-the-loop", "ask", "approval", "mcp"],',
+      '  "logo": "assets/icon-512.png",',
+      '  "mcpServers": "./mcp.json"',
+      '}',
+      '',
+    ].join('\n');
+    const path = 'listings/plugin/.cursor-plugin/plugin.json';
+    const files = generate(inputs());
+    expect(files.get(path)).toBe(submitted);
+    expect(read(path)).toBe(submitted);
+    const blob = createHash('sha1')
+      .update(`blob ${Buffer.byteLength(submitted)}\0${submitted}`)
+      .digest('hex');
+    expect(blob).toBe('7af49dfecb1a8489eb2b52891f503481622307f1');
+    // Submitted, not accepted or listed.
+    const cursor = inputs().listing.providers.cursorPlugin;
+    expect(cursor.submission).toMatchObject({
+      status: 'submitted',
+      date: '2026-11-06',
+      publisherHandle: 'sess',
+    });
+    expect(cursor.submission.note).toMatch(/not accepted, not listed/);
+  });
+
+  it('rejects a Cursor manifest that drifts from the server, the version or the bundle', () => {
+    const i = inputs();
+    const path = 'listings/plugin/.cursor-plugin/plugin.json';
+    const files = edit(generate(i), path, (c) => {
+      c.version = '0.1.0';
+      c.repository = 'http://example.com/sess';
+      c.mcpServers = './other.json';
+      c.logo = 'assets/icon-192.png';
+    });
+    expect(check(i, files).errors).toEqual([
+      "Cursor plugin.json must name this server at package.json's version",
+      'Cursor plugin.json repository must be an HTTPS GitHub URL',
+      'Cursor plugin.json mcpServers must name the bundle’s mcp.json',
+      'Cursor plugin.json logo must name the primary committed icon',
+    ]);
   });
 
   it('the one-line description fields (copy.registry, copy.oneLiner) are the MCP adapter README’s first line, word for word', () => {
@@ -256,8 +327,8 @@ describe('listing.json artifacts', () => {
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
       ['streamable-http', 'qualified'],
-      // The round used the remote link. The stdio link names 0.1.1, prepared and not yet on npm.
-      ['stdio', 'unpublished'],
+      // The round used the remote link. The stdio link names 0.1.1, published on npm, not qualified.
+      ['stdio', 'published'],
     ]);
     // Cursor's evidence is the founder's round, and it claims no outside user.
     const cursorProvider = inputs().listing.providers.cursorInstall;

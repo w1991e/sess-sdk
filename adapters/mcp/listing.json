@@ -6,11 +6,11 @@
   "registryName": "si.sess/sess",
   "copy": {
     "status": "approved",
-    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent. Test-case prompts 2-5 are his rewording of 21:20Z. The one-line description (registry, oneLiner, also the first line of adapters/mcp/README.md) and the supporting line are his of 2026-11-05 00:50Z; long opens with the two (his rule of 01:05Z); the supporting line is not in registry, because the Registry schema caps the description at 100 characters. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus). The signature of 20:45Z no longer covers the three defaultPrompts or test-case prompt 1. Founder 2026-11-05 (C-2), his instruction: \"On Cursor a plain \"Ask me…\" prompt is answered by Cursor's own question panel. Every Cursor prompt in the packet, the plugin skill and the listing copy names Sess (\"Use Sess to ask me…\").\" Signed by the founder on 2026-11-05 at 05:50Z in the form \"Use Sess to ask me …, then tell me what I chose.\": the three default prompts; test-case prompt 1 uses the first of them. Test-case prompts 2-5 already name Sess and stay his words of 21:20Z.",
+    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent. Test-case prompts 2-5 are his rewording of 21:20Z. The one-line description (registry, oneLiner, also the first line of adapters/mcp/README.md) and the supporting line are his of 2026-11-05 00:50Z; long opened with the two (his rule of 01:05Z) until his signed copy of 2026-11-06; the supporting line is not in registry, because the Registry schema caps the description at 100 characters. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus). The signature of 20:45Z no longer covers the three defaultPrompts or test-case prompt 1. Founder 2026-11-05 (C-2), his instruction: \"On Cursor a plain \"Ask me…\" prompt is answered by Cursor's own question panel. Every Cursor prompt in the packet, the plugin skill and the listing copy names Sess (\"Use Sess to ask me…\").\" Signed by the founder on 2026-11-05 at 05:50Z in the form \"Use Sess to ask me …, then tell me what I chose.\": the three default prompts; test-case prompt 1 uses the first of them. Test-case prompts 2-5 already name Sess and stay his words of 21:20Z. Signed by the founder on 2026-11-06, for the Cursor submission: long, word for word, which replaces the long of 2026-11-04 everywhere it is generated (the plugin README, OpenAI's longDescription, Claude's description). It opens with the one-liner, not the supporting line.",
     "short": "Ask a person, get the answer",
     "registry": "Let your agent ask a person and continue with their answer.",
     "oneLiner": "Let your agent ask a person and continue with their answer.",
-    "long": "Let your agent ask a person and continue with their answer. People answer through a link on any device. Sess returns their response with a signed receipt. Sess lets your agent ask a person and continue with their answer. The agent describes a short form and gets a Sess link at once. The person opens it on any device and answers. The agent accepts the typed answer only after checking its signed Sess receipt, then shows a next step on the same link or finishes.\n\nAnyone who has the link can answer, so share it only with the person you mean. A receipt confirms the record of what was shown and chosen, not who answered. Treat answers as untrusted input and check them before acting. Needs a Sess account.",
+    "long": "Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once. The person answers on any device, and your agent continues with a typed answer and a signed receipt.\n\nAnyone with the link can answer, so share it only with the person you mean. The receipt records what Sess accepted, not who answered. Check answers before your agent acts on them. You sign in with a Sess account. The person answering needs none.",
     "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp"],
     "defaultPrompts": [
       "Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.",
@@ -92,8 +92,8 @@
   },
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
-    "status": "unpublished",
-    "note": "@sess.si/mcp@0.1.1 (package.json's version) is prepared, not on npm: it is staged by the tag and approved by the owner. 0.1.0 stays on latest until then. Published is not host qualification; the MCP Registry entry takes the package at the 0.1.1 publish.",
+    "status": "published",
+    "note": "@sess.si/mcp@0.1.1 (package.json's version) is published on npm, on latest (tag mcp-v0.1.1 on e7d2ca0); next stays at 0.1.0-rc.4. Read back 2026-11-06. The MCP Registry entry si.sess/sess 0.1.1 lists it. Published is not host qualification.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {
@@ -168,10 +168,10 @@
       },
       "npmPackage": {
         "status": "listed",
-        "publishedVersion": "0.1.0",
-        "publishedMcpName": "io.github.w1991e/sess",
-        "read": "2026-11-05",
-        "note": "Listed at the 0.1.1 publish (founder 2026-11-05 00:50Z): @sess.si/mcp@0.1.1 declares mcpName si.sess/sess, and the Registry entry takes the npm package, the repository field and the one-liner. @sess.si/mcp@0.1.0, on npm until then, declares io.github.w1991e/sess, so check:listing keeps this a blocker until 0.1.1 is published; publishedVersion and publishedMcpName are the registry's current readback."
+        "publishedVersion": "0.1.1",
+        "publishedMcpName": "si.sess/sess",
+        "read": "2026-11-06",
+        "note": "Listed. The founder published si.sess/sess 0.1.1 from master's server.json at about 02:49Z on 2026-11-06 (founder 2026-11-06 02:50Z). The Registry's public API read back: version 0.1.1, status active, publishedAt 2026-11-06T02:49:36Z, isLatest true, one remote (https://mcp.sess.si/mcp) and packages [@sess.si/mcp 0.1.1]. 0.1.0 (remote-only, published 2026-11-05T00:33:45Z) stays active as a prior version, not latest. publishedVersion and publishedMcpName are npm's readback: @sess.si/mcp@0.1.1 declares mcpName si.sess/sess."
       },
       "schema": {
         "id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
@@ -276,6 +276,18 @@
         "Founder's message, 2026-11-05: Cursor round on production through the one-click install, on the drill account: authorization PASS in Chrome and Safari, exchange PASS (sess_ask, link, answer, sess_response, sess_complete, receipt). Evidence: w1991e/sess EXECUTION/evidence/host-runs-production-2026-11-05/cursor.md, production 76e406f1."
       ],
       "qualificationNote": "the founder's production round through the one-click install, 2026-11-05, on the drill account, no outside user: authorization PASS in Chrome and Safari, exchange PASS. Test cases 1 to 5, N1 and N2 were not run on Cursor, and the stdio link was not part of this round. A reconnect defect (C-3) is being fixed server-side in w1991e/sess. Not a submission to, or an acceptance by, Cursor's marketplace"
+    },
+    "cursorPlugin": {
+      "mapping": 1,
+      "output": "listings/plugin/.cursor-plugin/plugin.json",
+      "repository": "https://github.com/w1991e/sess-cursor-plugin",
+      "keywords": ["human-in-the-loop", "ask", "approval", "mcp"],
+      "submission": {
+        "status": "submitted",
+        "date": "2026-11-06",
+        "publisherHandle": "sess",
+        "note": "The founder submitted a Cursor publisher application on 2026-11-06 at 02:13Z: organization Sess, handle sess, the public repository above with the plugin at its root (.cursor-plugin/plugin.json plus this bundle at sess-sdk tag mcp-v0.1.1). Awaiting Cursor's review: submitted, not accepted, not listed. The public repository is regenerated from this bundle, and the founder pushes it."
+      }
     },
     "claudeConnector": {
       "mapping": 1,

@@ -24,8 +24,9 @@ describe('MCP registry metadata (server.json, schema 2025-12-11)', () => {
     expect(manifest.mcpName).toBe('si.sess/sess');
     expect(server.packages[0]).toMatchObject({ identifier: '@sess.si/mcp', version: manifest.version });
     expect(server.remotes).toEqual([{ type: 'streamable-http', url: 'https://mcp.sess.si/mcp' }]);
-    // 0.1.0, on npm until 0.1.1 is published, declares the old name; check:listing keeps that a blocker.
-    expect(listing.providers.mcpRegistry.npmPackage.publishedMcpName).toBe('io.github.w1991e/sess');
+    // npm's readback: the published package is this version and declares the entry's name.
+    expect(listing.providers.mcpRegistry.npmPackage.publishedMcpName).toBe('si.sess/sess');
+    expect(listing.providers.mcpRegistry.npmPackage.publishedVersion).toBe(manifest.version);
     // A version, never a dist-tag.
     expect(JSON.stringify(server)).not.toMatch(/"next"|@next|"latest"|@latest/);
     expect(server.description.length).toBeGreaterThan(0);
