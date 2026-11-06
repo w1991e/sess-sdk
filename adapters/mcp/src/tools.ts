@@ -1,7 +1,11 @@
 import { ASK_LIMITS, LIMITS, RATING, RESPONDENTS_FLOOR, TEXT_LIMITS as L } from './validate.js';
 
-/** Sess's rating field in one sentence (the runtime's RATING_DOCS), on sess_request's `rating`. */
-const RATING_LINE = `A rating: with it the schema must be exactly {"type": "integer", "minimum": 1, "maximum": N}, N from ${RATING.min} to ${RATING.max}; stars up to 5, numbered choices above; the answer is the chosen whole number. low and high are optional words at the two ends.`;
+/** Sess's rating field, on sess_request's `rating`: the runtime's RATING_DOCS, joined (Sess copy RT-08). */
+const RATING_LINE = [
+  `A rating is a field with rating and the schema exactly {"type": "integer", "minimum": 1, "maximum": N}, N from ${RATING.min} to ${RATING.max} (title and description allowed); any other schema fails with 400 INVALID_SCHEMA.`,
+  'The person sees stars when N is 5 or less, numbered choices above it; the result is the chosen integer.',
+  'low and high are optional words shown at the two ends of the scale.',
+].join(' ');
 
 /**
  * Versioned tool contract. Changing any input or output schema requires a new version. Titles and

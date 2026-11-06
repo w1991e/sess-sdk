@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.0 — 2026-11-06
+
+- A rating in `sess.ask`: a field `{ type: 'rating' }` asks for a whole number from 1 to `max`.
+  `max` is 2 to 10, default 5; the person sees stars up to 5 and numbered choices above. `low`
+  and `high` are optional words at the two ends, at most 24 characters each. The answer is the
+  number chosen. In the types for `sessions.create()` and `publish()`, a field takes
+  `rating: { low?, high? }` with the schema exactly `{ type: 'integer', minimum: 1, maximum: N }`,
+  N from 2 to 10.
+- Respondents in `sess.ask`: add `respondents: { max }` and the same question goes to many people
+  through one link, a Sess Ask. Each person who starts gets their own page. The handle is
+  `{ askId, link, max, expiresAt, read(), close() }`. `read()` returns the Ask's status and
+  counts, and one page of respondents, each with their answer verified by its signed receipt and
+  typed by the fields. `close()` ends the Ask; those who answered keep their pages and receipts.
+  Advanced: `name`, `expires_in`, `respondent_expires_in` and `auto_complete` in `respondents`,
+  and `sess.asks.retrieve()` and `sess.asks.close()` to read or close an Ask by its ID (raw
+  records, not yet verified). Creation is attempted once and never retried. Without
+  `respondents`, `sess.ask` is unchanged.
+- The runtime dependencies are unchanged. The default `User-Agent` names the new version.
+
 ## 0.1.1 — 2026-11-04
 
 - The npm package page only: `keywords`, and `homepage` now points at the docs quickstart. The API

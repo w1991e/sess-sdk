@@ -56,9 +56,8 @@ at that tag and publishes only those bytes.
 
 A prepared, unpublished version is recorded in `release/sdk-next-candidate.json` while one
 exists; consumers stay on the
-published pin until the registry transition. None is prepared now: the root packs the pinned
-`0.1.1`. Its maintainer steps and expected digests are in its release packet,
-[`release/v0.1.1-packet.md`](../release/v0.1.1-packet.md).
+published pin until the registry transition. `0.2.0` is prepared now; consumers stay on `0.1.1`. Its
+maintainer steps and expected digests are in its release packet, [`release/v0.2.0-packet.md`](../release/v0.2.0-packet.md).
 
 ## Selected publishing mode
 
