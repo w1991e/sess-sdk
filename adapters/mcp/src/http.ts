@@ -14,7 +14,7 @@ import { Sess, type SessOptions } from '@sess.si/sdk';
 import { DEFAULT_WAIT_MS, parseOrigin } from './config.js';
 import { AdapterError, type Diagnostics } from './errors.js';
 import { UNSAFE_KEY_MESSAGE, isUnsafeToolCall } from './guard.js';
-import { SessMcpAdapter, type OperationContext, type SessClient } from './operations.js';
+import { SessMcpAdapter, sdkClient, type OperationContext, type SessClient } from './operations.js';
 import { SERVER_NAME, buildToolServer, failure } from './server.js';
 import { grantBinding, sameBinding, type GrantBinding, type HandleStore } from './store.js';
 import { USER_AGENT } from './user-agent.js';
@@ -221,7 +221,8 @@ export function createSessMcpHttpHandler(options: SessMcpHttpHandlerOptions): Se
       // Diagnostics never affect protocol behavior.
     }
   };
-  const createClient = options.createClient ?? ((sessOptions: SessOptions) => new Sess(sessOptions));
+  const createClient =
+    options.createClient ?? ((sessOptions: SessOptions) => sdkClient(new Sess(sessOptions)));
   const requestScope = new AsyncLocalStorage<RequestScope>();
 
   const openContext = async (scope: RequestScope): Promise<OperationContext> => {

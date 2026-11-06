@@ -72,6 +72,34 @@ describe('sess_ask and sess_request take a rating', () => {
     ).toBe('fields[0]: max/low/high are only allowed for rating');
   });
 
+  it('refuses a default off the scale before sending: sess_ask names the default, sess_request the value', () => {
+    for (const value of [0, 6, 2.5, '3', true, null, [3]])
+      expect(refused(() => ask({ default: value })).message, JSON.stringify(value)).toBe(
+        'fields[0].default: must be a whole number from 1 to 5',
+      );
+    expect(refused(() => ask({ max: 10, default: 11 })).message).toBe(
+      'fields[0].default: must be a whole number from 1 to 10',
+    );
+    const first = (args: { interaction: Record<string, unknown> }) =>
+      (args.interaction.source as { components: Record<string, unknown>[] }).components[0];
+    for (const value of [1, 5]) expect(first(ask({ default: value }))).toMatchObject({ value });
+    const schema = { type: 'integer', minimum: 1, maximum: 5 };
+    for (const value of [0, 6, 2.5, '3', true])
+      expect(refused(() => request({ rating: {}, schema, value })).message, JSON.stringify(value)).toBe(
+        'interaction.source.components[0].value: the proposed value is not valid against the field schema',
+      );
+    expect(first(request({ rating: {}, schema, value: 5 }))).toMatchObject({ value: 5 });
+  });
+
+  it('describes sess_request’s rating in Sess’s signed words (RT-08)', () => {
+    const tool = JSON.stringify(TOOLS.find((t) => t.name === 'sess_request')!.inputSchema);
+    expect(tool).toContain(
+      JSON.stringify(
+        'A rating is a field with rating and the schema exactly {"type": "integer", "minimum": 1, "maximum": N}, N from 2 to 10 (title and description allowed); any other schema fails with 400 INVALID_SCHEMA. The person sees stars when N is 5 or less, numbered choices above it; the result is the chosen integer. low and high are optional words shown at the two ends of the scale.',
+      ),
+    );
+  });
+
   it('sess_request: a raw rating field passes with its exact schema and is refused with any other', () => {
     const ok = request({
       rating: { high: 'Great' },

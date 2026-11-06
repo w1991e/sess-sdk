@@ -325,7 +325,14 @@ function ratingField(c: JsonObject, path: string): void {
       `${path}.schema`,
       `must be exactly {"type": "integer", "minimum": 1, "maximum": N} for a rating, with N from ${RATING.min} to ${RATING.max}`,
     );
+  // The proposed value is one of the choices, as Sess checks it against the field schema.
+  if (c.value !== undefined && !onScale(c.value, max))
+    invalid(`${path}.value`, 'the proposed value is not valid against the field schema');
 }
+
+/** A rating's value: a whole number from 1 to the scale's maximum. */
+const onScale = (value: JsonValue, max: number) =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= max;
 
 /**
  * The words shown for each choice are its `option_labels` entry, otherwise the enum ID itself.
@@ -420,16 +427,71 @@ export interface RequestArgs {
   interaction: JsonObject;
   /** Advanced: the link lifetime in seconds (from 30; the plan's ceiling is checked by Sess). */
   expiresIn?: number;
+  /**
+   * sess_ask with `respondents` (a Sess Ask, Decision 0011): the create body's members besides
+   * `interaction`, exactly as given (Sess applies the defaults), and the checked arguments, which
+   * the SDK's `sess.ask` takes as they are. `surface` is round one exactly as each respondent's
+   * Session stores it (Sess's "Your name" field added when `name` is true, response policy
+   * `first`): every released answer must be bound to it.
+   */
+  ask?: { body: AskBody; input: JsonObject; surface: JsonObject };
+}
+
+/** Sess's respondent name field (`respondents.name: true`), exactly as the runtime adds it. */
+const NAME_FIELD: JsonObject = {
+  type: 'field',
+  name: 'name',
+  label: 'Your name',
+  required: true,
+  schema: { type: 'string', minLength: 1, maxLength: 80 },
+};
+/** Round one as a respondent's Session stores it: the name field before the first field, when asked. */
+function askSurface(interaction: JsonObject, named: boolean): JsonObject {
+  const source = interaction.source as JsonObject;
+  const components = [...(source.components as JsonObject[])];
+  if (named) {
+    const at = components.findIndex((c) => c.type === 'field');
+    components.splice(at < 0 ? components.length : at, 0, structuredClone(NAME_FIELD));
+  }
+  return { ...interaction, source: { ...source, components }, response_policy: 'first' };
+}
+export interface AskBody {
+  respondents: { max: number; name?: boolean };
+  expires_in?: number;
+  respondent_expires_in?: number;
 }
 
 /** The shortest link lifetime Sess accepts, in seconds (Decision 0009 Amendment 7). */
 export const LINK_LIFETIME_FLOOR_SECONDS = 30;
+/** The fewest respondents an Ask takes; the most is the plan's active-Session limit, checked by Sess. */
+export const RESPONDENTS_FLOOR = 2;
 
-function linkLifetime(value: JsonValue | undefined): { expiresIn?: number } {
-  if (value === undefined) return {};
+function seconds(value: JsonValue | undefined, path: string): number | undefined {
+  if (value === undefined) return undefined;
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < LINK_LIFETIME_FLOOR_SECONDS)
-    invalid('expires_in', `must be a whole number of seconds, at least ${LINK_LIFETIME_FLOOR_SECONDS}`);
-  return { expiresIn: value };
+    invalid(path, `must be a whole number of seconds, at least ${LINK_LIFETIME_FLOOR_SECONDS}`);
+  return value;
+}
+function linkLifetime(value: JsonValue | undefined): { expiresIn?: number } {
+  const expiresIn = seconds(value, 'expires_in');
+  return expiresIn === undefined ? {} : { expiresIn };
+}
+/** sess_ask's `respondents`: the floors here, every ceiling by Sess (the same checks as sess.ask). */
+function respondents(value: JsonValue | undefined, fields: readonly JsonObject[]): AskBody {
+  const r = object(value, 'respondents');
+  closed(r, 'respondents', ['max', 'name', 'expires_in', 'respondent_expires_in'], ['max']);
+  if (typeof r.max !== 'number' || !Number.isSafeInteger(r.max) || r.max < RESPONDENTS_FLOOR)
+    invalid('respondents.max', `must be a whole number, at least ${RESPONDENTS_FLOOR}`);
+  if (r.name !== undefined && typeof r.name !== 'boolean') invalid('respondents.name', 'must be a boolean');
+  if (r.name === true && fields.some((f) => f.name === 'name'))
+    invalid('respondents.name', 'adds a field named "name"; rename the field that has it');
+  const expiresIn = seconds(r.expires_in, 'respondents.expires_in');
+  const respondentExpiresIn = seconds(r.respondent_expires_in, 'respondents.respondent_expires_in');
+  return {
+    respondents: { max: r.max, ...(r.name !== undefined ? { name: r.name } : {}) },
+    ...(expiresIn !== undefined ? { expires_in: expiresIn } : {}),
+    ...(respondentExpiresIn !== undefined ? { respondent_expires_in: respondentExpiresIn } : {}),
+  };
 }
 export interface ResponseArgs {
   handle: string;
@@ -535,6 +597,9 @@ function askField(value: JsonValue | undefined, path: string): JsonObject {
       if (typeof max !== 'number' || !Number.isInteger(max) || max < RATING.min || max > RATING.max)
         invalid(`${path}.max`, `must be a whole number from ${RATING.min} to ${RATING.max}`);
       schema = { type: 'integer', minimum: 1, maximum: max };
+      // Checked here so a default off the scale names the sess_ask argument (/fields/0/default).
+      if (f.default !== undefined && !onScale(f.default, max))
+        invalid(`${path}.default`, `must be a whole number from 1 to ${max}`);
       // Named at the sess_ask argument (/fields/0/low), the end labels only when given.
       rating = {};
       for (const end of ['low', 'high'] as const)
@@ -589,9 +654,11 @@ function askField(value: JsonValue | undefined, path: string): JsonObject {
 export function parseAskArgs(raw: unknown): RequestArgs {
   const a = args(
     raw,
-    ['question', 'details', 'fields', 'submit_label', 'expires_in'],
+    ['question', 'details', 'fields', 'submit_label', 'expires_in', 'respondents'],
     ['question', 'fields'],
   );
+  if (a.respondents !== undefined && a.expires_in !== undefined)
+    invalid('expires_in', 'is for one person’s link; with respondents, use respondents.expires_in');
   const title = text(a.question, 'question', TEXT_LIMITS.title);
   const submit =
     a.submit_label === undefined ? 'Send' : text(a.submit_label, 'submit_label', TEXT_LIMITS.actionLabel);
@@ -601,12 +668,21 @@ export function parseAskArgs(raw: unknown): RequestArgs {
   const components: JsonValue[] = [];
   if (a.details !== undefined)
     components.push({ type: 'text', text: text(a.details, 'details', TEXT_LIMITS.text) });
-  fields.forEach((f, i) => components.push(askField(f, `fields[${i}]`)));
+  const expanded = fields.map((f, i) => askField(f, `fields[${i}]`));
+  components.push(...expanded);
   const interaction: JsonObject = {
     mode: 'interactive',
     title,
     source: { kind: 'sess_surface', components },
     actions: [{ id: 'submit', label: submit, intent: 'submit' }],
   };
-  return { interaction: validateInteraction(interaction), ...linkLifetime(a.expires_in) };
+  const checked = validateInteraction(interaction);
+  if (a.respondents !== undefined) {
+    const body = respondents(a.respondents, expanded);
+    return {
+      interaction: checked,
+      ask: { body, input: a, surface: askSurface(checked, body.respondents.name === true) },
+    };
+  }
+  return { interaction: checked, ...linkLifetime(a.expires_in) };
 }

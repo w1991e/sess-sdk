@@ -161,13 +161,13 @@ it, and Cline reports your choice.
 
 ## Tools (`sess-mcp-tools/5`)
 
-| Tool            | Input                                                                         | Result `interaction.state`                                    |
-| --------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `sess_request`  | `interaction`, optional `expires_in`                                          | `waiting`, with `humanUrl` and `expiresAt`                    |
-| `sess_response` | `handle`, `revision`, optional `wait_ms` (0–45000)                            | `waiting`, `needs_resume`, `answered`, `completed`, `expired` |
-| `sess_publish`  | `handle`, `expected_revision`, `response_event_id`, `interaction`             | `waiting` at the next revision                                |
-| `sess_complete` | `handle`, `expected_revision`, `response_event_id`                            | `completed`                                                   |
-| `sess_ask`      | `question`, `fields` (1–12), optional `details`, `submit_label`, `expires_in` | `waiting`, with `humanUrl` and `expiresAt`                    |
+| Tool            | Input                                                                                                 | Result `interaction.state`                                                                      |
+| --------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `sess_request`  | `interaction`, optional `expires_in`                                                                  | `waiting`, with `humanUrl` and `expiresAt`                                                      |
+| `sess_response` | `handle`, `revision`, optional `wait_ms` (0–45000)                                                    | `waiting`, `needs_resume`, `answered`, `completed`, `expired`; for an Ask `waiting` or `closed` |
+| `sess_publish`  | `handle`, `expected_revision`, `response_event_id`, `interaction`                                     | `waiting` at the next revision                                                                  |
+| `sess_complete` | `handle`, `expected_revision`, `response_event_id`                                                    | `completed`                                                                                     |
+| `sess_ask`      | `question`, `fields` (1–12), optional `details`, `submit_label`, `expires_in`, Advanced `respondents` | `waiting`, with `humanUrl` and `expiresAt` (and `ask` with `respondents`)                       |
 
 After an answer, `sess_complete` is the rule, not an option: when `sess_response` returns state
 `answered` and the agent has no follow-up question for the person, it must call `sess_complete`
@@ -192,6 +192,17 @@ stops taking answers, as created; on a link of 20 hours or less the person may a
 to a fixed horizon. While the link is lapsed (past that time but still extendable) `sess_response`
 reports `waiting`. It reports `expired` once the link has closed for good with no answer: it is
 final, and nothing was completed. An answer accepted before the end is still returned as `answered`.
+
+Advanced: `respondents: { max }` on `sess_ask` asks many people through one link (a Sess Ask):
+share the link with everyone who should answer; each person gets their own page. A respondent is a
+browser, not a person. The cap is exact: it is checked when a person starts, so it cannot be
+overshot. `respondents` also takes `name` (a required "Your name" field), `expires_in` (the one
+deadline, instead of the top-level `expires_in`) and `respondent_expires_in`; each person's page
+completes when their answer is accepted. The result carries `interaction.ask.id`. `sess_response`
+on that handle reads once, without waiting, and returns `interaction.ask`: whether it is open, the
+counts, and each person's verified answer so far. Its state is `waiting` while answers may still
+come and `closed` once none can. `sess_publish` and `sess_complete` refuse an Ask's handle. This
+needs `@sess.si/sdk` 0.2.0; with an earlier SDK, `respondents` is refused and nothing is created.
 
 Input schemas are closed: unknown properties, unsafe keys (`__proto__`, `constructor`,
 `prototype`), more than 8 levels of nesting, an interaction over 32 KiB, more than 24 fields or 5

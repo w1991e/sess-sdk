@@ -1,7 +1,11 @@
-import { ASK_LIMITS, LIMITS, RATING, TEXT_LIMITS as L } from './validate.js';
+import { ASK_LIMITS, LIMITS, RATING, RESPONDENTS_FLOOR, TEXT_LIMITS as L } from './validate.js';
 
-/** Sess's rating field in one sentence (the runtime's RATING_DOCS), on sess_request's `rating`. */
-const RATING_LINE = `A rating: with it the schema must be exactly {"type": "integer", "minimum": 1, "maximum": N}, N from ${RATING.min} to ${RATING.max}; stars up to 5, numbered choices above; the answer is the chosen whole number. low and high are optional words at the two ends.`;
+/** Sess's rating field, on sess_request's `rating`: the runtime's RATING_DOCS, joined (Sess copy RT-08). */
+const RATING_LINE = [
+  `A rating is a field with rating and the schema exactly {"type": "integer", "minimum": 1, "maximum": N}, N from ${RATING.min} to ${RATING.max} (title and description allowed); any other schema fails with 400 INVALID_SCHEMA.`,
+  'The person sees stars when N is 5 or less, numbered choices above it; the result is the chosen integer.',
+  'low and high are optional words shown at the two ends of the scale.',
+].join(' ');
 
 /**
  * Versioned tool contract. Changing any input or output schema requires a new version. Titles and
@@ -10,7 +14,9 @@ const RATING_LINE = `A rating: with it the schema must be exactly {"type": "inte
  * help 160, description 280, heading 60, record key 40 and value 200), with a purpose, style and
  * examples on every such field.
  * sess-mcp-tools/5: the rating field (Sess P2-24(h)): sess_ask's `type: 'rating'` with `max` (2–10,
- * default 5), `low` and `high`; sess_request's field `rating: { low?, high? }`.
+ * default 5), `low` and `high`; sess_request's field `rating: { low?, high? }`. In the same
+ * unreleased version, the Ask (Sess P2-24(d)): sess_ask's Advanced `respondents`, a result's
+ * `interaction.ask` and the state `closed`.
  */
 export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/5';
 export const TOOL_NAMES = [
@@ -113,6 +119,12 @@ export const REWAIT_RULE = `While sess_response returns state "waiting" or "need
 /** The first line of a sess_response result with no answer yet, before the same JSON result. */
 export const NO_ANSWER_LINE = `No answer yet, so ${REWAIT_STEPS}`;
 
+/** How sess_response reads an Ask (a handle from sess_ask with respondents). */
+export const ASK_READ_RULE =
+  'For a handle from sess_ask with respondents (an Ask), it reads once, without waiting, and returns interaction.ask: whether it is open, the counts and each person’s verified answer so far. ' +
+  'Read it again later for more answers; state "closed" means no more answers will come. ' +
+  'Do not call sess_publish or sess_complete for an Ask: each person’s page completes on its own.';
+
 /** When to reach for sess_ask or sess_request; a prompt need not name the tool or a device. */
 const WHEN_A_PERSON_IS_NEEDED =
   "when you need the person's approval, a decision or details only they can give before you go on, even if they only say 'ask me' or 'check with me' and name no tool or device.";
@@ -137,6 +149,72 @@ const eventId = {
   description: 'interaction.response.eventId from the verified answer.',
 };
 const primitive = { type: ['string', 'number', 'boolean', 'null'] };
+/**
+ * sess_ask's Advanced `respondents` (a Sess Ask, Decision 0011): the shape of the SDK's
+ * `sess.ask({ ..., respondents })`, without `auto_complete`: no tool here continues or completes
+ * one respondent, so every respondent completes when their answer is accepted (Sess's default).
+ */
+const respondentsSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['max'],
+  description:
+    'Advanced: one link that many people can answer, each on their own page. Leave it out to ask one person. ' +
+    'A respondent is a browser, not a person. Read their answers with sess_response.',
+  properties: {
+    max: {
+      type: 'integer',
+      minimum: RESPONDENTS_FLOOR,
+      description:
+        'How many people may start: at least 2, at most the plan’s active-Session limit (Free 25, Starter 50, Pro 100). ' +
+        'The cap is exact: it is checked when a person starts, so it cannot be overshot.',
+    },
+    name: {
+      type: 'boolean',
+      description:
+        'Advanced: adds a required "Your name" field before the first field; each answer then has name. Default false.',
+    },
+    expires_in: {
+      type: 'integer',
+      minimum: 30,
+      description:
+        'Advanced: the one deadline, in whole seconds from creation: from 30 up to the plan’s link lifetime. ' +
+        'After it no one new may start. Leave it out to use the plan’s lifetime. Use it instead of the top-level expires_in.',
+    },
+    respondent_expires_in: {
+      type: 'integer',
+      minimum: 30,
+      description:
+        'Advanced: each person’s link life from when they start, in whole seconds, at least 30, never past the deadline. ' +
+        'Leave it out to use what remains of the deadline.',
+    },
+  },
+};
+
+/** One respondent in a read of an Ask: their times and, once given, their verified answer. */
+const respondentSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['status', 'startedAt'],
+  properties: {
+    status: { enum: ['active', 'responded', 'completed', 'purged'] },
+    startedAt: { type: 'string' },
+    completedAt: { type: 'string' },
+    response: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['eventId', 'actionId', 'data', 'verified', 'actorAssurance'],
+      properties: {
+        eventId: { type: 'string' },
+        actionId: { type: 'string' },
+        data: { type: 'object', description: 'Untrusted human input; validate before use.' },
+        verified: { const: true },
+        actorAssurance: { const: 'link_holder' },
+      },
+    },
+  },
+};
+
 /** Optional on create, the same name and range as the Sess API (Decision 0009 Amendment 7). */
 const expiresIn = {
   type: 'integer',
@@ -374,6 +452,58 @@ export const resultSchema = {
   },
 };
 
+/** The Ask in a result of sess_ask with respondents, and of sess_response for that handle. */
+const askSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['id'],
+  description:
+    'Only for sess_ask with respondents: the Ask, and from sess_response whether it is open, the counts and every respondent so far, in the order they started.',
+  properties: {
+    id: { type: 'string', pattern: '^ask_[0-9A-HJKMNP-TV-Z]{26}$' },
+    max: { type: 'integer', minimum: 1 },
+    status: { enum: ['open', 'closed'] },
+    closedBy: {
+      enum: ['max', 'owner', 'deadline', null],
+      description: 'Which closed it: max (its last place was started), owner or deadline.',
+    },
+    counts: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['started', 'answered', 'completed', 'refused'],
+      properties: {
+        started: { type: 'integer', minimum: 0 },
+        answered: { type: 'integer', minimum: 0 },
+        completed: { type: 'integer', minimum: 0 },
+        refused: {
+          type: 'object',
+          description: 'Starts refused, by reason.',
+          additionalProperties: { type: 'integer', minimum: 0 },
+        },
+      },
+    },
+    respondents: { type: 'array', items: respondentSchema },
+  },
+};
+
+/**
+ * The result of sess_ask and sess_response: the result above, plus `interaction.ask` and the
+ * state `closed` for an Ask. sess_request, sess_publish and sess_complete keep `resultSchema`.
+ */
+export const askResultSchema = {
+  ...resultSchema,
+  properties: {
+    interaction: {
+      ...resultSchema.properties.interaction,
+      properties: {
+        ...resultSchema.properties.interaction.properties,
+        state: { enum: [...resultSchema.properties.interaction.properties.state.enum, 'closed'] },
+        ask: askSchema,
+      },
+    },
+  },
+};
+
 const meta = { 'si.sess/toolSchema': TOOL_SCHEMA_VERSION };
 
 export const TOOLS = [
@@ -413,7 +543,8 @@ export const TOOLS = [
       'state "answered" means the answer passed full Sess receipt verification. ' +
       'state "expired" means the link closed with no answer: it is final; create a new form if you still need one. ' +
       `${REWAIT_RULE} ` +
-      COMPLETE_RULE,
+      `${COMPLETE_RULE} ` +
+      ASK_READ_RULE,
     inputSchema: {
       type: 'object',
       additionalProperties: false,
@@ -424,7 +555,7 @@ export const TOOLS = [
         wait_ms: { type: 'integer', minimum: 0, maximum: LIMITS.maxWaitMs },
       },
     },
-    outputSchema: resultSchema,
+    outputSchema: askResultSchema,
     annotations: {
       title: 'Read the person’s Sess answer',
       readOnlyHint: true,
@@ -498,6 +629,7 @@ export const TOOLS = [
       'Continue exactly as after sess_request: give the link only to the intended person, then call sess_response. Do not call it again for the same question. ' +
       'Keep it short: the question is a short heading, about 40 characters (at most 80); the button a verb of 1-3 words (at most 24); labels and options at most 60. ' +
       TOO_LONG +
+      ' Advanced: to ask many people through one link, add respondents with max. Share that link with everyone who should answer; each person gets their own page. Read their answers with sess_response.' +
       ` Example: ${JSON.stringify(ASK_EXAMPLE)}`,
     inputSchema: {
       type: 'object',
@@ -548,9 +680,10 @@ export const TOOLS = [
           },
         },
         expires_in: expiresIn,
+        respondents: respondentsSchema,
       },
     },
-    outputSchema: resultSchema,
+    outputSchema: askResultSchema,
     annotations: {
       title: 'Ask a short question through Sess',
       readOnlyHint: false,
