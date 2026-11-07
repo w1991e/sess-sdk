@@ -93,7 +93,7 @@
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
     "status": "published",
-    "note": "@sess.si/mcp@0.2.0 (package.json's version) is published on npm, on latest (tag mcp-v0.2.0 on 2d443ddc; the owner approved the stage, founder 2026-11-07 22:35Z). Read back 2026-11-07: the registry tarball's sha256 is 9ac2fe99d39b6b6593ccd1dd987a22453e98117286ceaeb8db7a22158a0c50d3, equal to the packet's and to the owner's check before approval; 32 files; mcpName si.sess/sess. next stays at 0.1.0-rc.4. The MCP Registry entry si.sess/sess takes 0.2.0 when the owner submits server.json 0.2.0; until its readback, 0.1.1 is the listed entry. Published is not host qualification.",
+    "note": "@sess.si/mcp@0.2.0 (package.json's version) is published on npm, on latest (tag mcp-v0.2.0 on 2d443ddc; the owner approved the stage, founder 2026-11-07 22:35Z). Read back 2026-11-07: the registry tarball's sha256 is 9ac2fe99d39b6b6593ccd1dd987a22453e98117286ceaeb8db7a22158a0c50d3, equal to the packet's and to the owner's check before approval; 32 files; mcpName si.sess/sess. next stays at 0.1.0-rc.4. The MCP Registry entry si.sess/sess is 0.2.0, listed with this package (read back 2026-11-07). Published is not host qualification.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {
@@ -171,7 +171,7 @@
         "publishedVersion": "0.2.0",
         "publishedMcpName": "si.sess/sess",
         "read": "2026-11-07",
-        "note": "publishedVersion and publishedMcpName are npm's readback: @sess.si/mcp@0.2.0 declares mcpName si.sess/sess (read 2026-11-07). The Registry entry listed today is si.sess/sess 0.1.1 with packages [@sess.si/mcp 0.1.1] (published by the founder 2026-11-06T02:49:36Z); server.json 0.2.0 names @sess.si/mcp 0.2.0, and the owner submits it (founder 2026-11-07 22:35Z). Record its version and date as listed only after the Registry's public API reads it back."
+        "note": "Listed at 0.2.0. The founder published si.sess/sess 0.2.0 from master's server.json (founder 2026-11-07 23:15Z: published 23:12Z, read back active and latest). The Registry's public API read back on 2026-11-07: version 0.2.0, status active, isLatest true, publishedAt 2026-11-07T20:37:46Z, one remote (https://mcp.sess.si/mcp) and packages [@sess.si/mcp 0.2.0]; 0.1.1 (2026-11-06T02:49:36Z) and 0.1.0 (remote-only, 2026-11-05T00:33:45Z) stay active as prior versions, not latest. publishedVersion and publishedMcpName are npm's readback: @sess.si/mcp@0.2.0 declares mcpName si.sess/sess."
       },
       "schema": {
         "id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
