@@ -286,7 +286,7 @@
         "status": "submitted",
         "date": "2026-11-06",
         "publisherHandle": "sess",
-        "note": "The founder submitted a Cursor publisher application on 2026-11-06 at 02:13Z: organization Sess, handle sess, the public repository above with the plugin at its root (.cursor-plugin/plugin.json plus this bundle at sess-sdk tag mcp-v0.1.1). Awaiting Cursor's review: submitted, not accepted, not listed. The public repository is regenerated from this bundle, and the founder pushes it."
+        "note": "The founder submitted a Cursor publisher application on 2026-11-06 at 02:13Z: organization Sess, handle sess, the public repository above with the plugin at its root (.cursor-plugin/plugin.json plus this bundle at sess-sdk tag mcp-v0.1.1). Awaiting Cursor's review: submitted, not accepted, not listed. The public repository is regenerated from this bundle, and the founder pushes it. On 2026-11-07 the repository's main moved to d359ad7 (sess-cursor-plugin #1, merged by the founder, founder 2026-11-07 23:45Z): the bundle at sess-sdk tag mcp-v0.2.0, both manifests 0.2.0, plugin.json identical to master's listings/plugin (read back). Nothing was resubmitted: the 2026-11-06 submission stands and takes the repository's main."
       }
     },
     "claudeConnector": {

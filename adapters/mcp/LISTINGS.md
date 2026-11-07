@@ -276,6 +276,10 @@ organization and the Apps Management Write role.
   publisher handle `sess`, logo `https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png`, website
   `https://sess.si`, and the public repository https://github.com/w1991e/sess-cursor-plugin, with
   the plugin at its root: `.cursor-plugin/plugin.json` plus this bundle at tag `mcp-v0.1.1`.
+  On 2026-11-07 the repository's `main` moved to `d359ad7` (sess-cursor-plugin #1, merged by the
+  founder, 23:45Z): the bundle at tag `mcp-v0.2.0`, both manifests 0.2.0, `plugin.json` identical to
+  this repository's `listings/plugin` (read back). Nothing was resubmitted: the 2026-11-06 submission
+  stands and takes the repository's `main`.
   The founder's requalification round on production passed (founder-reported, corrected 02:27Z). It started
   about 01:49Z on the production deployment then serving `@sess.si/mcp` 0.1.0, and completed about
   20 minutes later, after the deployment serving 0.1.1 read back at 01:57Z. Cursor kept polling
