@@ -23,12 +23,12 @@ function caught(run: () => unknown): SessError {
 }
 
 const ASK_CASES = [
-  ['question', 80, (v: string) => ({ ...question, question: v }), '/question'],
-  ['submit_label', 24, (v: string) => ({ ...question, submit_label: v }), '/submit_label'],
-  ['field label', 60, (v: string) => ({ ...question, fields: [{ ...field, label: v }] }), '/fields/0/label'],
+  ['question', 60, (v: string) => ({ ...question, question: v }), '/question'],
+  ['submit_label', 16, (v: string) => ({ ...question, submit_label: v }), '/submit_label'],
+  ['field label', 40, (v: string) => ({ ...question, fields: [{ ...field, label: v }] }), '/fields/0/label'],
   [
     'option',
-    60,
+    30,
     (v: string) => ({ ...question, fields: [{ ...field, options: ['Beach', v] }] }),
     '/fields/0/options/1',
   ],
@@ -54,7 +54,7 @@ describe('sess.ask() length limits, in code points', () => {
         // Sess's own sentences: the title (the question) has its own; others name the pointer.
         expect(error.message).toBe(
           pointer === '/question'
-            ? 'The title can be at most 80 characters. Keep it to a short heading, about 40.'
+            ? 'The title can be at most 60 characters. Keep it to a short heading, about 40.'
             : `${pointer} is ${limit + 1} characters; the limit is ${limit}. Shorten it to at most ${limit} characters.`,
         );
         expect(error.message).not.toContain(unit.repeat(limit));
@@ -79,10 +79,10 @@ describe('sess.ask() length limits, in code points', () => {
     const fetch = vi.fn();
     const apiKey = vi.fn(() => API_KEY);
     const sess = new Sess({ apiKey, fetch });
-    await expect(sess.ask({ ...question, question: 'q'.repeat(81) })).rejects.toMatchObject({
+    await expect(sess.ask({ ...question, question: 'q'.repeat(61) })).rejects.toMatchObject({
       field: '/question',
-      limit: 80,
-      length: 81,
+      limit: 60,
+      length: 61,
       outcome: 'not_sent',
     });
     expect(apiKey).not.toHaveBeenCalled();

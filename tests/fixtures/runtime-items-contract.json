@@ -1,8 +1,8 @@
 {
   "source": "Sess runtime w1991e/sess at source_runtime_commit: the items and record components of SurfaceComponent and the interactive interaction of PatchSessionRequest from packages/spec/openapi.json, and the ISO 4217 minor-unit table of packages/core/src/currency.ts. Extracted verbatim for the Commerce builders contract test; refresh from the runtime, never by hand.",
-  "source_runtime_commit": "01b2c05b06811cb6ba411120863cbf550fa4ddc3",
-  "openapi_git_blob_sha1": "a7e45d4b307fb3f0d4fdf59a2b1f431d23eb44a4",
-  "currency_git_blob_sha1": "8b275ee9e8e903be1d1d290e7eae15fa7bd11996",
+  "source_runtime_commit": "34faf417a5196c48a409529d796e30ae1ac71e34",
+  "openapi_git_blob_sha1": "234df0d1af0c98c7a906b5f77c3e87408951e237",
+  "currency_git_blob_sha1": "467fa88007ecebbfa6438d30f3121660ea4fc372",
   "items_component": {
     "additionalProperties": false,
     "description": "Line items with amounts and totals (Commerce). For anything with prices, send an items component, not a table or text. Amounts are integers in the currency’s smallest unit (cents for USD, yen for JPY, fils for BHD), with one ISO 4217 currency per component; Sess never rounds, converts or computes them. Discounts, credits and payments are negative amounts. A subtotal must equal the sum of the rows, and a total given with a subtotal must equal the subtotal plus every other totals line except paid, due and included ones; otherwise 400 INVALID_SCHEMA gives expected and actual in minor units. Every row and total is shown; nothing is collapsed. Editable quantities need an action with intent request_change, such as “Request changes”: a changed quantity can only be sent with it, and your agent replies with a new revision and updated amounts; without one, 400 INVALID_SCHEMA.",
@@ -66,9 +66,9 @@
           "properties": {
             "name": {
               "minLength": 1,
-              "maxLength": 80,
+              "maxLength": 30,
               "pattern": "\\S",
-              "description": "What one line is, shown verbatim; put quantity and unit price in detail; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+              "description": "What one line is, shown verbatim; put quantity and unit price in detail; at most 30. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
               "examples": ["Design retainer, October"],
               "type": "string"
             },
@@ -248,8 +248,8 @@
           ]
         },
         "propertyNames": {
-          "maxLength": 40,
-          "description": "A row's name, shown verbatim: a word or two; at most 40. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+          "maxLength": 24,
+          "description": "A row's name, shown verbatim: a word or two; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
           "examples": ["Amount"],
           "type": "string"
         },
@@ -271,15 +271,15 @@
       },
       "title": {
         "minLength": 1,
-        "maxLength": 80,
+        "maxLength": 60,
         "pattern": "\\S",
-        "description": "The page's heading: a question or a task, about 40 characters; at most 80. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+        "description": "The page's heading: a question or a task, about 40 characters; at most 60. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
         "examples": ["Approve the refund?", "Pick a delivery date"],
         "type": "string"
       },
       "description": {
-        "maxLength": 280,
-        "description": "Optional context under the title: what the person decides and why, in one or two plain sentences; at most 280. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+        "maxLength": 200,
+        "description": "Optional context under the title: what the person decides and why, in one or two plain sentences; at most 200. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
         "examples": ["The customer was charged twice for order 1042."],
         "type": "string"
       },
@@ -353,9 +353,9 @@
             },
             "label": {
               "minLength": 1,
-              "maxLength": 24,
+              "maxLength": 16,
               "pattern": "\\S",
-              "description": "A button: a verb, 1–3 words; at most 24. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
+              "description": "A button: a verb, 1–3 words; at most 16. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.",
               "examples": ["Approve", "Send refund"],
               "type": "string"
             },

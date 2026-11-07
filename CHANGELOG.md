@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Sess's tighter text limits (2026-11-07), read from the contract snapshot and never typed by hand
+  (`src/generated/limits.ts`): a title 60 (about 40), a description 200, a heading 40, a field
+  label 40, help 120, an option 30, a record key 24, a button 16, an item name 30. `sess.ask()`
+  and the Commerce builders refuse a longer value with the same `field`, `limit` and `length`, and
+  the types' doc comments and the README state the same numbers (`npm run check:limits`).
+
 ## 0.2.0 — 2026-11-06
 
 - A rating in `sess.ask`: a field `{ type: 'rating' }` asks for a whole number from 1 to `max`.

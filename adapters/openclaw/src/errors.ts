@@ -1,3 +1,5 @@
+import { SURFACE_TEXT_LIMITS } from './internal/limits.js';
+
 /**
  * Adapter failures surface through the host's tool-error contract (a thrown Error). Messages are
  * fixed, safe text: they never include human URLs, API keys, response bodies or stored paths.
@@ -110,7 +112,7 @@ export function fail(code: AdapterErrorCode, message: string): never {
 /** Sess's own sentences for a length error (`field` is a JSON pointer); the title has its own. */
 export function lengthMessage(field: string, limit: number, length: number): string {
   if (field === '/interaction/title')
-    return `The title can be at most ${limit} characters. Keep it to a short heading, about 40.`;
+    return `The title can be at most ${limit} characters. Keep it to a short heading, about ${SURFACE_TEXT_LIMITS.titleGuide}.`;
   return `${field} is ${length} characters; the limit is ${limit}. Shorten it to at most ${limit} characters.`;
 }
 

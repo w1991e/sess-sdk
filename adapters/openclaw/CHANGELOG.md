@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Sess's tighter text limits (2026-11-07), read from the repository's contract snapshot
+  (`src/internal/limits.ts`, generated): the tool schema, its description, the skill and the
+  arguments check use title 60 (about 40), description 200, heading 40, field label 40, help 120,
+  option 30, record key 24 and button 16.
+
 ## 0.1.0 — 2026-11-01
 
 - The first stable release, published to the `latest` dist-tag. `next` stays at the last release

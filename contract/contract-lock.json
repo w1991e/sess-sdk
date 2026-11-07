@@ -1,11 +1,11 @@
 {
-  "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (w1991e/sess master, PR #431's merge commit: Decision 0009 Amendment 10 link timing, with the interactive text limits, progress, receipt format and length-error fields already on sess master; not yet served by production)",
-  "source_runtime_commit": "2f8500e3da894c00b2a9ac2c4be413851b711c5b",
-  "source_git_blob_sha1": "944bdb62af375ab0ea984d1550166c9ef307fc13",
-  "snapshot_sha256": "6f4f9872f5d7c4b2b897327ef151a1755a116d260b9e0d16202cf783121f2079",
+  "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (w1991e/sess branch spec/surface-limits-one-source on master 90fe43c2: the founder's 2026-11-07 01:30Z Surface text limits; not yet merged or served by production)",
+  "source_runtime_commit": "34faf417a5196c48a409529d796e30ae1ac71e34",
+  "source_git_blob_sha1": "234df0d1af0c98c7a906b5f77c3e87408951e237",
+  "snapshot_sha256": "896280443dcff12b1a7f667a3f12b55f900dd7c709ed1a410befa753cc7d64a7",
   "generator": "openapi-typescript",
   "generator_version": "7.13.0",
-  "recorded_at": "2026-10-21",
+  "recorded_at": "2026-11-07",
   "formatter": "prettier",
   "formatter_version": "3.9.10"
 }

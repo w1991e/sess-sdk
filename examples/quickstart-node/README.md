@@ -98,8 +98,8 @@ reported as uncertain, never as success, and creation is never retried automatic
 ## If a value is too long
 
 Sess keeps the page short and never truncates it. The title is a question or a task, about 40
-characters and at most 80; a button label is a verb of 1–3 words, at most 24; field labels and
-options at most 60; help at most 160. A value over its limit fails before anything is created,
+characters and at most 60; a button label is a verb of 1–3 words, at most 16; field labels at
+most 40 and options at most 30; help at most 120. A value over its limit fails before anything is created,
 with a `SessError` carrying `field` (a JSON pointer such as `/interaction/title`), `limit` and
 `length`. The program prints them and stops; shorten that value and run again. In your own code,
 shorten and retry in one step:

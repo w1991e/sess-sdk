@@ -96,11 +96,11 @@ It is a convenience over the operations below for one question; it adds no endpo
 | `rating`       | Whole number from 1 to `max`                   | `max`, `low`, `high` (below)     |
 
 Every field has a unique `name` (`^[a-z][a-z0-9_]{0,63}$`, the key in the answer), a `label`
-(short, 1–60 characters), optional `required` (default `true`, `false` for `boolean`) and optional
-`default`, a proposal that must itself be a valid value. Each option is 1–60 characters. A question
+(short, 1–40 characters), optional `required` (default `true`, `false` for `boolean`) and optional
+`default`, a proposal that must itself be a valid value. Each option is 1–30 characters. A question
 has 1–12 fields, a `question` (the page title: a question or a task, about 40 characters, at most
-80), optional `details` (1–4,000 characters of plain text above the fields) and an optional
-`submit_label` (the button: a verb of 1–3 words, at most 24 characters; default `Send`). It
+60), optional `details` (1–4,000 characters of plain text above the fields) and an optional
+`submit_label` (the button: a verb of 1–3 words, at most 16 characters; default `Send`). It
 compiles to one interactive Surface: a text component for `details`, one field component per field
 with its runtime schema, and one `submit` action. Invalid input fails with `SessError` kind
 `configuration`, code `INVALID_QUESTION`, outcome `not_sent`, before credential lookup or network
@@ -232,22 +232,23 @@ who have not answered yet; those who answered keep their pages and receipts. Wit
 Sess counts lengths in Unicode code points and never truncates. The limits of an interactive
 Surface:
 
-| Value                                              | Style                          | At most  |
-| -------------------------------------------------- | ------------------------------ | -------- |
-| `title`                                            | A question or a task, about 40 | 80       |
-| `description` (under the title)                    | One or two sentences           | 280      |
-| `heading` component `text`                         | Short                          | 60       |
-| Field `label`, `option_labels` value, `ask` option | Short                          | 60       |
-| Field `description` (help)                         | One hint                       | 160      |
-| Action `label` (`ask`: `submit_label`)             | A verb, 1–3 words              | 24       |
-| `record` `label` (caption)                         | A few words                    | 200      |
-| `record` key / string value                        | As written                     | 40 / 200 |
-| `text` component                                   | Plain text                     | 4,000    |
-| Rating end label (`rating.low`, `rating.high`)     | A word or two                  | 24       |
+| Value                                          | Style                          | At most  |
+| ---------------------------------------------- | ------------------------------ | -------- |
+| `title`                                        | A question or a task, about 40 | 60       |
+| `description` (under the title)                | One or two sentences           | 200      |
+| `heading` component `text`                     | Short                          | 40       |
+| Field `label`                                  | Short, about 20                | 40       |
+| `option_labels` value, `ask` option            | Short                          | 30       |
+| Field `description` (help)                     | One hint                       | 120      |
+| Action `label` (`ask`: `submit_label`)         | A verb, 1–3 words              | 16       |
+| `record` `label` (caption)                     | A few words                    | 200      |
+| `record` key / string value                    | As written                     | 24 / 200 |
+| `text` component                               | Plain text                     | 4,000    |
+| Rating end label (`rating.low`, `rating.high`) | A word or two                  | 24       |
 
-At most 5 actions. A display Session's title is also at most 80 (the same title message); its
+At most 5 actions. A display Session's title is also at most 60 (the same title message); its
 description stays at most 4,000. A choice without an `option_labels` entry shows its enum ID, so
-that ID is held to 60 too; a long ID with a short label is fine (IDs may have up to 200). Over 60,
+that ID is held to 30 too; a long ID with a short label is fine (IDs may have up to 200). Over 30,
 Sess names the enum entry (`/interaction/source/components/2/schema/enum/1`, or
 `.../schema/items/enum/1`) and says: "{field} is {length} characters and has no option label, so it
 is shown as its label; the limit is {limit}. Give it an option label of at most {limit}
@@ -257,7 +258,7 @@ values first (`INVALID_QUESTION`, outcome `not_sent`); Sess checks every request
 400, code `INVALID_SCHEMA`, outcome `rejected`). Either way the `SessError` carries `field`, a
 JSON pointer to the value (`/question`, `/fields/0/label`, `/interaction/title`; for a record key,
 the pointer ends with that key), `limit` and `length`. The message is Sess's: "The title can be
-at most 80 characters. Keep it to a short heading, about 40." for the title, otherwise
+at most 60 characters. Keep it to a short heading, about 40." for the title, otherwise
 "{field} is {length} characters; the limit is {limit}. Shorten it to at most {limit}
 characters." Shorten that value and send the request again. Other errors leave these three
 fields unset. Reads of Surfaces stored before these limits keep working.
@@ -351,7 +352,7 @@ refused. A `record` key `__proto__`, `constructor` or `prototype` is refused. `r
 a negative row, a negative total and payments; a deduction is a negative line. A description
 containing a Markdown table is refused.
 
-The limits are Sess's (`ITEMS_LIMITS`): row name 80, detail 160 (with the reference), totals label
+The limits are Sess's (`ITEMS_LIMITS`): row name 30, detail 160 (with the reference), totals label
 40, caption 200, quantity unit 16, rows 100, totals lines 8, every amount and every sum within
 ±10^15. Over a limit, the builders throw `SessError` kind `configuration`, code `INVALID_SCHEMA`,
 outcome `not_sent`, with `field` (a JSON pointer: within the component for `items()`, within the

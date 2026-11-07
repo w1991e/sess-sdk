@@ -84,6 +84,7 @@ const sha256 = createHash('sha256').update(bytes).digest('hex');
 const allowed = [
   /^dist\/[a-z-]+\.js$/,
   /^dist\/internal\/shared\.js$/,
+  /^dist\/internal\/limits\.js$/,
   /^openclaw\.plugin\.json$/,
   /^package\.json$/,
   /^skills\/sess\/SKILL\.md$/,
@@ -99,6 +100,8 @@ for (const file of files)
   );
 for (const required of [
   'dist/index.js',
+  // Sess's Surface text limits, generated from the contract (npm run generate); schemas.ts reads them.
+  'dist/internal/limits.js',
   'openclaw.plugin.json',
   'skills/sess/SKILL.md',
   'compatibility.json',

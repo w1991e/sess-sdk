@@ -1,5 +1,6 @@
 import { inspect } from 'node:util';
 import type { CreateSessionResponse } from './types.js';
+import { SURFACE_TEXT_LIMITS } from './generated/limits.js';
 
 export type SessErrorKind =
   | 'configuration'
@@ -124,7 +125,7 @@ export function lengthMessage(field: string, limit: number, length: number): str
   // The same sentences as Sess's 400 INVALID_SCHEMA (`field` is a JSON pointer); the title (the
   // `sess.ask()` question) has its own.
   if (field === '/interaction/title' || field === '/question')
-    return `The title can be at most ${limit} characters. Keep it to a short heading, about 40.`;
+    return `The title can be at most ${limit} characters. Keep it to a short heading, about ${SURFACE_TEXT_LIMITS.titleGuide}.`;
   // Commerce: an items component's rows and totals lines are counted, never truncated.
   if (/\/rows$/.test(field))
     return `${field} has ${length} rows; the limit is ${limit}. Send at most ${limit}, in more than one items component if you need more.`;

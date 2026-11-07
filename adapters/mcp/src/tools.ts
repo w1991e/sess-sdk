@@ -46,7 +46,7 @@ const shown = (max: number, docs: Docs, minLength = 1) => ({
  */
 export const TEXT_DOCS = {
   title: {
-    line: `The page's heading: a question or a task, about 40 characters; at most ${L.title}.`,
+    line: `The page's heading: a question or a task, about ${L.titleGuide} characters; at most ${L.title}.`,
     examples: ['Approve the refund?', 'Pick a delivery date'],
   },
   description: {
@@ -369,8 +369,7 @@ export const interactionSchema = {
                   multiline: { type: 'boolean' },
                   option_labels: {
                     type: 'object',
-                    description:
-                      'Display labels for enum values. A value without a label is shown as written, so it is then held to 60 characters too; give a long ID a short label.',
+                    description: `Display labels for enum values. A value without a label is shown as written, so it is then held to ${L.optionLabel} characters too; give a long ID a short label.`,
                     additionalProperties: shown(L.optionLabel, TEXT_DOCS.optionLabel),
                   },
                   rating: {
@@ -517,7 +516,7 @@ export const TOOLS = [
       'Give the link only to the intended person in this private conversation; anyone holding it can answer. ' +
       `${RECEIPT_LIMIT} ` +
       'Then call sess_response with the handle and revision. Do not call sess_request again for the same question. ' +
-      'Keep it short: a title of about 40 characters (at most 80), button labels a verb of 1-3 words (at most 24), field labels at most 60, help one hint (at most 160). ' +
+      `Keep it short: a title of about ${L.titleGuide} characters (at most ${L.title}), button labels a verb of 1-3 words (at most ${L.actionLabel}), field labels at most ${L.label}, choices at most ${L.optionLabel}, help one hint (at most ${L.help}). ` +
       TOO_LONG,
     inputSchema: {
       type: 'object',
@@ -627,7 +626,7 @@ export const TOOLS = [
       'Shortcut for sess_request: give a question and up to 12 simple fields; it creates the same hosted form and returns ' +
       'immediately with a private link (interaction.humanUrl) and a handle, in state "waiting". It never waits and never returns an answer. ' +
       'Continue exactly as after sess_request: give the link only to the intended person, then call sess_response. Do not call it again for the same question. ' +
-      'Keep it short: the question is a short heading, about 40 characters (at most 80); the button a verb of 1-3 words (at most 24); labels and options at most 60. ' +
+      `Keep it short: the question is a short heading, about ${L.titleGuide} characters (at most ${L.title}); the button a verb of 1-3 words (at most ${L.actionLabel}); labels at most ${L.label} and options at most ${L.optionLabel}. ` +
       TOO_LONG +
       ' Advanced: to ask many people through one link, add respondents with max. Share that link with everyone who should answer; each person gets their own page. Read their answers with sess_response.' +
       ` Example: ${JSON.stringify(ASK_EXAMPLE)}`,

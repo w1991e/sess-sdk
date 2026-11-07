@@ -86,7 +86,7 @@ describe('items()', () => {
       currency: 'CAD',
       rows: [
         { name: 'Design retainer, October', amount: 420000 },
-        { name: 'Additional revisions beyond scope, landing page v3', detail: '3 × $150.00', amount: 45000 },
+        { name: 'Extra revisions, landing page', detail: '3 × $150.00', amount: 45000 },
         {
           name: 'Stock photography licence',
           detail: '2 × $49.99',
@@ -104,7 +104,7 @@ describe('items()', () => {
       currency: 'CAD',
       rows: [
         { name: 'Design retainer, October', amount: 420000 },
-        { name: 'Additional revisions beyond scope, landing page v3', detail: '3 × $150.00', amount: 45000 },
+        { name: 'Extra revisions, landing page', detail: '3 × $150.00', amount: 45000 },
         { name: 'Stock photography licence', detail: '2 × $49.99 · SKU STK-88213-A', amount: 9998 },
         { name: 'Early-payment discount', detail: 'Paid within 10 days', amount: -23750 },
       ],
@@ -283,7 +283,7 @@ describe('items() limits: the boundary is accepted, one over is refused, never t
   const longText = (n: number) => '😀'.repeat(n); // code points, not UTF-16 units
 
   it.each([
-    ['row name', 80, (s: string) => ({ currency: 'USD', rows: [{ name: s, amount: 1 }] }), '/rows/0/name'],
+    ['row name', 30, (s: string) => ({ currency: 'USD', rows: [{ name: s, amount: 1 }] }), '/rows/0/name'],
     [
       'row detail',
       160,
