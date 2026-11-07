@@ -21,7 +21,7 @@ try {
     for (const r of read.respondents) {
       if (!r.answer || seen.has(r.sessionId)) continue;
       seen.add(r.sessionId);
-      console.log(`${seen.size} of ${ask.max}: ${r.answer.clarity} of 5, verified ✓`);
+      console.log(`Answer ${seen.size}: ${r.answer.clarity} stars, verified ✓`);
     }
     if (seen.size === ask.max || (read.status === 'closed' && read.closedBy !== 'max')) break;
     await wait(3000);
