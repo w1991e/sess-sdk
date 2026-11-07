@@ -145,11 +145,13 @@ describe('listing.json artifacts', () => {
     expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);
     expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
     // Production serves the icon URLs, so that is no blocker. 0.1.1 is published on npm and listed
-    // in the Registry (founder 2026-11-06 02:50Z), so neither npm blocker remains. Cline's 400x400
+    // in the Registry (founder 2026-11-06 02:50Z); 0.2.0, package.json's version, is prepared and
+    // not on npm, so both npm blockers stand until it is published and read back. Cline's 400x400
     // stays a blocker until it is deployed and committed here.
     expect(text).not.toMatch(/icon URLs/);
-    expect(text).not.toMatch(/MCP Registry and Cursor stdio/);
-    expect(text).not.toMatch(/MCP Registry( npm package)?:/);
+    expect(text).toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
+    expect(text).toMatch(/MCP Registry: @sess\.si\/mcp@0\.1\.1 on npm declares mcpName si\.sess\/sess/);
+    expect(text).not.toMatch(/MCP Registry npm package:/);
     expect(text).toMatch(
       /Cline: needs a 400x400 PNG at a deployed URL; it is in w1991e\/sess PR #1019, not merged at this writing and not deployed until a founder window/,
     );
@@ -254,7 +256,7 @@ describe('listing.json artifacts', () => {
     expect(listed).toEqual(['sess_ask', ...TOOL_NAMES.filter((n) => n !== 'sess_ask')]);
   });
 
-  it('the Cursor manifest is the file submitted in w1991e/sess-cursor-plugin, byte for byte', () => {
+  it('the Cursor manifest is the file submitted in w1991e/sess-cursor-plugin, but for the version', () => {
     // Read from the public repository on 2026-11-06 (blob 7af49dfe), the founder's submission of 02:13Z.
     const submitted = [
       '{',
@@ -273,8 +275,13 @@ describe('listing.json artifacts', () => {
     ].join('\n');
     const path = 'listings/plugin/.cursor-plugin/plugin.json';
     const files = generate(inputs());
-    expect(files.get(path)).toBe(submitted);
-    expect(read(path)).toBe(submitted);
+    // The submission named 0.1.1; the manifest names package.json's version and is otherwise the
+    // submitted file byte for byte. The public plugin repository takes the new version only after
+    // that version is on npm (an owner action, as the submission was).
+    const version = inputs().manifest.version;
+    const current = submitted.replace('"version": "0.1.1"', `"version": "${version}"`);
+    expect(files.get(path)).toBe(current);
+    expect(read(path)).toBe(current);
     const blob = createHash('sha1')
       .update(`blob ${Buffer.byteLength(submitted)}\0${submitted}`)
       .digest('hex');
@@ -327,8 +334,8 @@ describe('listing.json artifacts', () => {
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
       ['streamable-http', 'qualified'],
-      // The round used the remote link. The stdio link names 0.1.1, published on npm, not qualified.
-      ['stdio', 'published'],
+      // The round used the remote link. The stdio link names 0.2.0, prepared and not yet on npm.
+      ['stdio', 'unpublished'],
     ]);
     // Cursor's evidence is the founder's round, and it claims no outside user.
     const cursorProvider = inputs().listing.providers.cursorInstall;

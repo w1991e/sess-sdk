@@ -3,6 +3,9 @@ import {
   Sess,
   SessError,
   type AcceptedResponse,
+  type AskField,
+  type AskRespondents,
+  type AskRespondentsInput,
   type CreateSessionRequest,
   type PublishSessionRequest,
 } from '@sess.si/sdk';
@@ -31,7 +34,7 @@ import {
 export interface SessClient {
   sessions: Pick<Sess['sessions'], 'create' | 'retrieve' | 'waitForResponse' | 'publish' | 'complete'>;
   receipts: Pick<Sess['receipts'], 'verifyResponse'>;
-  /** The Ask (sess_ask with respondents); absent with an SDK that has none (before 0.2.0). */
+  /** The Ask (sess_ask with respondents); `sdkClient` always wires it. */
   respondents?: AskOperations;
 }
 
@@ -66,30 +69,25 @@ export interface AskOperations {
 }
 
 /**
- * The adapter's client from the SDK. The Ask is wired only when the SDK carries it (@sess.si/sdk
- * 0.2.0: `sess.ask` with `respondents`, and `sess.asks`); with an earlier SDK, sess_ask with
- * respondents is refused before anything is sent.
+ * The adapter's client from the SDK (@sess.si/sdk 0.2.0): the Ask is `sess.ask` with
+ * `respondents`, read with `sess.asks.retrieve`. A client without `respondents` (a test double)
+ * refuses sess_ask with respondents before anything is sent.
  */
 export function sdkClient(sess: Sess): SessClient {
-  const client: SessClient = { sessions: sess.sessions, receipts: sess.receipts };
-  const asks = (sess as unknown as { asks?: { retrieve?: unknown } }).asks;
-  if (asks && typeof asks.retrieve === 'function') {
-    const ask = sess.ask as unknown as (input: JsonObject) => Promise<Record<string, unknown>>;
-    const retrieve = asks.retrieve as AskOperations['retrieve'];
-    client.respondents = {
+  return {
+    sessions: sess.sessions,
+    receipts: sess.receipts,
+    respondents: {
       async create(input) {
-        const handle = await ask.call(sess, input);
-        return {
-          askId: handle.askId as string,
-          link: handle.link as string,
-          expiresAt: handle.expiresAt as string,
-          max: handle.max as number,
-        };
+        // Checked by parseAskArgs; the SDK compiles and checks it again before anything is sent.
+        const handle = await sess.ask(
+          input as unknown as AskRespondentsInput<readonly AskField[], AskRespondents>,
+        );
+        return { askId: handle.askId, link: handle.link, expiresAt: handle.expiresAt, max: handle.max };
       },
-      retrieve: (id, options) => retrieve.call(asks, id, options),
-    };
-  }
-  return client;
+      retrieve: (id, options) => sess.asks.retrieve(id, options),
+    },
+  };
 }
 
 export type InteractionState = 'waiting' | 'answered' | 'completed' | 'needs_resume' | 'expired' | 'closed';
@@ -286,7 +284,7 @@ const PLAN_LIMIT_MESSAGE =
 
 /**
  * A create that Sess refused with 429 PLAN_LIMIT_REACHED: a definite refusal, nothing created.
- * The SDK pin (0.1.1) has the plan limit in its rejection table and reports it as `rejected`;
+ * The SDK pin (0.2.0) has the plan limit in its rejection table and reports it as `rejected`;
  * an earlier SDK (0.1.0-rc.8) reports it as `unknown_outcome`, but a create is attempted exactly
  * once, so its single coded 429 answer is the whole outcome. A plain rate limit (no code or
  * RATE_LIMITED) and any other status stay uncertain.

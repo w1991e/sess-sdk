@@ -1,5 +1,5 @@
 // The plugin names itself to Sess in the User-Agent header (Sess classifies the creating client by
-// product token). The SDK pin, 0.1.1, sends its own User-Agent (sess-sdk/<version>
+// product token). The SDK pin, 0.2.0, sends its own User-Agent (sess-sdk/<version>
 // node/<version>) and puts its `userAgent` option's tokens first, so the plugin's client passes its
 // token there; this test sends real requests through native fetch to a local stub server and
 // asserts the exact header.

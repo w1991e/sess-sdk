@@ -11,6 +11,12 @@ import { createSessMcpServer } from '../src/server.js';
 import { TOOLS } from '../src/tools.js';
 import { parseAskArgs, parseRequestArgs, type JsonObject } from '../src/validate.js';
 import { API_KEY, FakeSess, ORIGIN, ROUND_1, clientFor, env, tempDir } from './helpers.js';
+import {
+  FAKE_ASK_ID,
+  FAKE_ASK_LINK,
+  createFakeRuntime,
+  type FakeRuntime,
+} from '../../../tests/fixtures/fake-runtime.mjs';
 
 /** The Ask (Sess P2-24(d), Decision 0011): sess_ask's Advanced `respondents`, read by sess_response. */
 const ASK_ID = `ask_01JASK${'0'.repeat(20)}`;
@@ -58,8 +64,9 @@ const ROUND_ONE_NAMED = {
 const HOUR = 3_600_000;
 
 /**
- * An in-memory stand-in for the two SDK operations the adapter uses for an Ask (the pinned SDK
- * before 0.2.0 has neither): `sess.ask({ ..., respondents })` and `sess.asks.retrieve`.
+ * An in-memory stand-in for the two SDK operations the adapter uses for an Ask:
+ * `sess.ask({ ..., respondents })` and `sess.asks.retrieve`. The real SDK, against a synthetic
+ * runtime that signs real receipts, is exercised at the end of this file.
  */
 class FakeAsks implements AskOperations {
   inputs: JsonObject[] = [];
@@ -619,7 +626,7 @@ describe('sess_ask with respondents: the Ask through the tools', () => {
     expect(readdirSync(join(dir.path, 'profiles', 'default', 'handles'))).toEqual([]);
   });
 
-  it('with an SDK that has no Ask (the pinned SDK before 0.2.0), refuses respondents before anything is sent', async () => {
+  it('the SDK client always carries the Ask (the pin, 0.2.0, has sess.ask with respondents and sess.asks)', () => {
     const sess = new Sess({
       apiKey: API_KEY,
       baseUrl: ORIGIN,
@@ -628,12 +635,11 @@ describe('sess_ask with respondents: the Ask through the tools', () => {
       }) as unknown as typeof fetch,
     });
     const client = sdkClient(sess);
-    if ('asks' in sess) {
-      // An SDK with the Ask: the operations are wired from it.
-      expect(client.respondents).toBeDefined();
-      return;
-    }
-    expect(client.respondents).toBeUndefined();
+    expect(typeof client.respondents?.create).toBe('function');
+    expect(typeof client.respondents?.retrieve).toBe('function');
+  });
+
+  it('a client without the Ask (a test double) refuses respondents before anything is sent', async () => {
     const { client: mcp, fake } = await connect(undefined);
     const result = await call(mcp, 'sess_ask', { ...QUESTION, respondents: { max: 3 } });
     expect(errorOf(result)).toMatchObject({ code: 'NOT_CONFIGURED' });
@@ -644,5 +650,104 @@ describe('sess_ask with respondents: the Ask through the tools', () => {
     expect(one.structuredContent.interaction).toMatchObject({ state: 'waiting', revision: 1 });
     expect(one.structuredContent.interaction.ask).toBeUndefined();
     expect(one.content[0]!.text.startsWith('Show the person this link now: ')).toBe(true);
+  });
+});
+
+/**
+ * The Ask through the pinned SDK (0.2.0) itself, end to end: sess_ask with respondents sends
+ * POST /v1/asks through `sess.ask`, and sess_response reads GET /v1/asks/{id} through
+ * `sess.asks.retrieve` and releases each answer only after the SDK has verified its signed receipt.
+ * The runtime is the repository's synthetic one (tests/fixtures/fake-runtime.mjs): it signs real
+ * Ed25519 receipts with an ephemeral key; nothing here is a credential.
+ */
+describe('sess_ask with respondents: through the SDK against a synthetic runtime', () => {
+  async function connectRuntime(runtime: FakeRuntime) {
+    const created = createSessMcpServer({
+      env: env(dir.path),
+      createClient: () => sdkClient(new Sess({ apiKey: API_KEY, fetch: runtime.fetch, maxRetries: 0 })),
+      diagnostics: stderrDiagnostics(
+        () => {},
+        () => [],
+      ),
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await created.connect(serverTransport);
+    const client = new Client({ name: 'test-client', version: '0.0.0' });
+    await client.connect(clientTransport);
+    return client;
+  }
+  const paths = (runtime: FakeRuntime) => runtime.requests.map((r) => `${r.method} ${r.path}`);
+
+  it('creates one Ask with the SDK’s body, then releases each verified answer bound to round one', async () => {
+    const runtime = createFakeRuntime();
+    const client = await connectRuntime(runtime);
+    const created = await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3, name: true } });
+    expect(created.isError).toBeFalsy();
+    expect(paths(runtime)).toEqual(['POST /v1/asks']);
+    // The create body is exactly the SDK's: round one as the question compiles, and only the
+    // respondents given (Sess adds the name field and the response policy itself).
+    const body = runtime.ask()!.body;
+    expect(Object.keys(body).sort()).toEqual(['interaction', 'respondents']);
+    expect(body.respondents).toEqual({ max: 3, name: true });
+    expect(body.interaction.source).toEqual(ROUND_ONE.source);
+    expect(runtime.ask()!.interaction).toMatchObject({
+      source: ROUND_ONE_NAMED.source,
+      response_policy: 'first',
+    });
+    const { interaction } = created.structuredContent;
+    expect(interaction).toMatchObject({
+      revision: 1,
+      state: 'waiting',
+      humanUrl: FAKE_ASK_LINK,
+      ask: { id: FAKE_ASK_ID, max: 3 },
+    });
+
+    const first = runtime.start()!;
+    runtime.answerRespondent(first, { name: 'Ana', understood: 'Yes' });
+    runtime.start();
+    const read = await call(client, 'sess_response', { handle: interaction.handle, revision: 1 });
+    expect(read.isError).toBeFalsy();
+    expect(read.structuredContent.interaction.state).toBe('waiting');
+    expect(read.structuredContent.interaction.ask).toMatchObject({
+      id: FAKE_ASK_ID,
+      max: 3,
+      status: 'open',
+      closedBy: null,
+      counts: { started: 2, answered: 1 },
+    });
+    const respondents = read.structuredContent.interaction.ask.respondents;
+    expect(respondents.map((r: { status: string }) => r.status)).toEqual(['completed', 'active']);
+    expect(respondents[0].response).toMatchObject({
+      actionId: 'submit',
+      data: { name: 'Ana', understood: 'Yes' },
+      verified: true,
+      actorAssurance: 'link_holder',
+    });
+    expect(respondents[1].response).toBeUndefined();
+    expect(paths(runtime)).toContain(`GET /v1/asks/${FAKE_ASK_ID}`);
+  });
+
+  it('releases no answer whose signed record was changed after signing', async () => {
+    const runtime = createFakeRuntime();
+    const client = await connectRuntime(runtime);
+    const { handle } = (await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } }))
+      .structuredContent.interaction;
+    const id = runtime.start()!;
+    runtime.answerRespondent(id, { understood: 'Yes' });
+    runtime.tamper(id, (r) => {
+      r.responses[0].data = { understood: 'No' };
+    });
+    const read = await call(client, 'sess_response', { handle, revision: 1 });
+    expect(read.isError).toBe(true);
+    expect(errorOf(read).code).toBe('VERIFICATION_FAILED');
+    expect(read.structuredContent).toBeUndefined();
+  });
+
+  it('sends nothing for what Sess would refuse (respondents.max below two)', async () => {
+    const runtime = createFakeRuntime();
+    const client = await connectRuntime(runtime);
+    const result = await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 1 } });
+    expect(result.isError).toBe(true);
+    expect(runtime.requests).toEqual([]);
   });
 });

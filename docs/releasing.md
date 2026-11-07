@@ -3,7 +3,7 @@
 The initializer `@sess.si/create-agent` has its own workflow and runbook: [create-agent/RELEASING.md](../create-agent/RELEASING.md).
 
 Release candidates `0.1.0-rc.N` are published under the `next` dist-tag with provenance; `latest`
-never points at a prerelease. `0.1.0` is the first stable release; `0.1.1` is served under `latest`; `next`
+never points at a prerelease. `0.1.0` is the first stable release; `0.2.0` is served under `latest`; `next`
 stays at the last release candidate, `0.1.0-rc.10`. A green tarball check is not a release.
 Publication needs an authorized maintainer's environment approval and npm 2FA stage approval.
 
@@ -56,8 +56,9 @@ at that tag and publishes only those bytes.
 
 A prepared, unpublished version is recorded in `release/sdk-next-candidate.json` while one
 exists; consumers stay on the
-published pin until the registry transition. `0.2.0` is prepared now; consumers stay on `0.1.1`. Its
-maintainer steps and expected digests are in its release packet, [`release/v0.2.0-packet.md`](../release/v0.2.0-packet.md).
+published pin until the registry transition. None is prepared now: the root packs the pinned
+`0.2.0`. Its maintainer steps and expected digests are in its release packet,
+[`release/v0.2.0-packet.md`](../release/v0.2.0-packet.md).
 
 ## Selected publishing mode
 
