@@ -1,5 +1,5 @@
 // The adapter names itself to Sess in the User-Agent header (Sess classifies the creating client by
-// product token), on the local stdio path and the hosted HTTP path. The SDK pin, 0.1.1, sends
+// product token), on the local stdio path and the hosted HTTP path. The SDK pin, 0.2.0, sends
 // its own User-Agent (sess-sdk/<version> node/<version>) and puts its `userAgent` option's tokens
 // first, so the adapter passes its token there. Real requests go through native fetch to a local
 // stub Sess API; the test asserts the exact header.

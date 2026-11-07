@@ -10,7 +10,7 @@ body:
     id: package
     attributes:
       label: Package and version
-      placeholder: '@sess.si/sdk 0.1.1'
+      placeholder: '@sess.si/sdk 0.2.0'
     validations:
       required: true
   - type: input

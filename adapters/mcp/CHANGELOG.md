@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.0 — 2026-11-07
+
+Tool schemas `sess-mcp-tools/5` (was `/4`); the five tool names are unchanged. Depends on
+`@sess.si/sdk` 0.2.0 (was 0.1.1; sha256 `38562280…c7ee`), resolved from the registry.
+
+- A rating in `sess_ask`: a field `{ name, label, type: 'rating' }` asks for a whole number from 1
+  to `max` (2 to 10, default 5). The person sees stars up to 5 and numbered choices above. `low`
+  and `high` are optional words at the two ends, at most 24 characters each. The answer is the
+  number chosen. `sess_request` and `sess_publish` take the raw field `rating: { low?, high? }`
+  with the schema exactly `{ type: 'integer', minimum: 1, maximum: N }`, N from 2 to 10, and refuse
+  another shape or a value off the scale before anything is sent.
+- Advanced: `respondents: { max }` on `sess_ask` asks many people through one link, a Sess Ask.
+  Each person who starts gets their own page; the cap is checked when a person starts, so it
+  cannot be overshot. `respondents` also takes `name`, `expires_in` and `respondent_expires_in`.
+  The result carries `interaction.ask` with the Ask's ID and cap. `sess_response` on that handle
+  reads at once, without waiting, and returns the Ask's status, its counts and each person's answer
+  so far, each verified by its signed receipt and bound to the Ask's question. Its state is
+  `waiting` while answers may still come and `closed` once none can. `sess_publish` and
+  `sess_complete` refuse an Ask's handle. A create that may have happened is not kept: an unused
+  Ask reserves nothing, so the same call may be made again. Without `respondents`, `sess_ask` is
+  unchanged.
+
 ## 0.1.1 — 2026-11-05
 
 For owners and the MCP Registry: `mcpName` is now `si.sess/sess`, so the Registry entry can list this

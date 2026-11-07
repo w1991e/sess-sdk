@@ -6,7 +6,7 @@ A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent a
 a hosted Sess form and receive a receipt-verified answer. The agent gets the Sess link
 immediately, the person answers on any device, and the agent continues on the same Session.
 
-**Release status:** this README describes `@sess.si/mcp@0.1.1`, the stable release after `0.1.0`, for the `latest` dist-tag. `next` stays at `0.1.0-rc.4`. It depends on `@sess.si/sdk@0.1.1`. The [changelog](CHANGELOG.md) describes each version; `npm view @sess.si/mcp dist-tags` shows what the registry serves now. Everything below marked _tested_ was run from a packed, installed tarball; everything marked _untested_ is the intended registry form. See [compatibility.json](compatibility.json) for the exact tuple.
+**Release status:** this README describes `@sess.si/mcp@0.2.0`, the stable release after `0.1.1`, for the `latest` dist-tag. `next` stays at `0.1.0-rc.4`. It depends on `@sess.si/sdk@0.2.0`. The [changelog](CHANGELOG.md) describes each version; `npm view @sess.si/mcp dist-tags` shows what the registry serves now. Everything below marked _tested_ was run from a packed, installed tarball; everything marked _untested_ is the intended registry form. See [compatibility.json](compatibility.json) for the exact tuple.
 
 ## Set up with Claude Code (connection tested) or Cursor
 
@@ -201,8 +201,7 @@ deadline, instead of the top-level `expires_in`) and `respondent_expires_in`; ea
 completes when their answer is accepted. The result carries `interaction.ask.id`. `sess_response`
 on that handle reads once, without waiting, and returns `interaction.ask`: whether it is open, the
 counts, and each person's verified answer so far. Its state is `waiting` while answers may still
-come and `closed` once none can. `sess_publish` and `sess_complete` refuse an Ask's handle. This
-needs `@sess.si/sdk` 0.2.0; with an earlier SDK, `respondents` is refused and nothing is created.
+come and `closed` once none can. `sess_publish` and `sess_complete` refuse an Ask's handle.
 
 Input schemas are closed: unknown properties, unsafe keys (`__proto__`, `constructor`,
 `prototype`), more than 8 levels of nesting, an interaction over 32 KiB, more than 24 fields or 5
@@ -426,7 +425,7 @@ The adapter is an independent package with its own lockfile. `package.json` alwa
 exact SDK version from the repository's single pin, `release/sdk-candidate.json` (name, version,
 filename, SHA-256, SHA-512). `package-lock.json` is a maintainer file only; npm never ships it to
 consumers. The lock resolves the SDK to the genuine npm registry tarball
-(`https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.1.tgz`, dist-tag `latest`) with the pinned
+(`https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.2.0.tgz`, dist-tag `latest`) with the pinned
 integrity, so no local SDK build or pack is needed. `compatibility.json` mirrors the pin;
 `npm run pin:update` at the root keeps both, the lockfile and the dependency in step after a
 deliberate change, and the root `npm run check` fails on drift.
