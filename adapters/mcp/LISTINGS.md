@@ -309,6 +309,23 @@ second prompt, recorded as a pass with one re-orientation) and
 `host-runs-production-2026-11-01/claude-ai.md` (PASS, the hosted `/mcp` at `@sess.si/mcp` 0.1.0,
 #947). That is not a submission to Anthropic's review, and nothing here has been accepted by it.
 
+**Origin-header validation (Anthropic's technical checklist; founder 2026-11-08 01:35Z).** The hosted
+endpoint validates the `Origin` header before authentication. Its allowlist (`SESS_MCP_ALLOWED_ORIGINS`)
+is empty in production, so any request carrying an `Origin` is refused with 403 ("Forbidden: origin not
+allowed."). A request with no `Origin`, as the hosts' servers send it, reaches OAuth and answers 401
+`invalid_token` until a token is presented. Read back on production, 2026-11-08: no `Origin` → 401; an
+unlisted origin → 403; a host's web origin sent as `Origin` → 403. Browsers that call the endpoint
+directly are therefore refused, which closes the DNS-rebinding path the checklist names.
+
+**Surfaces tested, with dates** (each from the founder's message or the w1991e/sess evidence named):
+
+| Surface                                         | Date          | What ran                                                                                                     | Result                    |
+| ----------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------- |
+| claude.ai (web), custom connector on production | 2026-10-28    | the qualification round (`host-runs-production-2026-10-28/claude-ai.md`)                                     | PASS (one re-orientation) |
+| claude.ai (web), custom connector on production | 2026-11-01    | the qualification round on the hosted `/mcp` at 0.1.0 (#947; `host-runs-production-2026-11-01/claude-ai.md`) | PASS                      |
+| claude.ai (web), custom connector on production | 2026-11-04    | test cases 1 to 5 (below)                                                                                    | 5 of 5 PASS               |
+| Claude Desktop                                  | none recorded | no run of Sess on Claude Desktop is recorded here or in w1991e/sess evidence                                 | not run                   |
+
 ### Smithery
 
 **Not available (closed 2026-10-31; curated directory).** Smithery closed self-service publishing on
