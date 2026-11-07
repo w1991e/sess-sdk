@@ -27,7 +27,7 @@ try {
       seen.add(r.sessionId);
       const { day, keen, note } = r.answer; // note is their own words: quoted, control characters escaped
       console.log(
-        `${seen.size} of ${ask.max}: ${day}, keen ${keen} of 5${note ? `, ${JSON.stringify(note)}` : ''} · verified ✓`,
+        `${seen.size} of ${ask.max}: ${day}, keen ${keen} of 5${note ? `, ${JSON.stringify(note)}` : ''}, verified ✓`,
       );
     }
     if (seen.size === ask.max || (read.status === 'closed' && read.closedBy !== 'max')) break;
