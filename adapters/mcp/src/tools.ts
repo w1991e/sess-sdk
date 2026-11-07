@@ -369,8 +369,7 @@ export const interactionSchema = {
                   multiline: { type: 'boolean' },
                   option_labels: {
                     type: 'object',
-                    description:
-                      'Display labels for enum values. A value without a label is shown as written, so it is then held to 60 characters too; give a long ID a short label.',
+                    description: `Display labels for enum values. A value without a label is shown as written, so it is then held to ${L.optionLabel} characters too; give a long ID a short label.`,
                     additionalProperties: shown(L.optionLabel, TEXT_DOCS.optionLabel),
                   },
                   rating: {

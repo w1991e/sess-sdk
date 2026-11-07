@@ -275,10 +275,41 @@ for (const [file, { rules, other }] of Object.entries(FILES)) {
     problems.push(`${file}:${line}: "${m[0]}" is not a listed limit mention (scripts/check-limits.mjs)`);
   }
 }
+
+/**
+ * Adapter tool schemas an agent reads: each description that states a limit must take it from the
+ * generated limits module (the expression named here), never a written number.
+ */
+const SOURCES = {
+  'adapters/mcp/src/tools.ts': [
+    [S`so it is then held to (?:(\d[\d,]*)|\$\{([^}]*)\}) characters too`, 'L.optionLabel'],
+  ],
+  'adapters/openclaw/src/schemas.ts': [
+    [S`so it is then held to (?:(\d[\d,]*)|\$\{([^}]*)\}) characters too`, 'TEXT_LIMITS.optionLabel'],
+  ],
+};
+for (const [file, rules] of Object.entries(SOURCES)) {
+  const text = await readFile(file, 'utf8');
+  for (const [source, expression] of rules) {
+    const matches = [...text.matchAll(new RegExp(source, 'g'))];
+    if (matches.length === 0) problems.push(`${file}: no description matches /${source}/`);
+    for (const m of matches) {
+      checked++;
+      const line = text.slice(0, m.index).split('\n').length;
+      if (m[1] !== undefined)
+        problems.push(
+          `${file}:${line}: writes ${m[1]}; take it from \${${expression}} (the generated limits)`,
+        );
+      else if (m[2].trim() !== expression)
+        problems.push(`${file}:${line}: reads \${${m[2]}}, expected \${${expression}}`);
+    }
+  }
+}
+
 if (problems.length) {
   for (const p of problems) console.error(`check:limits: ${p}`);
   process.exit(1);
 }
 console.log(
-  `Limits verified: ${checked} mentions in ${Object.keys(FILES).length} files equal the contract (title ${L.title}, description ${L.description}, field label ${L.fieldLabel}, option ${L.optionLabel}, button ${L.actionLabel}).`,
+  `Limits verified: ${checked} mentions in ${Object.keys(FILES).length + Object.keys(SOURCES).length} files equal the contract (title ${L.title}, description ${L.description}, field label ${L.fieldLabel}, option ${L.optionLabel}, button ${L.actionLabel}).`,
 );
