@@ -179,6 +179,8 @@ checks a listed npm package's `mcpName` against the server name
 declares `si.sess/sess` (`providers.mcpRegistry.npmPackage.status` `listed`). 0.1.0 remains as a
 prior version: remote-only, `active`, published 2026-11-05T00:33:45Z, not latest.
 
+**0.2.0 is on npm** (founder 2026-11-07 22:35Z: approved and published; stage at the tag `mcp-v0.2.0`, on `2d443ddc`). npm read back 2026-11-07: `@sess.si/mcp@0.2.0` on `latest`, 32 files, the tarball's sha256 `9ac2fe99d39b6b6593ccd1dd987a22453e98117286ceaeb8db7a22158a0c50d3` (equal to the release packet's and to the owner's check before approval), `mcpName` `si.sess/sess`. Master's `server.json` is 0.2.0 and names `@sess.si/mcp` 0.2.0. The owner submits it with the steps below; the Registry entry is 0.2.0 only after its public API reads it back.
+
 `server.json` names `package.json`'s exact version (and the listed npm package's), and
 stays in step with it on every release candidate (2026-10-20): `npm run listing` writes
 it, and `npm run check:listing`, the registry-metadata test and the release guard fail when they
@@ -261,10 +263,8 @@ organization and the Apps Management Write role.
   (see [Requalification](#requalification-on-production)). This is not a submission to, or an
   acceptance by, Cursor's marketplace.
 - A reconnect defect (C-3) is being fixed server-side in w1991e/sess.
-- The stdio link names package.json's version, `@sess.si/mcp@0.2.0`, which is prepared and not yet
-  on npm, so its status is `unpublished` until 0.2.0 is published and read back (0.1.1 stays on
-  `latest` until then). Once published it is `published`, not qualified: the round used the
-  remote link.
+- The stdio link names package.json's version, `@sess.si/mcp@0.2.0`, published on npm and read
+  back 2026-11-07, so its status is `published`, not qualified: the round used the remote link.
 - These links belong on the setup page. Nothing here puts them there: that page is built in
   w1991e/sess from its own host matrix, whose Cursor entry has its own `qualified` field.
 - On Cursor, a plain "Ask me…" prompt is answered by Cursor's own question panel (founder 2026-11-05,
