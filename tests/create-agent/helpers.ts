@@ -13,6 +13,7 @@ export const GENERATED = [
   'LICENSE',
   'README.md',
   'agent.mjs',
+  'ask.mjs',
   'package.json',
   'weather.mjs',
 ];
