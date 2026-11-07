@@ -1,6 +1,6 @@
 {
   "name": "@sess.si/mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "mcpName": "si.sess/sess",
   "description": "Let your agent ask a person and continue with their answer.",
   "type": "module",
@@ -70,7 +70,7 @@
   "dependencies": {
     "@modelcontextprotocol/node": "2.1.1",
     "@modelcontextprotocol/server": "2.3.1",
-    "@sess.si/sdk": "0.1.1"
+    "@sess.si/sdk": "0.2.0"
   },
   "overrides": {
     "@hono/node-server": "2.1.5"

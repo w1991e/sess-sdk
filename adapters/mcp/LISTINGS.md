@@ -261,8 +261,10 @@ organization and the Apps Management Write role.
   (see [Requalification](#requalification-on-production)). This is not a submission to, or an
   acceptance by, Cursor's marketplace.
 - A reconnect defect (C-3) is being fixed server-side in w1991e/sess.
-- The stdio link names `@sess.si/mcp@0.1.1`, which is published on npm (`latest`). Its status stays `published`:
-  the round used the remote link, and published is not qualified.
+- The stdio link names package.json's version, `@sess.si/mcp@0.2.0`, which is prepared and not yet
+  on npm, so its status is `unpublished` until 0.2.0 is published and read back (0.1.1 stays on
+  `latest` until then). Once published it is `published`, not qualified: the round used the
+  remote link.
 - These links belong on the setup page. Nothing here puts them there: that page is built in
   w1991e/sess from its own host matrix, whose Cursor entry has its own `qualified` field.
 - On Cursor, a plain "Ask me…" prompt is answered by Cursor's own question panel (founder 2026-11-05,

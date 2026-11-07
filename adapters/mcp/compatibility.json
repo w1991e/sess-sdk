@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "package": {
     "name": "@sess.si/mcp",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "toolSchema": "sess-mcp-tools/5"
   },
-  "status": "0.1.1 published on npm dist-tag latest on 2026-11-05, on @sess.si/sdk 0.1.1, with tool schema sess-mcp-tools/4; this tree's sess-mcp-tools/5 (the rating field and the Ask) is unreleased; next stays at 0.1.0-rc.4.",
-  "recordedAt": "2026-11-06",
+  "status": "0.2.0 prepared on @sess.si/sdk 0.2.0 for npm dist-tag latest, unpublished, with tool schema sess-mcp-tools/5 (the rating field and the Ask); 0.1.1 published on latest on 2026-11-05, on @sess.si/sdk 0.1.1, with tool schema sess-mcp-tools/4; next stays at 0.1.0-rc.4.",
+  "recordedAt": "2026-11-07",
   "node": {
     "engines": ">=22.14.0 <25",
     "qualified": ["22.14.0", "24.21.0"],
@@ -151,12 +151,12 @@
   ],
   "sessSdk": {
     "name": "@sess.si/sdk",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "status": "published (registry)",
-    "sha256": "5b9ac909d58bf1a756c7195c7f685c99240179a7e91eaa0f232b1ba1667f88be",
-    "integrity": "sha512-vFC0Q0xtCoUHppiREVQfWxe044Z/y5VgnmuLJ/3yHJ/jnDSWizOKvJYYLVswQCs6fvnjloE7XwBmC8PgUl4IgA==",
-    "candidatePath": ".candidate/sess.si-sdk-0.1.1.tgz",
-    "source": "https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.1.1.tgz",
+    "sha256": "38562280ee9cf6ecb81d0dd5d15c5846854b7e2debc4a51fb36b078b89e6c7ee",
+    "integrity": "sha512-qy2erN2aONmz79NA56ocLaNhm6LbcAgv6EmkRjeY1pdg3Zi5duBJVRJOzLTxlNuPLc6VSs6/g8d/C707zuzQ+Q==",
+    "candidatePath": ".candidate/sess.si-sdk-0.2.0.tgz",
+    "source": "https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.2.0.tgz",
     "releaseHold": "none for the SDK dependency; review the regenerated package-lock.json",
     "history": "0.1.0-rc.3 (sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502) was the earlier approved candidate; it is held by owner decision (2026-10-14) and not published. 0.1.0-rc.4 is the first SDK candidate to be published."
   },
@@ -173,7 +173,16 @@
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "@sess.si/mcp@0.1.1 published on latest on 2026-11-05 from the tag mcp-v0.1.1, with tool schema sess-mcp-tools/4 (release.published); 0.1.0 moved to release.earlier. This tree's sess-mcp-tools/5 is unreleased. next stays at 0.1.0-rc.4. The SDK dependency is in registry mode.",
+    "status": "0.2.0 prepared on @sess.si/sdk 0.2.0, unpublished; the tag mcp-v0.2.0 stages it for npm dist-tag latest (release.prepared). @sess.si/mcp@0.1.1 published on latest on 2026-11-05 from the tag mcp-v0.1.1, with tool schema sess-mcp-tools/4 (release.published). next stays at 0.1.0-rc.4. The SDK dependency is in registry mode.",
+    "prepared": {
+      "version": "0.2.0",
+      "distTag": "latest",
+      "tag": "mcp-v0.2.0",
+      "toolSchema": "sess-mcp-tools/5",
+      "sessSdk": "0.2.0 (registry, dist-tag latest)",
+      "mcpName": "si.sess/sess",
+      "note": "Prepared and unpublished. The release guard derives latest for a version without -rc.N. Once the stage is approved and read back, this entry becomes release.published and 0.1.1 moves to release.earlier."
+    },
     "published": {
       "version": "0.1.1",
       "distTag": "latest",

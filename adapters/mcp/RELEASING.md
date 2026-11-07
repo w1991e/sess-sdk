@@ -12,6 +12,10 @@ The current release, `0.1.1`, is published on `latest` (tag `mcp-v0.1.1`, 2026-1
 [release/v0.1.1-packet.md](release/v0.1.1-packet.md) is its order. `next` stays at the last release
 candidate, `0.1.0-rc.4`.
 
+`0.2.0` is prepared, not published (tag `mcp-v0.2.0`, on `@sess.si/sdk` 0.2.0, tool schemas
+`sess-mcp-tools/5`). Its contents are the `0.2.0` entry in [CHANGELOG.md](CHANGELOG.md); its
+release packet is the maintainer's order. `0.1.1` stays on `latest` until it is published.
+
 The last published candidate is `0.1.0-rc.4` (npm `next`, 2026-10-27; integrity and SHA-256 as
 recorded in [release/rc4-packet.md](release/rc4-packet.md) and `compatibility.json`). `0.1.0-rc.3` ([release/rc3-packet.md](release/rc3-packet.md)), `0.1.0-rc.2`
 ([release/rc2-packet.md](release/rc2-packet.md)) and `0.1.0-rc.1`
@@ -26,7 +30,7 @@ maintainer steps are historical: they were executed and are not re-run.
 > automatically, without protection rules, and the publish job would then run without maintainer
 > approval.
 
-1. **SDK published — done.** The pinned `@sess.si/sdk@0.1.1` (`release/sdk-candidate.json`) is
+1. **SDK published — done.** The pinned `@sess.si/sdk@0.2.0` (`release/sdk-candidate.json`) is
    on npm under the dist-tag `latest`, with provenance, and its registry tarball has exactly the
    pinned SHA-256 and integrity. `package-lock.json` resolves it from the registry (switched with
    `npm run sdk:switch-to-registry -- --apply`). `npm run setup`, `npm run check`, CI and the
