@@ -1,3 +1,5 @@
+import { SURFACE_TEXT_LIMITS } from './internal/limits.js';
+
 /**
  * Adapter errors are reported to the MCP client as tool execution errors (`isError: true`) with a
  * stable code and a fixed, secret-free message. They never carry SESS response bodies, request
@@ -44,7 +46,7 @@ export interface LengthDetail {
  */
 export function lengthMessage(field: string, limit: number, length: number): string {
   if (field === '/interaction/title' || field === '/question')
-    return `The title can be at most ${limit} characters. Keep it to a short heading, about 40.`;
+    return `The title can be at most ${limit} characters. Keep it to a short heading, about ${SURFACE_TEXT_LIMITS.titleGuide}.`;
   return `${field} is ${length} characters; the limit is ${limit}. Shorten it to at most ${limit} characters.`;
 }
 
@@ -154,7 +156,6 @@ export const SESS_ERROR_CODES = [
   'ACTION_NOT_ALLOWED',
   'ACTION_NOT_FOUND',
   'CREDENTIAL_PROVIDER_FAILED',
-  'CUSTODY_HOLD_ACTIVE',
   'EVIDENCE_DELETED',
   'EVIDENCE_RESTRICTED',
   'HOLDER_ENROLLMENT_REFUSED',

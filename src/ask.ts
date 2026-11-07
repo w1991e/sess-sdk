@@ -21,11 +21,12 @@ import type {
   VersionedResult,
 } from './types.js';
 import { withSignal } from './internal/time.js';
+import { SURFACE_TEXT_LIMITS } from './generated/limits.js';
 
 interface AskFieldBase {
   /** Key of this field in the answer: `^[a-z][a-z0-9_]{0,63}$`. */
   readonly name: string;
-  /** What the field asks for: short, a few words; at most 60. Example: `Refund amount` */
+  /** What the field asks for: short, a few words; at most 40. Example: `Refund amount` */
   readonly label: string;
   /** Default `true`, except boolean fields (default `false`). */
   readonly required?: boolean;
@@ -60,13 +61,13 @@ export type AskField =
     })
   | (AskFieldBase & {
       readonly type: 'choice';
-      /** 1–100 choices. The words shown for one choice: short; at most 60. Example: `Next Monday` */
+      /** 1–100 choices. The words shown for one choice: short; at most 30. Example: `Next Monday` */
       readonly options: readonly [string, ...string[]];
       readonly default?: string;
     })
   | (AskFieldBase & {
       readonly type: 'multi_choice';
-      /** 1–100 choices. The words shown for one choice: short; at most 60. Example: `Next Monday` */
+      /** 1–100 choices. The words shown for one choice: short; at most 30. Example: `Next Monday` */
       readonly options: readonly [string, ...string[]];
       readonly default?: readonly string[];
     });
@@ -78,13 +79,13 @@ export type AskField =
  */
 export interface AskInput<F extends readonly AskField[] = readonly AskField[]> {
   /**
-   * The page's heading: a question or a task, about 40 characters; at most 80.
+   * The page's heading: a question or a task, about 40 characters; at most 60.
    * Examples: `Approve the refund?`, `Pick a delivery date`
    */
   readonly question: string;
   /** Optional plain-text context shown above the fields, at most 4,000 characters. */
   readonly details?: string;
-  /** A button: a verb, 1–3 words; at most 24. Default `Send`. Examples: `Approve`, `Send refund` */
+  /** A button: a verb, 1–3 words; at most 16. Default `Send`. Examples: `Approve`, `Send refund` */
   readonly submit_label?: string;
   /** One to twelve fields with unique names. */
   readonly fields: F;
@@ -271,21 +272,21 @@ export interface AskHandle<T> {
 const SURFACE_LIMIT_BYTES = 131_072;
 /**
  * Sess's limits, in Unicode code points (the runtime checks the same numbers; nothing is ever
- * truncated): the question (title) 80, details (a text component) 4,000, the submit button 24,
- * field labels and options 60.
+ * truncated), read from the contract (./generated/limits.ts): the question is the title, details
+ * a text component, the submit button an action label.
  */
 const LIMITS = Object.freeze({
   fields: 12,
   options: 100,
   depth: 8,
   textMax: 4000,
-  question: 80,
-  details: 4000,
-  submitLabel: 24,
-  label: 60,
-  option: 60,
+  question: SURFACE_TEXT_LIMITS.title,
+  details: SURFACE_TEXT_LIMITS.text,
+  submitLabel: SURFACE_TEXT_LIMITS.actionLabel,
+  label: SURFACE_TEXT_LIMITS.fieldLabel,
+  option: SURFACE_TEXT_LIMITS.optionLabel,
   /** A rating's end label (`low`, `high`). */
-  ratingLabel: 24,
+  ratingLabel: SURFACE_TEXT_LIMITS.ratingLabel,
 });
 /** A rating's largest choice: 2–10, default 5 (stars up to 5, numbered above). */
 const RATING = Object.freeze({ min: 2, max: 10, default: 5 });

@@ -86,21 +86,23 @@ characters (Unicode code points), and Sess never truncates:
 
 | What                        | Style                          | At most  |
 | --------------------------- | ------------------------------ | -------- |
-| Title (`question`)          | A question or a task, about 40 | 80       |
-| Button (`submit_label`)     | A verb, 1–3 words              | 24       |
-| Field label, option         | Short                          | 60       |
-| Help (field `description`)  | One hint                       | 160      |
-| Description under the title | One or two sentences           | 280      |
-| Heading                     | Short                          | 60       |
+| Title (`question`)          | A question or a task, about 40 | 60       |
+| Button (`submit_label`)     | A verb, 1–3 words              | 16       |
+| Field label                 | Short, about 20                | 40       |
+| Option                      | Short                          | 30       |
+| Rating end label            | A word or two                  | 24       |
+| Help (field `description`)  | One hint                       | 120      |
+| Description under the title | One or two sentences           | 200      |
+| Heading                     | Short                          | 40       |
 | Record caption              | A few words                    | 200      |
-| Record key / string value   | As written                     | 40 / 200 |
+| Record key / string value   | As written                     | 24 / 200 |
 | Text (`details`)            | Plain text                     | 4,000    |
 
 There are at most 5 buttons. A value over its limit fails with a `SessError` that names it:
 `field` is a JSON pointer such as `/question`, `limit` is the most it may have and `length` is
-what it has. The message says how to fix it: "The title can be at most 80 characters. Keep it
+what it has. The message says how to fix it: "The title can be at most 60 characters. Keep it
 to a short heading, about 40." for the title, and for anything else, for example
-"/fields/0/label is 72 characters; the limit is 60. Shorten it to at most 60 characters." Nothing
+"/fields/0/label is 72 characters; the limit is 40. Shorten it to at most 40 characters." Nothing
 was created (`outcome` is `not_sent` or `rejected`), so shorten the value and ask again:
 
 ```ts
@@ -145,7 +147,7 @@ console.log(`Send this Sess link to the person: ${created.data.human_url}`);
 
 Three things you will meet first:
 
-- **Short rows.** A row name has at most 80 characters and its detail at most 160. A longer value
+- **Short rows.** A row name has at most 30 characters and its detail at most 160. A longer value
   is refused, never trimmed: the `SessError` names it by its pointer, such as
   `/interaction/source/components/1/rows/0/name`, with `limit` and `length`.
 - **Whole minor units.** Amounts are integers in the currency's smallest unit: cents for USD, yen

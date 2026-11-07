@@ -19,21 +19,21 @@ const ask = tool('sess_ask').properties;
 
 /** Every string a person reads, its schema and its limit. */
 const VISIBLE: [string, Schema, number][] = [
-  ['interaction.title', (interactionSchema as Schema).properties.title, 80],
-  ['interaction.description', (interactionSchema as Schema).properties.description, 280],
-  ['heading.text', component('heading').text, 60],
+  ['interaction.title', (interactionSchema as Schema).properties.title, 60],
+  ['interaction.description', (interactionSchema as Schema).properties.description, 200],
+  ['heading.text', component('heading').text, 40],
   ['text.text', component('text').text, 4000],
   ['record.label', component('record').label, 200],
   ['record.fields value', component('record').fields.additionalProperties, 200],
-  ['field.label', component('field').label, 60],
-  ['field.description', component('field').description, 160],
-  ['field.option_labels value', component('field').option_labels.additionalProperties, 60],
-  ['action.label', (interactionSchema as Schema).properties.actions.items.properties.label, 24],
-  ['sess_ask.question', ask.question, 80],
+  ['field.label', component('field').label, 40],
+  ['field.description', component('field').description, 120],
+  ['field.option_labels value', component('field').option_labels.additionalProperties, 30],
+  ['action.label', (interactionSchema as Schema).properties.actions.items.properties.label, 16],
+  ['sess_ask.question', ask.question, 60],
   ['sess_ask.details', ask.details, 4000],
-  ['sess_ask.submit_label', ask.submit_label, 24],
-  ['sess_ask.fields[].label', ask.fields.items.properties.label, 60],
-  ['sess_ask.fields[].options[]', ask.fields.items.properties.options.items, 60],
+  ['sess_ask.submit_label', ask.submit_label, 16],
+  ['sess_ask.fields[].label', ask.fields.items.properties.label, 40],
+  ['sess_ask.fields[].options[]', ask.fields.items.properties.options.items, 30],
 ];
 
 describe('tool schemas teach the limits', () => {
@@ -49,12 +49,12 @@ describe('tool schemas teach the limits', () => {
   it('mirrors Sess’s SURFACE_TEXT_DOCS wording; every example title is under 40 characters', () => {
     for (const schema of [(interactionSchema as Schema).properties.title, ask.question]) {
       expect(schema.description).toBe(
-        "The page's heading: a question or a task, about 40 characters; at most 80.",
+        "The page's heading: a question or a task, about 40 characters; at most 60.",
       );
       for (const example of schema.examples) expect([...example].length).toBeLessThan(40);
     }
     expect((interactionSchema as Schema).properties.actions.items.properties.label.description).toBe(
-      'A button: a verb, 1–3 words; at most 24.',
+      'A button: a verb, 1–3 words; at most 16.',
     );
     expect([...INTERACTION_EXAMPLE.title].length).toBeLessThan(40);
     expect([...ASK_EXAMPLE.question].length).toBeLessThan(40);
@@ -63,7 +63,7 @@ describe('tool schemas teach the limits', () => {
   it('record fields bound string values (and say the key limit); button labels are verbs of 1-3 words', () => {
     const fields = component('record').fields;
     expect(fields.additionalProperties.maxLength).toBe(200);
-    expect(fields.description).toContain("A row's name, shown verbatim: a word or two; at most 40.");
+    expect(fields.description).toContain("A row's name, shown verbatim: a word or two; at most 24.");
     for (const example of (interactionSchema as Schema).properties.actions.items.properties.label.examples)
       expect(example.split(' ').length).toBeLessThanOrEqual(3);
   });
@@ -184,7 +184,7 @@ describe('every limit: N accepted, N+1 refused with field, limit, length and the
       // Sess's own sentences: the title has its own; every other value names its pointer.
       expect(error.message).toBe(
         field === '/interaction/title'
-          ? 'The title can be at most 80 characters. Keep it to a short heading, about 40.'
+          ? 'The title can be at most 60 characters. Keep it to a short heading, about 40.'
           : `${field} is ${limit + 1} characters; the limit is ${limit}. Shorten it to at most ${limit} characters.`,
       );
       // The value itself never appears in the error.
@@ -192,32 +192,32 @@ describe('every limit: N accepted, N+1 refused with field, limit, length and the
     });
   }
 
-  it('a record key over 40 is refused with a pointer ending with that key (escaped), as Sess’s', () => {
+  it('a record key over 24 is refused with a pointer ending with that key (escaped), as Sess’s', () => {
     const ok = base();
-    ok.source.components[1].fields = { ['k'.repeat(40)]: 'v' };
+    ok.source.components[1].fields = { ['k'.repeat(24)]: 'v' };
     expect(() => parseRequestArgs({ interaction: ok })).not.toThrow();
-    const key = `a/b~${'k'.repeat(37)}`;
+    const key = `a/b~${'k'.repeat(21)}`;
     const over = base();
     over.source.components[1].fields = { [key]: 'v' };
     expect(refused(() => parseRequestArgs({ interaction: over })).toJSON()).toMatchObject({
-      field: `/interaction/source/components/1/fields/a~1b~0${'k'.repeat(37)}`,
-      limit: 40,
-      length: 41,
+      field: `/interaction/source/components/1/fields/a~1b~0${'k'.repeat(21)}`,
+      limit: 24,
+      length: 25,
     });
   });
 
   it.each([
-    ['question', 80, (v: string) => ({ ...ASK_EXAMPLE, question: v }), '/question'],
-    ['submit_label', 24, (v: string) => ({ ...ASK_EXAMPLE, submit_label: v }), '/submit_label'],
+    ['question', 60, (v: string) => ({ ...ASK_EXAMPLE, question: v }), '/question'],
+    ['submit_label', 16, (v: string) => ({ ...ASK_EXAMPLE, submit_label: v }), '/submit_label'],
     [
       'field label',
-      60,
+      40,
       (v: string) => ({ ...ASK_EXAMPLE, fields: [{ ...ASK_EXAMPLE.fields[0], label: v }] }),
       '/fields/0/label',
     ],
     [
       'option',
-      60,
+      30,
       (v: string) => ({ ...ASK_EXAMPLE, fields: [{ ...ASK_EXAMPLE.fields[0], options: ['Beach', v] }] }),
       '/fields/0/options/1',
     ],
@@ -239,7 +239,7 @@ describe('every limit: N accepted, N+1 refused with field, limit, length and the
     expect(refused(() => parseRequestArgs({ interaction: ok })).message).toMatch(/1\.\.5 actions/);
   });
 
-  describe('an unlabelled enum ID is the visible option text: held to 60 at its enum entry', () => {
+  describe('an unlabelled enum ID is the visible option text: held to 30 at its enum entry', () => {
     const withChoice = (schema: Schema, option_labels?: Record<string, string>) => {
       const i = base();
       i.source.components.push({
@@ -259,11 +259,11 @@ describe('every limit: N accepted, N+1 refused with field, limit, length and the
         ['items enum', multi, '/interaction/source/components/3/schema/items/enum/1'],
       ] as const)(`%s, no or partial labels (${unit})`, (_, schemaOf, field) => {
         for (const labels of [undefined, { short: 'Short' }]) {
-          expect(() => parseRequestArgs(withChoice(schemaOf(unit.repeat(60)), labels))).not.toThrow();
-          const error = refused(() => parseRequestArgs(withChoice(schemaOf(unit.repeat(61)), labels)));
-          expect(error.toJSON()).toMatchObject({ code: 'INVALID_ARGUMENTS', field, limit: 60, length: 61 });
+          expect(() => parseRequestArgs(withChoice(schemaOf(unit.repeat(30)), labels))).not.toThrow();
+          const error = refused(() => parseRequestArgs(withChoice(schemaOf(unit.repeat(31)), labels)));
+          expect(error.toJSON()).toMatchObject({ code: 'INVALID_ARGUMENTS', field, limit: 30, length: 31 });
           expect(error.message).toBe(
-            `${field} is 61 characters and has no option label, so it is shown as its label; the limit is 60. Give it an option label of at most 60 characters, or shorten it.`,
+            `${field} is 31 characters and has no option label, so it is shown as its label; the limit is 30. Give it an option label of at most 30 characters, or shorten it.`,
           );
         }
         // A long opaque ID stays legal when its visible label is short.
@@ -301,7 +301,7 @@ describe('a length error from Sess reaches the model', () => {
               status: 400,
               outcome: 'rejected',
             }),
-            { field: '/interaction/title', limit: 80, length: 81 },
+            { field: '/interaction/title', limit: 60, length: 61 },
           );
         };
         return { ...client, sessions: Object.assign(Object.create(client.sessions), { create }) };
@@ -317,11 +317,11 @@ describe('a length error from Sess reaches the model', () => {
     expect((error as AdapterError).toJSON()).toEqual({
       code: 'CREATE_REJECTED',
       message:
-        'Sess did not create the interaction: The title can be at most 80 characters. Keep it to a short heading, about 40.',
+        'Sess did not create the interaction: The title can be at most 60 characters. Keep it to a short heading, about 40.',
       retryable: false,
       field: '/interaction/title',
-      limit: 80,
-      length: 81,
+      limit: 60,
+      length: 61,
     });
   });
 });

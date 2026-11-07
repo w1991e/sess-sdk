@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Sess's tighter text limits (2026-11-07), read from the repository's contract snapshot
+  (`src/internal/limits.ts`, generated): the tool schemas, their descriptions and the arguments
+  check use title 60 (about 40), description 200, heading 40, field label 40, help 120, option 30,
+  record key 24 and button 16. Within the unreleased `sess-mcp-tools/5`.
+- `CUSTODY_HOLD_ACTIVE` leaves the diagnostics code list: Sess no longer publishes it (an operator
+  route's code).
+
 ## 0.1.1 — 2026-11-05
 
 For owners and the MCP Registry: `mcpName` is now `si.sess/sess`, so the Registry entry can list this

@@ -23,7 +23,7 @@ const BILL: BillInput = {
   currency: 'CAD',
   rows: [
     { name: 'Design retainer, October', amount: 420000 },
-    { name: 'Additional revisions, landing page v3', detail: '3 × $150.00', amount: 45000 },
+    { name: 'Extra revisions, landing page', detail: '3 × $150.00', amount: 45000 },
     { name: 'Early-payment discount', detail: 'Paid within 10 days', amount: -23750 },
   ],
   lines: [{ label: 'GST 5%', amount: 22062, role: 'tax' }],
@@ -114,11 +114,11 @@ describe('the five builders', () => {
         fields: { [name]: 'R-1' },
       });
     const e = refusal(() =>
-      invoice({ ...BILL, reference: 'INV-1', rows: [{ name: 'x'.repeat(81), amount: 1 }] }),
+      invoice({ ...BILL, reference: 'INV-1', rows: [{ name: 'x'.repeat(31), amount: 1 }] }),
     );
-    expect([e.field, e.limit, e.length]).toEqual(['/interaction/source/components/1/rows/0/name', 80, 81]);
-    const key = refusal(() => invoice({ ...BILL, record: { ['k'.repeat(41)]: 'v' } }));
-    expect([key.field, key.limit]).toEqual([`/interaction/source/components/0/fields/${'k'.repeat(41)}`, 40]);
+    expect([e.field, e.limit, e.length]).toEqual(['/interaction/source/components/1/rows/0/name', 30, 31]);
+    const key = refusal(() => invoice({ ...BILL, record: { ['k'.repeat(25)]: 'v' } }));
+    expect([key.field, key.limit]).toEqual([`/interaction/source/components/0/fields/${'k'.repeat(25)}`, 24]);
     const value = refusal(() => invoice({ ...BILL, record: { Note: 'v'.repeat(201) } }));
     expect([value.field, value.limit, value.length]).toEqual([
       '/interaction/source/components/0/fields/Note',
@@ -161,13 +161,13 @@ describe('the five builders', () => {
     });
     expect(interaction).toMatchObject({ title: 'Accept the quote for the dock?', locale: 'en-CA' });
     expect(runtimeSurfaceFailure(interaction)).toBeNull();
-    const title = refusal(() => invoice({ ...BILL, title: 't'.repeat(81) }));
+    const title = refusal(() => invoice({ ...BILL, title: 't'.repeat(61) }));
     expect([title.field, title.message]).toEqual([
       '/interaction/title',
-      'The title can be at most 80 characters. Keep it to a short heading, about 40.',
+      'The title can be at most 60 characters. Keep it to a short heading, about 40.',
     ]);
-    expect(invoice({ ...BILL, title: 't'.repeat(80) }).title).toHaveLength(80);
-    expect(refusal(() => invoice({ ...BILL, description: 'd'.repeat(281) })).limit).toBe(280);
+    expect(invoice({ ...BILL, title: 't'.repeat(60) }).title).toHaveLength(60);
+    expect(refusal(() => invoice({ ...BILL, description: 'd'.repeat(201) })).limit).toBe(200);
     expect(refusal(() => invoice({ ...BILL, locale: 'en_CA' })).message).toBe(
       '/interaction/locale is not a locale Sess can format; use a BCP 47 tag such as en-CA, or leave it out.',
     );
@@ -298,14 +298,14 @@ describe('editable quantities need a way to send the edit (request_change)', () 
       ...order,
       actions: [
         { id: 'no', label: 'Nein', intent: 'reject' },
-        { id: 'change', label: 'Änderungen senden', intent: 'request_change' },
+        { id: 'change', label: 'Änderung senden', intent: 'request_change' },
         { id: 'yes', label: 'Genehmigen', intent: 'approve' },
       ],
     });
     expect(runtimeSurfaceFailure(relabelled)).toBeNull();
   });
 
-  it('actions are checked: 1–5, unique ids, labels at most 24', () => {
+  it('actions are checked: 1–5, unique ids, labels at most 16', () => {
     expect(refusal(() => invoice({ ...BILL, actions: [] })).field).toBe('/interaction/actions');
     expect(
       refusal(() =>
@@ -318,19 +318,19 @@ describe('editable quantities need a way to send the edit (request_change)', () 
         }),
       ).message,
     ).toBe('/interaction/actions action ids must be unique.');
-    const label = refusal(() => invoice({ ...BILL, actions: [{ id: 'a', label: 'l'.repeat(25) }] }));
-    expect([label.field, label.limit, label.length]).toEqual(['/interaction/actions/0/label', 24, 25]);
+    const label = refusal(() => invoice({ ...BILL, actions: [{ id: 'a', label: 'l'.repeat(17) }] }));
+    expect([label.field, label.limit, label.length]).toEqual(['/interaction/actions/0/label', 16, 17]);
   });
 });
 
 describe('builder defaults', () => {
   it('are the listed strings, each within its limit', () => {
     for (const title of Object.values(COMMERCE_DEFAULTS.titles))
-      expect([...title].length).toBeLessThanOrEqual(80);
+      expect([...title].length).toBeLessThanOrEqual(60);
     for (const key of Object.values(COMMERCE_DEFAULTS.references))
-      expect([...key].length).toBeLessThanOrEqual(40);
+      expect([...key].length).toBeLessThanOrEqual(24);
     for (const a of Object.values(COMMERCE_DEFAULTS.actions))
-      expect([...a.label].length).toBeLessThanOrEqual(24);
+      expect([...a.label].length).toBeLessThanOrEqual(16);
     expect(COMMERCE_DEFAULTS.actions.change.label).toBe('Request changes'); // signed CM-34
     expect([...COMMERCE_DEFAULTS.refundTotal].length).toBeLessThanOrEqual(40);
   });
