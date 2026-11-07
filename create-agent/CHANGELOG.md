@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- The agent it writes depends exactly on `@sess.si/sdk` `0.2.0`.
+- It also writes `ask.mjs`: one question for three people through one link. Each person answers
+  on their own page, and each answer prints as it comes in, verified by its signed receipt. Run
+  `node ask.mjs` with `SESS_API_KEY` set. The README's "Ask a group" section points to it.
+- `npm start` and the weekend planner are unchanged.
+
 ## 0.1.0 — 2026-11-01
 
 - The first stable release, published to the `latest` dist-tag. Create and run with
