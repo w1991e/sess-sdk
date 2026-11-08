@@ -36,9 +36,19 @@ The helper reads the authorized Session, checks that the supplied accepted respo
 matches a retained event, retrieves the exact immutable Surface revision, and obtains
 public verification keys through the same configured transport. It verifies:
 
-- Receipt format `sess_receipt: 1`; protected type `sess-receipt+jwt`, algorithm
-  `EdDSA`, and an explicitly named trusted Ed25519 key. Other protected header fields,
-  private JWK material, incompatible key uses, and ambiguous duplicate key IDs fail.
+- Receipt format `sess_receipt: 1` with protected type `sess-receipt+jwt`
+  ([receipt-v1](spec/receipt-v1.md)), or `sess_receipt: 2` with `sess-receipt-2+jwt`
+  ([receipt-v2](spec/receipt-v2.md)); algorithm `EdDSA`, and an explicitly named trusted Ed25519
+  key. Other protected header fields, a type that does not match its format version, private JWK
+  material, incompatible key uses, and ambiguous duplicate key IDs fail.
+- Receipt v2 only: the revision envelope it commits to. `verifyResponse()` uses the response's
+  own `revision_envelope`; `verifyDecisionReceipt` takes it as `revisionEnvelope`. It must be
+  exactly the nine-member envelope, with a canonical `published_at`, whose RFC 8785 SHA-256 is
+  `surface.revision_hash` and whose Session, revision, Surface hash and renderer identity are the
+  receipt's. Otherwise, or when it is missing, verification fails with
+  `REVISION_ENVELOPE_MISMATCH`. There is no signature-only path for a receipt v2. A receipt v1
+  has no envelope and none is read for it. The envelope's `key_label` is your own word for the
+  publishing API key at publish time, not a verified identity.
 - Expected issuer and resource workspace; `aud`, `workspace_id`, and the return
   recipient must all match that trusted workspace.
 - Exact Session, event/JTI, `rev_<revision>` step, revision, accepted time, and actor
@@ -107,10 +117,13 @@ domain schema or coerce a string into a number.
 
 A [bundle-v1](spec/bundle-v1.md) decision bundle is a deliberate disclosure of one accepted
 decision: the [receipt-v1](spec/receipt-v1.md) receipt, the complete accepted Surface and input,
-and the issuer's public keys. `verifyDecisionBundle` from `@sess.si/sdk/receipts` (and the
-`sess verify <file>` command) verifies it offline with the same checks, order, bounds, reasons
-and result object as every other Sess verification face, proven against one shared conformance
-corpus. It is separate from `verifyDecisionReceipt`, which is unchanged.
+and the issuer's public keys. A [bundle-v2](spec/bundle-v2.md) bundle carries a
+[receipt-v2](spec/receipt-v2.md) receipt and the revision envelope it commits to as well; without
+that envelope, or with another, it is invalid with reason `revision`. `verifyDecisionBundle` from
+`@sess.si/sdk/receipts` (and the `sess verify <file>` command) verifies both versions offline with
+the same checks, order, bounds, reasons and result object as every other Sess verification face,
+proven against the shared bundle-v1 and bundle-v2 conformance corpora. It is separate from
+`verifyDecisionReceipt`.
 
 ```ts
 import { verifyDecisionBundle, type ReceiptKeySet } from '@sess.si/sdk/receipts';

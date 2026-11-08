@@ -1,21 +1,26 @@
-// Decision bundles (bundle-v1, docs/spec/bundle-v1.md): a deliberate disclosure of one accepted
-// decision that anyone can check. verifyDecisionBundle is the SDK face of the Sess verification
-// core: the same check order, bounds, reasons, result object and key-trust rules, proven against
-// the shared conformance corpus. Keys and expected context come only from the caller; nothing in
-// the bundle is trusted. A valid result states what the issuer accepted from someone holding the
-// Session's human link: never who that person is, nor that anything was authorized or executed.
+// Decision bundles (bundle-v1, docs/spec/bundle-v1.md; bundle-v2, docs/spec/bundle-v2.md): a
+// deliberate disclosure of one accepted decision that anyone can check. verifyDecisionBundle is the
+// SDK face of the Sess verification core: the same check order, bounds, reasons, result object and
+// key-trust rules, proven against the shared conformance corpora. Keys and expected context come
+// only from the caller; nothing in the bundle is trusted. A valid result states what the issuer
+// accepted from someone holding the Session's human link: never who that person is, nor that
+// anything was authorized or executed. bundle-v1 holds a receipt v1, unchanged; bundle-v2 holds a
+// receipt v2 and the revision envelope it commits to.
 //
-// verifyDecisionReceipt is a separate, stricter record-bound interface and is unchanged by this
-// module. This module shares its trusted-key validation and canonical JSON helpers.
+// verifyDecisionReceipt is a separate, stricter record-bound interface. This module shares its
+// trusted-key validation, revision-envelope reading and canonical JSON helpers.
 import { createHash } from 'node:crypto';
 import { decodeProtectedHeader, errors, importJWK, jwtVerify, type JWTPayload } from 'jose';
+import { parseRevisionEnvelope, revisionHash, type RevisionEnvelope } from './envelope.js';
 import { canonicalJson, exactKeys, isRecord, jsonDigest } from './json.js';
 import { validateKeySet, type ReceiptKeySet } from './verify.js';
 
 const BUNDLE_TYPE = 'sess.decision-bundle';
 const BUNDLE_VERSION = 1;
+const BUNDLE_VERSION_V2 = 2;
 const RECEIPT_ALG = 'EdDSA';
 const RECEIPT_TYP = 'sess-receipt+jwt';
+const RECEIPT_TYP_V2 = 'sess-receipt-2+jwt';
 
 /** Bounds of a bundle (bundle-v1 §4). A bundle beyond any of them is `oversized`. */
 export const BUNDLE_LIMITS = Object.freeze({
@@ -48,8 +53,18 @@ export interface BundleJwk {
   use?: 'sig';
 }
 
+/** A decision bundle: bundle-v1 (a receipt v1) or bundle-v2 (a receipt v2 and its envelope). */
+export type DecisionBundle = DecisionBundleV1 | DecisionBundleV2;
+
+/** A bundle-v2 object: bundle-v1's members plus `revision_envelope`, exactly. */
+export interface DecisionBundleV2 extends Omit<DecisionBundleV1, 'version'> {
+  version: 2;
+  /** The revision envelope the receipt v2 commits to (receipt-v2 §2). */
+  revision_envelope: RevisionEnvelope;
+}
+
 /** A bundle-v1 object: exactly these members. */
-export interface DecisionBundle {
+export interface DecisionBundleV1 {
   type: 'sess.decision-bundle';
   version: 1;
   /** The receipt-v1 compact JWS, exactly as issued. */
@@ -60,8 +75,8 @@ export interface DecisionBundle {
   keys: { keys: BundleJwk[] };
 }
 
-/** Receipt-v1 rejection codes (receipt-v1 §6). */
-type ReceiptV1Rejection =
+/** Receipt rejection codes (receipt-v1 §6; receipt-v2 §7 adds `revision`). */
+type ReceiptRejection =
   | 'malformed'
   | 'algorithm'
   | 'missing_kid'
@@ -71,15 +86,17 @@ type ReceiptV1Rejection =
   | 'issuer'
   | 'audience'
   | 'expired'
-  | 'claims';
+  | 'claims'
+  /** Receipt v2: the revision envelope is missing, malformed, or of another digest or record. */
+  | 'revision';
 
-/** Why a bundle is invalid: the first check that failed (bundle-v1 §5). */
+/** Why a bundle is invalid: the first check that failed (bundle-v1 §5, bundle-v2 §5). */
 export type BundleRejection =
   | 'malformed'
   | 'oversized'
   | 'unsupported_version'
   | 'receipt_malformed'
-  | Exclude<ReceiptV1Rejection, 'malformed'>
+  | Exclude<ReceiptRejection, 'malformed'>
   | 'not_yet_valid'
   | 'surface_mismatch'
   | 'input_mismatch'
@@ -120,14 +137,21 @@ export interface VerifiedReceiptSummary {
   session_id: string;
   workspace_id: string;
   step_id: string;
-  surface: { revision: number; hash: string; renderer_version: string };
+  /** A bundle-v2 result also carries `revision_hash` here (the receipt v2 claim). */
+  surface: { revision: number; hash: string; renderer_version: string; revision_hash?: string };
   action: { id: string; label: string; summary: string };
   input_hash: string;
   accepted_at: string;
   expires_at: string;
+  /**
+   * bundle-v2 only: the verified revision envelope (absent for a bundle-v1 result). Its
+   * `key_label` and `published_at` say which of the workspace's API keys published the revision,
+   * under which label, and when; a face shows a publisher only from here.
+   */
+  revision_envelope?: RevisionEnvelope;
 }
 
-/** The result every face reports (bundle-v1 §6). JSON-serializable. */
+/** The result every face reports (bundle-v1 §6, bundle-v2 §6). JSON-serializable. */
 export interface DecisionBundleVerification {
   valid: boolean;
   reason: BundleRejection | null;
@@ -149,7 +173,7 @@ export interface DecisionBundleVerification {
 }
 
 interface ReceiptV1Claims {
-  sess_receipt: 1;
+  sess_receipt: 1 | 2;
   iss: string;
   aud: string;
   jti: string;
@@ -160,7 +184,8 @@ interface ReceiptV1Claims {
   session_id: string;
   step_id: string;
   event_id: string;
-  surface: { revision: number; hash: string; renderer_version: string };
+  /** `revision_hash` is present exactly for a receipt v2. */
+  surface: { revision: number; hash: string; renderer_version: string; revision_hash?: string };
   action: { id: string; label: string; summary: string };
   input_hash: string;
   actor: { assurance: 'link_holder'; subject: string };
@@ -168,12 +193,12 @@ interface ReceiptV1Claims {
 }
 
 // ------------------------------------------------------------------------------------------------
-// receipt-v1 §6, in its order and with its codes
+// receipt-v1 §6 and receipt-v2 §7, in their order and with their codes
 // ------------------------------------------------------------------------------------------------
 
 class ReceiptV1Failure extends Error {
-  readonly code: ReceiptV1Rejection;
-  constructor(code: ReceiptV1Rejection) {
+  readonly code: ReceiptRejection;
+  constructor(code: ReceiptRejection) {
     super(code);
     this.code = code;
   }
@@ -182,7 +207,7 @@ class ReceiptV1Failure extends Error {
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
 const nonEmpty = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
 
-function receiptV1Claims(p: Record<string, unknown>): ReceiptV1Claims {
+function receiptV1Claims(p: Record<string, unknown>, version: 1 | 2): ReceiptV1Claims {
   const top = [
     'sess_receipt',
     'iss',
@@ -207,7 +232,7 @@ function receiptV1Claims(p: Record<string, unknown>): ReceiptV1Claims {
   const rb = p.return_binding;
   const ok =
     exactKeys(p, top) &&
-    p.sess_receipt === 1 &&
+    p.sess_receipt === version &&
     [p.iss, p.aud, p.jti, p.accepted_at, p.workspace_id, p.session_id, p.step_id, p.event_id].every(
       nonEmpty,
     ) &&
@@ -217,7 +242,11 @@ function receiptV1Claims(p: Record<string, unknown>): ReceiptV1Claims {
     typeof p.input_hash === 'string' &&
     DIGEST.test(p.input_hash) &&
     isRecord(s) &&
-    exactKeys(s, ['revision', 'hash', 'renderer_version']) &&
+    (version === 2
+      ? exactKeys(s, ['revision', 'hash', 'renderer_version', 'revision_hash']) &&
+        typeof s.revision_hash === 'string' &&
+        DIGEST.test(s.revision_hash)
+      : exactKeys(s, ['revision', 'hash', 'renderer_version'])) &&
     Number.isSafeInteger(s.revision) &&
     (s.revision as number) >= 1 &&
     typeof s.hash === 'string' &&
@@ -242,16 +271,20 @@ function receiptV1Claims(p: Record<string, unknown>): ReceiptV1Claims {
 }
 
 /**
- * The receipt-v1 rules against trusted keys: compact JWS, pinned EdDSA, a kid the caller trusts
- * (no fallback key), the receipt typ, the signature, the trusted issuer, the expected audience,
- * current-time expiry, then the claims and their canonical serialization. Throws ReceiptV1Failure
- * with the first failing code; any other error means the receipt could not be read at all.
+ * The receipt rules against trusted keys: compact JWS, pinned EdDSA, a kid the caller trusts
+ * (no fallback key), the receipt typ of the bundle's version (bundle-v1 a receipt v1, bundle-v2 a
+ * receipt v2), the signature, the trusted issuer, the expected audience, current-time expiry, then
+ * the claims and their canonical serialization, and for a receipt v2 the revision envelope it
+ * commits to. Throws ReceiptV1Failure with the first failing code; any other error means the
+ * receipt could not be read at all.
  */
 async function verifyReceiptV1(
   jws: string,
   keys: ReceiptKeySet,
-  options: { issuer: string; audience: string; now: Date },
+  options: { issuer: string; audience: string; now: Date; version: 1 | 2 },
+  envelope?: unknown,
 ): Promise<ReceiptV1Claims> {
+  const typ = options.version === 2 ? RECEIPT_TYP_V2 : RECEIPT_TYP;
   if (jws.split('.').length !== 3) throw new ReceiptV1Failure('malformed');
   let header: ReturnType<typeof decodeProtectedHeader>;
   try {
@@ -263,13 +296,13 @@ async function verifyReceiptV1(
   if (typeof header.kid !== 'string' || header.kid.length === 0) throw new ReceiptV1Failure('missing_kid');
   const jwk = keys.keys.find((k) => k.kid === header.kid);
   if (!jwk) throw new ReceiptV1Failure('unknown_kid');
-  if (header.typ !== RECEIPT_TYP) throw new ReceiptV1Failure('type');
+  if (header.typ !== typ) throw new ReceiptV1Failure('type');
   const key = await importJWK({ kty: jwk.kty, crv: jwk.crv, x: jwk.x }, RECEIPT_ALG);
   let payload: JWTPayload;
   try {
     ({ payload } = await jwtVerify(jws, key, {
       algorithms: [RECEIPT_ALG],
-      typ: RECEIPT_TYP,
+      typ,
       issuer: options.issuer,
       audience: options.audience,
       currentDate: options.now,
@@ -286,11 +319,24 @@ async function verifyReceiptV1(
     }
     throw new ReceiptV1Failure('malformed');
   }
-  const claims = receiptV1Claims(payload as Record<string, unknown>);
+  const claims = receiptV1Claims(payload as Record<string, unknown>, options.version);
   // The signed bytes must be exactly the canonical form of the claims.
   const signed = Buffer.from(jws.split('.')[1] as string, 'base64url');
   if (`sha256:${createHash('sha256').update(signed).digest('hex')}` !== jsonDigest(claims))
     throw new ReceiptV1Failure('claims');
+  if (options.version === 2) {
+    // receipt-v2 §7: missing or null, malformed, of another digest, or of another record.
+    const parsed = parseRevisionEnvelope(envelope);
+    if (
+      parsed === null ||
+      revisionHash(parsed) !== claims.surface.revision_hash ||
+      parsed.session_id !== claims.session_id ||
+      parsed.revision !== claims.surface.revision ||
+      parsed.surface_hash !== claims.surface.hash ||
+      parsed.renderer_version !== claims.surface.renderer_version
+    )
+      throw new ReceiptV1Failure('revision');
+  }
   return claims;
 }
 
@@ -374,12 +420,17 @@ function shapeProblem(b: unknown): 'malformed' | 'oversized' | 'unsupported_vers
   }
   if (size > BUNDLE_LIMITS.bytes) return 'oversized';
   if (b.type !== BUNDLE_TYPE) return 'malformed';
-  if (b.version !== BUNDLE_VERSION) {
-    return Number.isSafeInteger(b.version) && (b.version as number) > BUNDLE_VERSION
+  if (b.version !== BUNDLE_VERSION && b.version !== BUNDLE_VERSION_V2) {
+    return Number.isSafeInteger(b.version) && (b.version as number) > BUNDLE_VERSION_V2
       ? 'unsupported_version'
       : 'malformed';
   }
-  if (!exactKeys(b, ['type', 'version', 'receipt', 'content', 'keys'])) return 'malformed';
+  const members = ['type', 'version', 'receipt', 'content', 'keys'];
+  // bundle-v2: the revision envelope travels with its receipt. A missing, null or malformed one is
+  // not a shape problem: the receipt step refuses it as `revision` (bundle-v2 §5).
+  if (b.version === BUNDLE_VERSION_V2 && Object.hasOwn(b, 'revision_envelope'))
+    members.push('revision_envelope');
+  if (!exactKeys(b, members)) return 'malformed';
   if (typeof b.receipt !== 'string') return 'malformed';
   if (b.receipt.length > BUNDLE_LIMITS.receiptChars) return 'oversized';
   const c = b.content;
@@ -455,9 +506,10 @@ function contextChecks(
 // ------------------------------------------------------------------------------------------------
 
 /**
- * Verifies a bundle-v1 decision bundle offline against the issuer and keys the caller trusts.
- * Every outcome about the bundle is a result, never an exception; only invalid options throw a
- * TypeError. Order (bundle-v1 §5): shape and bounds; the receipt by the receipt-v1 rules; not
+ * Verifies a bundle-v1 or bundle-v2 decision bundle offline against the issuer and keys the caller
+ * trusts. Every outcome about the bundle is a result, never an exception; only invalid options
+ * throw a TypeError. Order (bundle-v1 §5, bundle-v2 §5): shape and bounds; the receipt by the
+ * receipt-v1 rules (bundle-v1) or the receipt-v2 rules with the bundle's envelope (bundle-v2); not
  * issued in the future; the disclosed Surface and input against the receipt's hashes; then the
  * caller's expected context.
  */
@@ -493,8 +545,17 @@ export async function verifyDecisionBundle(
   const audience = expected?.audience ?? declaredAudience(b.receipt);
   if (audience === undefined) return invalid('receipt_malformed');
   let claims: ReceiptV1Claims;
+  // bundle-v1 holds a receipt v1, bundle-v2 a receipt v2 (another typ is `type`); a receipt v2 is
+  // verified with the bundle's revision envelope (a missing or other one is `revision`).
+  const v2 = b.version === BUNDLE_VERSION_V2;
+  const envelope = v2 ? (b as DecisionBundleV2).revision_envelope : undefined;
   try {
-    claims = await verifyReceiptV1(b.receipt, trustedKeys, { issuer: options.issuer, audience, now });
+    claims = await verifyReceiptV1(
+      b.receipt,
+      trustedKeys,
+      { issuer: options.issuer, audience, now, version: v2 ? 2 : 1 },
+      envelope,
+    );
   } catch (e) {
     if (!(e instanceof ReceiptV1Failure)) return invalid('receipt_malformed');
     if (e.code === 'audience')
@@ -542,6 +603,8 @@ export async function verifyDecisionBundle(
       input_hash: claims.input_hash,
       accepted_at: claims.accepted_at,
       expires_at: new Date(claims.exp * 1000).toISOString(),
+      // bundle-v2: the envelope as verified (its digest is the receipt's revision_hash).
+      ...(v2 ? { revision_envelope: parseRevisionEnvelope(envelope) as RevisionEnvelope } : {}),
     },
   };
 }

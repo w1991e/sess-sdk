@@ -10,8 +10,16 @@ import {
   wellFormedUnicode,
   type DeepReadonly,
 } from '../receipts/json.js';
+import type { RevisionEnvelope } from '../receipts/envelope.js';
 
-export type WebhookEvent = components['schemas']['WebhookDelivery'];
+/**
+ * A `response.accepted` delivery. A receipt v2's message also carries `revision_envelope` beside
+ * `receipt` (receipt-v2 §10); a receipt v1's message has no such member.
+ */
+export type WebhookEvent = components['schemas']['WebhookDelivery'] & {
+  /** Beside a receipt v2 only: the revision envelope the receipt commits to. */
+  revision_envelope?: RevisionEnvelope;
+};
 export type WebhookChallenge = components['schemas']['WebhookVerification'];
 export type VerifiedWebhook = DeepReadonly<WebhookEvent | WebhookChallenge>;
 export type WebhookHeaders = Headers | Readonly<Record<string, string | readonly string[] | undefined>>;
@@ -206,6 +214,9 @@ export function verifyWebhook(
     }
     return deepFreeze(value) as DeepReadonly<WebhookChallenge>;
   }
+  // A receipt v2's message carries its revision envelope beside the receipt; a receipt v1's has
+  // exactly the members it always had. The envelope itself is judged by receipt verification.
+  const withEnvelope = Object.hasOwn(value, 'revision_envelope');
   if (
     value.type !== 'response.accepted' ||
     !exactKeys(value, [
@@ -218,7 +229,9 @@ export function verifyWebhook(
       'data',
       'accepted_at',
       'receipt',
+      ...(withEnvelope ? ['revision_envelope'] : []),
     ]) ||
+    (withEnvelope && (!isRecord(value.revision_envelope) || typeof value.receipt !== 'string')) ||
     typeof value.event_id !== 'string' ||
     !EVENT_ID.test(value.event_id) ||
     value.event_id !== id ||

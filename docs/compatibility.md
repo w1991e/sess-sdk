@@ -1,6 +1,10 @@
 # Compatibility and evidence
 
-SDK version: **0.2.0**, published on npm under the `latest` dist-tag with provenance and pinned in
+SDK version: **0.3.0** is prepared, not published: receipt v2 and bundle-v2 verification, with
+receipt v1 and bundle-v1 verified as before. Its `revision_envelope` types are written by hand
+from the Sess contract (Sess commit `c67c792`) until the reviewed snapshot carries them. Consumers
+stay on 0.2.0 until its registry transition.
+**0.2.0**, published on npm under the `latest` dist-tag with provenance and pinned in
 [release/sdk-candidate.json](../release/sdk-candidate.json): the rating field and respondents (the
 Ask) in `sess.ask`. Their types (the field's `rating`, `/v1/asks`) are written by hand from the
 Sess contract until the reviewed snapshot carries them. **0.1.1** remains published; its API is

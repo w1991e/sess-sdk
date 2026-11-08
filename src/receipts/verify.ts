@@ -19,6 +19,7 @@ import {
   type RendererIdentitiesDocument,
   type RendererList,
 } from './renderers.js';
+import { parseRevisionEnvelope, revisionHash, type RevisionEnvelope } from './envelope.js';
 
 export const MAX_RECEIPT_BYTES = 64 * 1024;
 export const MAX_RECEIPT_KEY_SET_BYTES = 256 * 1024;
@@ -52,7 +53,24 @@ export type ReceiptKeyResolver = (context: {
   readonly signal?: AbortSignal;
 }) => ReceiptKeySet | Promise<ReceiptKeySet>;
 
-export interface ReceiptClaims {
+/** Protected `typ` of a receipt v1 (receipt-v1); it names version 1 only. */
+const RECEIPT_TYP_V1 = 'sess-receipt+jwt';
+/** Protected `typ` of a receipt v2 (receipt-v2); it names version 2 only. */
+const RECEIPT_TYP_V2 = 'sess-receipt-2+jwt';
+
+/** A verified receipt's claims: version 1, or version 2 (v1's plus `surface.revision_hash`). */
+export type ReceiptClaims = ReceiptClaimsV1 | ReceiptClaimsV2;
+
+/**
+ * Receipt v2 (receipt-v2 §3): the claims of receipt v1, unchanged, with `sess_receipt: 2` and
+ * `surface.revision_hash`, the SHA-256 of the revision envelope the receipt commits to.
+ */
+export interface ReceiptClaimsV2 extends Omit<ReceiptClaimsV1, 'sess_receipt' | 'surface'> {
+  sess_receipt: 2;
+  surface: { revision: number; hash: string; renderer_version: string; revision_hash: string };
+}
+
+export interface ReceiptClaimsV1 {
   sess_receipt: 1;
   iss: string;
   aud: string;
@@ -99,6 +117,13 @@ export interface VerifyDecisionReceiptInput {
    * only through its signature under the same trusted keys and issuer.
    */
   rendererIdentities?: RendererIdentitiesDocument;
+  /**
+   * The revision envelope returned beside the receipt (`revision_envelope` on the accepted
+   * response, the Session event or the webhook message). Required for a receipt v2, which is
+   * refused with `REVISION_ENVELOPE_MISMATCH` without it or with any other envelope; not read for
+   * a receipt v1.
+   */
+  revisionEnvelope?: RevisionEnvelope | null;
 }
 
 export interface VerifyDecisionReceiptOptions {
@@ -179,7 +204,7 @@ function decodeSegment(segment: string): string {
 }
 
 /** Header fields have only string values; reject duplicate names before JOSE parsing. */
-function headerOf(encoded: string): { alg: string; kid: string; typ: string } {
+function headerOf(encoded: string): { alg: string; kid: string; typ: string; version: 1 | 2 } {
   let parsed: unknown;
   const text = decodeSegment(encoded);
   try {
@@ -207,14 +232,19 @@ function headerOf(encoded: string): { alg: string; kid: string; typ: string } {
     throw verificationError('UNSUPPORTED_HEADER', 'Duplicate receipt header fields are not supported.');
   if (parsed.alg !== 'EdDSA')
     throw verificationError('UNSUPPORTED_ALGORITHM', 'The receipt must use the supported EdDSA algorithm.');
-  if (parsed.typ !== 'sess-receipt+jwt')
+  // The typ names the version: sess-receipt+jwt is receipt v1 only, sess-receipt-2+jwt v2 only.
+  const version = parsed.typ === RECEIPT_TYP_V1 ? 1 : parsed.typ === RECEIPT_TYP_V2 ? 2 : null;
+  if (version === null)
     throw verificationError('UNSUPPORTED_TYPE', 'The receipt has an unsupported protected type.');
-  return parsed as { alg: string; kid: string; typ: string };
+  return { ...(parsed as { alg: string; kid: string; typ: string }), version };
 }
 
-function claimsOf(raw: unknown): ReceiptClaims {
-  if (!isRecord(raw) || raw.sess_receipt !== 1) {
-    throw verificationError('UNSUPPORTED_RECEIPT_VERSION', 'Only receipt format version 1 is supported.');
+function claimsOf(raw: unknown, version: 1 | 2): ReceiptClaims {
+  if (!isRecord(raw) || raw.sess_receipt !== version) {
+    throw verificationError(
+      'UNSUPPORTED_RECEIPT_VERSION',
+      'The receipt format version does not match its protected type (versions 1 and 2 are supported).',
+    );
   }
   const top = [
     'sess_receipt',
@@ -249,7 +279,13 @@ function claimsOf(raw: unknown): ReceiptClaims {
     (raw.exp as number) <= (raw.iat as number) ||
     checkedInstant(raw.accepted_at) === undefined ||
     !isRecord(surface) ||
-    !exactKeys(surface, ['revision', 'hash', 'renderer_version']) ||
+    !exactKeys(
+      surface,
+      version === 2
+        ? ['revision', 'hash', 'renderer_version', 'revision_hash']
+        : ['revision', 'hash', 'renderer_version'],
+    ) ||
+    (version === 2 && (typeof surface.revision_hash !== 'string' || !DIGEST.test(surface.revision_hash))) ||
     !Number.isSafeInteger(surface.revision) ||
     (surface.revision as number) < 1 ||
     typeof surface.hash !== 'string' ||
@@ -283,8 +319,15 @@ function claimsOf(raw: unknown): ReceiptClaims {
 }
 
 /**
- * Fully verifies a version-1 receipt and its exact accepted record. Explicit keys make this
- * function entirely offline. A valid receipt attests the accepted record, not business authority.
+ * Fully verifies a receipt and its exact accepted record. Explicit keys make this function
+ * entirely offline. A valid receipt attests the accepted record, not business authority.
+ *
+ * The protected `typ` decides the version: `sess-receipt+jwt` is receipt v1, verified exactly as
+ * before (`revisionEnvelope` is not read); `sess-receipt-2+jwt` is receipt v2, verified only with
+ * the revision envelope it commits to. A receipt v2 whose envelope is missing or null, malformed,
+ * of another digest than `surface.revision_hash`, or naming another Session, revision, Surface
+ * hash or renderer identity is refused with `REVISION_ENVELOPE_MISMATCH`, after the issuer,
+ * audience, record, time and signature checks.
  */
 export async function verifyDecisionReceipt(
   input: VerifyDecisionReceiptInput,
@@ -318,6 +361,13 @@ export async function verifyDecisionReceipt(
   const expected = snapshotJson(input.expected);
   const acceptedInput = snapshotJson(input.input);
   const interaction = snapshotJson(input.interaction);
+  // Captured now (before a resolver can yield), judged only for a receipt v2 once its signature holds.
+  let suppliedEnvelope: unknown;
+  try {
+    suppliedEnvelope = input.revisionEnvelope == null ? null : snapshotJson(input.revisionEnvelope);
+  } catch {
+    suppliedEnvelope = MALFORMED_ENVELOPE;
+  }
   const resolver = input.keyResolver;
   const keys = input.keys === undefined ? undefined : validateKeySet(input.keys);
   const rendererList =
@@ -373,7 +423,7 @@ export async function verifyDecisionReceipt(
   } catch {
     throw verificationError('MALFORMED_RECEIPT', 'The receipt payload is not JSON.');
   }
-  const claims = claimsOf(snapshotJson(raw));
+  const claims = claimsOf(snapshotJson(raw), header.version);
   if (canonicalJson(claims) !== payloadText) {
     throw verificationError(
       'NON_CANONICAL_PAYLOAD',
@@ -465,6 +515,7 @@ export async function verifyDecisionReceipt(
       'The receipt signature did not verify with the trusted Ed25519 key.',
     );
   }
+  if (claims.sess_receipt === 2) checkRevisionEnvelope(claims, suppliedEnvelope);
   // Decision 0009 Amendment 13: the renderer identity is one this release bundles, or one on the
   // issuer's list that verifies under the same trusted keys.
   const renderer = claims.surface.renderer_version;
@@ -484,6 +535,35 @@ export async function verifyDecisionReceipt(
     }
   }
   return deepFreeze(claims);
+}
+
+const MALFORMED_ENVELOPE = Symbol('malformed revision envelope');
+
+/** Receipt v2: the supplied envelope must be the one the receipt commits to (receipt-v2 §7). */
+function checkRevisionEnvelope(claims: ReceiptClaimsV2, supplied: unknown): void {
+  if (supplied === null)
+    throw verificationError(
+      'REVISION_ENVELOPE_MISMATCH',
+      'A version 2 receipt is verified only with its revision envelope, and none was supplied.',
+    );
+  const envelope = parseRevisionEnvelope(supplied);
+  if (envelope === null)
+    throw verificationError('REVISION_ENVELOPE_MISMATCH', 'The revision envelope is malformed.');
+  if (revisionHash(envelope) !== claims.surface.revision_hash)
+    throw verificationError(
+      'REVISION_ENVELOPE_MISMATCH',
+      'The revision envelope is not the one the receipt commits to.',
+    );
+  if (
+    envelope.session_id !== claims.session_id ||
+    envelope.revision !== claims.surface.revision ||
+    envelope.surface_hash !== claims.surface.hash ||
+    envelope.renderer_version !== claims.surface.renderer_version
+  )
+    throw verificationError(
+      'REVISION_ENVELOPE_MISMATCH',
+      'The revision envelope names another Session, revision, Surface or renderer.',
+    );
 }
 
 /** Resolves a kid to a trusted key: from the explicit set, or the trusted resolver (validated). */

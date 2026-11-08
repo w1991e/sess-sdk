@@ -63,6 +63,16 @@ function oneOf(value: unknown, values: readonly string[]): void {
 function receipt(value: unknown): void {
   if (value !== null) string(value, receiptPattern, 65536);
 }
+/**
+ * Receipt v2: the revision envelope beside a receipt, absent beside a receipt v1. Only its place
+ * is checked here (an object beside a receipt); receipt verification judges its members and
+ * digest, so a wrong envelope is a verification refusal, never a silently accepted answer.
+ */
+function revisionEnvelope(record: Record<string, unknown>): void {
+  if (record.revision_envelope === undefined) return;
+  object(record.revision_envelope);
+  if (typeof record.receipt !== 'string') protocol();
+}
 function interaction(value: unknown, mode: 'display' | 'interactive'): void {
   const v = object(value);
   if (v.mode !== mode) protocol();
@@ -117,6 +127,7 @@ export function decodeAccepted(value: unknown): AcceptedResponse {
   if (object(v.actor).assurance !== 'link_holder') protocol();
   date(v.accepted_at);
   receipt(v.receipt);
+  revisionEnvelope(v);
   return value as AcceptedResponse;
 }
 export function decodeCreate(value: unknown, allowInsecureLocalhost = false): CreateSessionResponse {
@@ -306,7 +317,8 @@ export function decodeEvents(value: unknown, expectedId: string): SessionEvents 
       string(e.action_id, actionPattern);
       object(e.data);
       receipt(e.receipt);
-    } else if (actor !== 'owner') protocol();
+      revisionEnvelope(e);
+    } else if (actor !== 'owner' || e.revision_envelope !== undefined) protocol();
   }
   // Decision 0009 Amendment 10: the link's extensions are listed beside the Events (never as an
   // Event type), only where the deployment enables them.
