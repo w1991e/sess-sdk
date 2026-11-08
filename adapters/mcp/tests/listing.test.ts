@@ -144,13 +144,14 @@ describe('listing.json artifacts', () => {
     // Hosts and stores with no qualified packet say so; none is promoted.
     expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);
     expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
-    // Production serves the icon URLs, so that is no blocker. 0.1.1 is published on npm and listed
-    // in the Registry (founder 2026-11-06 02:50Z); 0.2.0, package.json's version, is prepared and
-    // not on npm, so both npm blockers stand until it is published and read back. Cline's 400x400
-    // stays a blocker until it is deployed and committed here.
+    // Production serves the icon URLs, so that is no blocker. 0.2.0, package.json's version, is
+    // published on npm and read back (founder 2026-11-07 22:35Z), so the npm blocker is gone; the
+    // Registry entry takes 0.2.0 when the owner submits server.json. Cline's 400x400 stays a
+    // blocker until it is deployed and committed here.
     expect(text).not.toMatch(/icon URLs/);
-    expect(text).toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
-    expect(text).toMatch(/MCP Registry: @sess\.si\/mcp@0\.1\.1 on npm declares mcpName si\.sess\/sess/);
+    expect(text).not.toMatch(/is unpublished on npm/);
+    // npm's 0.2.0 declares si.sess/sess and equals package.json's version: no Registry blocker.
+    expect(text).not.toMatch(/MCP Registry: @sess\.si\/mcp@/);
     expect(text).not.toMatch(/MCP Registry npm package:/);
     expect(text).toMatch(
       /Cline: needs a 400x400 PNG at a deployed URL; it is in w1991e\/sess PR #1019, not merged at this writing and not deployed until a founder window/,
@@ -334,8 +335,9 @@ describe('listing.json artifacts', () => {
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
       ['streamable-http', 'qualified'],
-      // The round used the remote link. The stdio link names 0.2.0, prepared and not yet on npm.
-      ['stdio', 'unpublished'],
+      // The round used the remote link. The stdio link names 0.2.0, published on npm and read back
+      // (founder 2026-11-07 22:35Z).
+      ['stdio', 'published'],
     ]);
     // Cursor's evidence is the founder's round, and it claims no outside user.
     const cursorProvider = inputs().listing.providers.cursorInstall;

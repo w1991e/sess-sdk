@@ -179,6 +179,8 @@ checks a listed npm package's `mcpName` against the server name
 declares `si.sess/sess` (`providers.mcpRegistry.npmPackage.status` `listed`). 0.1.0 remains as a
 prior version: remote-only, `active`, published 2026-11-05T00:33:45Z, not latest.
 
+**0.2.0 is on npm** (founder 2026-11-07 22:35Z: approved and published; stage at the tag `mcp-v0.2.0`, on `2d443ddc`). npm read back 2026-11-07: `@sess.si/mcp@0.2.0` on `latest`, 32 files, the tarball's sha256 `9ac2fe99d39b6b6593ccd1dd987a22453e98117286ceaeb8db7a22158a0c50d3` (equal to the release packet's and to the owner's check before approval), `mcpName` `si.sess/sess`. **0.2.0 is listed** (founder 2026-11-07 23:15Z). The founder published `si.sess/sess` 0.2.0 from master's `server.json`, which names `@sess.si/mcp` 0.2.0. The Registry's public API read back `si.sess/sess` 0.2.0, status `active`, `isLatest` true, `publishedAt` 2026-11-07T20:37:46Z (the founder's message gives 23:12Z), with one remote and one package, `@sess.si/mcp` 0.2.0. 0.1.1 and 0.1.0 stay `active` as prior versions, not latest.
+
 `server.json` names `package.json`'s exact version (and the listed npm package's), and
 stays in step with it on every release candidate (2026-10-20): `npm run listing` writes
 it, and `npm run check:listing`, the registry-metadata test and the release guard fail when they
@@ -261,10 +263,8 @@ organization and the Apps Management Write role.
   (see [Requalification](#requalification-on-production)). This is not a submission to, or an
   acceptance by, Cursor's marketplace.
 - A reconnect defect (C-3) is being fixed server-side in w1991e/sess.
-- The stdio link names package.json's version, `@sess.si/mcp@0.2.0`, which is prepared and not yet
-  on npm, so its status is `unpublished` until 0.2.0 is published and read back (0.1.1 stays on
-  `latest` until then). Once published it is `published`, not qualified: the round used the
-  remote link.
+- The stdio link names package.json's version, `@sess.si/mcp@0.2.0`, published on npm and read
+  back 2026-11-07, so its status is `published`, not qualified: the round used the remote link.
 - These links belong on the setup page. Nothing here puts them there: that page is built in
   w1991e/sess from its own host matrix, whose Cursor entry has its own `qualified` field.
 - On Cursor, a plain "Ask me…" prompt is answered by Cursor's own question panel (founder 2026-11-05,
@@ -276,6 +276,10 @@ organization and the Apps Management Write role.
   publisher handle `sess`, logo `https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png`, website
   `https://sess.si`, and the public repository https://github.com/w1991e/sess-cursor-plugin, with
   the plugin at its root: `.cursor-plugin/plugin.json` plus this bundle at tag `mcp-v0.1.1`.
+  On 2026-11-07 the repository's `main` moved to `d359ad7` (sess-cursor-plugin #1, merged by the
+  founder, 23:45Z): the bundle at tag `mcp-v0.2.0`, both manifests 0.2.0, `plugin.json` identical to
+  this repository's `listings/plugin` (read back). Nothing was resubmitted: the 2026-11-06 submission
+  stands and takes the repository's `main`.
   The founder's requalification round on production passed (founder-reported, corrected 02:27Z). It started
   about 01:49Z on the production deployment then serving `@sess.si/mcp` 0.1.0, and completed about
   20 minutes later, after the deployment serving 0.1.1 read back at 01:57Z. Cursor kept polling
@@ -304,6 +308,23 @@ in w1991e/sess `EXECUTION/evidence/`: `host-runs-production-2026-10-28/claude-ai
 second prompt, recorded as a pass with one re-orientation) and
 `host-runs-production-2026-11-01/claude-ai.md` (PASS, the hosted `/mcp` at `@sess.si/mcp` 0.1.0,
 #947). That is not a submission to Anthropic's review, and nothing here has been accepted by it.
+
+**Origin-header validation (Anthropic's technical checklist; founder 2026-11-08 01:35Z).** The hosted
+endpoint validates the `Origin` header before authentication. Its allowlist (`SESS_MCP_ALLOWED_ORIGINS`)
+is empty in production, so any request carrying an `Origin` is refused with 403 ("Forbidden: origin not
+allowed."). A request with no `Origin`, as the hosts' servers send it, reaches OAuth and answers 401
+`invalid_token` until a token is presented. Read back on production, 2026-11-08: no `Origin` → 401; an
+unlisted origin → 403; a host's web origin sent as `Origin` → 403. Browsers that call the endpoint
+directly are therefore refused, which closes the DNS-rebinding path the checklist names.
+
+**Surfaces tested, with dates** (each from the founder's message or the w1991e/sess evidence named):
+
+| Surface                                         | Date          | What ran                                                                                                     | Result                    |
+| ----------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------- |
+| claude.ai (web), custom connector on production | 2026-10-28    | the qualification round (`host-runs-production-2026-10-28/claude-ai.md`)                                     | PASS (one re-orientation) |
+| claude.ai (web), custom connector on production | 2026-11-01    | the qualification round on the hosted `/mcp` at 0.1.0 (#947; `host-runs-production-2026-11-01/claude-ai.md`) | PASS                      |
+| claude.ai (web), custom connector on production | 2026-11-04    | test cases 1 to 5 (below)                                                                                    | 5 of 5 PASS               |
+| Claude Desktop                                  | none recorded | no run of Sess on Claude Desktop is recorded here or in w1991e/sess evidence                                 | not run                   |
 
 ### Smithery
 
@@ -357,6 +378,17 @@ connector page.
 - Listing values: name `Sess`; description
   `Let your agent ask a person and continue with their answer.`;
   server URL `https://mcp.sess.si/mcp`; support `ask@sess.si`.
+
+### mcprush (unsolicited aggregator)
+
+Recorded 2026-11-08 (founder 05:15Z): mcprush.com lists `@sess.si/mcp` as "Sess MCP" on its own
+initiative.
+
+- **Submitted:** no. **Claimed:** no. **Accepted:** not applicable. Sess sent nothing and has had no
+  reply from it.
+- **The rule for every aggregator, solicited or not:** Sess hosts its MCP endpoint only at
+  mcp.sess.si. Any listing that points at another host, or offers its own hosted copy of the Sess
+  server, is not Sess's endpoint. The stdio package is the published `@sess.si/mcp` from npm.
 
 ### mcp.so
 

@@ -92,8 +92,8 @@
   },
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
-    "status": "unpublished",
-    "note": "@sess.si/mcp@0.2.0 (package.json's version) is prepared, not on npm: it is staged by the tag mcp-v0.2.0 and approved by the owner. 0.1.1 stays on latest until then (tag mcp-v0.1.1 on e7d2ca0, read back 2026-11-06), and the MCP Registry entry si.sess/sess 0.1.1 lists it; the entry takes 0.2.0 only after 0.2.0 is on npm. next stays at 0.1.0-rc.4. Published is not host qualification.",
+    "status": "published",
+    "note": "@sess.si/mcp@0.2.0 (package.json's version) is published on npm, on latest (tag mcp-v0.2.0 on 2d443ddc; the owner approved the stage, founder 2026-11-07 22:35Z). Read back 2026-11-07: the registry tarball's sha256 is 9ac2fe99d39b6b6593ccd1dd987a22453e98117286ceaeb8db7a22158a0c50d3, equal to the packet's and to the owner's check before approval; 32 files; mcpName si.sess/sess. next stays at 0.1.0-rc.4. The MCP Registry entry si.sess/sess is 0.2.0, listed with this package (read back 2026-11-07). Published is not host qualification.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {
@@ -168,10 +168,10 @@
       },
       "npmPackage": {
         "status": "listed",
-        "publishedVersion": "0.1.1",
+        "publishedVersion": "0.2.0",
         "publishedMcpName": "si.sess/sess",
-        "read": "2026-11-06",
-        "note": "Listed. The founder published si.sess/sess 0.1.1 from master's server.json at about 02:49Z on 2026-11-06 (founder 2026-11-06 02:50Z). The Registry's public API read back: version 0.1.1, status active, publishedAt 2026-11-06T02:49:36Z, isLatest true, one remote (https://mcp.sess.si/mcp) and packages [@sess.si/mcp 0.1.1]. 0.1.0 (remote-only, published 2026-11-05T00:33:45Z) stays active as a prior version, not latest. publishedVersion and publishedMcpName are npm's readback: @sess.si/mcp@0.1.1 declares mcpName si.sess/sess."
+        "read": "2026-11-07",
+        "note": "Listed at 0.2.0. The founder published si.sess/sess 0.2.0 from master's server.json (founder 2026-11-07 23:15Z: published 23:12Z, read back active and latest). The Registry's public API read back on 2026-11-07: version 0.2.0, status active, isLatest true, publishedAt 2026-11-07T20:37:46Z, one remote (https://mcp.sess.si/mcp) and packages [@sess.si/mcp 0.2.0]; 0.1.1 (2026-11-06T02:49:36Z) and 0.1.0 (remote-only, 2026-11-05T00:33:45Z) stay active as prior versions, not latest. publishedVersion and publishedMcpName are npm's readback: @sess.si/mcp@0.2.0 declares mcpName si.sess/sess."
       },
       "schema": {
         "id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
@@ -286,7 +286,7 @@
         "status": "submitted",
         "date": "2026-11-06",
         "publisherHandle": "sess",
-        "note": "The founder submitted a Cursor publisher application on 2026-11-06 at 02:13Z: organization Sess, handle sess, the public repository above with the plugin at its root (.cursor-plugin/plugin.json plus this bundle at sess-sdk tag mcp-v0.1.1). Awaiting Cursor's review: submitted, not accepted, not listed. The public repository is regenerated from this bundle, and the founder pushes it."
+        "note": "The founder submitted a Cursor publisher application on 2026-11-06 at 02:13Z: organization Sess, handle sess, the public repository above with the plugin at its root (.cursor-plugin/plugin.json plus this bundle at sess-sdk tag mcp-v0.1.1). Awaiting Cursor's review: submitted, not accepted, not listed. The public repository is regenerated from this bundle, and the founder pushes it. On 2026-11-07 the repository's main moved to d359ad7 (sess-cursor-plugin #1, merged by the founder, founder 2026-11-07 23:45Z): the bundle at sess-sdk tag mcp-v0.2.0, both manifests 0.2.0, plugin.json identical to master's listings/plugin (read back). Nothing was resubmitted: the 2026-11-06 submission stands and takes the repository's main."
       }
     },
     "claudeConnector": {
