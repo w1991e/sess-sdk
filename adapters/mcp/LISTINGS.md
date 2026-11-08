@@ -379,6 +379,17 @@ connector page.
   `Let your agent ask a person and continue with their answer.`;
   server URL `https://mcp.sess.si/mcp`; support `ask@sess.si`.
 
+### mcprush (unsolicited aggregator)
+
+Recorded 2026-11-08 (founder 05:15Z): mcprush.com lists `@sess.si/mcp` as "Sess MCP" on its own
+initiative.
+
+- **Submitted:** no. **Claimed:** no. **Accepted:** not applicable. Sess sent nothing and has had no
+  reply from it.
+- **The rule for every aggregator, solicited or not:** Sess hosts its MCP endpoint only at
+  mcp.sess.si. Any listing that points at another host, or offers its own hosted copy of the Sess
+  server, is not Sess's endpoint. The stdio package is the published `@sess.si/mcp` from npm.
+
 ### mcp.so
 
 Sources: third-party guides only, **unverified**. The form at https://mcp.so/submit takes the
