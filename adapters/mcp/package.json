@@ -70,7 +70,7 @@
   "dependencies": {
     "@modelcontextprotocol/node": "2.1.1",
     "@modelcontextprotocol/server": "2.3.1",
-    "@sess.si/sdk": "0.2.0"
+    "@sess.si/sdk": "0.3.0"
   },
   "overrides": {
     "@hono/node-server": "2.1.5"

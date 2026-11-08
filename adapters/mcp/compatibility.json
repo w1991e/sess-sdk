@@ -151,12 +151,12 @@
   ],
   "sessSdk": {
     "name": "@sess.si/sdk",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "status": "published (registry)",
-    "sha256": "38562280ee9cf6ecb81d0dd5d15c5846854b7e2debc4a51fb36b078b89e6c7ee",
-    "integrity": "sha512-qy2erN2aONmz79NA56ocLaNhm6LbcAgv6EmkRjeY1pdg3Zi5duBJVRJOzLTxlNuPLc6VSs6/g8d/C707zuzQ+Q==",
-    "candidatePath": ".candidate/sess.si-sdk-0.2.0.tgz",
-    "source": "https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.2.0.tgz",
+    "sha256": "bc3a7a2dc0ecaa07b2279f1b787030a33c2a7e81b67722f9c7cb5551beeca097",
+    "integrity": "sha512-zEofbIK8KT5A1KZp7FxUiC39Q0c3FrnmSouyzrr47jh28jKCIQN0PuuAcp7lIShxfuRFAWVivOPYhBI3suFAug==",
+    "candidatePath": ".candidate/sess.si-sdk-0.3.0.tgz",
+    "source": "https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.3.0.tgz",
     "releaseHold": "none for the SDK dependency; review the regenerated package-lock.json",
     "history": "0.1.0-rc.3 (sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502) was the earlier approved candidate; it is held by owner decision (2026-10-14) and not published. 0.1.0-rc.4 is the first SDK candidate to be published."
   },
