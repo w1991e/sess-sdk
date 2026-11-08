@@ -135,6 +135,8 @@ const ADDED = {
     'Asks',
     'CreateAskRequest',
     'CreateAskResponse',
+    // Receipt v2 (0.3.0): the revision envelope beside a receipt v2.
+    'RevisionEnvelope',
     'invoice',
     'items',
     'lintText',
@@ -153,6 +155,12 @@ const ADDED = {
     'RendererList',
     'newerRendererList',
     'verifyRendererIdentities',
+    // Receipt v2 and bundle-v2 (0.3.0): types only; no new runtime export.
+    'DecisionBundleV1',
+    'DecisionBundleV2',
+    'ReceiptClaimsV1',
+    'ReceiptClaimsV2',
+    'RevisionEnvelope',
   ],
   './webhooks': [],
   // S-07: the new optional QR entry point.

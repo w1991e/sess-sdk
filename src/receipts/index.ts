@@ -1,8 +1,11 @@
 export { verifyDecisionReceipt, verifyRendererIdentities } from './verify.js';
 export { BUNDLED_RENDERER_IDENTITIES, BUNDLED_RENDERER_LIST, newerRendererList } from './renderers.js';
 export type { RendererIdentitiesDocument, RendererIdentity, RendererList } from './renderers.js';
+export type { RevisionEnvelope } from './envelope.js';
 export type {
   ReceiptClaims,
+  ReceiptClaimsV1,
+  ReceiptClaimsV2,
   ReceiptPublicKey,
   ReceiptKeySet,
   ReceiptKeyResolver,
@@ -16,6 +19,8 @@ export type {
   BundleJwk,
   BundleRejection,
   DecisionBundle,
+  DecisionBundleV1,
+  DecisionBundleV2,
   DecisionBundleVerification,
   ExpectedBundleContext,
   VerifiedReceiptSummary,

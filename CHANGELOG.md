@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.0 — 2026-11-08
+
+- Receipt v2: `verifyDecisionReceipt` and `receipts.verifyResponse()` verify receipts of type
+  `sess-receipt-2+jwt`, which commit by hash (`surface.revision_hash`) to the round's
+  `revision_envelope`: when the round was published and, when one of your API keys published it,
+  that key's ID and its label at the time. A receipt v2 is verified only with its envelope:
+  `verifyResponse()` passes the response's own `revision_envelope`, and `verifyDecisionReceipt`
+  takes it as `revisionEnvelope`. A missing, malformed or different envelope is refused with
+  code `REVISION_ENVELOPE_MISMATCH`, after the issuer, audience, expiry and signature checks.
+  Receipt v1 (`sess-receipt+jwt`) is verified exactly as before.
+- `AcceptedResponse.revision_envelope`, `SessionEvent.revision_envelope` (`GET
+/v1/sessions/{id}/events`) and the `response.accepted` webhook message's `revision_envelope`:
+  present beside a receipt v2, absent beside a receipt v1. `verifyWebhook` accepts the member.
+  New types `RevisionEnvelope`, `ReceiptClaimsV1` and `ReceiptClaimsV2`; `ReceiptClaims` is now
+  their union.
+- `verifyDecisionBundle` and `sess verify` read bundle-v2 (a receipt v2 with its envelope) as well
+  as bundle-v1, with the new reason `revision`. A valid bundle-v2 result carries
+  `surface.revision_hash` and the verified `revision_envelope`. A bundle `version` above 2 is
+  `unsupported_version`. The receipt-v2 and bundle-v2 specifications and the bundle-v2
+  conformance corpus are copies from Sess commit `c67c792`.
+- The runtime dependencies are unchanged. The default `User-Agent` names the new version.
+
 ## 0.2.0 — 2026-11-06
 
 - A rating in `sess.ask`: a field `{ type: 'rating' }` asks for a whole number from 1 to `max`.

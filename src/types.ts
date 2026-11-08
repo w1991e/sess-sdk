@@ -1,20 +1,39 @@
 import type { components } from './generated/openapi.js';
+import type { RevisionEnvelope } from './receipts/envelope.js';
 
 /** Unmodified types generated from the reviewed public HTTP contract. */
 export type { components, paths, operations } from './generated/openapi.js';
+export type { RevisionEnvelope } from './receipts/envelope.js';
 type Schemas = components['schemas'];
 export type RawCreateSessionRequest = Schemas['CreateSessionRequest'];
 export type RawPublishSessionRequest = Schemas['PatchSessionRequest'];
 export type CreateSessionResponse = Schemas['CreateSessionResponse'];
 export type DisplaySession = Schemas['SessionResponse'];
-export type InteractiveSession = Schemas['InteractiveSessionResponse'];
+/**
+ * Receipt v2 (receipt-v2 §2): `revision_envelope` is written by hand beside the generated
+ * contract types. It is present beside a receipt v2 and absent beside a receipt v1.
+ */
+interface RevisionEnvelopeMember {
+  /**
+   * The revision envelope the receipt v2 commits to (`surface.revision_hash`): when the revision
+   * was published and, when one of your API keys published it, that key's ID and its label at the
+   * time. `receipts.verifyResponse` verifies the receipt with it. Absent beside a receipt v1.
+   */
+  revision_envelope?: RevisionEnvelope;
+}
+type GeneratedInteractiveSession = Schemas['InteractiveSessionResponse'];
+type GeneratedSessionEvents = Schemas['SessionEventsResponse'];
+export type AcceptedResponse = GeneratedInteractiveSession['responses'][number] & RevisionEnvelopeMember;
+export type InteractiveSession = Omit<GeneratedInteractiveSession, 'responses'> & {
+  responses: AcceptedResponse[];
+};
 export type Session = DisplaySession | InteractiveSession;
 export type DisplaySurfaceRevision = Schemas['SessionResponse'];
 export type InteractiveSurfaceRevision = Schemas['InteractiveSurfaceResponse'];
 export type SurfaceRevision = DisplaySurfaceRevision | InteractiveSurfaceRevision;
-export type AcceptedResponse = InteractiveSession['responses'][number];
-export type SessionEvents = Schemas['SessionEventsResponse'];
-export type SessionEvent = SessionEvents['events'][number];
+/** One Event of `GET /v1/sessions/{id}/events`; `revision_envelope` on `response.accepted` only. */
+export type SessionEvent = GeneratedSessionEvents['events'][number] & RevisionEnvelopeMember;
+export type SessionEvents = Omit<GeneratedSessionEvents, 'events'> & { events: SessionEvent[] };
 /**
  * The Sess link's state at the time of a Session read (Decision 0009 Amendment 10): `live` takes
  * answers; `lapsed` is past its deadline but the person can still ask for more time, so the

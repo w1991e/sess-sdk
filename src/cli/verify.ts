@@ -194,8 +194,8 @@ function parse(argv: readonly string[]): Parsed | 'help' {
 }
 
 const REASON_TEXT: Record<string, string> = {
-  malformed: 'the file is not a bundle-v1 decision bundle',
-  oversized: 'the bundle exceeds a bundle-v1 size bound',
+  malformed: 'the file is not a decision bundle (bundle-v1 or bundle-v2)',
+  oversized: 'the bundle exceeds a decision bundle size bound',
   unsupported_version: 'the bundle uses a later format version',
   receipt_malformed: 'the receipt cannot be read',
   algorithm: 'the receipt does not use the EdDSA algorithm',
@@ -206,7 +206,8 @@ const REASON_TEXT: Record<string, string> = {
   issuer: 'the receipt is from another issuer',
   audience: 'the receipt belongs to another workspace',
   expired: 'the receipt has expired',
-  claims: 'the receipt claims are not valid receipt-v1 claims',
+  claims: 'the receipt claims are not valid receipt claims',
+  revision: 'the revision envelope is missing or is not the one the receipt signed',
   not_yet_valid: 'the receipt is dated in the future',
   surface_mismatch: 'the disclosed Surface is not the one the receipt signed',
   input_mismatch: 'the disclosed input is not the one the receipt signed',

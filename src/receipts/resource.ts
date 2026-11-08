@@ -228,6 +228,9 @@ export function createReceiptResource(context: Context): ReceiptResource {
           {
             receipt: response.receipt,
             ...(rendererIdentities !== undefined ? { rendererIdentities } : {}),
+            // Receipt v2: the envelope returned beside it (the authorized record's own, compared
+            // above); a receipt v1 has none and the verifier does not read it.
+            revisionEnvelope: response.revision_envelope ?? null,
             issuer,
             audience: trustedWorkspace,
             expected: {

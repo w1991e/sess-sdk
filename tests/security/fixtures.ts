@@ -1,6 +1,13 @@
 import { createHash, createPrivateKey, createPublicKey, sign } from 'node:crypto';
 import type { AcceptedResponse, InteractiveSession, InteractiveSurfaceRevision } from '../../src/types.js';
-import type { ReceiptClaims, ReceiptKeySet, VerifyDecisionReceiptInput } from '../../src/receipts/verify.js';
+import type {
+  ReceiptClaims,
+  ReceiptClaimsV1,
+  ReceiptClaimsV2,
+  ReceiptKeySet,
+  VerifyDecisionReceiptInput,
+} from '../../src/receipts/verify.js';
+import type { RevisionEnvelope } from '../../src/receipts/envelope.js';
 
 // RFC 8032 §7.1 test 1 seed. This public test vector is never a runtime or fixture-secret input.
 const seed = '9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60';
@@ -144,6 +151,49 @@ export function fixture(acceptedMillis = now - 1000) {
     keys,
   };
   return { claims, response, surface, session, keys, input };
+}
+
+/** The revision envelope of the fixture's revision 1 (receipt-v2 §2), as Sess returns it. */
+export function envelopeOf(
+  f: ReturnType<typeof fixture>,
+  over: Record<string, unknown> = {},
+): RevisionEnvelope {
+  return {
+    sess_revision: 1,
+    session_id: sessionId,
+    revision: 1,
+    surface_hash: f.claims.surface.hash,
+    renderer_version: f.claims.surface.renderer_version,
+    published_at: '2026-10-12T17:50:00.123Z',
+    key_id: 'key_01JABCDEFGHJKMNPQRSTVWXYZ2',
+    key_label: 'Production agent',
+    grant_id: null,
+    ...over,
+  } as RevisionEnvelope;
+}
+
+/**
+ * The same accepted record with a receipt v2 (typ sess-receipt-2+jwt) committing to `committed`
+ * (by default the envelope returned beside it), and that envelope on the response and the input.
+ * The receipt v1 fixture above is unchanged.
+ */
+export function fixtureV2(
+  acceptedMillis = now - 1000,
+  options: { envelope?: object; committed?: object } = {},
+) {
+  const f = fixture(acceptedMillis);
+  const envelope = (options.envelope ?? envelopeOf(f)) as RevisionEnvelope;
+  const committed = options.committed ?? envelope;
+  const claims: ReceiptClaimsV2 = {
+    ...(f.claims as ReceiptClaimsV1),
+    sess_receipt: 2,
+    surface: { ...f.claims.surface, revision_hash: digest(committed) },
+  };
+  const receipt = signClaims(claims, { alg: 'EdDSA', kid: 'rfc8032-test-1', typ: 'sess-receipt-2+jwt' });
+  const response: AcceptedResponse = { ...f.response, receipt, revision_envelope: envelope };
+  const session: InteractiveSession = { ...f.session, responses: [response] };
+  const input: VerifyDecisionReceiptInput = { ...f.input, receipt, revisionEnvelope: envelope };
+  return { ...f, claims, envelope, response, session, input };
 }
 
 export function deferred<T>() {
