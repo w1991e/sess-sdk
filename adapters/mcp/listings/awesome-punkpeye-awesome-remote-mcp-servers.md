@@ -1,6 +1,6 @@
 # punkpeye/awesome-remote-mcp-servers entry
 
-Unposted draft for the founder's review. Nothing here is forked, opened or posted. punkpeye/awesome-remote-mcp-servers had 2,877 stars on GitHub's public API on 2026-11-09: https://github.com/punkpeye/awesome-remote-mcp-servers
+Unposted draft for the founder's review. Nothing here is forked, opened or posted. The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator. punkpeye/awesome-remote-mcp-servers had 2,877 stars on GitHub's public API on 2026-11-09: https://github.com/punkpeye/awesome-remote-mcp-servers
 
 Where each rule was read:
 
@@ -22,11 +22,11 @@ Every OWNER: line is for the owner to do, then delete.
   🔐 - Let your agent ask a person and continue with their answer.
 ```
 
+The list's CI sends an MCP initialize request to https://mcp.sess.si/mcp; a 401 sign-in challenge is the correct answer from our endpoint (founder 2026-11-09 21:36Z).
+
 OWNER: the badge is required; the Glama connector page for si.sess/sess answered 200, titled Sess - MCP Connector, and its badge answered 200 with image/svg+xml, on 2026-11-09. Confirm that connector is yours before you rely on it.
 
-OWNER: the list's CI sends an MCP initialize request to https://mcp.sess.si/mcp. Without sign-in it answers 401 with its OAuth resource metadata (read 2026-10-28, see Smithery in LISTINGS.md); whether that CI counts it as a 🔐 server is not verified.
-
-OWNER: CONTRIBUTING.md requires the account opening the pull request to have starred the list.
+OWNER: CONTRIBUTING.md requires the account opening the pull request to have starred the list: the founder stars it himself.
 
 ## Pull request
 
@@ -44,4 +44,4 @@ Body (the list's pull request template, with no box ticked):
 - [ ] Auth marker matches what the endpoint actually does
 ```
 
-OWNER: tick each box only once you have confirmed it. Fork the list and open the pull request from your own account; the title is proposed, needs your words.
+OWNER: tick each box only once you have confirmed it. Fork the list and open the pull request from your own account, as drafted (founder 2026-11-09 21:36Z: submit as drafted).

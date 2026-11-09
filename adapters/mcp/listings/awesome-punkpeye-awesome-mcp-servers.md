@@ -1,6 +1,6 @@
 # punkpeye/awesome-mcp-servers entry
 
-Unposted draft for the founder's review. Nothing here is forked, opened or posted. punkpeye/awesome-mcp-servers had 97,536 stars on GitHub's public API on 2026-11-09: https://github.com/punkpeye/awesome-mcp-servers
+Unposted draft for the founder's review. Nothing here is forked, opened or posted. The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator. punkpeye/awesome-mcp-servers had 97,536 stars on GitHub's public API on 2026-11-09: https://github.com/punkpeye/awesome-mcp-servers
 
 Where each rule was read:
 
@@ -17,14 +17,12 @@ Every OWNER: line is for the owner to do, then delete.
 ## Entry
 
 ```markdown
-- [w1991e/sess-sdk](https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp) 📇 ☁️ - Let your agent ask a person and continue with their answer.
+- [w1991e/sess-sdk](https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp) 🎖️ 📇 ☁️ - Let your agent ask a person and continue with their answer.
 ```
 
-OWNER: the markers are the Legend's 📇 (TypeScript) and ☁️ (talks to a remote API, Sess). The Legend's 🎖️ marks the vendor's own implementation; put it before 📇 only if you claim it. No operating-system marker is set; the package runs wherever Node runs.
+The markers are the Legend's, in the order 🎖️ 📇 ☁️ (🎖️ the vendor's own implementation, claimed by the founder on 2026-11-09 at 21:36Z; 📇 TypeScript; ☁️ talks to a remote API, Sess). No operating-system marker is set; the package runs wherever Node runs. The list takes servers you install and run yourself: this entry is the npm stdio package @sess.si/mcp (version 0.2.0 on npm). The hosted endpoint is the awesome-remote-mcp-servers draft.
 
 OWNER: most entries carry a Glama score badge after the link; the Glama server page for w1991e/sess-sdk answered 404 on 2026-11-09, so this entry has none. Add it only once that page exists.
-
-OWNER: the list takes servers you install and run yourself: this entry is the npm stdio package @sess.si/mcp (version 0.1.1 on npm). The hosted endpoint is the awesome-remote-mcp-servers draft.
 
 ## Pull request
 

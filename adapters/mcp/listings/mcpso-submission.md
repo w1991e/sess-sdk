@@ -2,6 +2,8 @@
 
 Unposted draft for the founder's review. Nothing here has been submitted to mcp.so. Fields read from the form's own page on 2026-11-09 (as served before sign-in): https://mcp.so/submit?type=remote-server
 
+The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator.
+
 Every OWNER: line is for the owner to do, then delete. Everything else in the sections below `## Type` goes into the form as written.
 
 ## Type
@@ -20,7 +22,7 @@ https://mcp.sess.si/mcp
 
 ## Publishing
 
-OWNER: the form as served shows one publishing option, a one-time fee to publish without review. That is a spending decision, yours alone. The page's own summary says a review without the fee is also offered; choose it if the form shows it to you.
+Review, with no fee (founder 2026-11-09 21:36Z). Not the fee option that publishes without review.
 
 ## Sign-in and submitting
 
@@ -30,7 +32,7 @@ OWNER: the page offers Sign In. If the form asks you to sign in, use your own ac
 
 The form as read asks for nothing else. If mcp.so asks for these after you submit, they are listing.json's signed values.
 
-Description:
+Description (the signed one-liner, then the long text as drafted):
 
 Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once. The person answers on any device, and your agent continues with a typed answer and a signed receipt.
 

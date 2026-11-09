@@ -148,18 +148,25 @@ describe('listing.json artifacts', () => {
     // Hosts and stores with no qualified packet say so; none is promoted.
     expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);
     expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
-    // Production serves the icon URLs, so that is no blocker. 0.1.1 is published on npm and listed
-    // in the Registry (founder 2026-11-06 02:50Z); 0.2.0, package.json's version, is prepared and
-    // not on npm, so both npm blockers stand until it is published and read back. Cline's 400x400
-    // is committed here but named at no read-back URL, so it stays a blocker.
+    // Production serves the icon URLs, so that is no blocker. 0.2.0, package.json's version, is on
+    // npm latest and the Registry's latest (read back 2026-11-09; founder 21:36Z), so neither npm
+    // blocker stands. Cline's 400x400 is served at a read-back URL, so it is no blocker either.
     expect(text).not.toMatch(/icon URLs/);
-    expect(text).toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
-    expect(text).toMatch(/MCP Registry: @sess\.si\/mcp@0\.1\.1 on npm declares mcpName si\.sess\/sess/);
+    expect(text).not.toMatch(/is unpublished on npm/);
+    expect(text).not.toMatch(/MCP Registry: @sess\.si\/mcp@/);
     expect(text).not.toMatch(/MCP Registry npm package:/);
-    expect(text).toMatch(
-      /Cline: needs a 400x400 PNG at a deployed URL; it is committed at listings\/plugin\/assets\/icon-400\.png, and this listing names no URL for it until the owner reads one back/,
+    expect(text).not.toMatch(/Cline: needs a 400x400 PNG/);
+    const unserved = inputs();
+    delete unserved.listing.providers.cline.icon.url;
+    expect(check(unserved).blockers.join('\n')).toMatch(/Cline: needs a 400x400 PNG at a deployed URL/);
+    const wrongIcon = inputs();
+    wrongIcon.listing.providers.cline.icon.url = 'https://sess.si/assets/icons/00c368f1dadd/icon-512.png';
+    expect(check(wrongIcon).errors).toContain(
+      'providers.cline.icon.url must be an HTTPS URL of icon-400.png',
     );
-    expect(text).toMatch(/Cline: listings\/cline-issue\.md has OWNER: lines to resolve/);
+    expect(text).toMatch(
+      /Cline: listings\/cline-issue\.md has OWNER: lines to resolve, including running Cline with only the README/,
+    );
     expect(text).toMatch(/mcp\.so: listings\/mcpso-submission\.md has OWNER: lines to resolve/);
     expect(text).not.toMatch(/no PNG icon yet/);
     expect(text).not.toMatch(/urls\.(privacy|terms)/);
@@ -339,8 +346,8 @@ describe('listing.json artifacts', () => {
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
       ['streamable-http', 'qualified'],
-      // The round used the remote link. The stdio link names 0.2.0, prepared and not yet on npm.
-      ['stdio', 'unpublished'],
+      // The round used the remote link. The stdio link names 0.2.0, on npm latest since 2026-11-07.
+      ['stdio', 'published'],
     ]);
     // Cursor's evidence is the founder's round, and it claims no outside user.
     const cursorProvider = inputs().listing.providers.cursorInstall;
@@ -407,22 +414,28 @@ describe('listing.json artifacts', () => {
       'Everything else in the sections below `## Title` goes into the form as written.',
     );
     expect(issue).toContain('\nhttps://github.com/w1991e/sess-sdk/tree/master/adapters/mcp\n');
-    // Neither required box is ticked; each has an OWNER: line, and so does the undeployed logo.
+    // Neither required box is ticked; each has an OWNER: line. The README-alone run is a real step
+    // the founder runs and records (founder 2026-11-09 21:36Z); it is not claimed here.
     expect(issue).not.toMatch(/- \[x\]/i);
     expect(issue.match(/^- \[ \] /gm)).toHaveLength(2);
-    expect(issue.match(/^OWNER: /gm)).toHaveLength(3);
-    // The 400x400 is committed but no URL for it is read back: the Logo Image stays an OWNER: line.
-    expect(issue).not.toMatch(/icon-\d+\.png|\/assets\/icons\//);
+    expect(issue.match(/^OWNER: /gm)).toHaveLength(2);
+    expect(issue).toContain('\nOWNER: run Cline with only the README, record result here.');
+    expect(issue).toContain(
+      'The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator.',
+    );
+    // The served 400x400 (read back 200 image/png at its pinned SHA-256) is the Logo Image.
+    expect(issue).toContain(
+      '\n## Logo Image\n\nhttps://sess.si/assets/icons/00c368f1dadd/icon-400.png\n\n## Installation Testing\n',
+    );
+    expect(issue).not.toContain('It is not deployed yet.');
+    const unserved = inputs();
+    delete unserved.listing.providers.cline.icon.url;
+    expect(generate(unserved).get('listings/cline-issue.md')).toMatch(/^OWNER: put the URL of the deployed/m);
     expect(issue).toContain('https://mcp.sess.si/mcp');
     expect(issue).toContain('https://sess.si');
     expect(issue).toContain('https://www.npmjs.com/package/@sess.si/mcp');
-    // The npm version a person installs: the one on npm until package.json's is published.
-    expect(issue).toContain('/@sess.si/mcp, version 0.1.1 (stdio;');
-    const published = inputs();
-    published.listing.stdio.status = 'published';
-    expect(generate(published).get('listings/cline-issue.md')).toContain(
-      `/@sess.si/mcp, version ${published.manifest.version} (stdio;`,
-    );
+    // package.json's version, 0.2.0, on npm latest since 2026-11-07 (founder 2026-11-09 21:36Z).
+    expect(issue).toContain('/@sess.si/mcp, version 0.2.0 (stdio;');
   });
 
   it('the mcp.so draft fills the Remote Server form, quotes only signed copy and marks owner steps', () => {
@@ -434,14 +447,29 @@ describe('listing.json artifacts', () => {
     expect(draft).toContain('\n`Remote Server`\n');
     expect(draft).toContain('\n## Remote endpoint URL\n\nhttps://mcp.sess.si/mcp\n');
     expect(draft).toContain('\n## Name\n\n`Sess`\n');
-    // The description is copy.long word for word; tags and category are listing.json's.
-    expect(draft).toContain(`\nDescription:\n\n${listing.copy.long}\n`);
+    // The description opens with the signed one-liner, then copy.long as drafted (founder 21:36Z);
+    // copy.long already opens with it, so it is not written twice. Tags and category are listing.json's.
+    expect(listing.copy.long.startsWith(listing.copy.oneLiner)).toBe(true);
+    expect(draft).toContain(
+      `\nDescription (the signed one-liner, then the long text as drafted):\n\n${listing.copy.long}\n`,
+    );
+    expect(draft.split(listing.copy.oneLiner)).toHaveLength(2);
+    const shorter = inputs();
+    shorter.listing.copy.long = 'Your agent describes a form and gets a link at once.';
+    expect(generate(shorter).get('listings/mcpso-submission.md')).toContain(
+      `drafted):\n\n${listing.copy.oneLiner}\n\nYour agent describes a form and gets a link at once.\n`,
+    );
     expect(draft).toContain(`- Tags: ${listing.copy.keywords.join(', ')}\n`);
     expect(draft).toContain(`- Category: ${listing.categories[0]}\n`);
-    // The other tab, the publishing option (a spending decision) and sign-in are the owner's.
-    expect(draft.match(/^OWNER: /gm)).toHaveLength(3);
-    expect(draft).toMatch(/^OWNER: .*spending decision, yours alone/m);
+    // The review route, by the founder's ruling: no fee option, and no OWNER: line for it.
+    expect(draft).toContain('\n## Publishing\n\nReview, with no fee (founder 2026-11-09 21:36Z).');
+    expect(draft).not.toMatch(/spending decision/);
+    // The other tab and sign-in are the owner's.
+    expect(draft.match(/^OWNER: /gm)).toHaveLength(2);
     expect(draft).toMatch(/^OWNER: the page offers Sign In/m);
+    expect(draft).toContain(
+      'The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator.',
+    );
     expect(scanText('listings/mcpso-submission.md', draft)).toEqual([]);
   });
 
@@ -458,14 +486,21 @@ describe('listing.json artifacts', () => {
     for (const { repo, output } of listing.providers.awesomeLists.lists) {
       const text = files.get(output)!;
       expect(text.startsWith(`# ${repo} entry\n\nUnposted draft for the founder's review.`)).toBe(true);
+      expect(text).toContain(
+        'The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator.',
+      );
       expect(text).not.toMatch(/- \[x\]/i);
+      expect(text).not.toMatch(/0\.1\.1/);
       expect(scanText(output, text)).toEqual([]);
     }
-    // punkpeye: one line, linked name, Legend markers, " - ", the one-liner; no badge without a Glama page.
+    // punkpeye: one line, linked name, Legend markers 🎖️ 📇 ☁️ (founder 21:36Z), " - ", the
+    // one-liner; no badge without a Glama page, and no OWNER: line for the markers.
     expect(draft('punkpeye/awesome-mcp-servers')).toContain(
-      `\n- [w1991e/sess-sdk](https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp) 📇 ☁️ - ${one}\n`,
+      `\n- [w1991e/sess-sdk](https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp) 🎖️ 📇 ☁️ - ${one}\n`,
     );
     expect(draft('punkpeye/awesome-mcp-servers')).not.toContain('badges/score.svg');
+    expect(draft('punkpeye/awesome-mcp-servers')).not.toMatch(/^OWNER: .*(markers|🎖️)/m);
+    expect(draft('punkpeye/awesome-mcp-servers')).toContain('version 0.2.0 on npm');
     // The remote list: three lines, homepage link, endpoint, connector badge, OAuth marker.
     expect(draft('punkpeye/awesome-remote-mcp-servers')).toContain(
       [
@@ -476,7 +511,15 @@ describe('listing.json artifacts', () => {
     );
     expect(one.length).toBeLessThanOrEqual(120);
     expect(draft('punkpeye/awesome-remote-mcp-servers').match(/^- \[ \] /gm)).toHaveLength(4);
-    expect(draft('punkpeye/awesome-remote-mcp-servers')).toMatch(/^OWNER: .*starred the list/m);
+    expect(draft('punkpeye/awesome-remote-mcp-servers')).toMatch(
+      /^OWNER: .*starred the list: the founder stars it himself\.$/m,
+    );
+    // A 401 sign-in challenge is the right answer from the endpoint (founder 21:36Z): a note, not an owner step.
+    expect(draft('punkpeye/awesome-remote-mcp-servers')).toContain(
+      'a 401 sign-in challenge is the correct answer from our endpoint (founder 2026-11-09 21:36Z)',
+    );
+    expect(draft('punkpeye/awesome-remote-mcp-servers')).not.toMatch(/^OWNER: .*initialize/m);
+    expect(draft('punkpeye/awesome-remote-mcp-servers')).not.toMatch(/proposed, needs your words/);
     // wong2 takes no pull requests: the draft is its website form, with the fee plan an owner decision.
     expect(draft('wong2/awesome-mcp-servers')).toContain('Not a pull request: the list takes none.');
     expect(draft('wong2/awesome-mcp-servers')).toContain(`- Short Description: \`${one}\``);
@@ -852,9 +895,11 @@ describe('listing icons', () => {
     expect(bytes.toString('latin1', 12, 16)).toBe('IHDR');
     expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([400, 400]);
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(icon.sha256);
-    // Not deployed by this repository: no icon list or generated file names it.
+    // In no host icon list: only the Cline issue names it, at its served URL.
     expect(listing.icons.files.map((f: { path: string }) => f.path)).not.toContain(icon.path);
-    for (const [path, content] of generate(inputs())) expect(content, path).not.toContain('icon-400');
+    expect(icon.url).toBe('https://sess.si/assets/icons/00c368f1dadd/icon-400.png');
+    for (const [path, content] of generate(inputs()))
+      if (path !== 'listings/cline-issue.md') expect(content, path).not.toContain('icon-400');
     // A wrong size, a wrong stated size or changed bytes fail the check.
     expect(
       checkIconFiles(listing, (p) =>

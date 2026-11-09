@@ -1,6 +1,6 @@
 # wong2/awesome-mcp-servers entry
 
-Unposted draft for the founder's review. Nothing here is forked, opened or posted. wong2/awesome-mcp-servers had 4,407 stars on GitHub's public API on 2026-11-09: https://github.com/wong2/awesome-mcp-servers
+Unposted draft for the founder's review. Nothing here is forked, opened or posted. The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator. wong2/awesome-mcp-servers had 4,407 stars on GitHub's public API on 2026-11-09: https://github.com/wong2/awesome-mcp-servers
 
 Where each rule was read:
 

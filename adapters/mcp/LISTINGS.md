@@ -119,9 +119,10 @@ was generated from w1991e/sess `90fe43c2d`, where the icon files are unchanged s
 `npm run check:listing` checks its IHDR size (400x400) and SHA-256 without a Sess checkout.
 
 A read-only GET of `https://sess.si/assets/icons/00c368f1dadd/icon-400.png` on 2026-11-09 at 20:46Z
-returned 200 with `image/png`, 11,995 bytes, with the SHA-256 above. `listing.json` still names no
-URL for it, and the Cline issue's Logo Image stays an `OWNER:` line until the founder confirms the
-URL. The same day a GET of each `24eb73d4a4d9` URL above still returned the SHA-256s above.
+returned 200 with `image/png`, 11,995 bytes, with the SHA-256 above, and again at 21:38Z. By the
+founder's ruling of 21:36Z that URL is `providers.cline.icon.url`, and the Cline issue's Logo Image
+carries it; `check:listing` refuses a URL that is not HTTPS or not `icon-400.png`. It is in no host
+icon list. The same day a GET of each `24eb73d4a4d9` URL above still returned the SHA-256s above.
 
 Vendored schemas in `listings/schemas/` are byte-identical to their sources and pinned by SHA-256
 in `listing.json`; the check refuses a modified copy. Retrieved 2026-10-15; the registry schema was
@@ -164,17 +165,19 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/5` sc
   marked qualified, and Codex has no production run;
 - for Docker: OAuth through Docker's Toolkit is untested; the founder tests it with
   `docker mcp oauth authorize sess` (see [Docker](#docker));
-- for Cline only: the founder's confirmation of the 400x400 PNG's URL (see [Icon](#icon)), and
-  watching Cline set the server up from the README alone (see [Cline](#cline));
-- for mcp.so: the publishing option (one carries a fee: a spending decision) and signing in (see
-  [mcp.so](#mcpso));
+- for Cline only: running Cline with only the README and recording the result in the issue, before
+  it opens (founder 2026-11-09 21:36Z; see [Cline](#cline)). It needs Cline and a model, and the
+  founder runs it; it has not been run;
+- for mcp.so: signing in and submitting (see [mcp.so](#mcpso));
+- every fork, pull request, issue and form is opened by the founder from his own account; nothing
+  posts from the orchestrator (founder 2026-11-09 21:36Z);
 - a demo recording URL (OpenAI), and a reviewer test account entered in each portal, never in the
   package. OpenAI requires one that signs in without email or SMS codes or magic links.
 
 After any change to `listing.json`, run `npm run listing` and commit the result.
 
 `compatibility.json` still has stale lines (it calls 0.1.1 "prepared" and "unpublished", and its
-`registry` block calls the entry remote-only and not submitted; npm has 0.1.1 on `latest`, and the
+`registry` block calls the entry remote-only and not submitted; npm has 0.2.0 on `latest`, and the
 Registry lists it). It ships in the package, so they are corrected at the next release.
 
 ## Owner submission steps
@@ -191,7 +194,14 @@ Official registry only (`registry.modelcontextprotocol.io`), under the domain na
 which the owner keeps in the macOS Keychain item `sess-mcp-registry-ed25519`. The key never goes
 into this repository, a file, a log, a chat or an agent prompt.
 
-**0.1.1 is published and listed** (founder 2026-11-06 02:50Z). The founder published it from
+**0.2.0 is on npm `latest` and the Registry's latest.** Read-only GETs on 2026-11-09 at 21:38Z: npm
+`dist-tags` `latest` 0.2.0 (published 2026-11-07T20:30:24Z, `mcpName` `si.sess/sess`), `next`
+0.1.0-rc.4; the Registry's `si.sess/sess` 0.2.0, `active`, `publishedAt` 2026-11-07T20:37:46Z,
+`isLatest` true, package `@sess.si/mcp` 0.2.0. So `stdio.status` is `published` and
+`npmPackage.publishedVersion` is 0.2.0 (founder 2026-11-09 21:36Z). 0.1.1 and 0.1.0 stay `active`
+as prior versions, not latest. The record of 0.1.1 follows.
+
+**0.1.1 was published and listed** (founder 2026-11-06 02:50Z). The founder published it from
 master's `server.json` at about 02:49Z (validate, DNS TXT, DNS login and publish all OK). The
 Registry's public API read back `si.sess/sess` 0.1.1, status `active`, `publishedAt`
 2026-11-06T02:49:36Z, `isLatest` true, with one remote, `https://mcp.sess.si/mcp`
@@ -283,10 +293,9 @@ organization and the Apps Management Write role.
   (see [Requalification](#requalification-on-production)). This is not a submission to, or an
   acceptance by, Cursor's marketplace.
 - A reconnect defect (C-3) is being fixed server-side in w1991e/sess.
-- The stdio link names package.json's version, `@sess.si/mcp@0.2.0`, which is prepared and not yet
-  on npm, so its status is `unpublished` until 0.2.0 is published and read back (0.1.1 stays on
-  `latest` until then). Once published it is `published`, not qualified: the round used the
-  remote link.
+- The stdio link names package.json's version, `@sess.si/mcp@0.2.0`, on npm `latest` since
+  2026-11-07 (read back 2026-11-09), so its status is `published`, not qualified: the round used
+  the remote link.
 - These links belong on the setup page. Nothing here puts them there: that page is built in
   w1991e/sess from its own host matrix, whose Cursor entry has its own `qualified` field.
 - On Cursor, a plain "Ask me…" prompt is answered by Cursor's own question panel (founder 2026-11-05,
@@ -390,10 +399,13 @@ takes a GitHub repository URL (required) and an optional name. Neither asks for 
 or a category. The page shows one publishing option, with a one-time fee, and its summary says a
 review without the fee is also offered. mcp.so's GitHub repository, `chatmcp/mcpso`, has no
 issue template; some projects open free-form issues there instead, which this draft does not use.
+Founder 2026-11-09 21:36Z: free review, no paid publish; the description opens with the signed
+one-liner, then the long text as drafted.
 
-The exact values are `listings/mcpso-submission.md`; resolve its `OWNER:` lines (the tab, the
-publishing option and signing in). It names the endpoint `https://mcp.sess.si/mcp` and the name
-`Sess`. If mcp.so asks for more after submitting, it gives `copy.long`, the tags
+The exact values are `listings/mcpso-submission.md`; resolve its `OWNER:` lines (the tab and
+signing in). It names the endpoint `https://mcp.sess.si/mcp` and the name `Sess`, and takes the
+review route. If mcp.so asks for more after submitting, it gives the one-liner and `copy.long`
+(which opens with the one-liner, so it is written once), the tags
 `human-in-the-loop`, `forms`, `approvals`, `receipts`, `mcp` and the category `Productivity`, and
 the repository `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`.
 
@@ -405,7 +417,9 @@ archived, by star count from GitHub's public search API on 2026-11-09 (`provider
 and where they were read, the entry in that list's own format with the one-liner
 `Let your agent ask a person and continue with their answer.` as its only description, the target
 section and placement, and the pull request or form. Resolve each draft's `OWNER:` lines; nothing is
-forked, opened or posted.
+forked, opened or posted. Founder 2026-11-09 21:36Z: the punkpeye entry claims 🎖️, in the order
+🎖️ 📇 ☁️; the remote list goes in as drafted, and a 401 sign-in challenge is the correct answer
+from our endpoint; starring that list is the founder's own step.
 
 | List                                  | Stars  | Draft                                                     | Route                                    | Status              |
 | ------------------------------------- | ------ | --------------------------------------------------------- | ---------------------------------------- | ------------------- |
@@ -421,10 +435,12 @@ Source: https://github.com/cline/mcp-marketplace (README and the template
 text is `listings/cline-issue.md`; resolve its `OWNER:` lines.
 
 1. The 400x400 PNG is `listings/plugin/assets/icon-400.png`, generated from the mark (see
-   [Icon](#icon)); do not submit a resized copy. Confirm its URL: a GET of it must return 200 with
-   `image/png` and the pinned SHA-256; put that URL in Logo Image. Drafted, not posted.
-2. Watch Cline set the server up from the README or `llms-install.md` alone. The submitter ticks
-   that box only after doing so; that has not been done. The README's Cline section is the path to test.
+   [Icon](#icon)), served at `https://sess.si/assets/icons/00c368f1dadd/icon-400.png` (200,
+   `image/png`, the pinned SHA-256, read 2026-11-09 21:38Z). Logo Image carries that URL.
+   Drafted, not posted.
+2. Run Cline with only the README (or `llms-install.md`) and record the result in the issue, before
+   it opens (founder 2026-11-09 21:36Z). It needs Cline and a model, and the founder runs it; it has
+   not been run. Tick that box only after it passes. The README's Cline section is the path to test.
 3. Tick "The server is stable and ready for public use" only if you confirm it.
 4. Open the issue from the owner's account:
    - GitHub Repository URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`

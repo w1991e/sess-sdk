@@ -403,11 +403,9 @@ function claudeConnector({ listing, tools }) {
   });
 }
 
-/** The npm version a person installs today: package.json's once published, else the one on npm. */
-const npmVersion = (listing, manifest) =>
-  listing.stdio.status === 'published'
-    ? manifest.version
-    : listing.providers.mcpRegistry.npmPackage.publishedVersion;
+/** Every submission draft says who opens it (founder 2026-11-09 21:36Z). */
+const FOUNDER_OPENS =
+  'The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator.';
 
 /** The repository URL a store takes: this adapter's directory on master. */
 const adapterRepoUrl = (listing, manifest) =>
@@ -419,10 +417,13 @@ const adapterRepoUrl = (listing, manifest) =>
  */
 function clineIssue({ listing, manifest }) {
   const cline = listing.providers.cline;
+  const served = cline.icon?.url;
   return [
     '# Cline submission issue',
     '',
     `Signed text, not opened. Open it only after the ${ICON.cline}x${ICON.cline} icon is merged and deployed and the README-alone install test has passed: ${cline.form}`,
+    '',
+    FOUNDER_OPENS,
     '',
     'Every OWNER: line is for the owner to do, then delete. Everything else in the sections below `## Title` goes into the form as written.',
     '',
@@ -436,13 +437,14 @@ function clineIssue({ listing, manifest }) {
     '',
     '## Logo Image',
     '',
-    `OWNER: put the URL of the deployed ${ICON.cline}x${ICON.cline} PNG here, after a GET of it returns 200 with image/png. It is not deployed yet. Do not resize another icon.`,
+    served ??
+      `OWNER: put the URL of the deployed ${ICON.cline}x${ICON.cline} PNG here, after a GET of it returns 200 with image/png. It is not deployed yet. Do not resize another icon.`,
     '',
     '## Installation Testing',
     '',
     '- [ ] I have tested that Cline can successfully set up this server using only the README.md and/or llms-install.md file',
     '',
-    'OWNER: tick this only after watching Cline set up the server from the README alone. That has not been done.',
+    'OWNER: run Cline with only the README, record result here. Tick this only after that run passes; it has not been run.',
     '',
     '- [ ] The server is stable and ready for public use',
     '',
@@ -453,7 +455,7 @@ function clineIssue({ listing, manifest }) {
     listing.copy.oneLiner,
     '',
     `- Hosted server: ${listing.remote.url} (Streamable HTTP; you sign in with your ${listing.displayName} account)`,
-    `- npm package: https://www.npmjs.com/package/${manifest.name}, version ${npmVersion(listing, manifest)} (stdio; needs \`SESS_API_KEY\`)`,
+    `- npm package: https://www.npmjs.com/package/${manifest.name}, version ${manifest.version} (stdio; needs \`SESS_API_KEY\`)`,
     `- Website: ${url(listing.urls.website)}`,
     `- Docs: ${url(listing.urls.docs)}`,
     `- Support: ${listing.supportContact}`,
@@ -465,14 +467,26 @@ function clineIssue({ listing, manifest }) {
 /**
  * mcp.so's Remote Server submission form (providers.mcpso.source), field by field. The form as read
  * takes the endpoint URL and a name; any description is listing.json's signed copy, never new
- * words. Sign-in, the publishing option and submitting are OWNER: lines.
+ * words. The publishing option is the founder's ruling (providers.mcpso.publishing); the tab,
+ * sign-in and submitting are OWNER: lines.
  */
+/**
+ * The founder's mcp.so description (2026-11-09 21:36Z): the signed one-liner, then copy.long as
+ * drafted. copy.long already opens with the one-liner, so it is not written twice.
+ */
+function openWithOneLiner(listing) {
+  const { oneLiner, long } = listing.copy;
+  return long.startsWith(oneLiner) ? [long] : [oneLiner, '', long];
+}
+
 function mcpsoSubmission({ listing, manifest }) {
   const m = listing.providers.mcpso;
   return [
     '# mcp.so submission',
     '',
     `Unposted draft for the founder's review. Nothing here has been submitted to mcp.so. Fields read from the form's own page on ${m.retrieved} (as served before sign-in): ${m.source}`,
+    '',
+    FOUNDER_OPENS,
     '',
     'Every OWNER: line is for the owner to do, then delete. Everything else in the sections below `## Type` goes into the form as written.',
     '',
@@ -492,7 +506,7 @@ function mcpsoSubmission({ listing, manifest }) {
     '',
     '## Publishing',
     '',
-    "OWNER: the form as served shows one publishing option, a one-time fee to publish without review. That is a spending decision, yours alone. The page's own summary says a review without the fee is also offered; choose it if the form shows it to you.",
+    `Review, with no fee (${m.publishing}). Not the fee option that publishes without review.`,
     '',
     '## Sign-in and submitting',
     '',
@@ -502,9 +516,9 @@ function mcpsoSubmission({ listing, manifest }) {
     '',
     "The form as read asks for nothing else. If mcp.so asks for these after you submit, they are listing.json's signed values.",
     '',
-    'Description:',
+    'Description (the signed one-liner, then the long text as drafted):',
     '',
-    listing.copy.long,
+    ...openWithOneLiner(listing),
     '',
     `- Tags: ${listing.copy.keywords.join(', ')}`,
     `- Category: ${listing.categories[0]}`,
@@ -528,7 +542,7 @@ function awesomeEntry({ listing, manifest }, list) {
   const head = [
     `# ${list.repo} entry`,
     '',
-    `Unposted draft for the founder's review. Nothing here is forked, opened or posted. ${list.repo} had ${list.stars.toLocaleString('en-US')} stars on GitHub's public API on ${lists.read}: https://github.com/${list.repo}`,
+    `Unposted draft for the founder's review. Nothing here is forked, opened or posted. ${FOUNDER_OPENS} ${list.repo} had ${list.stars.toLocaleString('en-US')} stars on GitHub's public API on ${lists.read}: https://github.com/${list.repo}`,
     '',
     'Where each rule was read:',
     '',
@@ -548,13 +562,13 @@ function awesomeEntry({ listing, manifest }, list) {
       '## Entry',
       '',
       '```markdown',
-      `- [${list.glamaServer}](${repoUrl}) 📇 ☁️ - ${listing.copy.oneLiner}`,
+      `- [${list.glamaServer}](${repoUrl}) ${list.markers} - ${listing.copy.oneLiner}`,
       '```',
       '',
+      `The markers are the Legend's, in the order ${list.markers} (${list.markersNote}). No operating-system marker is set; the package runs wherever Node runs. The list takes servers you install and run yourself: this entry is the npm stdio package ${manifest.name} (version ${manifest.version} on npm). The hosted endpoint is the awesome-remote-mcp-servers draft.`,
+      '',
       ...owner([
-        `the markers are the Legend's 📇 (TypeScript) and ☁️ (talks to a remote API, Sess). The Legend's 🎖️ marks the vendor's own implementation; put it before 📇 only if you claim it. No operating-system marker is set; the package runs wherever Node runs.`,
         `most entries carry a Glama score badge after the link; ${list.glamaServerStatus}, so this entry has none. Add it only once that page exists.`,
-        `the list takes servers you install and run yourself: this entry is the npm stdio package ${manifest.name} (version ${npmVersion(listing, manifest)} on npm). The hosted endpoint is the awesome-remote-mcp-servers draft.`,
       ]),
       '## Pull request',
       '',
@@ -591,10 +605,11 @@ function awesomeEntry({ listing, manifest }, list) {
       `  🔐 - ${listing.copy.oneLiner}`,
       '```',
       '',
+      `The list's CI sends an MCP initialize request to ${listing.remote.url}; ${list.initializeNote}.`,
+      '',
       ...owner([
         `the badge is required; ${list.glamaConnectorStatus}. Confirm that connector is yours before you rely on it.`,
-        `the list's CI sends an MCP initialize request to ${listing.remote.url}. Without sign-in it answers 401 with its OAuth resource metadata (read 2026-10-28, see Smithery in LISTINGS.md); whether that CI counts it as a 🔐 server is not verified.`,
-        'CONTRIBUTING.md requires the account opening the pull request to have starred the list.',
+        'CONTRIBUTING.md requires the account opening the pull request to have starred the list: the founder stars it himself.',
       ]),
       '## Pull request',
       '',
@@ -613,7 +628,7 @@ function awesomeEntry({ listing, manifest }, list) {
       '```',
       '',
       ...owner([
-        'tick each box only once you have confirmed it. Fork the list and open the pull request from your own account; the title is proposed, needs your words.',
+        `tick each box only once you have confirmed it. Fork the list and open the pull request from your own account, as drafted (${list.ruling}).`,
       ]),
     ].join('\n');
   }
@@ -1177,15 +1192,19 @@ export function validate(inputs, files, schemaTexts) {
     blockers.push(
       `MCP Registry and Docker: icon URLs ${listing.icons.status}${listing.icons.note ? ` (${listing.icons.note})` : ''}`,
     );
-  if (!committed.some((f) => f.size === ICON.cline))
+  const clineIcon = listing.providers.cline.icon;
+  if (!committed.some((f) => f.size === ICON.cline) && !clineIcon?.url)
     blockers.push(
       `Cline: needs a ${ICON.cline}x${ICON.cline} PNG at a deployed URL; ${listing.providers.cline.iconNote} (see LISTINGS.md)`,
     );
+  // A served URL for Cline's icon is the HTTPS URL of that same file, never another size.
+  if (clineIcon?.url !== undefined && (!httpsUrl(clineIcon.url) || !clineIcon.url.endsWith('/icon-400.png')))
+    errors.push('providers.cline.icon.url must be an HTTPS URL of icon-400.png');
   blockers.push(
-    `Cline: ${listing.providers.cline.output} has OWNER: lines to resolve, including watching Cline set the server up from the README alone`,
+    `Cline: ${listing.providers.cline.output} has OWNER: lines to resolve, including running Cline with only the README and recording the result`,
   );
   blockers.push(
-    `mcp.so: ${listing.providers.mcpso.output} has OWNER: lines to resolve, including the publishing option and signing in`,
+    `mcp.so: ${listing.providers.mcpso.output} has OWNER: lines to resolve, including signing in and submitting`,
   );
   if (ap.openai.demoRecordingUrl === null) blockers.push('OpenAI: no demo recording URL');
   blockers.push(`OpenAI: test cases are ${ap.openai.testCasesStatus}`);
