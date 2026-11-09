@@ -403,6 +403,16 @@ function claudeConnector({ listing, tools }) {
   });
 }
 
+/** The npm version a person installs today: package.json's once published, else the one on npm. */
+const npmVersion = (listing, manifest) =>
+  listing.stdio.status === 'published'
+    ? manifest.version
+    : listing.providers.mcpRegistry.npmPackage.publishedVersion;
+
+/** The repository URL a store takes: this adapter's directory on master. */
+const adapterRepoUrl = (listing, manifest) =>
+  `${listing.repository.url}/tree/master/${manifest.repository.directory}`;
+
 /**
  * Cline's "MCP Server Submission" issue form (providers.cline.source), field by field. Only true
  * values are filled in; what is unknown or still to be done is an OWNER: line, and no box is ticked.
@@ -422,7 +432,7 @@ function clineIssue({ listing, manifest }) {
     '',
     '## GitHub Repository URL',
     '',
-    `${listing.repository.url}/tree/master/${manifest.repository.directory}`,
+    adapterRepoUrl(listing, manifest),
     '',
     '## Logo Image',
     '',
@@ -443,13 +453,199 @@ function clineIssue({ listing, manifest }) {
     listing.copy.oneLiner,
     '',
     `- Hosted server: ${listing.remote.url} (Streamable HTTP; you sign in with your ${listing.displayName} account)`,
-    `- npm package: https://www.npmjs.com/package/${manifest.name}, version ${manifest.version} (stdio; needs \`SESS_API_KEY\`)`,
+    `- npm package: https://www.npmjs.com/package/${manifest.name}, version ${npmVersion(listing, manifest)} (stdio; needs \`SESS_API_KEY\`)`,
     `- Website: ${url(listing.urls.website)}`,
     `- Docs: ${url(listing.urls.docs)}`,
     `- Support: ${listing.supportContact}`,
     `- License: ${listing.license}`,
     '',
   ].join('\n');
+}
+
+/**
+ * mcp.so's Remote Server submission form (providers.mcpso.source), field by field. The form as read
+ * takes the endpoint URL and a name; any description is listing.json's signed copy, never new
+ * words. Sign-in, the publishing option and submitting are OWNER: lines.
+ */
+function mcpsoSubmission({ listing, manifest }) {
+  const m = listing.providers.mcpso;
+  return [
+    '# mcp.so submission',
+    '',
+    `Unposted draft for the founder's review. Nothing here has been submitted to mcp.so. Fields read from the form's own page on ${m.retrieved} (as served before sign-in): ${m.source}`,
+    '',
+    'Every OWNER: line is for the owner to do, then delete. Everything else in the sections below `## Type` goes into the form as written.',
+    '',
+    '## Type',
+    '',
+    '`Remote Server`',
+    '',
+    `OWNER: the form's other tab, MCP Server, takes a GitHub repository URL instead (${adapterRepoUrl(listing, manifest)}). This draft lists the hosted endpoint; choose the other tab only if you want the repository listed.`,
+    '',
+    '## Remote endpoint URL',
+    '',
+    listing.remote.url,
+    '',
+    '## Name',
+    '',
+    `\`${listing.displayName}\``,
+    '',
+    '## Publishing',
+    '',
+    "OWNER: the form as served shows one publishing option, a one-time fee to publish without review. That is a spending decision, yours alone. The page's own summary says a review without the fee is also offered; choose it if the form shows it to you.",
+    '',
+    '## Sign-in and submitting',
+    '',
+    'OWNER: the page offers Sign In. If the form asks you to sign in, use your own account. Submitting, and any confirmation mcp.so sends, are yours.',
+    '',
+    '## If mcp.so asks for more',
+    '',
+    "The form as read asks for nothing else. If mcp.so asks for these after you submit, they are listing.json's signed values.",
+    '',
+    'Description:',
+    '',
+    listing.copy.long,
+    '',
+    `- Tags: ${listing.copy.keywords.join(', ')}`,
+    `- Category: ${listing.categories[0]}`,
+    `- Website: ${url(listing.urls.website)}`,
+    `- Docs: ${url(listing.urls.docs)}`,
+    `- Support: ${listing.supportContact}`,
+    `- Repository: ${adapterRepoUrl(listing, manifest)}`,
+    `- License: ${listing.license}`,
+    '',
+  ].join('\n');
+}
+
+/**
+ * An entry for one awesome MCP server list (providers.awesomeLists.lists), in that list's own line
+ * format, from listing.json's signed one-liner only. Placement, the PR and every account step are
+ * spelled out; nothing is forked, opened or posted.
+ */
+function awesomeEntry({ listing, manifest }, list) {
+  const lists = listing.providers.awesomeLists;
+  const repoUrl = adapterRepoUrl(listing, manifest);
+  const head = [
+    `# ${list.repo} entry`,
+    '',
+    `Unposted draft for the founder's review. Nothing here is forked, opened or posted. ${list.repo} had ${list.stars.toLocaleString('en-US')} stars on GitHub's public API on ${lists.read}: https://github.com/${list.repo}`,
+    '',
+    'Where each rule was read:',
+    '',
+    ...list.rules.map((r) => `- ${r}`),
+    '',
+    'Every OWNER: line is for the owner to do, then delete.',
+    '',
+  ];
+  const owner = (lines) => lines.flatMap((l) => [`OWNER: ${l}`, '']);
+  if (list.format === 'punkpeye')
+    return [
+      ...head,
+      '## Target',
+      '',
+      `\`README.md\`, section \`${list.section}\`, in alphabetical order between \`${list.between[0]}\` and \`${list.between[1]}\`.`,
+      '',
+      '## Entry',
+      '',
+      '```markdown',
+      `- [${list.glamaServer}](${repoUrl}) 📇 ☁️ - ${listing.copy.oneLiner}`,
+      '```',
+      '',
+      ...owner([
+        `the markers are the Legend's 📇 (TypeScript) and ☁️ (talks to a remote API, Sess). The Legend's 🎖️ marks the vendor's own implementation; put it before 📇 only if you claim it. No operating-system marker is set; the package runs wherever Node runs.`,
+        `most entries carry a Glama score badge after the link; ${list.glamaServerStatus}, so this entry has none. Add it only once that page exists.`,
+        `the list takes servers you install and run yourself: this entry is the npm stdio package ${manifest.name} (version ${npmVersion(listing, manifest)} on npm). The hosted endpoint is the awesome-remote-mcp-servers draft.`,
+      ]),
+      '## Pull request',
+      '',
+      `Title: \`Add ${list.glamaServer}\``,
+      '',
+      'Body:',
+      '',
+      '```markdown',
+      listing.copy.oneLiner,
+      '',
+      `- Repository: ${repoUrl}`,
+      `- npm package: https://www.npmjs.com/package/${manifest.name}`,
+      `- Docs: ${url(listing.urls.docs)}`,
+      `- License: ${listing.license}`,
+      '```',
+      '',
+      ...owner([
+        'fork the list, add the line, and open the pull request from your own account; the title follows CONTRIBUTING.md\'s own example ("Add new XYZ server").',
+      ]),
+    ].join('\n');
+  if (list.format === 'punkpeye-remote') {
+    const badge = `https://glama.ai/mcp/connectors/${list.glamaConnector}`;
+    return [
+      ...head,
+      '## Target',
+      '',
+      `\`README.md\`, section \`${list.section}\`, in alphabetical order (case-insensitive) between \`${list.between[0]}\` and \`${list.between[1]}\`.`,
+      '',
+      '## Entry',
+      '',
+      '```markdown',
+      `- [${listing.displayName}](${listing.homepage}) \`${listing.remote.url}\``,
+      `  [![${listing.displayName} MCP connector](${badge}/badges/score.svg)](${badge})`,
+      `  🔐 - ${listing.copy.oneLiner}`,
+      '```',
+      '',
+      ...owner([
+        `the badge is required; ${list.glamaConnectorStatus}. Confirm that connector is yours before you rely on it.`,
+        `the list's CI sends an MCP initialize request to ${listing.remote.url}. Without sign-in it answers 401 with its OAuth resource metadata (read 2026-10-28, see Smithery in LISTINGS.md); whether that CI counts it as a 🔐 server is not verified.`,
+        'CONTRIBUTING.md requires the account opening the pull request to have starred the list.',
+      ]),
+      '## Pull request',
+      '',
+      `Title: \`Add ${listing.displayName}\``,
+      '',
+      "Body (the list's pull request template, with no box ticked):",
+      '',
+      '```markdown',
+      `**Server:** ${listing.displayName}`,
+      `**Endpoint:** ${listing.remote.url}`,
+      '',
+      '- [ ] The endpoint is public and answers an MCP `initialize` request',
+      '- [ ] Entry is in the correct category, in alphabetical order',
+      '- [ ] Entry has its Glama connector badge on the second line',
+      '- [ ] Auth marker matches what the endpoint actually does',
+      '```',
+      '',
+      ...owner([
+        'tick each box only once you have confirmed it. Fork the list and open the pull request from your own account; the title is proposed, needs your words.',
+      ]),
+    ].join('\n');
+  }
+  if (list.format === 'wong2')
+    return [
+      ...head,
+      '## Target',
+      '',
+      'Not a pull request: the list takes none. Its entries come from the form at https://mcpservers.org/submit.',
+      '',
+      '## Form',
+      '',
+      `- Server Name: \`${listing.displayName}\``,
+      `- Category: \`${list.category}\``,
+      `- Short Description: \`${listing.copy.oneLiner}\``,
+      `- Repository, Website or Documentation: ${repoUrl}`,
+      `- MCP Registry name (optional): \`${listing.registryName}\``,
+      `- This server supports remote connections: tick it (${listing.remote.url})`,
+      '',
+      ...owner([
+        `Contact Email is yours to give; ${listing.supportContact} is the listing's support contact.`,
+        "the form's submission plan defaults to the plan with no fee, reviewed within two weeks; the other plan carries a fee and is a spending decision, yours alone.",
+        'submitting the form, and any confirmation mcpservers.org sends, are yours.',
+      ]),
+      '## For reference: the line in the list',
+      '',
+      '```markdown',
+      `- **[${listing.displayName}](${repoUrl})** - ${listing.copy.oneLiner}`,
+      '```',
+      '',
+    ].join('\n');
+  throw new Error(`providers.awesomeLists: unknown format ${list.format}`);
 }
 
 // A YAML plain scalar, refused when it would need quoting (the generator writes no quotes).
@@ -503,6 +699,8 @@ export function generate(inputs) {
     [listing.providers.cursorInstall.output, formatJson(cursorInstall(inputs))],
     [listing.providers.claudeConnector.output, formatJson(claudeConnector(inputs))],
     [listing.providers.cline.output, clineIssue(inputs)],
+    [listing.providers.mcpso.output, mcpsoSubmission(inputs)],
+    ...listing.providers.awesomeLists.lists.map((list) => [list.output, awesomeEntry(inputs, list)]),
     ...dockerFiles(inputs),
   ]);
 }
@@ -595,7 +793,10 @@ export function pngSize(bytes) {
  */
 export function checkIconFiles(listing, read) {
   const errors = [];
-  for (const file of iconFiles(listing)) {
+  const cline = listing.providers.cline.icon;
+  if (cline && cline.size !== ICON.cline)
+    errors.push(`providers.cline.icon must be ${ICON.cline}x${ICON.cline}, not ${cline.size}x${cline.size}`);
+  for (const file of [...iconFiles(listing), ...(cline ? [cline] : [])]) {
     const bytes = read(file.path);
     if (!bytes) {
       errors.push(`icon ${file.path} is missing`);
@@ -983,6 +1184,9 @@ export function validate(inputs, files, schemaTexts) {
   blockers.push(
     `Cline: ${listing.providers.cline.output} has OWNER: lines to resolve, including watching Cline set the server up from the README alone`,
   );
+  blockers.push(
+    `mcp.so: ${listing.providers.mcpso.output} has OWNER: lines to resolve, including the publishing option and signing in`,
+  );
   if (ap.openai.demoRecordingUrl === null) blockers.push('OpenAI: no demo recording URL');
   blockers.push(`OpenAI: test cases are ${ap.openai.testCasesStatus}`);
   blockers.push(`OpenAI: ${ap.openai.qualificationNote}`);
@@ -1054,7 +1258,9 @@ async function main(mode) {
         problems.push(`${path} is out of date; run npm run listing`);
     }
   }
-  const icons = new Set(iconFiles(inputs.listing).map((f) => f.path));
+  const icons = new Set(
+    [...iconFiles(inputs.listing), inputs.listing.providers.cline.icon].filter(Boolean).map((f) => f.path),
+  );
   for (const dir of [PLUGIN_DIR, inputs.listing.providers.docker.output])
     for (const full of walk(join(root, dir))) {
       const path = relative(root, full).split(sep).join('/');
