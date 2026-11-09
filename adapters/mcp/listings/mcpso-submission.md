@@ -4,7 +4,7 @@ Unposted draft for the founder's review. Nothing here has been submitted to mcp.
 
 The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator.
 
-Every OWNER: line is for the owner to do, then delete. Everything else in the sections below `## Type` goes into the form as written.
+Every OWNER: line is for the owner to do, then delete. Every line that starts with `Not for the form:` is a note for you, never pasted. Everything else in the sections below `## Type` goes into the form as written.
 
 ## Type
 
@@ -22,7 +22,7 @@ https://mcp.sess.si/mcp
 
 ## Publishing
 
-Review, with no fee (founder 2026-11-09 21:36Z). Not the fee option that publishes without review.
+Not for the form: choose Review, with no fee (founder 2026-11-09 21:36Z). Not the fee option that publishes without review.
 
 ## Sign-in and submitting
 
@@ -30,9 +30,11 @@ OWNER: the page offers Sign In. If the form asks you to sign in, use your own ac
 
 ## If mcp.so asks for more
 
-The form as read asks for nothing else. If mcp.so asks for these after you submit, they are listing.json's signed values.
+Not for the form: the form as read asks for nothing else. If mcp.so asks for these after you submit, they are listing.json's signed values, each under its label.
 
-Description (the signed one-liner, then the long text as drafted):
+### Description
+
+Not for the form: the signed one-liner, then the long text as drafted; the long text opens with the one-liner, so it is written once (founder 2026-11-09 21:48Z).
 
 Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once. The person answers on any device, and your agent continues with a typed answer and a signed receipt.
 

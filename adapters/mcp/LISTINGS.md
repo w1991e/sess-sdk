@@ -16,7 +16,10 @@ the one-liner alone. His rule of 2026-11-05 01:05Z: a single-line field (Registr
 plugin's description, Smithery, Glama, Cline) carries the one-liner alone; a multi-sentence description
 (Claude, mcp.so, OpenAI's long description) opens with the one-liner, then the supporting line, then the
 rest of the signed description. For Claude's and OpenAI's long descriptions this rule is superseded by
-the Cursor submission's signed copy of 2026-11-06 below. Signed words are not a run test: the claude.ai run is in
+the Cursor submission's signed copy of 2026-11-06 below. For mcp.so it is superseded by the
+founder's ruling of 2026-11-09 21:36Z (see [mcp.so](#mcpso)): the signed one-liner, then
+`copy.long` as drafted, written once because `copy.long` opens with the one-liner (confirmed
+21:48Z); no supporting line. Signed words are not a run test: the claude.ai run is in
 [Test cases on claude.ai](#test-cases-on-claudeai), and OpenAI's run has not happened.
 
 Signed (founder 2026-11-06), the listing copy of the Cursor submission. It is `copy.long`, word for

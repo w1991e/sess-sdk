@@ -403,6 +403,9 @@ function claudeConnector({ listing, tools }) {
   });
 }
 
+/** Marks a draft's note to the founder, so it is never pasted into a form. */
+const NOT_FOR_FORM = 'Not for the form:';
+
 /** Every submission draft says who opens it (founder 2026-11-09 21:36Z). */
 const FOUNDER_OPENS =
   'The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator.';
@@ -488,7 +491,7 @@ function mcpsoSubmission({ listing, manifest }) {
     '',
     FOUNDER_OPENS,
     '',
-    'Every OWNER: line is for the owner to do, then delete. Everything else in the sections below `## Type` goes into the form as written.',
+    `Every OWNER: line is for the owner to do, then delete. Every line that starts with \`${NOT_FOR_FORM}\` is a note for you, never pasted. Everything else in the sections below \`## Type\` goes into the form as written.`,
     '',
     '## Type',
     '',
@@ -506,7 +509,7 @@ function mcpsoSubmission({ listing, manifest }) {
     '',
     '## Publishing',
     '',
-    `Review, with no fee (${m.publishing}). Not the fee option that publishes without review.`,
+    `${NOT_FOR_FORM} choose Review, with no fee (${m.publishing}). Not the fee option that publishes without review.`,
     '',
     '## Sign-in and submitting',
     '',
@@ -514,9 +517,11 @@ function mcpsoSubmission({ listing, manifest }) {
     '',
     '## If mcp.so asks for more',
     '',
-    "The form as read asks for nothing else. If mcp.so asks for these after you submit, they are listing.json's signed values.",
+    `${NOT_FOR_FORM} the form as read asks for nothing else. If mcp.so asks for these after you submit, they are listing.json's signed values, each under its label.`,
     '',
-    'Description (the signed one-liner, then the long text as drafted):',
+    '### Description',
+    '',
+    `${NOT_FOR_FORM} the signed one-liner, then the long text as drafted; the long text opens with the one-liner, so it is written once (founder 2026-11-09 21:48Z).`,
     '',
     ...openWithOneLiner(listing),
     '',
@@ -1198,8 +1203,14 @@ export function validate(inputs, files, schemaTexts) {
       `Cline: needs a ${ICON.cline}x${ICON.cline} PNG at a deployed URL; ${listing.providers.cline.iconNote} (see LISTINGS.md)`,
     );
   // A served URL for Cline's icon is the HTTPS URL of that same file, never another size.
-  if (clineIcon?.url !== undefined && (!httpsUrl(clineIcon.url) || !clineIcon.url.endsWith('/icon-400.png')))
-    errors.push('providers.cline.icon.url must be an HTTPS URL of icon-400.png');
+  if (
+    clineIcon?.url !== undefined &&
+    (!httpsUrl(clineIcon.url) ||
+      !clineIcon.url.endsWith(`/${clineIcon.source?.iconSetVersion}/${clineIcon.source?.file}`))
+  )
+    errors.push(
+      'providers.cline.icon.url must be an HTTPS URL of source.file under source.iconSetVersion (…/<iconSetVersion>/icon-400.png)',
+    );
   blockers.push(
     `Cline: ${listing.providers.cline.output} has OWNER: lines to resolve, including running Cline with only the README and recording the result`,
   );

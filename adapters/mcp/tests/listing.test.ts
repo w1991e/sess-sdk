@@ -161,9 +161,14 @@ describe('listing.json artifacts', () => {
     expect(check(unserved).blockers.join('\n')).toMatch(/Cline: needs a 400x400 PNG at a deployed URL/);
     const wrongIcon = inputs();
     wrongIcon.listing.providers.cline.icon.url = 'https://sess.si/assets/icons/00c368f1dadd/icon-512.png';
-    expect(check(wrongIcon).errors).toContain(
-      'providers.cline.icon.url must be an HTTPS URL of icon-400.png',
-    );
+    const iconUrlError =
+      'providers.cline.icon.url must be an HTTPS URL of source.file under source.iconSetVersion (…/<iconSetVersion>/icon-400.png)';
+    expect(check(wrongIcon).errors).toContain(iconUrlError);
+    // The URL's version segment is the icon set the PNG comes from, never another one.
+    const otherSet = inputs();
+    otherSet.listing.providers.cline.icon.url = 'https://sess.si/assets/icons/24eb73d4a4d9/icon-400.png';
+    expect(check(otherSet).errors).toContain(iconUrlError);
+    expect(check(inputs()).errors).not.toContain(iconUrlError);
     expect(text).toMatch(
       /Cline: listings\/cline-issue\.md has OWNER: lines to resolve, including running Cline with only the README/,
     );
@@ -451,19 +456,45 @@ describe('listing.json artifacts', () => {
     // copy.long already opens with it, so it is not written twice. Tags and category are listing.json's.
     expect(listing.copy.long.startsWith(listing.copy.oneLiner)).toBe(true);
     expect(draft).toContain(
-      `\nDescription (the signed one-liner, then the long text as drafted):\n\n${listing.copy.long}\n`,
+      `\n### Description\n\nNot for the form: the signed one-liner, then the long text as drafted; the long text opens with the one-liner, so it is written once (founder 2026-11-09 21:48Z).\n\n${listing.copy.long}\n`,
     );
     expect(draft.split(listing.copy.oneLiner)).toHaveLength(2);
     const shorter = inputs();
     shorter.listing.copy.long = 'Your agent describes a form and gets a link at once.';
     expect(generate(shorter).get('listings/mcpso-submission.md')).toContain(
-      `drafted):\n\n${listing.copy.oneLiner}\n\nYour agent describes a form and gets a link at once.\n`,
+      `written once (founder 2026-11-09 21:48Z).\n\n${listing.copy.oneLiner}\n\nYour agent describes a form and gets a link at once.\n`,
     );
     expect(draft).toContain(`- Tags: ${listing.copy.keywords.join(', ')}\n`);
     expect(draft).toContain(`- Category: ${listing.categories[0]}\n`);
     // The review route, by the founder's ruling: no fee option, and no OWNER: line for it.
-    expect(draft).toContain('\n## Publishing\n\nReview, with no fee (founder 2026-11-09 21:36Z).');
+    expect(draft).toContain(
+      '\n## Publishing\n\nNot for the form: choose Review, with no fee (founder 2026-11-09 21:36Z).',
+    );
     expect(draft).not.toMatch(/spending decision/);
+    // Below `## Type`, every line is a heading, an OWNER: line, a "Not for the form:" note or a form
+    // value; the form values are exactly these, so no instruction can be pasted by mistake.
+    const body = draft.slice(draft.indexOf('\n## Type\n'));
+    const values = body
+      .split('\n')
+      .filter(
+        (l) => l && !/^#{2,3} /.test(l) && !l.startsWith('OWNER: ') && !l.startsWith('Not for the form: '),
+      );
+    expect(values).toEqual([
+      '`Remote Server`',
+      'https://mcp.sess.si/mcp',
+      '`Sess`',
+      ...listing.copy.long.split('\n').filter(Boolean),
+      `- Tags: ${listing.copy.keywords.join(', ')}`,
+      `- Category: ${listing.categories[0]}`,
+      '- Website: https://sess.si',
+      '- Docs: https://docs.sess.si/add-to-your-agent/',
+      '- Support: ask@sess.si',
+      '- Repository: https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp',
+      '- License: Apache-2.0',
+    ]);
+    expect(draft).toContain(
+      'Every line that starts with `Not for the form:` is a note for you, never pasted.',
+    );
     // The other tab and sign-in are the owner's.
     expect(draft.match(/^OWNER: /gm)).toHaveLength(2);
     expect(draft).toMatch(/^OWNER: the page offers Sign In/m);
