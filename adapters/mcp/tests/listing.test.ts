@@ -168,6 +168,11 @@ describe('listing.json artifacts', () => {
     const otherSet = inputs();
     otherSet.listing.providers.cline.icon.url = 'https://sess.si/assets/icons/24eb73d4a4d9/icon-400.png';
     expect(check(otherSet).errors).toContain(iconUrlError);
+    // source.file and the URL moved together to another size still fail: the file must be the checked PNG.
+    const otherFile = inputs();
+    otherFile.listing.providers.cline.icon.source.file = 'icon-512.png';
+    otherFile.listing.providers.cline.icon.url = 'https://sess.si/assets/icons/00c368f1dadd/icon-512.png';
+    expect(check(otherFile).errors).toContain(iconUrlError);
     expect(check(inputs()).errors).not.toContain(iconUrlError);
     expect(text).toMatch(
       /Cline: listings\/cline-issue\.md has OWNER: lines to resolve, including running Cline with only the README/,

@@ -1206,6 +1206,9 @@ export function validate(inputs, files, schemaTexts) {
   if (
     clineIcon?.url !== undefined &&
     (!httpsUrl(clineIcon.url) ||
+      // source.file is the checked PNG's own name, and that name is Cline's 400.
+      clineIcon.source?.file !== basename(clineIcon.path) ||
+      !clineIcon.url.endsWith('/icon-400.png') ||
       !clineIcon.url.endsWith(`/${clineIcon.source?.iconSetVersion}/${clineIcon.source?.file}`))
   )
     errors.push(
