@@ -4,7 +4,7 @@ Let your agent ask a person and continue with their answer.
 
 **Install:** add `https://mcp.sess.si/mcp` to your agent as an MCP server, and sign in to Sess when it asks.
 
-**Run:** ask your agent "Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose."
+**Run:** ask your agent "Ask me on my phone what time works for a call tomorrow, using Sess."
 
 **You'll see** a Sess link in the reply: open it on your phone, answer, and your agent carries on with your answer.
 
@@ -49,14 +49,35 @@ creates a link for you, so your plan needs to allow tools that make changes.
 
 ## Grok
 
+### Grok Build: remote MCP
+
+Run this in your terminal:
+
+```sh
+grok mcp add --transport http sess https://mcp.sess.si/mcp
+```
+
+Sign in to Sess when Grok Build asks, and choose Allow.
+
+_If it doesn't ask, type /mcps, select sess and press i._
+
+Paste this into Grok Build:
+
+```text
+Ask me on my phone what time works for a call tomorrow, using Sess.
+```
+
+Grok Build asks before it uses each Sess tool. Choose Always allow.
+
+### grok.com: Connectors
+
 On grok.com/connectors, choose New Connector, then Custom, and enter:
 
 ```text
 https://mcp.sess.si/mcp
 ```
 
-Grok opens Sess. Sign in and choose Allow. On Grok Business and Enterprise, a team admin first adds
-Sess in console.x.ai (Grok Business, Connectors, Add Connector, Other) with Team Read-Write permission.
+Sign in to Sess when Grok asks, and choose Allow.
 
 ## Cursor
 

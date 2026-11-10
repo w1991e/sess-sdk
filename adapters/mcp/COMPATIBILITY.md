@@ -28,15 +28,16 @@ Streamable HTTP with OAuth sign-in to a Sess account. It runs the Sess runtime's
 package, so the runs below were made on the hosted server as deployed on their dates, not on 0.2.0
 from npm.
 
-| Host           | Run end to end                                                | Date       |
-| -------------- | ------------------------------------------------------------- | ---------- |
-| Claude Code    | Claude Code 2.1.312, with token refresh and a fresh sign-in   | 2026-10-29 |
-| claude.ai      | claude.ai on the web, custom connector                        | 2026-10-28 |
-| ChatGPT        | ChatGPT on the web, custom MCP server (a)                     | 2026-10-28 |
-| Cursor         | Cursor, hosted MCP; requalified on 2026-11-06 across a deploy | 2026-11-05 |
-| Grok           | not run: the steps follow xAI's documentation                 |            |
-| Cline          | not run: the README-alone install test has not been run (b)   |            |
-| Your own agent | not run as a named host                                       |            |
+| Host           | Run end to end                                                  | Date       |
+| -------------- | --------------------------------------------------------------- | ---------- |
+| Claude Code    | Claude Code 2.1.312, with token refresh and a fresh sign-in     | 2026-10-29 |
+| claude.ai      | claude.ai on the web, custom connector                          | 2026-10-28 |
+| ChatGPT        | ChatGPT on the web, custom MCP server (a)                       | 2026-10-28 |
+| Cursor         | Cursor, hosted MCP; requalified on 2026-11-06 across a deploy   | 2026-11-05 |
+| Grok Build     | not run: the steps follow xAI's documentation (read 2026-11-08) |            |
+| grok.com       | not run: the steps follow xAI's documentation (read 2026-11-08) |            |
+| Cline          | not run: the README-alone install test has not been run (b)     |            |
+| Your own agent | not run as a named host                                         |            |
 
 (a) One production run passed. The Sess site lists ChatGPT as run end to end; the OpenAI listing
 does not mark it qualified, and Codex has no run.

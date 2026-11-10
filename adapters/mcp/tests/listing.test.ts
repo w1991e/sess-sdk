@@ -362,6 +362,18 @@ describe('listing.json artifacts', () => {
       .filter((l) => l.trim() !== '')
       .map((l) => l.split(' ')[0]);
     expect(firstScreen).toEqual(['**Install:**', '**Run:**', "**You'll"]);
+    // One prompt everywhere: the docs prompt, word for word, which is also the listing's default
+    // prompt (founder 2026-11-10 05:04Z).
+    const prompt = 'Ask me on my phone what time works for a call tomorrow, using Sess.';
+    expect(inputs().listing.copy.defaultPrompts).toEqual([prompt]);
+    expect(lines).toContain(`**Run:** ask your agent "${prompt}"`);
+    // Grok: Grok Build first, then grok.com Connectors (founder 2026-11-10 05:04Z).
+    const grok = lines.slice(lines.indexOf('## Grok'), lines.indexOf('## Cursor'));
+    expect(grok.filter((l) => l.startsWith('### '))).toEqual([
+      '### Grok Build: remote MCP',
+      '### grok.com: Connectors',
+    ]);
+    expect(grok).toContain('grok mcp add --transport http sess https://mcp.sess.si/mcp');
     const hosts = lines.filter((l) => l.startsWith('## ')).slice(0, 9);
     expect(hosts).toEqual([
       '## Claude Code',
@@ -430,11 +442,12 @@ describe('listing.json artifacts', () => {
     const files = generate(inputs());
     const openai = JSON.parse(files.get('listings/plugin/plugin.json')!).extensions['com.openai'];
     // On Cursor a plain "Ask me…" is answered by its own question panel (founder 2026-11-05, C-2).
+    // One prompt everywhere, the docs prompt word for word (founder 2026-11-10 05:04Z); it names
+    // Sess. It replaces the three "Use Sess to ask me…" prompts of 2026-11-05 05:50Z.
     expect(openai.interface.defaultPrompt).toEqual([
-      'Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.',
-      'Use Sess to ask me to approve the report before you send it, then tell me what I chose.',
-      'Use Sess to ask me three quick questions to plan my weekend, then tell me what I chose.',
+      'Ask me on my phone what time works for a call tomorrow, using Sess.',
     ]);
+    expect(openai.review.test_cases.positive[0].prompt).toBe(openai.interface.defaultPrompt[0]);
     const positive = openai.review.test_cases.positive.map((c: { prompt: string }) => c.prompt);
     expect(positive).toHaveLength(5);
     for (const prompt of positive) expect(prompt).toMatch(/\bSess\b/);
