@@ -443,7 +443,8 @@ text is `listings/cline-issue.md`; resolve its `OWNER:` lines.
    Drafted, not posted.
 2. Run Cline with only the README (or `llms-install.md`) and record the result in the issue, before
    it opens (founder 2026-11-09 21:36Z). It needs Cline and a model, and the founder runs it; it has
-   not been run. Tick that box only after it passes. The README's Cline section is the path to test.
+   not been run. Tick that box only after it passes. The README's Cline section is the path to test,
+   on the rewritten README (see [README copy](#readme-copy)), once it is signed and merged.
 3. Tick "The server is stable and ready for public use" only if you confirm it.
 4. Open the issue from the owner's account:
    - GitHub Repository URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`
@@ -537,6 +538,22 @@ whether it fits Sess's OAuth.
 
 Not applicable to this server. ClawHub lists the native OpenClaw plugin; see
 `adapters/openclaw/RELEASING.md`.
+
+## README copy
+
+**Proposed, awaiting the founder's line-by-line signature** (his instruction of 2026-11-10 04:00Z:
+the README rewrite precedes the Cline test). `README.md` opens with the signed one-liner, then
+Install, Run and You'll see, then one section per host in the signed tab order: Claude Code,
+claude.ai, ChatGPT, Grok, Cursor, Antigravity CLI, OpenClaw, Cline, Your own agent. Each section is
+the hosted endpoint first and the local `npx -y @sess.si/mcp@0.2.0` form second, where the host has
+one. Host words are the site's ("Add Sess to your agent"), signed except Grok's, which the site holds
+as proposed; the new sentences are the first screen's Install and You'll see lines, the local-form
+openers ("Or run it on your machine. …"), Cline's local-entry line, the Your own agent lines, the
+OpenClaw line naming the plugin and the closing COMPATIBILITY.md line. The Run line is the signed
+default prompt. Tested/untested notes, version tuples, Node versions and flag caveats (Claude Code's
+`-e` plain-text storage) moved to `COMPATIBILITY.md`. `tests/listing.test.ts` pins the first
+screen's shape, the host order, the exact version in every install line and the single
+COMPATIBILITY.md link.
 
 ## Open questions
 

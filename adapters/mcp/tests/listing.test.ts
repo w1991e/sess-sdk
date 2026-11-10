@@ -349,6 +349,42 @@ describe('listing.json artifacts', () => {
     expect(files.get('listings/cline-issue.md')).toContain(`\n${readmeFirstLine}\n`);
   });
 
+  // Founder 2026-11-10 04:00Z: the README's first screen is the one-liner, install, run and what you
+  // will see, then one section per host in the signed tab order; every pasteable block names the
+  // exact package version (no <version> placeholder), bumped on release; compatibility notes live in
+  // COMPATIBILITY.md, linked once at the end.
+  it('the README opens with its first screen, then the host sections in order, with exact versions', () => {
+    const readme = read('README.md');
+    const lines = readme.split('\n');
+    const firstSection = lines.findIndex((l) => l.startsWith('## '));
+    const firstScreen = lines
+      .slice(3, firstSection)
+      .filter((l) => l.trim() !== '')
+      .map((l) => l.split(' ')[0]);
+    expect(firstScreen).toEqual(['**Install:**', '**Run:**', "**You'll"]);
+    const hosts = lines.filter((l) => l.startsWith('## ')).slice(0, 9);
+    expect(hosts).toEqual([
+      '## Claude Code',
+      '## claude.ai',
+      '## ChatGPT',
+      '## Grok',
+      '## Cursor',
+      '## Antigravity CLI',
+      '## OpenClaw',
+      '## Cline',
+      '## Your own agent',
+    ]);
+    const blocks = [...readme.matchAll(/```[a-z]*\n([\s\S]*?)```/g)].map((m) => m[1]);
+    for (const block of blocks) expect(block).not.toMatch(/<version>|<your-key>/);
+    const version = inputs().manifest.version;
+    const pins = [...readme.matchAll(/@sess\.si\/mcp@([^\s"`')]+)/g)].map((m) => m[1]);
+    expect(pins.length).toBeGreaterThanOrEqual(4);
+    for (const pin of pins) expect(pin).toBe(version);
+    expect(readme.match(/\]\(COMPATIBILITY\.md\)/g)).toHaveLength(1);
+    expect(readme).not.toMatch(/_(?:un)?tested_/);
+    expect(existsSync(join(base, 'COMPATIBILITY.md'))).toBe(true);
+  });
+
   it('Claude and Cursor each carry their own status; qualified needs that host’s evidence', () => {
     const files = generate(inputs());
     const claude = () => JSON.parse(files.get('listings/claude-connector.json')!);

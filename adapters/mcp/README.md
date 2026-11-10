@@ -2,89 +2,187 @@
 
 Let your agent ask a person and continue with their answer.
 
-A local stdio [MCP](https://modelcontextprotocol.io) server that lets an agent ask a person through
-a hosted Sess form and receive a receipt-verified answer. The agent gets the Sess link
-immediately, the person answers on any device, and the agent continues on the same Session.
+**Install:** add `https://mcp.sess.si/mcp` to your agent as an MCP server, and sign in to Sess when it asks.
 
-**Release status:** this README describes `@sess.si/mcp@0.2.0`, the stable release after `0.1.1`, for the `latest` dist-tag. `next` stays at `0.1.0-rc.4`. It depends on `@sess.si/sdk@0.2.0`. The [changelog](CHANGELOG.md) describes each version; `npm view @sess.si/mcp dist-tags` shows what the registry serves now. Everything below marked _tested_ was run from a packed, installed tarball; everything marked _untested_ is the intended registry form. See [compatibility.json](compatibility.json) for the exact tuple.
+**Run:** ask your agent "Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose."
 
-## Set up with Claude Code (connection tested) or Cursor
+**You'll see** a Sess link in the reply: open it on your phone, answer, and your agent carries on with your answer.
 
-You need Node 22.14 or later on 22.x, or Node 24 (qualified on 22.14.0 and 24.21.0), and a Sess
-developer API key from [the Sess developer portal](https://app.sess.si). Never paste the key into
-a chat or a tool argument, and never commit it.
+## Claude Code
 
-### Claude Code
-
-Tested with Claude Code 2.1.299 on Linux (Node 24.21.0), using `claude mcp add --scope local`
-and `claude mcp list`, which showed `✔ Connected`. No model call was made. Because the package was
-not on the registry when tested, the tests ran from a project directory where the packed tarballs
-were installed, so `npx --no-install sess-mcp` resolved the installed bin.
-
-**Preferred: keep the key in your environment.** Export it in the shell that starts Claude Code.
-In the test, a key exported this way reached the server process and was not written to Claude
-Code's configuration.
+Run this in your terminal:
 
 ```sh
-export SESS_API_KEY=<your-key>        # e.g. from your password manager; not in shell history files you share
-claude mcp add --scope local sess -- npx --no-install sess-mcp     # tested (installed package)
-claude mcp list
+claude mcp add --transport http sess https://mcp.sess.si/mcp
 ```
 
-**Alternative: pass it with `-e`.** The server name must come **before** `-e`; in 2.1.299 the form
-`claude mcp add -e SESS_API_KEY=… sess -- …` fails with "Invalid environment variable format".
-Claude Code stores `-e` values **in plain text** in its configuration (`.claude.json` in its config
-directory), so prefer the environment form on shared machines.
+Claude Code opens Sess in your browser. Sign in and choose Allow. Using Sess on a second computer
+reconnects it there and disconnects the first.
+
+Or run it on your machine. Put your Sess API key in `SESS_API_KEY` (from your Sess account, under API
+keys), then run this in the same terminal. Never paste the key into a chat.
 
 ```sh
-claude mcp add --scope local sess -e SESS_API_KEY=<your-key> -- npx --no-install sess-mcp   # tested (installed package)
+claude mcp add --scope local sess -- npx -y @sess.si/mcp@0.2.0
 ```
 
-After publication, the intended form is _untested_:
+## claude.ai
 
-```sh
-claude mcp add --scope local sess -- npx -y @sess.si/mcp@<version>
+In Claude, open Customize, then Connectors, choose Add custom connector and paste:
+
+```text
+https://mcp.sess.si/mcp
 ```
 
-Not yet tested: the registry `npx -y @sess.si/mcp@<version>` form,
-environment inheritance when an interactive Claude Code session starts the server (it was observed
-for the `claude mcp list` health check), and a model-driven round through Claude Code.
-Enterprise-managed Claude Code installations may forbid adding MCP servers
-(`enterprise MCP configuration is active`).
+Claude opens Sess. Sign in and choose Allow.
 
-### Cursor
+## ChatGPT
 
-Let your agent ask a person and continue with their answer. People answer through a link on any device. Sess returns their response with a signed receipt.
+In ChatGPT, open Plugins, choose Add custom MCP server and paste:
 
-1. Add the entry to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json`:
+```text
+https://mcp.sess.si/mcp
+```
 
-   ```json
-   {
-     "mcpServers": {
-       "sess": { "url": "https://mcp.sess.si/mcp" }
-     }
-   }
-   ```
+ChatGPT opens Sess. Sign in and choose Allow. Some ChatGPT plans allow only tools that read. Sess
+creates a link for you, so your plan needs to allow tools that make changes.
 
-2. Allow in the browser.
-3. Try it: "Use Sess to ask me which time works for a call tomorrow, then tell me what I chose."
+## Grok
 
-The local server is _untested_ on Cursor. Cursor reads `.cursor/mcp.json` (project) or
-`~/.cursor/mcp.json`:
+On grok.com/connectors, choose New Connector, then Custom, and enter:
+
+```text
+https://mcp.sess.si/mcp
+```
+
+Grok opens Sess. Sign in and choose Allow. On Grok Business and Enterprise, a team admin first adds
+Sess in console.x.ai (Grok Business, Connectors, Add Connector, Other) with Team Read-Write permission.
+
+## Cursor
+
+Paste this into Cursor's mcp.json (`.cursor/mcp.json` in a project, or `~/.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "sess": { "url": "https://mcp.sess.si/mcp" }
+  }
+}
+```
+
+Cursor opens Sess in your browser. Sign in and choose Allow.
+
+Or run it on your machine. Put your Sess API key in `SESS_API_KEY` (from your Sess account, under API
+keys), then use this entry instead. Never paste the key into a chat.
 
 ```json
 {
   "mcpServers": {
     "sess": {
       "command": "npx",
-      "args": ["-y", "@sess.si/mcp@<version>"],
+      "args": ["-y", "@sess.si/mcp@0.2.0"],
       "env": { "SESS_API_KEY": "${env:SESS_API_KEY}" }
     }
   }
 }
 ```
 
-### First interaction: approve before acting
+## Antigravity CLI
+
+Put your Sess API key in `SESS_API_KEY` (from your Sess account, under API keys), then run this in
+your terminal:
+
+```sh
+agy mcp add sess npx -y @sess.si/mcp@0.2.0
+```
+
+Antigravity CLI asks before it uses a Sess tool, usually once or twice the first time. Choose Allow,
+or Always allow if you'd rather not be asked again. Never paste the key into a chat. Sign in to
+Antigravity CLI with your Google account, or use a Gemini API key.
+
+## OpenClaw
+
+Sess asks you through your Claw. The agent gets four tools and uses them only when a decision is
+yours. OpenClaw uses the Sess plugin, `@sess.si/openclaw`, rather than this server.
+
+1. **Install.** OpenClaw warns that the package comes from npm, not ClawHub. That is expected: Sess
+   is published on npm with a signed build. Answer `y`.
+
+   ```sh
+   openclaw plugins install npm:@sess.si/openclaw@0.1.0 --no-enable
+   openclaw sess setup --yes
+   ```
+
+2. **Give the Gateway your key.** It reads the key from its own environment file. Sess never stores
+   it. The first line waits for you to paste the key and press Enter; nothing shows on screen.
+
+   ```sh
+   read -rs K && printf 'SESS_API_KEY=%s\n' "$K" >> ~/.openclaw/.env && unset K && chmod 600 ~/.openclaw/.env
+   openclaw gateway restart
+   ```
+
+3. **Ask.** In any chat, say something like: _Plan my weekend and check with me through Sess before
+   you decide._ Your Claw sends you a Sess link. Answer it on any device, then tell the chat to
+   continue. The answer it uses is verified.
+
+**Check:** `openclaw sess doctor` shows the setup without contacting Sess or printing your key.
+
+## Cline
+
+In Cline, open **MCP Servers**, then **Configure MCP Servers**, and add this to
+`cline_mcp_settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "sess": {
+      "type": "streamableHttp",
+      "url": "https://mcp.sess.si/mcp"
+    }
+  }
+}
+```
+
+When Cline connects, sign in to your Sess account in the browser. No key goes in the file.
+
+Or run it on your machine with this entry instead. Type your Sess API key (from your Sess account,
+under API keys) into the file yourself, in place of `your Sess API key`. Never paste the key into a
+chat.
+
+```json
+{
+  "mcpServers": {
+    "sess": {
+      "command": "npx",
+      "args": ["-y", "@sess.si/mcp@0.2.0"],
+      "env": { "SESS_API_KEY": "your Sess API key" }
+    }
+  }
+}
+```
+
+## Your own agent
+
+Connect your MCP client to the hosted server over Streamable HTTP. It signs in with your Sess
+account.
+
+```text
+https://mcp.sess.si/mcp
+```
+
+Or add this as a local MCP server in your agent:
+
+```sh
+npx -y @sess.si/mcp@0.2.0
+```
+
+Your agent asks before it starts the server. The server reads your Sess API key from the
+`SESS_API_KEY` environment variable; never paste it into a chat.
+
+No MCP? [Add Sess to your agent](https://docs.sess.si/add-to-your-agent/) shows a tool and handler
+on the Sess SDK for an agent you build on a model API.
+
+## First interaction: approve before acting
 
 Have your agent check with you before it commits a change or sends a reply. Ask it something like:
 
@@ -137,27 +235,6 @@ A synthetic sample of what the agent sends (sample content, not from a real repo
 
 Text blocks are shown as plain paragraphs, so send a summary of the change rather than a raw diff;
 line breaks are kept in multiline fields.
-
-## Cline
-
-_Untested._ In Cline, open **MCP Servers**, then **Configure MCP Servers**, and add this to
-`cline_mcp_settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "sess": {
-      "type": "streamableHttp",
-      "url": "https://mcp.sess.si/mcp"
-    }
-  }
-}
-```
-
-When Cline connects, sign in to your Sess account in the browser. No key goes in the file.
-
-Try it: "Ask me on my phone which time works for a call tomorrow." Cline shares a Sess link. Answer
-it, and Cline reports your choice.
 
 ## Tools (`sess-mcp-tools/5`)
 
@@ -314,16 +391,16 @@ blocks like a definitive rejection.
 
 ## Configuration (environment of the server process only)
 
-| Variable                                 | Meaning                                                                                                                                           |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SESS_API_KEY`                           | Required. Read on the first tool call, never at startup or from arguments.                                                                        |
-| `SESS_API_ORIGIN`                        | Default `https://api.sess.si`. Another origin must be HTTPS without path, query or credentials.                                                   |
-| `SESS_MCP_PROFILE`                       | Profile name, default `default`.                                                                                                                  |
-| `SESS_MCP_STATE_DIR`                     | Absolute state directory. Default `$XDG_STATE_HOME/sess-mcp`, `~/.local/state/sess-mcp`, or `%LOCALAPPDATA%\sess-mcp` (Windows is not qualified). |
-| `SESS_MCP_MAX_WAIT_MS`                   | Lower the 45 000 ms wait ceiling.                                                                                                                 |
-| `SESS_RECEIPT_ISSUER`                    | Receipt issuer if it differs from the API origin.                                                                                                 |
-| `SESS_EXPECTED_WORKSPACE_ID`             | Trusted workspace for a runtime that does not return `Sess-Workspace-Id`.                                                                         |
-| `SESS_MCP_TEST_ALLOW_INSECURE_LOCALHOST` | Testing only: `1` allows `http://localhost`, `127.0.0.1` or `[::1]` origins.                                                                      |
+| Variable                                 | Meaning                                                                                                                |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `SESS_API_KEY`                           | Required. Read on the first tool call, never at startup or from arguments.                                             |
+| `SESS_API_ORIGIN`                        | Default `https://api.sess.si`. Another origin must be HTTPS without path, query or credentials.                        |
+| `SESS_MCP_PROFILE`                       | Profile name, default `default`.                                                                                       |
+| `SESS_MCP_STATE_DIR`                     | Absolute state directory. Default `$XDG_STATE_HOME/sess-mcp`, `~/.local/state/sess-mcp`, or `%LOCALAPPDATA%\sess-mcp`. |
+| `SESS_MCP_MAX_WAIT_MS`                   | Lower the 45 000 ms wait ceiling.                                                                                      |
+| `SESS_RECEIPT_ISSUER`                    | Receipt issuer if it differs from the API origin.                                                                      |
+| `SESS_EXPECTED_WORKSPACE_ID`             | Trusted workspace for a runtime that does not return `Sess-Workspace-Id`.                                              |
+| `SESS_MCP_TEST_ALLOW_INSECURE_LOCALHOST` | Testing only: `1` allows `http://localhost`, `127.0.0.1` or `[::1]` origins.                                           |
 
 ## Security and support boundary
 
@@ -352,7 +429,7 @@ blocks like a definitive rejection.
 - **No wake-up.** A wait is one bounded read of at most 45 seconds. The host is told to call again up
   to three times, then stop. The server cannot wake an agent after its turn ends; the person says
   continue.
-- **Not included:** an HTTP server or bin flag, a hosted server, OAuth, MCP Tasks, Apps,
+- **Not in this package:** an HTTP server or bin flag, a hosted server, OAuth, MCP Tasks, Apps,
   elicitation, resources or prompts (the HTTP composition below is a library for a hosting
   runtime, not a runnable server). One server process per profile is supported; concurrent processes on the
   same profile are not coordinated. Rotating the key makes earlier handles unusable
@@ -438,8 +515,7 @@ npm run check    # SDK identity and digests, build, typecheck, unit tests, packe
 
 `npm run check` starts with `npm run sdk:verify`: the lock and the installed SDK must be the
 registry tarball with the pinned integrity, and the registry tarball is read again and its SHA-256
-and SHA-512 compared with the pin. Packed and loopback installs of `@sess.si/mcp` itself are
-candidate evidence; they do not qualify a public registry install of the adapter.
+and SHA-512 compared with the pin.
 
 ### A future, not yet published SDK pin
 
@@ -464,5 +540,7 @@ published tarball again and compares its SHA-256 with the pin, and records the p
 through one request → answer → complete round against a local isolated Sess runtime. It is not run
 in public CI because the runtime is private. `npm run qualify:claude-code` checks that Claude Code
 connects and lists the tools without any model call, using a temporary config directory.
+
+Which hosts and versions Sess has run, and what is still untested: [COMPATIBILITY.md](COMPATIBILITY.md).
 
 [Apache-2.0](LICENSE)
