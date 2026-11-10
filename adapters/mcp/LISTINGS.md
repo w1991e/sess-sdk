@@ -544,7 +544,7 @@ Not applicable to this server. ClawHub lists the native OpenClaw plugin; see
 **Proposed, awaiting the founder's line-by-line signature** (his instruction of 2026-11-10 04:00Z:
 the README rewrite precedes the Cline test). `README.md` opens with the signed one-liner, then
 Install, Run and You'll see, then one section per host in the signed tab order: Claude Code,
-claude.ai, ChatGPT, Grok, Cursor, Antigravity CLI, OpenClaw, Cline, Your own agent. Each section is
+claude.ai, ChatGPT, Grok, Cursor, Antigravity, OpenClaw, Cline, Your own agent. Each section is
 the hosted endpoint first and the local `npx -y @sess.si/mcp@0.2.0` form second, where the host has
 one. Host words are the site's ("Add Sess to your agent"), signed except Grok's, which the site holds
 as proposed; the new sentences are the first screen's Install and You'll see lines, the local-form

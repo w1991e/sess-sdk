@@ -369,7 +369,7 @@ describe('listing.json artifacts', () => {
       '## ChatGPT',
       '## Grok',
       '## Cursor',
-      '## Antigravity CLI',
+      '## Antigravity',
       '## OpenClaw',
       '## Cline',
       '## Your own agent',

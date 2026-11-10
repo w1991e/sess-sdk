@@ -87,7 +87,7 @@ keys), then use this entry instead. Never paste the key into a chat.
 }
 ```
 
-## Antigravity CLI
+## Antigravity
 
 Put your Sess API key in `SESS_API_KEY` (from your Sess account, under API keys), then run this in
 your terminal:
@@ -96,9 +96,9 @@ your terminal:
 agy mcp add sess npx -y @sess.si/mcp@0.2.0
 ```
 
-Antigravity CLI asks before it uses a Sess tool, usually once or twice the first time. Choose Allow,
+Antigravity asks before it uses a Sess tool, usually once or twice the first time. Choose Allow,
 or Always allow if you'd rather not be asked again. Never paste the key into a chat. Sign in to
-Antigravity CLI with your Google account, or use a Gemini API key.
+Antigravity with your Google account, or use a Gemini API key.
 
 ## OpenClaw
 

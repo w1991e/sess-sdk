@@ -73,9 +73,9 @@ evidence; they do not qualify a public registry install.
 - Enterprise-managed Claude Code installations may forbid adding MCP servers
   (`enterprise MCP configuration is active`).
 
-### Antigravity CLI
+### Antigravity
 
-Run end to end with Antigravity CLI 1.4.9 on 2026-10-28, with an earlier release of this package
+Run end to end with Antigravity 1.4.9 on 2026-10-28, with an earlier release of this package
 from npm. 0.2.0 has not been run on it.
 
 ### Cursor
