@@ -6,17 +6,13 @@
   "registryName": "si.sess/sess",
   "copy": {
     "status": "approved",
-    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent. Test-case prompts 2-5 are his rewording of 21:20Z. The one-line description (registry, oneLiner, also the first line of adapters/mcp/README.md) and the supporting line are his of 2026-11-05 00:50Z; long opened with the two (his rule of 01:05Z) until his signed copy of 2026-11-06; the supporting line is not in registry, because the Registry schema caps the description at 100 characters. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus). The signature of 20:45Z no longer covers the three defaultPrompts or test-case prompt 1. Founder 2026-11-05 (C-2), his instruction: \"On Cursor a plain \"Ask me…\" prompt is answered by Cursor's own question panel. Every Cursor prompt in the packet, the plugin skill and the listing copy names Sess (\"Use Sess to ask me…\").\" Signed by the founder on 2026-11-05 at 05:50Z in the form \"Use Sess to ask me …, then tell me what I chose.\": the three default prompts; test-case prompt 1 uses the first of them. Test-case prompts 2-5 already name Sess and stay his words of 21:20Z. Signed by the founder on 2026-11-06, for the Cursor submission: long, word for word, which replaces the long of 2026-11-04 everywhere it is generated (the plugin README, OpenAI's longDescription, Claude's description). It opens with the one-liner, not the supporting line.",
+    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent. Test-case prompts 2-5 are his rewording of 21:20Z. The one-line description (registry, oneLiner, also the first line of adapters/mcp/README.md) and the supporting line are his of 2026-11-05 00:50Z; long opened with the two (his rule of 01:05Z) until his signed copy of 2026-11-06; the supporting line is not in registry, because the Registry schema caps the description at 100 characters. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus). The signature of 20:45Z no longer covers the three defaultPrompts or test-case prompt 1. Founder 2026-11-05 (C-2), his instruction: \"On Cursor a plain \"Ask me…\" prompt is answered by Cursor's own question panel. Every Cursor prompt in the packet, the plugin skill and the listing copy names Sess (\"Use Sess to ask me…\").\" Signed by the founder on 2026-11-05 at 05:50Z in the form \"Use Sess to ask me …, then tell me what I chose.\": the three default prompts; test-case prompt 1 uses the first of them. Test-case prompts 2-5 already name Sess and stay his words of 21:20Z. Signed by the founder on 2026-11-06, for the Cursor submission: long, word for word, which replaces the long of 2026-11-04 everywhere it is generated (the plugin README, OpenAI's longDescription, Claude's description). It opens with the one-liner, not the supporting line. Founder 2026-11-10 05:04Z, his instruction: one prompt everywhere, the docs prompt word for word, \"Ask me on my phone what time works for a call tomorrow, using Sess.\": it replaces the three default prompts of 2026-11-05 05:50Z and test-case prompt 1. Test-case prompts 2-5 test other behaviour and stay his words of 21:20Z.",
     "short": "Ask a person, get the answer",
     "registry": "Let your agent ask a person and continue with their answer.",
     "oneLiner": "Let your agent ask a person and continue with their answer.",
     "long": "Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once. The person answers on any device, and your agent continues with a typed answer and a signed receipt.\n\nAnyone with the link can answer, so share it only with the person you mean. The receipt records what Sess accepted, not who answered. Check answers before your agent acts on them. You sign in with a Sess account. The person answering needs none.",
     "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp"],
-    "defaultPrompts": [
-      "Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.",
-      "Use Sess to ask me to approve the report before you send it, then tell me what I chose.",
-      "Use Sess to ask me three quick questions to plan my weekend, then tell me what I chose."
-    ],
+    "defaultPrompts": ["Ask me on my phone what time works for a call tomorrow, using Sess."],
     "releaseNotes": "First release: ask a person through a Sess link and continue with their receipt-checked answer."
   },
   "publisher": {
@@ -218,7 +214,7 @@
         "positive": [
           {
             "description": "Ask a short question and read the answer",
-            "prompt": "Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.",
+            "prompt": "Ask me on my phone what time works for a call tomorrow, using Sess.",
             "tools": ["sess_ask", "sess_response"],
             "expected_behavior": "Shares a Sess link at once. After the reviewer submits the form, reports the chosen time."
           },

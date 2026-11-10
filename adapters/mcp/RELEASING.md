@@ -63,7 +63,7 @@ maintainer steps are historical: they were executed and are not re-run.
 ## Cutting a release
 
 1. Bump `version` in `package.json`, `src/version.ts` and `compatibility.json` (`package.version`),
-   run `npm run listing` to regenerate `server.json` and the other listing artifacts from
+   and the `@sess.si/mcp@` install lines in `README.md` and `COMPATIBILITY.md`, run `npm run listing` to regenerate `server.json` and the other listing artifacts from
    `listing.json`, update `CHANGELOG.md`, merge to master.
 2. Tag the merged commit: `git tag mcp-v<version> <commit> && git push origin mcp-v<version>`.
 3. Review the prepare job's summary (tested tarball link and SHA-256), then approve the
