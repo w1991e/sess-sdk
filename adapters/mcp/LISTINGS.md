@@ -573,8 +573,8 @@ plain-text storage) moved to `COMPATIBILITY.md`. `tests/listing.test.ts` pins th
 shape, the Run line's prompt, the host order, Grok Build before grok.com, the exact version in every
 install line and the single COMPATIBILITY.md link.
 
-The repository's root `README.md` gains a short section at its top, **proposed** for the founder's
-signature (his instruction of 2026-11-10 04:50Z item 2: Glama's listing shows the root README):
+The repository's root `README.md` gains a short section at its top, **signed** with #61 at b42d910
+(founder 2026-11-10 05:04Z; asked for at 04:50Z item 2: Glama's listing shows the root README):
 "## The Sess MCP server" with "Let your agent ask a person and continue with their answer. Add
 `https://mcp.sess.si/mcp` to your agent as an MCP server and sign in to Sess when it asks. Setup for
 each agent is in [adapters/mcp](adapters/mcp).", and a "## The SDK" heading before the SDK's own
