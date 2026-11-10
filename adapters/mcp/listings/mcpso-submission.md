@@ -34,13 +34,17 @@ Not for the form: the form as read asks for nothing else. If mcp.so asks for the
 
 ### Description
 
-Not for the form: the signed one-liner, then the long text as drafted; the long text opens with the one-liner, so it is written once (founder 2026-11-09 21:48Z).
+Not for the form: the signed one-liner, then the long text as drafted (founder 2026-11-09 21:48Z).
 
-Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once. The person answers on any device, and your agent continues with a typed answer and a signed receipt.
+Let your agent ask people for answers and approvals by link, with signed receipts.
 
-Anyone with the link can answer, so share it only with the person you mean. The receipt records what Sess accepted, not who answered. Check answers before your agent acts on them. You sign in with a Sess account. The person answering needs none.
+Sess turns your agent's questions into pages people can answer on any device. Use it for choices, corrections or approvals without bringing people into your chat. Your agent gets typed answers it can use to continue the task.
 
-- Tags: human-in-the-loop, forms, approvals, receipts, mcp
+Ask one person, or share one link with a group for feedback, a class check or picking a time. Each person answers on their own page. Sess signs a receipt for every accepted answer, so people can keep the record and check it themselves.
+
+Anyone with the link can answer, so share it only with the people you mean. The receipt records what Sess accepted, not who answered. You sign in with a Sess account; the people answering need none.
+
+- Tags: human-in-the-loop, forms, approvals, receipts, mcp, feedback, surveys
 - Category: Productivity
 - Website: https://sess.si
 - Docs: https://docs.sess.si/add-to-your-agent/

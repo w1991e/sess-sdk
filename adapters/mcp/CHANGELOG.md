@@ -23,6 +23,10 @@ unchanged.
   disconnects the first; that is not established for Claude Code.
 - The README's Claude Code section says to run the command, then start Claude Code from the same
   terminal, where `SESS_API_KEY` is set.
+- New words on the package page and in the README: the package description is "Let your agent ask
+  people for answers and approvals by link, with signed receipts."; the README adds what to do if
+  your agent has stopped waiting and three short paragraphs on what Sess does; the keywords now
+  start with human-in-the-loop, forms, approvals, receipts, mcp, feedback and surveys.
 
 ## 0.2.0 — 2026-11-07
 

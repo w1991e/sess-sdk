@@ -1,12 +1,20 @@
 # Sess MCP server (`@sess.si/mcp`)
 
-Let your agent ask a person and continue with their answer.
+Let your agent ask people for answers and approvals by link, with signed receipts.
 
 **Install:** add `https://mcp.sess.si/mcp` to your agent as an MCP server, and sign in to Sess when it asks.
 
 **Run:** ask your agent "Ask me on my phone what time works for a call tomorrow, using Sess."
 
 **You'll see** a Sess link in the reply: open it on your phone, answer, and your agent carries on with your answer.
+
+Open the link and answer. If your agent has stopped waiting, go back to the chat and say "continue".
+
+Sess turns your agent's questions into pages people can answer on any device. Use it for choices, corrections or approvals without bringing people into your chat. Your agent gets typed answers it can use to continue the task.
+
+Ask one person, or share one link with a group for feedback, a class check or picking a time. Each person answers on their own page. Sess signs a receipt for every accepted answer, so people can keep the record and check it themselves.
+
+Anyone with the link can answer, so share it only with the people you mean. The receipt records what Sess accepted, not who answered. You sign in with a Sess account; the people answering need none.
 
 ## Claude Code
 

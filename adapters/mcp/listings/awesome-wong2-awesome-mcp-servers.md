@@ -18,7 +18,7 @@ Not a pull request: the list takes none. Its entries come from the form at https
 
 - Server Name: `Sess`
 - Category: `Productivity`
-- Short Description: `Let your agent ask a person and continue with their answer.`
+- Short Description: `Let your agent ask people for answers and approvals by link, with signed receipts.`
 - Repository, Website or Documentation: https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp
 - MCP Registry name (optional): `si.sess/sess`
 - This server supports remote connections: tick it (https://mcp.sess.si/mcp)
@@ -32,5 +32,5 @@ OWNER: submitting the form, and any confirmation mcpservers.org sends, are yours
 ## For reference: the line in the list
 
 ```markdown
-- **[Sess](https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp)** - Let your agent ask a person and continue with their answer.
+- **[Sess](https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp)** - Let your agent ask people for answers and approvals by link, with signed receipts.
 ```
