@@ -555,6 +555,13 @@ default prompt. Tested/untested notes, version tuples, Node versions and flag ca
 screen's shape, the host order, the exact version in every install line and the single
 COMPATIBILITY.md link.
 
+The repository's root `README.md` gains a short section at its top, **proposed** for the founder's
+signature (his instruction of 2026-11-10 04:50Z item 2: Glama's listing shows the root README):
+"## The Sess MCP server" with "Let your agent ask a person and continue with their answer. Add
+`https://mcp.sess.si/mcp` to your agent as an MCP server and sign in to Sess when it asks. Setup for
+each agent is in [adapters/mcp](adapters/mcp).", and a "## The SDK" heading before the SDK's own
+first screen.
+
 ## Open questions
 
 - **Glama connector claim.** Serving `/.well-known/glama.json` with a maintainer email on
