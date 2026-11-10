@@ -69,7 +69,7 @@ export interface AskOperations {
 }
 
 /**
- * The adapter's client from the SDK (@sess.si/sdk 0.2.0): the Ask is `sess.ask` with
+ * The adapter's client from the SDK (@sess.si/sdk 0.3.0): the Ask is `sess.ask` with
  * `respondents`, read with `sess.asks.retrieve`. A client without `respondents` (a test double)
  * refuses sess_ask with respondents before anything is sent.
  */

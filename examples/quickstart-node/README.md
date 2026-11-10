@@ -3,7 +3,7 @@
 This program asks a person one question through a hosted Sess page and continues with their
 verified answer.
 
-**Install** (in a copy of this directory; installs the published `@sess.si/sdk@0.2.0` from npm):
+**Install** (in a copy of this directory; installs the published `@sess.si/sdk@0.3.0` from npm):
 
 ```sh
 npm install --ignore-scripts
@@ -43,7 +43,7 @@ shipped; npm creates one in your copy.
 To add the SDK to your own project instead, name the exact version:
 
 ```sh
-npm install --ignore-scripts @sess.si/sdk@0.2.0
+npm install --ignore-scripts @sess.si/sdk@0.3.0
 ```
 
 `next` stays at the last release candidate, `0.1.0-rc.10`.
