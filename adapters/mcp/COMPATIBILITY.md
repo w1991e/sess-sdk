@@ -34,7 +34,7 @@ from npm.
 | claude.ai      | claude.ai on the web, custom connector                          | 2026-10-28 |
 | ChatGPT        | ChatGPT on the web, custom MCP server (a)                       | 2026-10-28 |
 | Cursor         | Cursor, hosted MCP; requalified on 2026-11-06 across a deploy   | 2026-11-05 |
-| Grok Build     | not run: the steps follow xAI's documentation (read 2026-11-08) |            |
+| Grok Build     | Grok Build 1.0.77, hosted MCP, production (c)                   | 2026-11-10 |
 | grok.com       | not run: the steps follow xAI's documentation (read 2026-11-08) |            |
 | Cline          | not run: the README-alone install test has not been run (b)     |            |
 | Your own agent | not run as a named host                                         |            |
@@ -44,6 +44,12 @@ does not mark it qualified, and Codex has no run.
 
 (b) Cline's remote setting names (`type: "streamableHttp"`) and its OAuth sign-in are unverified
 until that run.
+
+(c) One full round on production with model Grok 4.7: the link appeared in the reply, the person
+answered on a phone, Grok read the answer back and completed the exchange. Sess was already set up
+through Claude Code's `~/.claude.json`, which Grok Build also reads, so the add command was not typed
+in that round; the add command was run once on its own in a clean home directory against the
+preview server, where it registered the server.
 
 ## The local server (`npx -y @sess.si/mcp@0.2.0`)
 
