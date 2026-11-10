@@ -1,13 +1,5 @@
 # Sess SDK
 
-## The Sess MCP server
-
-Let your agent ask a person and continue with their answer. Add `https://mcp.sess.si/mcp` to your
-agent as an MCP server and sign in to Sess when it asks. Setup for each agent is in
-[adapters/mcp](adapters/mcp).
-
-## The SDK
-
 Ask a person a question from your server and continue with their verified answer.
 
 **Create and run** a small agent:
