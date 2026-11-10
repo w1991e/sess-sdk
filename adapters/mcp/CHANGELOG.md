@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- `sess_ask` drops an empty `options: []` on a field that is not `choice` or `multi_choice` before
+  checking it, so a client that fills every schema property (a form-based inspector) is not
+  refused. Nothing is sent for it. A non-empty `options` there is still refused as before, and a
+  `choice` or `multi_choice` field still needs at least one option. The Sess API is unchanged.
+
 ## 0.2.0 — 2026-11-07
 
 Tool schemas `sess-mcp-tools/5` (was `/4`); the five tool names are unchanged. Depends on

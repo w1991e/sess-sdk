@@ -552,6 +552,21 @@ export function parseCompleteArgs(raw: unknown): CompleteArgs {
 export const ASK_LIMITS = Object.freeze({ fields: 12, options: LIMITS.enumValues });
 const ASK_TYPES = ['text', 'number', 'integer', 'boolean', 'choice', 'multi_choice', 'rating'] as const;
 
+/**
+ * MCP adapter only: a client that renders the schema as a form may send
+ * `options: []` on a field that is not choice or multi_choice. That empty list is dropped before
+ * validation, so it reaches neither the checks nor what is sent. Nothing else is loosened: a
+ * non-empty list there is still refused, and choice fields keep their own rules. The API stays strict.
+ */
+function withoutEmptyOptions(field: JsonValue): JsonValue {
+  if (!field || typeof field !== 'object' || Array.isArray(field)) return field;
+  if (field.type === 'choice' || field.type === 'multi_choice') return field;
+  if (!Array.isArray(field.options) || field.options.length !== 0) return field;
+  const rest: JsonObject = { ...field };
+  delete rest.options;
+  return rest;
+}
+
 function askField(value: JsonValue | undefined, path: string): JsonObject {
   const f = object(value, path);
   closed(
@@ -662,6 +677,8 @@ export function parseAskArgs(raw: unknown): RequestArgs {
   const title = text(a.question, 'question', TEXT_LIMITS.title);
   const submit =
     a.submit_label === undefined ? 'Send' : text(a.submit_label, 'submit_label', TEXT_LIMITS.actionLabel);
+  // Dropped on the arguments themselves, so an Ask's create input carries no empty list either.
+  if (Array.isArray(a.fields)) a.fields = a.fields.map(withoutEmptyOptions);
   const fields = a.fields;
   if (!Array.isArray(fields) || fields.length < 1 || fields.length > ASK_LIMITS.fields)
     invalid('fields', `must contain 1..${ASK_LIMITS.fields} fields`);

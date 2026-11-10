@@ -137,6 +137,77 @@ describe('sess_ask input', () => {
   });
 });
 
+/**
+ * Founder 2026-11-10 05:34Z: a form-rendering client (Glama's inspector) sends `options: []` on a
+ * text field. In this adapter only, that empty list on a field that is not choice or multi_choice
+ * is dropped before validation. Nothing else is loosened.
+ */
+describe('sess_ask: an empty options list on a field that is not a choice', () => {
+  const nonChoice = [
+    { name: 'note', label: 'Note', type: 'text' },
+    { name: 'count', label: 'Count', type: 'number' },
+    { name: 'whole', label: 'Whole', type: 'integer' },
+    { name: 'ok', label: 'OK', type: 'boolean' },
+    { name: 'stars', label: 'Stars', type: 'rating' },
+  ];
+
+  it('is dropped for text, number, integer, boolean and rating: accepted, and the expansion is the same as without it', () => {
+    for (const field of nonChoice) {
+      const withEmpty = parseAskArgs({ question: 'Q', fields: [{ ...field, options: [] }] });
+      const without = parseAskArgs({ question: 'Q', fields: [field] });
+      expect(withEmpty).toEqual(without);
+      expect(JSON.stringify(withEmpty)).not.toContain('"options"');
+    }
+  });
+
+  it('is dropped from what an Ask (respondents) sends to the SDK as well', () => {
+    const parsed = parseAskArgs({
+      question: 'Q',
+      fields: nonChoice.map((f) => ({ ...f, options: [] })),
+      respondents: { max: 3 },
+    });
+    const fields = parsed.ask!.input.fields as Record<string, unknown>[];
+    expect(fields).toEqual(nonChoice);
+    for (const f of fields) expect(Object.hasOwn(f, 'options')).toBe(false);
+  });
+
+  it('a non-empty options list on a non-choice field is still refused with the same message', () => {
+    for (const field of nonChoice) {
+      let message = '';
+      try {
+        parseAskArgs({ question: 'Q', fields: [{ ...field, options: ['x'] }] });
+      } catch (error) {
+        expect(error).toBeInstanceOf(AdapterError);
+        expect((error as AdapterError).code).toBe('INVALID_ARGUMENTS');
+        message = (error as AdapterError).message;
+      }
+      expect(message).toBe('fields[0].options: is only allowed for choice fields');
+    }
+  });
+
+  it('choice and multi_choice with options: [] are refused exactly as before', () => {
+    for (const type of ['choice', 'multi_choice']) {
+      let message = '';
+      try {
+        parseAskArgs({ question: 'Q', fields: [{ name: 'a', label: 'A', type, options: [] }] });
+      } catch (error) {
+        expect(error).toBeInstanceOf(AdapterError);
+        expect((error as AdapterError).code).toBe('INVALID_ARGUMENTS');
+        message = (error as AdapterError).message;
+      }
+      expect(message).toBe(`fields[0].options: must list 1..${ASK_LIMITS.options} options`);
+    }
+  });
+
+  it('other options values on a non-choice field are not loosened', () => {
+    for (const options of [null, {}, '', 0, false])
+      rejects(
+        { question: 'Q', fields: [{ name: 'a', label: 'A', type: 'text', options }] },
+        'only allowed for choice',
+      );
+  });
+});
+
 describe('sess_ask through the MCP server', () => {
   async function connect(fake: FakeSess) {
     const created = createSessMcpServer({
@@ -180,6 +251,35 @@ describe('sess_ask through the MCP server', () => {
       state: 'answered',
       response: { eventId, verified: true },
     });
+  });
+
+  it('a text field with options: [] is accepted and what is sent carries no options key', async () => {
+    const fake = new FakeSess();
+    const client = await connect(fake);
+    const result = await client.callTool({
+      name: 'sess_ask',
+      arguments: { question: 'Q', fields: [{ name: 'note', label: 'Note', type: 'text', options: [] }] },
+    });
+    expect(result.isError).toBeFalsy();
+    expect(fake.calls.map((c) => `${c.method} ${c.path}`)).toEqual(['POST /v1/sessions']);
+    expect(fake.session!.interaction.source.components).toEqual([
+      { type: 'field', name: 'note', label: 'Note', required: true, schema: { type: 'string' } },
+    ]);
+    expect(JSON.stringify(fake.session!.interaction)).not.toContain('"options"');
+  });
+
+  it('a text field with options: ["x"] is still refused and sends nothing', async () => {
+    const fake = new FakeSess();
+    const client = await connect(fake);
+    const result = await client.callTool({
+      name: 'sess_ask',
+      arguments: { question: 'Q', fields: [{ name: 'note', label: 'Note', type: 'text', options: ['x'] }] },
+    });
+    expect(result.isError).toBe(true);
+    const error = JSON.parse((result.content as any)[0].text).error;
+    expect(error.code).toBe('INVALID_ARGUMENTS');
+    expect(error.message).toBe('fields[0].options: is only allowed for choice fields');
+    expect(fake.calls).toHaveLength(0);
   });
 
   it('a rejected sess_ask sends nothing and writes no record', async () => {
