@@ -6,17 +6,13 @@
   "registryName": "si.sess/sess",
   "copy": {
     "status": "approved",
-    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent. Test-case prompts 2-5 are his rewording of 21:20Z. The one-line description (registry, oneLiner, also the first line of adapters/mcp/README.md) and the supporting line are his of 2026-11-05 00:50Z; long opened with the two (his rule of 01:05Z) until his signed copy of 2026-11-06; the supporting line is not in registry, because the Registry schema caps the description at 100 characters. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus). The signature of 20:45Z no longer covers the three defaultPrompts or test-case prompt 1. Founder 2026-11-05 (C-2), his instruction: \"On Cursor a plain \"Ask me…\" prompt is answered by Cursor's own question panel. Every Cursor prompt in the packet, the plugin skill and the listing copy names Sess (\"Use Sess to ask me…\").\" Signed by the founder on 2026-11-05 at 05:50Z in the form \"Use Sess to ask me …, then tell me what I chose.\": the three default prompts; test-case prompt 1 uses the first of them. Test-case prompts 2-5 already name Sess and stay his words of 21:20Z. Signed by the founder on 2026-11-06, for the Cursor submission: long, word for word, which replaces the long of 2026-11-04 everywhere it is generated (the plugin README, OpenAI's longDescription, Claude's description). It opens with the one-liner, not the supporting line.",
+    "note": "Signed by the founder on 2026-11-04 at 20:45Z: short, long, keywords, categories, prompts, release notes, test cases, skill text and the Cline issue text as sent. Test-case prompts 2-5 are his rewording of 21:20Z. The one-line description (registry, oneLiner, also the first line of adapters/mcp/README.md) and the supporting line are his of 2026-11-05 00:50Z; long opened with the two (his rule of 01:05Z) until his signed copy of 2026-11-06; the supporting line is not in registry, because the Registry schema caps the description at 100 characters. The signature is on the words: the claude.ai run is recorded in LISTINGS.md, and OpenAI's stays not yet run (providers.agentPlugin.openai.testCasesStatus). The signature of 20:45Z no longer covers the three defaultPrompts or test-case prompt 1. Founder 2026-11-05 (C-2), his instruction: \"On Cursor a plain \"Ask me…\" prompt is answered by Cursor's own question panel. Every Cursor prompt in the packet, the plugin skill and the listing copy names Sess (\"Use Sess to ask me…\").\" Signed by the founder on 2026-11-05 at 05:50Z in the form \"Use Sess to ask me …, then tell me what I chose.\": the three default prompts; test-case prompt 1 uses the first of them. Test-case prompts 2-5 already name Sess and stay his words of 21:20Z. Signed by the founder on 2026-11-06, for the Cursor submission: long, word for word, which replaces the long of 2026-11-04 everywhere it is generated (the plugin README, OpenAI's longDescription, Claude's description). It opens with the one-liner, not the supporting line. Founder 2026-11-10 05:04Z, his instruction: one prompt everywhere, the docs prompt word for word, \"Ask me on my phone what time works for a call tomorrow, using Sess.\": it replaces the three default prompts of 2026-11-05 05:50Z and test-case prompt 1. Test-case prompts 2-5 test other behaviour and stay his words of 21:20Z.",
     "short": "Ask a person, get the answer",
     "registry": "Let your agent ask a person and continue with their answer.",
     "oneLiner": "Let your agent ask a person and continue with their answer.",
     "long": "Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once. The person answers on any device, and your agent continues with a typed answer and a signed receipt.\n\nAnyone with the link can answer, so share it only with the person you mean. The receipt records what Sess accepted, not who answered. Check answers before your agent acts on them. You sign in with a Sess account. The person answering needs none.",
     "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp"],
-    "defaultPrompts": [
-      "Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.",
-      "Use Sess to ask me to approve the report before you send it, then tell me what I chose.",
-      "Use Sess to ask me three quick questions to plan my weekend, then tell me what I chose."
-    ],
+    "defaultPrompts": ["Ask me on my phone what time works for a call tomorrow, using Sess."],
     "releaseNotes": "First release: ask a person through a Sess link and continue with their receipt-checked answer."
   },
   "publisher": {
@@ -92,8 +88,8 @@
   },
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
-    "status": "unpublished",
-    "note": "@sess.si/mcp@0.2.0 (package.json's version) is prepared, not on npm: it is staged by the tag mcp-v0.2.0 and approved by the owner. 0.1.1 stays on latest until then (tag mcp-v0.1.1 on e7d2ca0, read back 2026-11-06), and the MCP Registry entry si.sess/sess 0.1.1 lists it; the entry takes 0.2.0 only after 0.2.0 is on npm. next stays at 0.1.0-rc.4. Published is not host qualification.",
+    "status": "published",
+    "note": "@sess.si/mcp@0.2.0 (package.json's version) is on npm latest, published 2026-11-07T20:30:24Z (founder 2026-11-09 21:36Z; a read-only GET of the npm registry on 2026-11-09 at 21:38Z read dist-tags latest 0.2.0, next 0.1.0-rc.4, and mcpName si.sess/sess on 0.2.0). Published is not host qualification.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {
@@ -168,10 +164,10 @@
       },
       "npmPackage": {
         "status": "listed",
-        "publishedVersion": "0.1.1",
+        "publishedVersion": "0.2.0",
         "publishedMcpName": "si.sess/sess",
-        "read": "2026-11-06",
-        "note": "Listed. The founder published si.sess/sess 0.1.1 from master's server.json at about 02:49Z on 2026-11-06 (founder 2026-11-06 02:50Z). The Registry's public API read back: version 0.1.1, status active, publishedAt 2026-11-06T02:49:36Z, isLatest true, one remote (https://mcp.sess.si/mcp) and packages [@sess.si/mcp 0.1.1]. 0.1.0 (remote-only, published 2026-11-05T00:33:45Z) stays active as a prior version, not latest. publishedVersion and publishedMcpName are npm's readback: @sess.si/mcp@0.1.1 declares mcpName si.sess/sess."
+        "read": "2026-11-09",
+        "note": "Listed. The Registry's public API read back on 2026-11-09 at 21:38Z: si.sess/sess 0.2.0, status active, publishedAt 2026-11-07T20:37:46Z, isLatest true, packages [@sess.si/mcp 0.2.0]; 0.1.1 (published 2026-11-06T02:49:36Z, founder 2026-11-06 02:50Z) and 0.1.0 (remote-only, 2026-11-05T00:33:45Z) stay active as prior versions, not latest. publishedVersion and publishedMcpName are npm's readback the same minute: @sess.si/mcp@0.2.0, on latest since 2026-11-07T20:30:24Z, declares mcpName si.sess/sess."
       },
       "schema": {
         "id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
@@ -218,7 +214,7 @@
         "positive": [
           {
             "description": "Ask a short question and read the answer",
-            "prompt": "Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.",
+            "prompt": "Ask me on my phone what time works for a call tomorrow, using Sess.",
             "tools": ["sess_ask", "sess_response"],
             "expected_behavior": "Shares a Sess link at once. After the reviewer submits the form, reports the chosen time."
           },
@@ -325,8 +321,86 @@
       "source": "https://github.com/cline/mcp-marketplace/blob/main/.github/ISSUE_TEMPLATE/mcp-server-submission.yml",
       "templateBlob": "48d6e184c68f21558a89677d6369f7d1e50eae49",
       "retrieved": "2026-11-04",
-      "iconNote": "it is in w1991e/sess PR #1019, not merged at this writing and not deployed until a founder window",
+      "rechecked": "2026-11-09: the template's blob is still 48d6e184c68f21558a89677d6369f7d1e50eae49",
+      "icon": {
+        "path": "listings/plugin/assets/icon-400.png",
+        "size": 400,
+        "sha256": "77fbaa16ce8416d629983211c0c9dba495dd2f303cb1b76245ffd3072df56b4d",
+        "source": {
+          "repository": "https://github.com/w1991e/sess",
+          "commit": "88f9f89e87939034b0967ed48bd86293b40b352a",
+          "pullRequest": 1019,
+          "generator": "packages/design-tokens/scripts/logos.ts",
+          "file": "icon-400.png",
+          "iconSetVersion": "00c368f1dadd"
+        },
+        "url": "https://sess.si/assets/icons/00c368f1dadd/icon-400.png",
+        "urlRead": "a read-only GET on 2026-11-09 at 21:38Z returned 200 with image/png and the SHA-256 above (also at 20:46Z); the Cline issue's Logo Image carries it (founder 2026-11-09 21:36Z item 4)",
+        "note": "Generated by scripts/cline-icon.mjs, which runs the Sess logos script on the mark's vector master: the same tile, mark scale and padding as icon-512 and icon-192, not a resized copy. Not in icons.files: only the Cline issue names it."
+      },
+      "iconNote": "it is committed at listings/plugin/assets/icon-400.png and served at providers.cline.icon.url",
       "note": "Text for a submission issue; the owner opens it after the 400x400 icon is merged and deployed. Nothing here opens an issue."
+    },
+    "mcpso": {
+      "mapping": 1,
+      "output": "listings/mcpso-submission.md",
+      "form": "https://mcp.so/submit?type=remote-server",
+      "source": "https://mcp.so/submit?type=remote-server",
+      "retrieved": "2026-11-09",
+      "publishing": "founder 2026-11-09 21:36Z",
+      "note": "Values for mcp.so's Remote Server submission form, read from the form's own page. Nothing here submits; the owner signs in and submits. Founder 2026-11-09 21:36Z: the review route, not the fee option that publishes without review; the description opens with the signed one-liner, then copy.long as drafted."
+    },
+    "awesomeLists": {
+      "note": "The three largest awesome MCP server lists on GitHub that are not archived, by star count from GitHub's public search API (repositories named awesome mcp servers, sorted by stars) on 2026-11-09; appcypher/awesome-mcp-servers (5,827 stars) is archived and takes no entries. Drafts only: nothing here forks, opens or posts.",
+      "read": "2026-11-09",
+      "lists": [
+        {
+          "repo": "punkpeye/awesome-mcp-servers",
+          "stars": 97536,
+          "format": "punkpeye",
+          "output": "listings/awesome-punkpeye-awesome-mcp-servers.md",
+          "rules": [
+            "CONTRIBUTING.md (blob bdb9eb35c0511a34ea381910b08af87b61bf9181): fork, edit README.md, one server per line, alphabetical within each category, name linked to its repository, a brief description, a clear PR title and description; remote-only servers go to awesome-remote-mcp-servers",
+            "README.md (blob 90186230ab6381d426c2d812e856a4ee9d2c44a8): the Legend (language, scope and OS markers) and the line format of the Workplace & Productivity section",
+            "no pull request template (the repository's .github holds only workflows)"
+          ],
+          "section": "### 🏢 Workplace & Productivity",
+          "between": ["vrijsinghani/Artifactsmith", "workopia/workopia-mcp"],
+          "markers": "🎖️ 📇 ☁️",
+          "markersNote": "🎖️ the vendor's own implementation, claimed by the founder on 2026-11-09 at 21:36Z; 📇 TypeScript; ☁️ talks to a remote API, Sess",
+          "glamaServer": "w1991e/sess-sdk",
+          "glamaServerStatus": "the Glama server page for w1991e/sess-sdk answered 404 on 2026-11-09"
+        },
+        {
+          "repo": "wong2/awesome-mcp-servers",
+          "stars": 4407,
+          "format": "wong2",
+          "output": "listings/awesome-wong2-awesome-mcp-servers.md",
+          "rules": [
+            "README.md: \"We do not accept PRs. Please submit your MCP on the website: https://mcpservers.org/submit\"",
+            "https://mcpservers.org/submit, the form as served on 2026-11-09: server name, category, short description, repository, website or documentation URL (512 characters), the MCP Registry name (optional), a remote-connections checkbox, contact email and a submission plan",
+            "the pull request template (blob 85045771c2b313953348c8b35b6ef0761b8e9800) asks only for alphabetical placement; it applies to no submission now"
+          ],
+          "category": "Productivity"
+        },
+        {
+          "repo": "punkpeye/awesome-remote-mcp-servers",
+          "stars": 2877,
+          "format": "punkpeye-remote",
+          "output": "listings/awesome-punkpeye-awesome-remote-mcp-servers.md",
+          "rules": [
+            "CONTRIBUTING.md (blob 263e96fea0635f959b03760436519289c611c467): a public endpoint that answers an MCP initialize request (CI checks it), usable by anyone, Streamable HTTP or SSE, a Glama connector badge on the second line (CI checks it resolves), the three-line entry format, an authentication marker, one sentence of at most 120 characters ending in a period, alphabetical within each category (case-insensitive), the account opening the PR must have starred the repository",
+            "the pull request template (blob 0bdca7be719a0c6bc63befb679a080088bd50f2b): Server, Endpoint and four checkboxes",
+            "README.md: the Workplace & Productivity section"
+          ],
+          "section": "### 🏢 Workplace & Productivity",
+          "between": ["SayBriefly", "SheetRender"],
+          "glamaConnector": "si.sess/sess",
+          "glamaConnectorStatus": "the Glama connector page for si.sess/sess answered 200, titled Sess - MCP Connector, and its badge answered 200 with image/svg+xml, on 2026-11-09",
+          "initializeNote": "a 401 sign-in challenge is the correct answer from our endpoint (founder 2026-11-09 21:36Z)",
+          "ruling": "founder 2026-11-09 21:36Z: submit as drafted"
+        }
+      ]
     },
     "clawhub": {
       "status": "not-applicable",

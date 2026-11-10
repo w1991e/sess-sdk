@@ -2,6 +2,8 @@
 
 Signed text, not opened. Open it only after the 400x400 icon is merged and deployed and the README-alone install test has passed: https://github.com/cline/mcp-marketplace/issues/new?template=mcp-server-submission.yml
 
+The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator.
+
 Every OWNER: line is for the owner to do, then delete. Everything else in the sections below `## Title` goes into the form as written.
 
 ## Title
@@ -14,13 +16,13 @@ https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp
 
 ## Logo Image
 
-OWNER: put the URL of the deployed 400x400 PNG here, after a GET of it returns 200 with image/png. It is not deployed yet. Do not resize another icon.
+https://sess.si/assets/icons/00c368f1dadd/icon-400.png
 
 ## Installation Testing
 
 - [ ] I have tested that Cline can successfully set up this server using only the README.md and/or llms-install.md file
 
-OWNER: tick this only after watching Cline set up the server from the README alone. That has not been done.
+OWNER: run Cline with only the README, record result here. Tick this only after that run passes; it has not been run.
 
 - [ ] The server is stable and ready for public use
 
