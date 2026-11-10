@@ -6,8 +6,7 @@ Prepared, not yet published. Tool schemas stay `sess-mcp-tools/5`; the five tool
 unchanged.
 
 - Depends on `@sess.si/sdk` 0.3.0 (was 0.2.0; sha256 `bc3a7a2d…a097`), resolved from the
-  registry. It verifies the newer signed receipts (receipt v2, bound to the revision shown) as well
-  as the earlier ones.
+  registry. It verifies the receipts Sess issues.
 - The `sess_ask` and `sess_request` descriptions each carry one sentence on which tool to use:
   `sess_ask` for one question with up to 12 simple fields and one button, or many people on one
   link; `sess_request` when the person must see records shown as they are or choose between
@@ -22,6 +21,8 @@ unchanged.
   run on which host and version moves to COMPATIBILITY.md.
 - The README's Claude Code section no longer says that using Sess on a second computer
   disconnects the first; that is not established for Claude Code.
+- The README's Claude Code section says to run the command, then start Claude Code from the same
+  terminal, where `SESS_API_KEY` is set.
 
 ## 0.2.0 — 2026-11-07
 

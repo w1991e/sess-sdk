@@ -19,7 +19,7 @@ claude mcp add --transport http sess https://mcp.sess.si/mcp
 Claude Code opens Sess in your browser. Sign in and choose Allow.
 
 Or run it on your machine. Put your Sess API key in `SESS_API_KEY` (from your Sess account, under API
-keys), then run this in the same terminal. Never paste the key into a chat.
+keys), run this, then start Claude Code from that same terminal. Never paste the key into a chat.
 
 ```sh
 claude mcp add --scope local sess -- npx -y @sess.si/mcp@0.3.0
