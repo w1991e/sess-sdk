@@ -33,7 +33,7 @@ OWNER: tick this only if you confirm it.
 Let your agent ask a person and continue with their answer.
 
 - Hosted server: https://mcp.sess.si/mcp (Streamable HTTP; you sign in with your Sess account)
-- npm package: https://www.npmjs.com/package/@sess.si/mcp, version 0.2.0 (stdio; needs `SESS_API_KEY`)
+- npm package: https://www.npmjs.com/package/@sess.si/mcp, version 0.3.0 (stdio; needs `SESS_API_KEY`)
 - Website: https://sess.si
 - Docs: https://docs.sess.si/add-to-your-agent/
 - Support: ask@sess.si

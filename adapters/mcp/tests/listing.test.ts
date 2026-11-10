@@ -148,12 +148,14 @@ describe('listing.json artifacts', () => {
     // Hosts and stores with no qualified packet say so; none is promoted.
     expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);
     expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
-    // Production serves the icon URLs, so that is no blocker. 0.2.0, package.json's version, is on
-    // npm latest and the Registry's latest (read back 2026-11-09; founder 21:36Z), so neither npm
-    // blocker stands. Cline's 400x400 is served at a read-back URL, so it is no blocker either.
+    // Production serves the icon URLs, so that is no blocker. Cline's 400x400 is served at a
+    // read-back URL, so it is no blocker either.
+    // 0.3.0 prep (founder 2026-11-10 05:48Z: prepare, not publish): package.json's version, 0.3.0,
+    // is not on npm yet; 0.2.0 stays on latest and the Registry's latest. Both npm blockers stand
+    // until 0.3.0 is published and read back (they were absent while 0.2.0 was package.json's version).
     expect(text).not.toMatch(/icon URLs/);
-    expect(text).not.toMatch(/is unpublished on npm/);
-    expect(text).not.toMatch(/MCP Registry: @sess\.si\/mcp@/);
+    expect(text).toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
+    expect(text).toMatch(/MCP Registry: @sess\.si\/mcp@0\.2\.0 on npm declares mcpName si\.sess\/sess;/);
     expect(text).not.toMatch(/MCP Registry npm package:/);
     expect(text).not.toMatch(/Cline: needs a 400x400 PNG/);
     const unserved = inputs();
@@ -374,6 +376,12 @@ describe('listing.json artifacts', () => {
       '### grok.com: Connectors',
     ]);
     expect(grok).toContain('grok mcp add --transport http sess https://mcp.sess.si/mcp');
+    // Claude Code: the second-computer sentence is not established for Claude Code, so it is gone
+    // (founder 2026-11-10 05:47Z and 05:48Z item 3); the sign-in sentence stays.
+    const claudeCode = lines.slice(lines.indexOf('## Claude Code'), lines.indexOf('## claude.ai')).join('\n');
+    expect(claudeCode).toContain('Claude Code opens Sess in your browser. Sign in and choose Allow.\n');
+    expect(readme).not.toMatch(/second\s+computer/);
+    expect(readme).not.toMatch(/disconnects\s+the\s+first/);
     const hosts = lines.filter((l) => l.startsWith('## ')).slice(0, 9);
     expect(hosts).toEqual([
       '## Claude Code',
@@ -404,8 +412,9 @@ describe('listing.json artifacts', () => {
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
       ['streamable-http', 'qualified'],
-      // The round used the remote link. The stdio link names 0.2.0, on npm latest since 2026-11-07.
-      ['stdio', 'published'],
+      // The round used the remote link. 0.3.0 prep: the stdio link names 0.3.0, prepared and not
+      // yet on npm, so it is unpublished (was published while it named 0.2.0).
+      ['stdio', 'unpublished'],
     ]);
     // Cursor's evidence is the founder's round, and it claims no outside user.
     const cursorProvider = inputs().listing.providers.cursorInstall;
@@ -493,8 +502,9 @@ describe('listing.json artifacts', () => {
     expect(issue).toContain('https://mcp.sess.si/mcp');
     expect(issue).toContain('https://sess.si');
     expect(issue).toContain('https://www.npmjs.com/package/@sess.si/mcp');
-    // package.json's version, 0.2.0, on npm latest since 2026-11-07 (founder 2026-11-09 21:36Z).
-    expect(issue).toContain('/@sess.si/mcp, version 0.2.0 (stdio;');
+    // package.json's version. 0.3.0 prep: 0.3.0 is prepared, not yet on npm (0.2.0 stays on
+    // latest); the issue is a draft, filed only after 0.3.0 is published (was 0.2.0).
+    expect(issue).toContain('/@sess.si/mcp, version 0.3.0 (stdio;');
   });
 
   it('the mcp.so draft fills the Remote Server form, quotes only signed copy and marks owner steps', () => {
@@ -585,7 +595,9 @@ describe('listing.json artifacts', () => {
     );
     expect(draft('punkpeye/awesome-mcp-servers')).not.toContain('badges/score.svg');
     expect(draft('punkpeye/awesome-mcp-servers')).not.toMatch(/^OWNER: .*(markers|🎖️)/m);
-    expect(draft('punkpeye/awesome-mcp-servers')).toContain('version 0.2.0 on npm');
+    // 0.3.0 prep: the draft names package.json's version (was 0.2.0); "on npm" holds only once
+    // 0.3.0 is published, before the draft is posted.
+    expect(draft('punkpeye/awesome-mcp-servers')).toContain('version 0.3.0 on npm');
     // The remote list: three lines, homepage link, endpoint, connector badge, OAuth marker.
     expect(draft('punkpeye/awesome-remote-mcp-servers')).toContain(
       [

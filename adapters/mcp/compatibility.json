@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "package": {
     "name": "@sess.si/mcp",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "toolSchema": "sess-mcp-tools/5"
   },
-  "status": "0.2.0 prepared on @sess.si/sdk 0.2.0 for npm dist-tag latest, unpublished, with tool schema sess-mcp-tools/5 (the rating field and the Ask); 0.1.1 published on latest on 2026-11-05, on @sess.si/sdk 0.1.1, with tool schema sess-mcp-tools/4; next stays at 0.1.0-rc.4.",
+  "status": "0.3.0 prepared on @sess.si/sdk 0.3.0 for npm dist-tag latest, unpublished, with tool schema sess-mcp-tools/5; latest is 0.2.0 until 0.3.0 is published (0.2.0, on @sess.si/sdk 0.2.0, with tool schema sess-mcp-tools/5, on latest since 2026-11-07T20:30:24Z, registry read 2026-11-09 21:38Z; its release readback is not yet recorded in release.published, which still records 0.1.1); next stays at 0.1.0-rc.4.",
   "recordedAt": "2026-11-07",
   "node": {
     "engines": ">=22.14.0 <25",
@@ -173,15 +173,15 @@
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "0.2.0 prepared on @sess.si/sdk 0.2.0, unpublished; the tag mcp-v0.2.0 stages it for npm dist-tag latest (release.prepared). @sess.si/mcp@0.1.1 published on latest on 2026-11-05 from the tag mcp-v0.1.1, with tool schema sess-mcp-tools/4 (release.published). next stays at 0.1.0-rc.4. The SDK dependency is in registry mode.",
+    "status": "0.3.0 prepared on @sess.si/sdk 0.3.0, unpublished; the tag mcp-v0.3.0 stages it for npm dist-tag latest (release.prepared). @sess.si/mcp@0.2.0 is on latest since 2026-11-07T20:30:24Z from the tag mcp-v0.2.0 (registry read 2026-11-09 21:38Z; its readback is not yet recorded as release.published). release.published still records @sess.si/mcp@0.1.1, published on latest on 2026-11-05 from the tag mcp-v0.1.1, with tool schema sess-mcp-tools/4. next stays at 0.1.0-rc.4. The SDK dependency is in registry mode.",
     "prepared": {
-      "version": "0.2.0",
+      "version": "0.3.0",
       "distTag": "latest",
-      "tag": "mcp-v0.2.0",
+      "tag": "mcp-v0.3.0",
       "toolSchema": "sess-mcp-tools/5",
-      "sessSdk": "0.2.0 (registry, dist-tag latest)",
+      "sessSdk": "0.3.0 (registry, dist-tag latest)",
       "mcpName": "si.sess/sess",
-      "note": "Prepared and unpublished. The release guard derives latest for a version without -rc.N. Once the stage is approved and read back, this entry becomes release.published and 0.1.1 moves to release.earlier."
+      "note": "Prepared and unpublished.The release guard derives latest for a version without -rc.N. Once the stage is approved and read back, this entry becomes release.published, and the published 0.2.0, once its readback is recorded, and 0.1.1 move to release.earlier."
     },
     "published": {
       "version": "0.1.1",

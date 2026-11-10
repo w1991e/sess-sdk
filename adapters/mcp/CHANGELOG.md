@@ -1,11 +1,27 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
+Prepared, not yet published. Tool schemas stay `sess-mcp-tools/5`; the five tool names are
+unchanged.
+
+- Depends on `@sess.si/sdk` 0.3.0 (was 0.2.0; sha256 `bc3a7a2d…a097`), resolved from the
+  registry. It verifies the newer signed receipts (receipt v2, bound to the revision shown) as well
+  as the earlier ones.
+- The `sess_ask` and `sess_request` descriptions each carry one sentence on which tool to use:
+  `sess_ask` for one question with up to 12 simple fields and one button, or many people on one
+  link; `sess_request` when the person must see records shown as they are or choose between
+  buttons such as Approve and Reject. In `sess_request` it replaces "It is the full form, with
+  approve and reject buttons if you need them; sess_ask is shorter for a plain question."
 - `sess_ask` drops an empty `options: []` on a field that is not `choice` or `multi_choice` before
   checking it, so a client that fills every schema property (a form-based inspector) is not
   refused. Nothing is sent for it. A non-empty `options` there is still refused as before, and a
   `choice` or `multi_choice` field still needs at least one option. The Sess API is unchanged.
+- The README is rewritten: what it does, install, run and what you will see first, then one
+  section per host, each naming `@sess.si/mcp@0.3.0` where it installs the package. What has been
+  run on which host and version moves to COMPATIBILITY.md.
+- The README's Claude Code section no longer says that using Sess on a second computer
+  disconnects the first; that is not established for Claude Code.
 
 ## 0.2.0 — 2026-11-07
 

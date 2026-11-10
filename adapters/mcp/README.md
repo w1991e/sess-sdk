@@ -16,14 +16,13 @@ Run this in your terminal:
 claude mcp add --transport http sess https://mcp.sess.si/mcp
 ```
 
-Claude Code opens Sess in your browser. Sign in and choose Allow. Using Sess on a second computer
-reconnects it there and disconnects the first.
+Claude Code opens Sess in your browser. Sign in and choose Allow.
 
 Or run it on your machine. Put your Sess API key in `SESS_API_KEY` (from your Sess account, under API
 keys), then run this in the same terminal. Never paste the key into a chat.
 
 ```sh
-claude mcp add --scope local sess -- npx -y @sess.si/mcp@0.2.0
+claude mcp add --scope local sess -- npx -y @sess.si/mcp@0.3.0
 ```
 
 ## claude.ai
@@ -101,7 +100,7 @@ keys), then use this entry instead. Never paste the key into a chat.
   "mcpServers": {
     "sess": {
       "command": "npx",
-      "args": ["-y", "@sess.si/mcp@0.2.0"],
+      "args": ["-y", "@sess.si/mcp@0.3.0"],
       "env": { "SESS_API_KEY": "${env:SESS_API_KEY}" }
     }
   }
@@ -114,7 +113,7 @@ Put your Sess API key in `SESS_API_KEY` (from your Sess account, under API keys)
 your terminal:
 
 ```sh
-agy mcp add sess npx -y @sess.si/mcp@0.2.0
+agy mcp add sess npx -y @sess.si/mcp@0.3.0
 ```
 
 Antigravity asks before it uses a Sess tool, usually once or twice the first time. Choose Allow,
@@ -175,7 +174,7 @@ chat.
   "mcpServers": {
     "sess": {
       "command": "npx",
-      "args": ["-y", "@sess.si/mcp@0.2.0"],
+      "args": ["-y", "@sess.si/mcp@0.3.0"],
       "env": { "SESS_API_KEY": "your Sess API key" }
     }
   }
@@ -194,7 +193,7 @@ https://mcp.sess.si/mcp
 Or add this as a local MCP server in your agent:
 
 ```sh
-npx -y @sess.si/mcp@0.2.0
+npx -y @sess.si/mcp@0.3.0
 ```
 
 Your agent asks before it starts the server. The server reads your Sess API key from the

@@ -88,8 +88,8 @@
   },
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
-    "status": "published",
-    "note": "@sess.si/mcp@0.2.0 (package.json's version) is on npm latest, published 2026-11-07T20:30:24Z (founder 2026-11-09 21:36Z; a read-only GET of the npm registry on 2026-11-09 at 21:38Z read dist-tags latest 0.2.0, next 0.1.0-rc.4, and mcpName si.sess/sess on 0.2.0). Published is not host qualification.",
+    "status": "unpublished",
+    "note": "@sess.si/mcp@0.3.0 (package.json's version) is prepared, not on npm (founder 2026-11-10 05:48Z: approved to prepare, not to publish yet): it is staged by the tag mcp-v0.3.0 and approved by the owner. 0.2.0 stays on latest until then (published 2026-11-07T20:30:24Z; a read-only GET of the npm registry on 2026-11-09 at 21:38Z read dist-tags latest 0.2.0, next 0.1.0-rc.4, and mcpName si.sess/sess on 0.2.0), and the MCP Registry entry si.sess/sess 0.2.0 lists it; the entry takes 0.3.0 only after 0.3.0 is on npm. Published is not host qualification.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {

@@ -1,6 +1,6 @@
 {
   "name": "@sess.si/mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "mcpName": "si.sess/sess",
   "description": "Let your agent ask a person and continue with their answer.",
   "type": "module",

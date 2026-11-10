@@ -8,7 +8,7 @@
     "url": "https://github.com/w1991e/sess-sdk",
     "source": "github"
   },
-  "version": "0.2.0",
+  "version": "0.3.0",
   "icons": [
     {
       "src": "https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png",
@@ -26,7 +26,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@sess.si/mcp",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
