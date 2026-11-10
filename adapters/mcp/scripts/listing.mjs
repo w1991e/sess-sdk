@@ -475,11 +475,19 @@ function clineIssue({ listing, manifest }) {
  */
 /**
  * The founder's mcp.so description (2026-11-09 21:36Z): the signed one-liner, then copy.long as
- * drafted. copy.long already opens with the one-liner, so it is not written twice.
+ * drafted. When copy.long already opens with the one-liner, it is not written twice.
  */
 function openWithOneLiner(listing) {
   const { oneLiner, long } = listing.copy;
   return long.startsWith(oneLiner) ? [long] : [oneLiner, '', long];
+}
+
+/** The note above the mcp.so description, true for whichever form openWithOneLiner wrote. */
+function oneLinerNote(listing) {
+  const { oneLiner, long } = listing.copy;
+  return long.startsWith(oneLiner)
+    ? 'the signed one-liner, then the long text as drafted; the long text opens with the one-liner, so it is written once (founder 2026-11-09 21:48Z).'
+    : 'the signed one-liner, then the long text as drafted (founder 2026-11-09 21:48Z).';
 }
 
 function mcpsoSubmission({ listing, manifest }) {
@@ -521,7 +529,7 @@ function mcpsoSubmission({ listing, manifest }) {
     '',
     '### Description',
     '',
-    `${NOT_FOR_FORM} the signed one-liner, then the long text as drafted; the long text opens with the one-liner, so it is written once (founder 2026-11-09 21:48Z).`,
+    `${NOT_FOR_FORM} ${oneLinerNote(listing)}`,
     '',
     ...openWithOneLiner(listing),
     '',
@@ -842,14 +850,76 @@ export function checkPackets(listing, text) {
     listing.copy.short,
     listing.copy.registry,
     listing.copy.oneLiner,
+    // Glama's server listing: its own line after the one-liner (founder 2026-11-10 20:28Z).
+    listing.providers.glama?.serverLine,
     listing.remote.url,
     listing.repository.url,
     listing.supportContact,
     ...(Array.isArray(listing.icons.value) ? listing.icons.value.map((i) => i.src) : []),
   ];
   return values
-    .filter((v) => !text.includes(v))
-    .map((v) => `LISTINGS.md owner submission steps do not quote listing.json's ${JSON.stringify(v)}`);
+    .filter((v) => typeof v !== 'string' || !text.includes(v))
+    .map((v) =>
+      typeof v === 'string'
+        ? `LISTINGS.md owner submission steps do not quote listing.json's ${JSON.stringify(v)}`
+        : 'listing.json is missing a value the owner submission steps quote (providers.glama.serverLine)',
+    );
+}
+
+/**
+ * One source for the signed one-liner and keywords (founder 2026-11-10 20:18Z item 3). The README's
+ * first line, package.json's description and every generated one-liner equal copy.oneLiner; the
+ * README carries copy.recoveryLine; and package.json's keywords and every provider keyword list in
+ * the generated files contain each of copy.keywords. README.md and package.json are written by
+ * hand, so this compares them; it generates nothing.
+ * @returns {string[]} errors
+ */
+export function checkOneSource({ listing, manifest }, files, readme) {
+  const { oneLiner, keywords, recoveryLine } = listing.copy;
+  const p = listing.providers;
+  const errors = [];
+  const json = (path) => {
+    try {
+      return JSON.parse(files.get(path) ?? '');
+    } catch {
+      return {};
+    }
+  };
+  const same = (where, value) => {
+    if (value !== oneLiner) errors.push(`${where} differs from listing.json's one-liner`);
+  };
+  same('README.md first line', readme.split('\n')[2]);
+  same("package.json's description", manifest.description);
+  same('listing.json copy.registry', listing.copy.registry);
+  same(`${p.mcpRegistry.output} description`, json(p.mcpRegistry.output).description);
+  same(`${PLUGIN_DIR}/plugin.json description`, json(`${PLUGIN_DIR}/plugin.json`).description);
+  same(`${p.cursorPlugin.output} description`, json(p.cursorPlugin.output).description);
+  same(`${p.claudeConnector.output} oneLiner`, json(p.claudeConnector.output).oneLiner);
+  const dockerYaml = files.get(`${p.docker.output}/server.yaml`) ?? '';
+  same(`${p.docker.output}/server.yaml description`, /^ {2}description: (.*)$/m.exec(dockerYaml)?.[1]);
+  for (const path of [p.cline.output, p.mcpso.output, ...p.awesomeLists.lists.map((l) => l.output)])
+    if (!(files.get(path) ?? '').includes(oneLiner))
+      errors.push(`${path} differs from listing.json's one-liner (it does not carry it)`);
+  if (typeof recoveryLine !== 'string' || !readme.includes(`\n${recoveryLine}\n`))
+    errors.push("README.md does not carry listing.json's recoveryLine");
+
+  const dockerTags = [];
+  const lines = dockerYaml.split('\n');
+  for (let i = lines.indexOf('  tags:') + 1; i > 0 && lines[i]?.startsWith('    - '); i++)
+    dockerTags.push(lines[i].slice(6));
+  const mcpsoTags = /^- Tags: (.*)$/m.exec(files.get(p.mcpso.output) ?? '')?.[1]?.split(', ') ?? [];
+  const lists = [
+    ['package.json keywords', manifest.keywords],
+    [`${PLUGIN_DIR}/plugin.json keywords`, json(`${PLUGIN_DIR}/plugin.json`).keywords],
+    [`${p.cursorPlugin.output} keywords`, json(p.cursorPlugin.output).keywords],
+    [`${p.docker.output}/server.yaml tags`, dockerTags],
+    [`${p.mcpso.output} Tags`, mcpsoTags],
+  ];
+  for (const [where, list] of lists) {
+    const missing = keywords.filter((k) => !(Array.isArray(list) && list.includes(k)));
+    if (missing.length) errors.push(`${where} is missing the signed keywords ${missing.join(', ')}`);
+  }
+  return errors;
 }
 
 /**
@@ -1308,6 +1378,7 @@ async function main(mode) {
     ),
   );
   problems.push(...checkPackets(inputs.listing, readFileSync(join(root, 'LISTINGS.md'), 'utf8')));
+  problems.push(...checkOneSource(inputs, files, readFileSync(join(root, 'README.md'), 'utf8')));
   for (const path of files.keys()) console.log(`${mode === 'write' ? 'wrote' : 'checked'} ${path}`);
   console.log('\nSubmission blockers (owner actions; they do not fail this check):');
   for (const b of blockers) console.log(`- ${b}`);

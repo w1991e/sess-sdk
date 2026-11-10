@@ -1,12 +1,20 @@
 # Sess MCP server (`@sess.si/mcp`)
 
-Let your agent ask a person and continue with their answer.
+Let your agent ask people for answers and approvals by link, with signed receipts.
 
 **Install:** add `https://mcp.sess.si/mcp` to your agent as an MCP server, and sign in to Sess when it asks.
 
 **Run:** ask your agent "Ask me on my phone what time works for a call tomorrow, using Sess."
 
 **You'll see** a Sess link in the reply: open it on your phone, answer, and your agent carries on with your answer.
+
+Open the link and answer. If your agent has stopped waiting, go back to the chat and say "continue".
+
+Sess turns your agent's questions into pages people can answer on any device. Use it for choices, corrections or approvals without bringing people into your chat. Your agent gets typed answers it can use to continue the task.
+
+Ask one person, or share one link with a group for feedback, a class check or picking a time. Each person answers on their own page. Sess signs a receipt for every accepted answer, so people can keep the record and check it themselves.
+
+Anyone with the link can answer, so share it only with the people you mean. The receipt records what Sess accepted, not who answered. You sign in with a Sess account; the people answering need none.
 
 ## Claude Code
 
@@ -16,14 +24,13 @@ Run this in your terminal:
 claude mcp add --transport http sess https://mcp.sess.si/mcp
 ```
 
-Claude Code opens Sess in your browser. Sign in and choose Allow. Using Sess on a second computer
-reconnects it there and disconnects the first.
+Claude Code opens Sess in your browser. Sign in and choose Allow.
 
 Or run it on your machine. Put your Sess API key in `SESS_API_KEY` (from your Sess account, under API
-keys), then run this in the same terminal. Never paste the key into a chat.
+keys), run this, then start Claude Code from that same terminal. Never paste the key into a chat.
 
 ```sh
-claude mcp add --scope local sess -- npx -y @sess.si/mcp@0.2.0
+claude mcp add --scope local sess -- npx -y @sess.si/mcp@0.3.0
 ```
 
 ## claude.ai
@@ -101,7 +108,7 @@ keys), then use this entry instead. Never paste the key into a chat.
   "mcpServers": {
     "sess": {
       "command": "npx",
-      "args": ["-y", "@sess.si/mcp@0.2.0"],
+      "args": ["-y", "@sess.si/mcp@0.3.0"],
       "env": { "SESS_API_KEY": "${env:SESS_API_KEY}" }
     }
   }
@@ -114,7 +121,7 @@ Put your Sess API key in `SESS_API_KEY` (from your Sess account, under API keys)
 your terminal:
 
 ```sh
-agy mcp add sess npx -y @sess.si/mcp@0.2.0
+agy mcp add sess npx -y @sess.si/mcp@0.3.0
 ```
 
 Antigravity asks before it uses a Sess tool, usually once or twice the first time. Choose Allow,
@@ -175,7 +182,7 @@ chat.
   "mcpServers": {
     "sess": {
       "command": "npx",
-      "args": ["-y", "@sess.si/mcp@0.2.0"],
+      "args": ["-y", "@sess.si/mcp@0.3.0"],
       "env": { "SESS_API_KEY": "your Sess API key" }
     }
   }
@@ -194,7 +201,7 @@ https://mcp.sess.si/mcp
 Or add this as a local MCP server in your agent:
 
 ```sh
-npx -y @sess.si/mcp@0.2.0
+npx -y @sess.si/mcp@0.3.0
 ```
 
 Your agent asks before it starts the server. The server reads your Sess API key from the

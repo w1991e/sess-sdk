@@ -7,14 +7,16 @@ tarball only after a maintainer approves the protected environment, and nothing 
 until a maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`) go to
 `next`, never to `latest`; a stable version (no `-rc.N`) goes to `latest`.
 
-The current release, `0.1.1`, is published on `latest` (tag `mcp-v0.1.1`, 2026-11-06), replacing
-`0.1.0`. Its contents are the `0.1.1` entry in [CHANGELOG.md](CHANGELOG.md), and
-[release/v0.1.1-packet.md](release/v0.1.1-packet.md) is its order. `next` stays at the last release
-candidate, `0.1.0-rc.4`.
+The current release, `0.2.0`, is published on `latest` (tag `mcp-v0.2.0`, on `@sess.si/sdk`
+0.2.0, since 2026-11-07T20:30:24Z), replacing `0.1.1`. Its contents are the `0.2.0` entry in
+[CHANGELOG.md](CHANGELOG.md), and [release/v0.2.0-packet.md](release/v0.2.0-packet.md) is its
+order. `0.1.1` ([release/v0.1.1-packet.md](release/v0.1.1-packet.md)) was `latest` before it.
+`next` stays at the last release candidate, `0.1.0-rc.4`.
 
-`0.2.0` is prepared, not published (tag `mcp-v0.2.0`, on `@sess.si/sdk` 0.2.0, tool schemas
-`sess-mcp-tools/5`). Its contents are the `0.2.0` entry in [CHANGELOG.md](CHANGELOG.md); its
-release packet is the maintainer's order. `0.1.1` stays on `latest` until it is published.
+`0.3.0` is prepared, not published (tag `mcp-v0.3.0`, on `@sess.si/sdk` 0.3.0, tool schemas
+`sess-mcp-tools/5`). Its contents are the `0.3.0` entry in [CHANGELOG.md](CHANGELOG.md);
+[release/v0.3.0-packet.md](release/v0.3.0-packet.md) is the maintainer's order. `0.2.0` stays on
+`latest` until it is published.
 
 The last published candidate is `0.1.0-rc.4` (npm `next`, 2026-10-27; integrity and SHA-256 as
 recorded in [release/rc4-packet.md](release/rc4-packet.md) and `compatibility.json`). `0.1.0-rc.3` ([release/rc3-packet.md](release/rc3-packet.md)), `0.1.0-rc.2`

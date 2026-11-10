@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   checkIconFiles,
+  checkOneSource,
   checkPackets,
   cursorDeeplink,
   generate,
@@ -148,12 +149,14 @@ describe('listing.json artifacts', () => {
     // Hosts and stores with no qualified packet say so; none is promoted.
     expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);
     expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
-    // Production serves the icon URLs, so that is no blocker. 0.2.0, package.json's version, is on
-    // npm latest and the Registry's latest (read back 2026-11-09; founder 21:36Z), so neither npm
-    // blocker stands. Cline's 400x400 is served at a read-back URL, so it is no blocker either.
+    // Production serves the icon URLs, so that is no blocker. Cline's 400x400 is served at a
+    // read-back URL, so it is no blocker either.
+    // 0.3.0 prep (founder 2026-11-10 05:48Z: prepare, not publish): package.json's version, 0.3.0,
+    // is not on npm yet; 0.2.0 stays on latest and the Registry's latest. Both npm blockers stand
+    // until 0.3.0 is published and read back (they were absent while 0.2.0 was package.json's version).
     expect(text).not.toMatch(/icon URLs/);
-    expect(text).not.toMatch(/is unpublished on npm/);
-    expect(text).not.toMatch(/MCP Registry: @sess\.si\/mcp@/);
+    expect(text).toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
+    expect(text).toMatch(/MCP Registry: @sess\.si\/mcp@0\.2\.0 on npm declares mcpName si\.sess\/sess;/);
     expect(text).not.toMatch(/MCP Registry npm package:/);
     expect(text).not.toMatch(/Cline: needs a 400x400 PNG/);
     const unserved = inputs();
@@ -252,11 +255,16 @@ describe('listing.json artifacts', () => {
     expect(check(i, drifted).errors).toContain('server.json websiteUrl must be listing.json homepage');
   });
 
-  it('the long description is the signed listing copy of 2026-11-06, word for word, everywhere it is generated', () => {
-    // Founder 2026-11-06: it replaces the long of 2026-11-04 and opens with the one-liner alone, not
-    // the supporting line of 2026-11-05 00:50Z.
-    const signed =
-      'Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once. The person answers on any device, and your agent continues with a typed answer and a signed receipt.\n\nAnyone with the link can answer, so share it only with the person you mean. The receipt records what Sess accepted, not who answered. Check answers before your agent acts on them. You sign in with a Sess account. The person answering needs none.';
+  it('the one-liner, long description, keywords and recovery line are the signed copy of 2026-11-10 20:18Z, everywhere', () => {
+    // Founder 2026-11-10 20:18Z: three paragraphs that replace the long of 2026-11-06 (which opened
+    // with the one-liner of 2026-11-05); the new long does not open with the one-liner. The short
+    // label and the default prompt are unchanged.
+    const oneLiner = 'Let your agent ask people for answers and approvals by link, with signed receipts.';
+    const signed = [
+      "Sess turns your agent's questions into pages people can answer on any device. Use it for choices, corrections or approvals without bringing people into your chat. Your agent gets typed answers it can use to continue the task.",
+      'Ask one person, or share one link with a group for feedback, a class check or picking a time. Each person answers on their own page. Sess signs a receipt for every accepted answer, so people can keep the record and check it themselves.',
+      'Anyone with the link can answer, so share it only with the people you mean. The receipt records what Sess accepted, not who answered. You sign in with a Sess account; the people answering need none.',
+    ].join('\n\n');
     const { listing } = inputs();
     expect(listing.copy.long).toBe(signed);
     expect(JSON.parse(read('listings/claude-connector.json')).description).toBe(signed);
@@ -264,10 +272,31 @@ describe('listing.json artifacts', () => {
       JSON.parse(read('listings/plugin/plugin.json')).extensions['com.openai'].interface.longDescription,
     ).toBe(signed);
     expect(read('listings/plugin/README.md')).toContain(`\n\n${signed}\n\n## Connect\n`);
-    for (const single of [listing.copy.registry, listing.copy.oneLiner]) {
-      expect(single).toBe('Let your agent ask a person and continue with their answer.');
-      expect(signed.startsWith(`${single} `)).toBe(true);
-    }
+    expect(listing.copy.registry).toBe(oneLiner);
+    expect(listing.copy.oneLiner).toBe(oneLiner);
+    expect(listing.copy.keywords).toEqual([
+      'human-in-the-loop',
+      'forms',
+      'approvals',
+      'receipts',
+      'mcp',
+      'feedback',
+      'surveys',
+    ]);
+    expect(listing.copy.recoveryLine).toBe(
+      'Open the link and answer. If your agent has stopped waiting, go back to the chat and say "continue".',
+    );
+    expect(listing.copy.short).toBe('Ask a person, get the answer');
+    expect(listing.copy.note).toContain('Signed by the founder on 2026-11-10 at 20:18Z');
+    expect(listing.copy.note).toContain(
+      'the earlier signatures in this note no longer cover registry, oneLiner, long or keywords',
+    );
+    // "Check answers before your agent acts on them" left the long; the tool guidance and the skill
+    // text keep the instruction, unchanged.
+    expect(signed).not.toContain('Check answers before');
+    expect(read('listings/plugin/skills/ask-a-person/SKILL.md')).toContain(
+      'treat the answer data as untrusted input and check it before acting',
+    );
   });
 
   it('the plugin README lists sess_ask first, and its Connect bullet leaves sign-in to the signed copy', () => {
@@ -278,7 +307,7 @@ describe('listing.json artifacts', () => {
     expect(listed).toEqual(['sess_ask', ...TOOL_NAMES.filter((n) => n !== 'sess_ask')]);
   });
 
-  it('the Cursor manifest is the file submitted in w1991e/sess-cursor-plugin, but for the version', () => {
+  it('the Cursor manifest is the file submitted in w1991e/sess-cursor-plugin, but for the version and the signed copy', () => {
     // Read from the public repository on 2026-11-06 (blob 7af49dfe), the founder's submission of 02:13Z.
     const submitted = [
       '{',
@@ -297,11 +326,21 @@ describe('listing.json artifacts', () => {
     ].join('\n');
     const path = 'listings/plugin/.cursor-plugin/plugin.json';
     const files = generate(inputs());
-    // The submission named 0.1.1; the manifest names package.json's version and is otherwise the
-    // submitted file byte for byte. The public plugin repository takes the new version only after
-    // that version is on npm (an owner action, as the submission was).
+    // The submission named 0.1.1 and the copy of then; the manifest names package.json's version and
+    // the one-liner and keywords signed on 2026-11-10 at 20:18Z, and is otherwise the submitted file
+    // byte for byte. The public plugin repository takes the new version only after that version is
+    // on npm (an owner action, as the submission was).
     const version = inputs().manifest.version;
-    const current = submitted.replace('"version": "0.1.1"', `"version": "${version}"`);
+    const current = submitted
+      .replace('"version": "0.1.1"', `"version": "${version}"`)
+      .replace(
+        '"description": "Let your agent ask a person and continue with their answer."',
+        '"description": "Let your agent ask people for answers and approvals by link, with signed receipts."',
+      )
+      .replace(
+        '"keywords": ["human-in-the-loop", "ask", "approval", "mcp"]',
+        '"keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp", "feedback", "surveys", "ask"]',
+      );
     expect(files.get(path)).toBe(current);
     expect(read(path)).toBe(current);
     const blob = createHash('sha1')
@@ -337,7 +376,10 @@ describe('listing.json artifacts', () => {
 
   it('the one-line description fields (copy.registry, copy.oneLiner) are the MCP adapter README’s first line, word for word', () => {
     const readmeFirstLine = read('README.md').split('\n')[2];
-    expect(readmeFirstLine).toBe('Let your agent ask a person and continue with their answer.');
+    expect(readmeFirstLine).toBe(
+      'Let your agent ask people for answers and approvals by link, with signed receipts.',
+    );
+    expect(inputs().manifest.description).toBe(readmeFirstLine);
     const { listing } = inputs();
     expect(listing.copy.registry).toBe(readmeFirstLine);
     expect(listing.copy.oneLiner).toBe(readmeFirstLine);
@@ -357,11 +399,13 @@ describe('listing.json artifacts', () => {
     const readme = read('README.md');
     const lines = readme.split('\n');
     const firstSection = lines.findIndex((l) => l.startsWith('## '));
-    const firstScreen = lines
-      .slice(3, firstSection)
-      .filter((l) => l.trim() !== '')
-      .map((l) => l.split(' ')[0]);
+    const opening = lines.slice(3, firstSection).filter((l) => l.trim() !== '');
+    const firstScreen = opening.slice(0, 3).map((l) => l.split(' ')[0]);
     expect(firstScreen).toEqual(['**Install:**', '**Run:**', "**You'll"]);
+    // Below the first screen (founder 2026-11-10 20:18Z item 2): the recovery line, then the three
+    // signed paragraphs of copy.long, then the host sections.
+    const { copy } = inputs().listing;
+    expect(opening.slice(3)).toEqual([copy.recoveryLine, ...copy.long.split('\n\n')]);
     // One prompt everywhere: the docs prompt, word for word, which is also the listing's default
     // prompt (founder 2026-11-10 05:04Z).
     const prompt = 'Ask me on my phone what time works for a call tomorrow, using Sess.';
@@ -374,6 +418,12 @@ describe('listing.json artifacts', () => {
       '### grok.com: Connectors',
     ]);
     expect(grok).toContain('grok mcp add --transport http sess https://mcp.sess.si/mcp');
+    // Claude Code: the second-computer sentence is not established for Claude Code, so it is gone
+    // (founder 2026-11-10 05:47Z and 05:48Z item 3); the sign-in sentence stays.
+    const claudeCode = lines.slice(lines.indexOf('## Claude Code'), lines.indexOf('## claude.ai')).join('\n');
+    expect(claudeCode).toContain('Claude Code opens Sess in your browser. Sign in and choose Allow.\n');
+    expect(readme).not.toMatch(/second\s+computer/);
+    expect(readme).not.toMatch(/disconnects\s+the\s+first/);
     const hosts = lines.filter((l) => l.startsWith('## ')).slice(0, 9);
     expect(hosts).toEqual([
       '## Claude Code',
@@ -404,8 +454,9 @@ describe('listing.json artifacts', () => {
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
       ['streamable-http', 'qualified'],
-      // The round used the remote link. The stdio link names 0.2.0, on npm latest since 2026-11-07.
-      ['stdio', 'published'],
+      // The round used the remote link. 0.3.0 prep: the stdio link names 0.3.0, prepared and not
+      // yet on npm, so it is unpublished (was published while it named 0.2.0).
+      ['stdio', 'unpublished'],
     ]);
     // Cursor's evidence is the founder's round, and it claims no outside user.
     const cursorProvider = inputs().listing.providers.cursorInstall;
@@ -493,8 +544,9 @@ describe('listing.json artifacts', () => {
     expect(issue).toContain('https://mcp.sess.si/mcp');
     expect(issue).toContain('https://sess.si');
     expect(issue).toContain('https://www.npmjs.com/package/@sess.si/mcp');
-    // package.json's version, 0.2.0, on npm latest since 2026-11-07 (founder 2026-11-09 21:36Z).
-    expect(issue).toContain('/@sess.si/mcp, version 0.2.0 (stdio;');
+    // package.json's version. 0.3.0 prep: 0.3.0 is prepared, not yet on npm (0.2.0 stays on
+    // latest); the issue is a draft, filed only after 0.3.0 is published (was 0.2.0).
+    expect(issue).toContain('/@sess.si/mcp, version 0.3.0 (stdio;');
   });
 
   it('the mcp.so draft fills the Remote Server form, quotes only signed copy and marks owner steps', () => {
@@ -506,18 +558,22 @@ describe('listing.json artifacts', () => {
     expect(draft).toContain('\n`Remote Server`\n');
     expect(draft).toContain('\n## Remote endpoint URL\n\nhttps://mcp.sess.si/mcp\n');
     expect(draft).toContain('\n## Name\n\n`Sess`\n');
-    // The description opens with the signed one-liner, then copy.long as drafted (founder 21:36Z);
-    // copy.long already opens with it, so it is not written twice. Tags and category are listing.json's.
-    expect(listing.copy.long.startsWith(listing.copy.oneLiner)).toBe(true);
+    // The description opens with the signed one-liner, then copy.long as drafted (founder 21:36Z).
+    // The long of 2026-11-10 20:18Z does not open with the one-liner, so both are written, and the
+    // note no longer says it is written once. Tags and category are listing.json's.
+    expect(listing.copy.long.startsWith(listing.copy.oneLiner)).toBe(false);
     expect(draft).toContain(
-      `\n### Description\n\nNot for the form: the signed one-liner, then the long text as drafted; the long text opens with the one-liner, so it is written once (founder 2026-11-09 21:48Z).\n\n${listing.copy.long}\n`,
+      `\n### Description\n\nNot for the form: the signed one-liner, then the long text as drafted (founder 2026-11-09 21:48Z).\n\n${listing.copy.oneLiner}\n\n${listing.copy.long}\n`,
     );
     expect(draft.split(listing.copy.oneLiner)).toHaveLength(2);
-    const shorter = inputs();
-    shorter.listing.copy.long = 'Your agent describes a form and gets a link at once.';
-    expect(generate(shorter).get('listings/mcpso-submission.md')).toContain(
-      `written once (founder 2026-11-09 21:48Z).\n\n${listing.copy.oneLiner}\n\nYour agent describes a form and gets a link at once.\n`,
+    // A long that opens with the one-liner is written once, and the note says so.
+    const opensWith = inputs();
+    opensWith.listing.copy.long = `${listing.copy.oneLiner} Your agent describes a form and gets a link at once.`;
+    const once = generate(opensWith).get('listings/mcpso-submission.md')!;
+    expect(once).toContain(
+      `the long text opens with the one-liner, so it is written once (founder 2026-11-09 21:48Z).\n\n${opensWith.listing.copy.long}\n`,
     );
+    expect(once.split(listing.copy.oneLiner)).toHaveLength(2);
     expect(draft).toContain(`- Tags: ${listing.copy.keywords.join(', ')}\n`);
     expect(draft).toContain(`- Category: ${listing.categories[0]}\n`);
     // The review route, by the founder's ruling: no fee option, and no OWNER: line for it.
@@ -537,6 +593,7 @@ describe('listing.json artifacts', () => {
       '`Remote Server`',
       'https://mcp.sess.si/mcp',
       '`Sess`',
+      listing.copy.oneLiner,
       ...listing.copy.long.split('\n').filter(Boolean),
       `- Tags: ${listing.copy.keywords.join(', ')}`,
       `- Category: ${listing.categories[0]}`,
@@ -585,7 +642,9 @@ describe('listing.json artifacts', () => {
     );
     expect(draft('punkpeye/awesome-mcp-servers')).not.toContain('badges/score.svg');
     expect(draft('punkpeye/awesome-mcp-servers')).not.toMatch(/^OWNER: .*(markers|🎖️)/m);
-    expect(draft('punkpeye/awesome-mcp-servers')).toContain('version 0.2.0 on npm');
+    // 0.3.0 prep: the draft names package.json's version (was 0.2.0); "on npm" holds only once
+    // 0.3.0 is published, before the draft is posted.
+    expect(draft('punkpeye/awesome-mcp-servers')).toContain('version 0.3.0 on npm');
     // The remote list: three lines, homepage link, endpoint, connector badge, OAuth marker.
     expect(draft('punkpeye/awesome-remote-mcp-servers')).toContain(
       [
@@ -648,7 +707,9 @@ describe('listing.json artifacts', () => {
     const server = JSON.parse(generate(i).get('server.json')!);
     expect(server.version).toBe(i.manifest.version);
     expect(server.packages[0].version).toBe(i.manifest.version);
-    expect(server.description).toBe('Let your agent ask a person and continue with their answer.');
+    expect(server.description).toBe(
+      'Let your agent ask people for answers and approvals by link, with signed receipts.',
+    );
     expect(i.listing.providers.mcpRegistry.version).toBeUndefined();
     for (const version of ['0.1.0-rc.4', '0.1.0']) {
       const next = inputs();
@@ -1092,10 +1153,14 @@ describe('directory packets', () => {
         '    - human-in-the-loop',
         '    - forms',
         '    - approvals',
+        '    - receipts',
+        '    - mcp',
+        '    - feedback',
+        '    - surveys',
         '    - remote',
         'about:',
         '  title: Sess',
-        '  description: Let your agent ask a person and continue with their answer.',
+        '  description: Let your agent ask people for answers and approvals by link, with signed receipts.',
         '  icon: https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png',
         'remote:',
         '  transport_type: streamable-http',
@@ -1122,6 +1187,125 @@ describe('directory packets', () => {
     changed.copy.registry = 'Another registry description.';
     expect(checkPackets(changed, read('LISTINGS.md'))).toEqual([
       'LISTINGS.md owner submission steps do not quote listing.json\'s "Another registry description."',
+    ]);
+  });
+
+  it('Glama: the server listing’s own line is in listing.json, signed, and LISTINGS.md quotes it', () => {
+    const { glama } = inputs().listing.providers;
+    expect(glama.serverLine).toBe(
+      'Runs as a stdio MCP server from npm (@sess.si/mcp); the hosted connector is listed separately.',
+    );
+    expect(glama.serverLineSigned).toBe('founder 2026-11-10 20:28Z');
+    expect(scanText('listing.json providers.glama.serverLine', glama.serverLine)).toEqual([]);
+    const changed = inputs().listing;
+    changed.providers.glama.serverLine = 'Another Glama line.';
+    expect(checkPackets(changed, read('LISTINGS.md'))).toEqual([
+      'LISTINGS.md owner submission steps do not quote listing.json\'s "Another Glama line."',
+    ]);
+    const missing = inputs().listing;
+    delete missing.providers.glama;
+    expect(checkPackets(missing, read('LISTINGS.md'))).toEqual([
+      'listing.json is missing a value the owner submission steps quote (providers.glama.serverLine)',
+    ]);
+  });
+});
+
+// Founder 2026-11-10 20:18Z item 3: check:listing fails if the README's first line, package.json's
+// description or any generated one-liner differs from listing.json's one-liner, or if a keyword list
+// lacks a signed keyword. README.md and package.json are hand-written; nothing generates them.
+describe('one source for the signed one-liner and keywords', () => {
+  const readme = read('README.md');
+  const oneSource = (i: ListingInputs, files = generate(i), text = readme) => checkOneSource(i, files, text);
+
+  it('passes on the checked-in README, package.json and generated files', () => {
+    expect(oneSource(inputs())).toEqual([]);
+    // The generated files as checked in, not only as generated now.
+    const i = inputs();
+    const checkedIn = new Map([...generate(i).keys()].map((path) => [path, read(path)]));
+    expect(oneSource(i, checkedIn)).toEqual([]);
+  });
+
+  it('fails when the README first line, package.json or a generated one-liner differs', () => {
+    const { oneLiner } = inputs().listing.copy;
+    const old = 'Let your agent ask a person and continue with their answer.';
+    // The README's first line.
+    expect(oneSource(inputs(), undefined, readme.replace(`\n${oneLiner}\n`, `\n${old}\n`))).toEqual([
+      "README.md first line differs from listing.json's one-liner",
+    ]);
+    // package.json's description.
+    const pkg = inputs();
+    pkg.manifest.description = old;
+    expect(oneSource(pkg)).toEqual(["package.json's description differs from listing.json's one-liner"]);
+    // Generated artifacts edited after generation: each one names its file.
+    const i = inputs();
+    let files = generate(i);
+    for (const path of [
+      'server.json',
+      'listings/plugin/plugin.json',
+      'listings/plugin/.cursor-plugin/plugin.json',
+    ])
+      files = edit(files, path, (v) => {
+        v.description = old;
+      });
+    files = edit(files, 'listings/claude-connector.json', (v) => {
+      v.oneLiner = old;
+    });
+    for (const path of [
+      'listings/docker/server.yaml',
+      'listings/cline-issue.md',
+      'listings/awesome-wong2-awesome-mcp-servers.md',
+    ])
+      files.set(path, files.get(path)!.split(oneLiner).join(old));
+    expect(oneSource(i, files)).toEqual([
+      "server.json description differs from listing.json's one-liner",
+      "listings/plugin/plugin.json description differs from listing.json's one-liner",
+      "listings/plugin/.cursor-plugin/plugin.json description differs from listing.json's one-liner",
+      "listings/claude-connector.json oneLiner differs from listing.json's one-liner",
+      "listings/docker/server.yaml description differs from listing.json's one-liner",
+      "listings/cline-issue.md differs from listing.json's one-liner (it does not carry it)",
+      "listings/awesome-wong2-awesome-mcp-servers.md differs from listing.json's one-liner (it does not carry it)",
+    ]);
+    // A registry description that is not the one-liner, through the generator.
+    const registry = inputs();
+    registry.listing.copy.registry = old;
+    expect(oneSource(registry)).toEqual([
+      "listing.json copy.registry differs from listing.json's one-liner",
+      "server.json description differs from listing.json's one-liner",
+      "listings/plugin/plugin.json description differs from listing.json's one-liner",
+      "listings/plugin/.cursor-plugin/plugin.json description differs from listing.json's one-liner",
+      "listings/docker/server.yaml description differs from listing.json's one-liner",
+    ]);
+    // The README without the recovery line.
+    const { recoveryLine } = inputs().listing.copy;
+    expect(oneSource(inputs(), undefined, readme.replace(`${recoveryLine}\n`, ''))).toEqual([
+      "README.md does not carry listing.json's recoveryLine",
+    ]);
+  });
+
+  it('fails when package.json or any provider keyword list lacks a signed keyword', () => {
+    const drop = (list: string[], ...words: string[]) => list.filter((k) => !words.includes(k));
+    const pkg = inputs();
+    pkg.manifest.keywords = drop(pkg.manifest.keywords, 'surveys');
+    expect(oneSource(pkg)).toEqual(['package.json keywords is missing the signed keywords surveys']);
+    // Through the generator: the provider source lists in listing.json.
+    const providers = inputs();
+    const p = providers.listing.providers;
+    p.cursorPlugin.keywords = drop(p.cursorPlugin.keywords, 'feedback', 'receipts');
+    p.docker.tags = drop(p.docker.tags, 'mcp');
+    expect(oneSource(providers)).toEqual([
+      'listings/plugin/.cursor-plugin/plugin.json keywords is missing the signed keywords receipts, feedback',
+      'listings/docker/server.yaml tags is missing the signed keywords mcp',
+    ]);
+    // A generated keyword list edited after generation.
+    const i = inputs();
+    let files = edit(generate(i), 'listings/plugin/plugin.json', (v) => {
+      v.keywords = drop(v.keywords, 'forms');
+    });
+    const mcpso = 'listings/mcpso-submission.md';
+    files = new Map(files).set(mcpso, files.get(mcpso)!.replace(', surveys\n', '\n'));
+    expect(oneSource(i, files)).toEqual([
+      'listings/plugin/plugin.json keywords is missing the signed keywords forms',
+      'listings/mcpso-submission.md Tags is missing the signed keywords surveys',
     ]);
   });
 });

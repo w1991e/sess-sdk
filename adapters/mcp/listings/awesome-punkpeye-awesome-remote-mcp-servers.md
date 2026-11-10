@@ -19,7 +19,7 @@ Every OWNER: line is for the owner to do, then delete.
 ```markdown
 - [Sess](https://sess.si) `https://mcp.sess.si/mcp`
   [![Sess MCP connector](https://glama.ai/mcp/connectors/si.sess/sess/badges/score.svg)](https://glama.ai/mcp/connectors/si.sess/sess)
-  🔐 - Let your agent ask a person and continue with their answer.
+  🔐 - Let your agent ask people for answers and approvals by link, with signed receipts.
 ```
 
 The list's CI sends an MCP initialize request to https://mcp.sess.si/mcp; a 401 sign-in challenge is the correct answer from our endpoint (founder 2026-11-09 21:36Z).
