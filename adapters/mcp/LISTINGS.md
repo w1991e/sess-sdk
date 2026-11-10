@@ -304,7 +304,10 @@ organization and the Apps Management Write role.
 - On Cursor, a plain "Ask me…" prompt is answered by Cursor's own question panel (founder 2026-11-05,
   C-2). `copy.defaultPrompts` and test-case prompt 1 now name Sess, in his form "Use Sess to ask me …, then tell
   me what I chose." The exact sentences are signed (2026-11-05 05:50Z), and no host has run them. The plugin bundle is
-  shared, so OpenAI's listing receives them too.
+  shared, so OpenAI's listing receives them too. Superseded (founder 2026-11-10 05:04Z: one prompt
+  everywhere): `copy.defaultPrompts` and test-case prompt 1 are now the docs prompt, "Ask me on my
+  phone what time works for a call tomorrow, using Sess.", which names Sess at its end. Cursor has not
+  run it.
 - Submitted 2026-11-06 (02:13Z), awaiting Cursor's review; not listed, not accepted. The founder
   submitted a publisher application at https://cursor.com/marketplace/publish: organization Sess,
   publisher handle `sess`, logo `https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png`, website
@@ -459,7 +462,8 @@ text is `listings/cline-issue.md`; resolve its `OWNER:` lines.
    Drafted, not posted.
 2. Run Cline with only the README (or `llms-install.md`) and record the result in the issue, before
    it opens (founder 2026-11-09 21:36Z). It needs Cline and a model, and the founder runs it; it has
-   not been run. Tick that box only after it passes. The README's Cline section is the path to test.
+   not been run. Tick that box only after it passes. The README's Cline section is the path to test,
+   on the rewritten README (see [README copy](#readme-copy)), once it is signed and merged.
 3. Tick "The server is stable and ready for public use" only if you confirm it.
 4. Open the issue from the owner's account:
    - GitHub Repository URL: `https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp`
@@ -477,7 +481,7 @@ Sess lets you ask a person a question through a Sess link and continue with thei
 1. Add this server to `cline_mcp_settings.json`:
    `{ "mcpServers": { "sess": { "type": "streamableHttp", "url": "https://mcp.sess.si/mcp" } } }`
 2. When Cline connects, sign in with your Sess account in the browser. No key goes in the file.
-3. Try it: "Ask me on my phone which time works for a call tomorrow." Cline shares a Sess link;
+3. Try it: "Ask me on my phone what time works for a call tomorrow, using Sess." Cline shares a Sess link;
    answer it, and Cline reports your choice.
 ```
 
@@ -553,6 +557,46 @@ whether it fits Sess's OAuth.
 
 Not applicable to this server. ClawHub lists the native OpenClaw plugin; see
 `adapters/openclaw/RELEASING.md`.
+
+## README copy
+
+**Signed (founder 2026-11-10 05:04Z), with his three changes** (his instruction of 2026-11-10
+04:00Z: the README rewrite precedes the Cline test). `README.md` opens with the signed one-liner,
+then Install, Run and You'll see, then one section per host in the signed tab order: Claude Code,
+claude.ai, ChatGPT, Grok, Cursor, Antigravity, OpenClaw, Cline, Your own agent. Each section is the
+hosted endpoint first and the local `npx -y @sess.si/mcp@0.2.0` form second, where the host has one.
+Host words are the site's ("Add Sess to your agent"). The sentences the rewrite added (the first
+screen's Install and You'll see lines, the local-form openers "Or run it on your machine. …", Cline's
+local-entry line, the Your own agent lines, the OpenClaw line naming the plugin and the closing
+COMPATIBILITY.md line) are signed with it. His three changes of 05:04Z:
+
+- a. The Run line is the docs prompt, word for word: "Ask me on my phone what time works for a call
+  tomorrow, using Sess." One prompt everywhere: it is also `copy.defaultPrompts` (now that one
+  prompt, replacing the three of 2026-11-05 05:50Z), test-case prompt 1 and the Cline
+  `llms-install.md` draft above. Test-case prompts 2–5 test other behaviour and stay as signed.
+- b. Grok: Grok Build first ("Grok Build: remote MCP": the docs tab's
+  `grok mcp add --transport http sess https://mcp.sess.si/mcp`, its Allow line "Sign in to Sess when
+  Grok Build asks, and choose Allow.", the note "If it doesn't ask, type /mcps, select sess and press
+  i." and, after the Ask step, "Grok Build asks before it uses each Sess tool. Choose Always allow.",
+  the two lines signed 04:36Z), then "grok.com: Connectors" in the docs tab's words.
+- c. The Grok Business and Enterprise sentence is removed. Its source was the docs host matrix of
+  2026-10-18 (docs.x.ai/grok/connectors and docs.x.ai/grok/connector-management, both last updated
+  2026-10-10); the matrix re-read on 2026-11-08 no longer lists connector-management, and the docs
+  tab no longer carries the sentence.
+
+Tested/untested notes, version tuples, Node versions and flag caveats (Claude Code's `-e`
+plain-text storage) moved to `COMPATIBILITY.md`. `tests/listing.test.ts` pins the first screen's
+shape, the Run line's prompt, the host order, Grok Build before grok.com, the exact version in every
+install line and the single COMPATIBILITY.md link.
+
+The repository's root `README.md` short section, **signed** with #61 at b42d910 (founder
+2026-11-10 05:04Z; asked for at 04:50Z item 2: Glama's listing shows the root README), moves to its
+own PR: the root README is packed into the SDK tarball, so changing it needs the deliberate SDK repin
+(`npm run pin:update`, release/) that this PR does not carry. The signed words:
+"## The Sess MCP server" with "Let your agent ask a person and continue with their answer. Add
+`https://mcp.sess.si/mcp` to your agent as an MCP server and sign in to Sess when it asks. Setup for
+each agent is in [adapters/mcp](adapters/mcp).", and a "## The SDK" heading before the SDK's own
+first screen.
 
 ## Open questions
 
