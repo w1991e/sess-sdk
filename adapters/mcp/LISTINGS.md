@@ -391,6 +391,19 @@ connector page.
 - Listing values: name `Sess`; description
   `Let your agent ask a person and continue with their answer.`;
   server URL `https://mcp.sess.si/mcp`; support `ask@sess.si`.
+- **Dockerfile for Glama's safety scan, prepared, not submitted; the founder submits.** The server
+  was submitted as "Runs from source" (`w1991e/sess-sdk`) next to the claimed connector. Source:
+  https://glama.ai/mcp/methodology (read 2026-11-10): each server is built from a Dockerfile, the
+  maintainer's checked into the repository or one Glama infers, runs in a Firecracker sandbox, and is
+  introspected with `tools/list`, `resources/list` and `prompts/list`; listings become discoverable
+  only once a reproducible build succeeds. The page does not name a Dockerfile path or how a
+  subdirectory is chosen; that is set when the founder configures the Docker image on Glama.
+  `Dockerfile` and `.dockerignore` here build from this directory (its own `package-lock.json`,
+  `@sess.si/sdk` from the registry), on `node:24.21.0-bookworm-slim` pinned by digest, with
+  `npm ci --ignore-scripts`, as the `node` user, with no credential, and start the stdio server:
+  `docker build -t sess-mcp adapters/mcp`, then `docker run --rm -i sess-mcp`. Give the scan **no**
+  `SESS_API_KEY`: `initialize` and `tools/list` answer without one, and a tool call returns
+  `NOT_CONFIGURED` with no network request. A placeholder key would make a tool call try the API.
 
 ### mcp.so
 
