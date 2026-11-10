@@ -385,14 +385,17 @@ connector page.
   }
   ```
 
-- **The remote connector.** Claiming `https://mcp.sess.si/mcp` as a connector uses
-  `/.well-known/glama.json` on the server's domain, with a maintainer email (not confirmed from
-  Glama's pages; from the brief). That is a w1991e/sess runtime change: **open question** below.
+- **The remote connector.** Claimed by the founder: ownership verified by DNS on sess.si,
+  publisher profile published (first-party), test profile authorised with the drill account,
+  connection test passed 2026-11-09 22:12Z (founder's message of 2026-11-09 22:21Z). No
+  `/.well-known/glama.json` was needed for the claim.
 - Listing values: name `Sess`; description
   `Let your agent ask a person and continue with their answer.`;
   server URL `https://mcp.sess.si/mcp`; support `ask@sess.si`.
-- **Dockerfile for Glama's safety scan, prepared, not submitted; the founder submits.** The server
-  was submitted as "Runs from source" (`w1991e/sess-sdk`) next to the claimed connector. Source:
+- **Dockerfile for Glama's safety scan, prepared, not submitted; the founder submits.** The founder
+  reported submitting the server on Glama as "Runs from source" (`w1991e/sess-sdk`), next to the
+  claimed connector (his message of 2026-11-10 03:57Z; status "submitted" until Glama's own
+  confirmation). Glama's approval email is expected to ask for this Dockerfile. Source:
   https://glama.ai/mcp/methodology (read 2026-11-10): each server is built from a Dockerfile, the
   maintainer's checked into the repository or one Glama infers, runs in a Firecracker sandbox, and is
   introspected with `tools/list`, `resources/list` and `prompts/list`; listings become discoverable
@@ -553,9 +556,6 @@ Not applicable to this server. ClawHub lists the native OpenClaw plugin; see
 
 ## Open questions
 
-- **Glama connector claim.** Serving `/.well-known/glama.json` with a maintainer email on
-  `mcp.sess.si` is a w1991e/sess runtime change, and the email is published. Is that wanted, or is
-  the repository claim enough?
 - **Docker OAuth.** Docker's remote entries name an OAuth `provider` and a stored `secret`, the
   pattern of a client registered with Docker in advance. Sess registers clients by client-ID
   metadata documents and dynamic client registration and has no pre-registered client secret.
