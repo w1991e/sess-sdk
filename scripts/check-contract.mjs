@@ -15,9 +15,13 @@ if (version !== lock.generator_version) throw new Error('Contract generator vers
 const config = await prettier.resolveConfig('src/generated/openapi.ts');
 // The snapshot's descriptions cite the runtime repository's internal document paths
 // (DOCS/spec/<name>.md). The generated JSDoc ships in the package's .d.ts, so it names the
-// specification instead (scripts/check-packed-hygiene.mjs refuses internal paths). Types are unchanged.
+// specification instead (scripts/check-packed-hygiene.mjs refuses internal paths). They also cite
+// the dated ruling behind a rule, e.g. "(founder 2026-10-24 00:25Z item 9)"; the shipped JSDoc
+// keeps the rule and drops that internal citation. Types are unchanged.
 const publicDescriptions = (text) =>
-  text.replace(/DOCS\/spec\/([a-z0-9-]+)\.md/g, 'the Sess $1 specification');
+  text
+    .replace(/DOCS\/spec\/([a-z0-9-]+)\.md/g, 'the Sess $1 specification')
+    .replace(/ \(founder \d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}Z)?(?: item \d+)?\)/g, '');
 const generated = await prettier.format(publicDescriptions(astToString(await openapiTS(JSON.parse(bytes)))), {
   ...config,
   parser: 'typescript',
