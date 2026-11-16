@@ -4,6 +4,7 @@ SDK version: **0.3.0**, published on npm under the `latest` dist-tag with proven
 [release/sdk-candidate.json](../release/sdk-candidate.json): receipt v2 and bundle-v2 verification,
 with receipt v1 and bundle-v1 verified as before. Its `revision_envelope` types are written by hand
 from the Sess contract (Sess commit `c67c792`) until the reviewed snapshot carries them.
+**0.3.1** is prepared, not yet published ([release/sdk-next-candidate.json](../release/sdk-next-candidate.json)): `verifyWebhook` accepts a Sess Ask's webhook messages (`ask_id` on `response.accepted`; `ask.closed`).
 **0.2.0** remains published: the rating field and respondents (the
 Ask) in `sess.ask`. Their types (the field's `rating`, `/v1/asks`) are written by hand from the
 Sess contract until the reviewed snapshot carries them. **0.1.1** remains published; its API is

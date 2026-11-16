@@ -56,7 +56,8 @@ at that tag and publishes only those bytes.
 
 A prepared, unpublished version is recorded in `release/sdk-next-candidate.json` while one
 exists; consumers stay on the
-published pin until the registry transition. No version is prepared now. The last published
+published pin until the registry transition. **`0.3.1` is prepared now** (the Ask webhook fix):
+its packet is [`release/v0.3.1-packet.md`](../release/v0.3.1-packet.md). The last published
 version's packet is [`release/v0.3.0-packet.md`](../release/v0.3.0-packet.md).
 
 ## Selected publishing mode
