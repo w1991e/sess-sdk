@@ -84,6 +84,7 @@ const BEFORE = {
     'verifyDecisionReceipt',
   ],
   './webhooks': [
+    'AskClosed',
     'VerifiedWebhook',
     'VerifyWebhookOptions',
     'WebhookChallenge',
