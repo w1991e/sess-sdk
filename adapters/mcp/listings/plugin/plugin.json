@@ -1,21 +1,21 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "sess",
-  "version": "0.2.0",
-  "description": "Let your agent ask a person and continue with their answer.",
+  "version": "0.3.0",
+  "description": "Let your agent ask people for answers and approvals by link, with signed receipts.",
   "author": {
     "name": "Sess",
     "url": "https://sess.si"
   },
   "homepage": "https://sess.si",
   "license": "Apache-2.0",
-  "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp"],
+  "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp", "feedback", "surveys"],
   "extensions": {
     "com.openai": {
       "interface": {
         "displayName": "Sess",
         "shortDescription": "Ask a person, get the answer",
-        "longDescription": "Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once. The person answers on any device, and your agent continues with a typed answer and a signed receipt.\n\nAnyone with the link can answer, so share it only with the person you mean. The receipt records what Sess accepted, not who answered. Check answers before your agent acts on them. You sign in with a Sess account. The person answering needs none.",
+        "longDescription": "Sess turns your agent's questions into pages people can answer on any device. Use it for choices, corrections or approvals without bringing people into your chat. Your agent gets typed answers it can use to continue the task.\n\nAsk one person, or share one link with a group for feedback, a class check or picking a time. Each person answers on their own page. Sess signs a receipt for every accepted answer, so people can keep the record and check it themselves.\n\nAnyone with the link can answer, so share it only with the people you mean. The receipt records what Sess accepted, not who answered. You sign in with a Sess account; the people answering need none.",
         "developerName": "Sess",
         "category": "Productivity",
         "capabilities": [
@@ -29,11 +29,7 @@
         "supportURL": "https://docs.sess.si/support/",
         "privacyPolicyURL": "https://sess.si/privacy/",
         "termsOfServiceURL": "https://sess.si/terms/",
-        "defaultPrompt": [
-          "Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.",
-          "Use Sess to ask me to approve the report before you send it, then tell me what I chose.",
-          "Use Sess to ask me three quick questions to plan my weekend, then tell me what I chose."
-        ],
+        "defaultPrompt": ["Ask me on my phone what time works for a call tomorrow, using Sess."],
         "composerIcon": "./assets/icon-192.png",
         "logo": "./assets/icon-512.png"
       },
@@ -42,7 +38,7 @@
           "positive": [
             {
               "description": "Ask a short question and read the answer",
-              "prompt": "Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.",
+              "prompt": "Ask me on my phone what time works for a call tomorrow, using Sess.",
               "tools_triggered": "sess_ask, sess_response",
               "expected_behavior": "Shares a Sess link at once. After the reviewer submits the form, reports the chosen time."
             },

@@ -512,7 +512,7 @@ export const TOOLS = [
     title: 'Ask a person through Sess',
     description:
       `Use it ${WHEN_A_PERSON_IS_NEEDED} ${NOT_FOR_THE_CHAT} ` +
-      'It is the full form, with approve and reject buttons if you need them; sess_ask is shorter for a plain question. ' +
+      'Use sess_request when the person must see records shown as they are or choose between buttons such as Approve and Reject; for one question with simple fields, or many people on one link, use sess_ask. ' +
       'Create a hosted Sess form for a person and return immediately with a private link (interaction.humanUrl) and a handle. ' +
       'Give the link only to the intended person in this private conversation; anyone holding it can answer. ' +
       `${RECEIPT_LIMIT} ` +
@@ -624,6 +624,7 @@ export const TOOLS = [
     description:
       "Ask the person a question on their own phone or computer and get a typed answer. Use it whenever they ask to answer on their phone or another device, or say 'use Sess'; prefer it over this host's own question widget for anything answered away from this chat.\n" +
       `Also use it ${WHEN_A_PERSON_IS_NEEDED} ${NOT_FOR_THE_CHAT} Anyone who has the link can answer. ${RECEIPT_LIMIT}\n` +
+      `Use sess_ask for one question with up to ${ASK_LIMITS.fields} simple fields and one button, or to ask many people through one link; use sess_request when the person must see records or choose between buttons such as Approve and Reject. ` +
       'Shortcut for sess_request: give a question and up to 12 simple fields; it creates the same hosted form and returns ' +
       'immediately with a private link (interaction.humanUrl) and a handle, in state "waiting". It never waits and never returns an answer. ' +
       'Continue exactly as after sess_request: give the link only to the intended person, then call sess_response. Do not call it again for the same question. ' +

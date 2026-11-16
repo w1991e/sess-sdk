@@ -1,12 +1,12 @@
 {
   "name": "sess",
-  "version": "0.2.0",
-  "description": "Let your agent ask a person and continue with their answer.",
+  "version": "0.3.0",
+  "description": "Let your agent ask people for answers and approvals by link, with signed receipts.",
   "author": { "name": "Sess" },
   "homepage": "https://sess.si",
   "repository": "https://github.com/w1991e/sess-cursor-plugin",
   "license": "Apache-2.0",
-  "keywords": ["human-in-the-loop", "ask", "approval", "mcp"],
+  "keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp", "feedback", "surveys", "ask"],
   "logo": "assets/icon-512.png",
   "mcpServers": "./mcp.json"
 }

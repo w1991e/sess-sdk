@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { stderrDiagnostics } from '../src/errors.js';
 import { createSessMcpServer } from '../src/server.js';
 import { TOOLS, TOOL_SCHEMA_VERSION } from '../src/tools.js';
+import { ASK_LIMITS } from '../src/validate.js';
 import { ANSWER_1, FakeSess, ROUND_1, acceptingVerifier, clientFor, env, tempDir } from './helpers.js';
 
 let dir: ReturnType<typeof tempDir>;
@@ -88,9 +89,38 @@ describe('MCP server', () => {
         'Not for clarifying what they just asked, or for anything you can work out yourself. ' +
         'Anyone who has the link can answer. A receipt records what was shown and chosen, not who answered.',
     );
+    // 0.3.0: the signed choice sentence (founder 2026-11-10 05:04Z item 2) now opens the
+    // mechanics line, before the unchanged "Shortcut for sess_request" sentence.
     expect(rest.join('\n')).toMatch(
-      /^Shortcut for sess_request: give a question and up to 12 simple fields;/,
+      new RegExp(
+        '^' +
+          (SIGNED_ASK_CHOICE + ' ').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+          'Shortcut for sess_request: give a question and up to 12 simple fields;',
+      ),
     );
+  });
+
+  // Signed verbatim (founder 2026-11-10 05:04Z item 2): one sentence in each description tells
+  // the host which of sess_ask and sess_request to use.
+  const SIGNED_ASK_CHOICE =
+    'Use sess_ask for one question with up to 12 simple fields and one button, or to ask many people through one link; use sess_request when the person must see records or choose between buttons such as Approve and Reject.';
+  const SIGNED_REQUEST_CHOICE =
+    'Use sess_request when the person must see records shown as they are or choose between buttons such as Approve and Reject; for one question with simple fields, or many people on one link, use sess_ask.';
+  it('carries the signed sess_ask / sess_request choice sentence in each description, once and verbatim', async () => {
+    const { client } = await connect(new FakeSess());
+    const { tools } = await client.listTools();
+    const ask = tools.find((t) => t.name === 'sess_ask')!.description!;
+    const request = tools.find((t) => t.name === 'sess_request')!.description!;
+    expect(ask.split(SIGNED_ASK_CHOICE)).toHaveLength(2);
+    expect(request.split(SIGNED_REQUEST_CHOICE)).toHaveLength(2);
+    expect(ask).not.toContain(SIGNED_REQUEST_CHOICE);
+    expect(request).not.toContain(SIGNED_ASK_CHOICE);
+    // The "12" in the signed words is the sess_ask field cap.
+    expect(ASK_LIMITS.fields).toBe(12);
+    const askTool = TOOLS.find((t) => t.name === 'sess_ask')!;
+    expect((askTool.inputSchema.properties as any).fields.maxItems).toBe(12);
+    // The sentence it replaced in sess_request is gone.
+    expect(request).not.toContain('sess_ask is shorter for a plain question');
   });
 
   it('routes an approval, a decision or details only a person can give to sess_request, with its limits (F-LT-1)', async () => {
@@ -101,7 +131,9 @@ describe('MCP server', () => {
       new RegExp(
         "^Use it when you need the person's approval, a decision or details only they can give before you go on, even if they only say 'ask me' or 'check with me' and name no tool or device\\. " +
           'Not for clarifying what they just asked, or for anything you can work out yourself\\. ' +
-          'It is the full form, with approve and reject buttons if you need them; sess_ask is shorter for a plain question\\. ' +
+          // 0.3.0: the signed choice sentence replaces "It is the full form, with approve and
+          // reject buttons if you need them; sess_ask is shorter for a plain question."
+          'Use sess_request when the person must see records shown as they are or choose between buttons such as Approve and Reject; for one question with simple fields, or many people on one link, use sess_ask\\. ' +
           'Create a hosted Sess form for a person and return immediately',
       ),
     );

@@ -30,4 +30,9 @@ export function validate(
 export function pngSize(bytes: Uint8Array | undefined): { width: number; height: number } | undefined;
 export function checkIconFiles(listing: any, read: (path: string) => Uint8Array | undefined): string[];
 export function checkPackets(listing: any, text: string): string[];
+export function checkOneSource(
+  inputs: Pick<ListingInputs, 'listing' | 'manifest'>,
+  files: Map<string, string>,
+  readme: string,
+): string[];
 export function readSchemas(listing: any, base?: string): SchemaTexts;
