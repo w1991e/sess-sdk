@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.1 — 2026-11-16
+
+- Fix: `verifyWebhook` refused the webhook messages Sess sends for a Sess Ask, with
+  `WEBHOOK_INVALID_PAYLOAD`. It now accepts them:
+  - `response.accepted` for one respondent to an Ask carries `ask_id` (`ask_…`) beside
+    `session_id`. The member is checked as an Ask ID and returned as `WebhookEvent.ask_id`. Any
+    other Session's message is unchanged and has no `ask_id`.
+  - `ask.closed` is its own message: exactly `type`, `event_id`, `ask_id`, `closed_by` (`max` or
+    `owner`), `started` and `closed_at`, each checked, its `event_id` equal to the `webhook-id`
+    header. It is returned as the new exported type `AskClosed`; `VerifiedWebhook` is now the
+    union of `WebhookEvent`, `AskClosed` and `WebhookChallenge`. Code that narrows on `type` and
+    treats every message that is not a challenge as `response.accepted` should check for
+    `ask.closed` too.
+- Nothing else changes: unknown members are still refused, and the signature, timestamp and
+  body rules are as before. The runtime dependencies are unchanged. The default `User-Agent`
+  names the new version.
+
 ## 0.3.0 — 2026-11-08
 
 - Receipt v2: `verifyDecisionReceipt` and `receipts.verifyResponse()` verify receipts of type

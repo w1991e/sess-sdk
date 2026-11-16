@@ -17,11 +17,27 @@ import type { RevisionEnvelope } from '../receipts/envelope.js';
  * `receipt` (receipt-v2 §10); a receipt v1's message has no such member.
  */
 export type WebhookEvent = components['schemas']['WebhookDelivery'] & {
+  /** Only for a respondent of a Sess Ask: the Ask's ID (`ask_…`). */
+  ask_id?: string;
   /** Beside a receipt v2 only: the revision envelope the receipt commits to. */
   revision_envelope?: RevisionEnvelope;
 };
+/** An `ask.closed` delivery: a Sess Ask closed. Its `event_id` equals the `webhook-id` header. */
+export interface AskClosed {
+  type: 'ask.closed';
+  /** Stable across retries and redeliveries: deduplicate on it. */
+  event_id: string;
+  /** The Ask's ID (`ask_…`). */
+  ask_id: string;
+  /** `max`: the last place was started; `owner`: you closed it. */
+  closed_by: 'max' | 'owner';
+  /** How many people had started when it closed. */
+  started: number;
+  /** When it closed (ISO 8601, milliseconds, UTC). */
+  closed_at: string;
+}
 export type WebhookChallenge = components['schemas']['WebhookVerification'];
-export type VerifiedWebhook = DeepReadonly<WebhookEvent | WebhookChallenge>;
+export type VerifiedWebhook = DeepReadonly<WebhookEvent | AskClosed | WebhookChallenge>;
 export type WebhookHeaders = Headers | Readonly<Record<string, string | readonly string[] | undefined>>;
 
 export interface VerifyWebhookOptions {
@@ -42,6 +58,7 @@ const MAX_SECRETS = 4;
 const SECRET = /^whsec_[A-Za-z0-9+/]{43}=$/;
 const EVENT_ID = /^evt_[0-9A-HJKMNP-TV-Z]{26}$/;
 const SESSION_ID = /^ses_[0-9A-HJKMNP-TV-Z]{26}$/;
+const ASK_ID = /^ask_[0-9A-HJKMNP-TV-Z]{26}$/;
 
 function failure(code: string, message: string): SessError {
   return new SessError('protocol', message, { code, operation: 'webhooks.verify' });
@@ -214,6 +231,28 @@ export function verifyWebhook(
     }
     return deepFreeze(value) as DeepReadonly<WebhookChallenge>;
   }
+  if (value.type === 'ask.closed') {
+    if (
+      !exactKeys(value, ['type', 'event_id', 'ask_id', 'closed_by', 'started', 'closed_at']) ||
+      typeof value.event_id !== 'string' ||
+      !EVENT_ID.test(value.event_id) ||
+      value.event_id !== id ||
+      typeof value.ask_id !== 'string' ||
+      !ASK_ID.test(value.ask_id) ||
+      (value.closed_by !== 'max' && value.closed_by !== 'owner') ||
+      !Number.isSafeInteger(value.started) ||
+      (value.started as number) < 0 ||
+      checkedInstant(value.closed_at) === undefined
+    ) {
+      throw failure(
+        'WEBHOOK_INVALID_PAYLOAD',
+        'The ask.closed webhook event is malformed or does not match its transport identity.',
+      );
+    }
+    return deepFreeze(value) as unknown as DeepReadonly<AskClosed>;
+  }
+  // A respondent of an Ask carries its `ask_id`; every other Session's message has no such member.
+  const withAsk = Object.hasOwn(value, 'ask_id');
   // A receipt v2's message carries its revision envelope beside the receipt; a receipt v1's has
   // exactly the members it always had. The envelope itself is judged by receipt verification.
   const withEnvelope = Object.hasOwn(value, 'revision_envelope');
@@ -229,8 +268,10 @@ export function verifyWebhook(
       'data',
       'accepted_at',
       'receipt',
+      ...(withAsk ? ['ask_id'] : []),
       ...(withEnvelope ? ['revision_envelope'] : []),
     ]) ||
+    (withAsk && (typeof value.ask_id !== 'string' || !ASK_ID.test(value.ask_id))) ||
     (withEnvelope && (!isRecord(value.revision_envelope) || typeof value.receipt !== 'string')) ||
     typeof value.event_id !== 'string' ||
     !EVENT_ID.test(value.event_id) ||
