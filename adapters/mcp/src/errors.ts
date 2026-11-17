@@ -142,6 +142,7 @@ export const SESS_ERROR_KINDS = [
   'protocol',
   'unknown_outcome',
   'receipt_verification',
+  'receipt_newer',
   'wait_ended',
 ] as const;
 
@@ -174,6 +175,7 @@ export const SESS_ERROR_CODES = [
   'PLAN_LIMIT_REACHED',
   'PRECONDITION_REQUIRED',
   'RATE_LIMITED',
+  'RECEIPT_NEWER',
   'RECORD_BINDING_MISMATCH',
   'REDIRECT_REFUSED',
   'RESPONSE_LIMIT_REACHED',
