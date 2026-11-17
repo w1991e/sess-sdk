@@ -200,7 +200,6 @@ function parse(argv: readonly string[]): Parsed | 'help' {
 const REASON_TEXT: Record<string, string> = {
   malformed: 'the file is not a decision bundle (bundle-v1 or bundle-v2)',
   oversized: 'the bundle exceeds a decision bundle size bound',
-  unsupported_version: 'Update @sess.si/sdk to check it. Nothing in it was checked.',
   receipt_malformed: 'the receipt cannot be read',
   algorithm: 'the receipt does not use the EdDSA algorithm',
   missing_kid: 'the receipt names no key',
@@ -250,8 +249,8 @@ function summary(r: DecisionBundleVerification, renderer?: RendererCheck): strin
     if (renderer) row('Renderer', `${safe(c.surface.renderer_version)} (listed)`);
   } else if (r.reason === 'unsupported_version') {
     // A later bundle version, receipt type or revision envelope: newer, never a damaged file.
-    lines.push(`Newer decision bundle: this bundle is newer than @sess.si/sdk ${SDK_VERSION}.`);
-    lines.push(`  ${REASON_TEXT.unsupported_version}`);
+    // The Sess founder's line (2026-11-17 22:48Z item 6), complete on its own.
+    lines.push(`This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`);
   } else {
     lines.push(`Invalid decision bundle: ${r.reason}`);
     lines.push(`  ${REASON_TEXT[r.reason ?? ''] ?? ''}`);

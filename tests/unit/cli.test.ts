@@ -119,7 +119,7 @@ const firstLineFor = (o: FrozenOutcome) =>
   o.valid
     ? 'Valid decision bundle.'
     : o.reason === 'unsupported_version'
-      ? `Newer decision bundle: this bundle is newer than @sess.si/sdk ${SDK_VERSION}.`
+      ? `This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`
       : `Invalid decision bundle: ${o.reason}`;
 
 /** Strings that must never appear in CLI output for a vector. */
@@ -247,8 +247,8 @@ describe('sess verify <file>', () => {
       const human = await sess([...base(id), '--now', CORPUS_NOW.toISOString()]);
       expect([human.code, human.stderr], id).toEqual([3, '']);
       expect(human.stdout.split('\n').slice(0, 2)).toEqual([
-        `Newer decision bundle: this bundle is newer than @sess.si/sdk ${SDK_VERSION}.`,
-        '  Update @sess.si/sdk to check it. Nothing in it was checked.',
+        `This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`,
+        `  Checked at  ${CORPUS_NOW.toISOString()}`,
       ]);
       const json = await sess([...base(id), '--now', CORPUS_NOW.toISOString(), '--json']);
       expect(json.code).toBe(3);
