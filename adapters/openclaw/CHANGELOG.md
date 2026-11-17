@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.1.0 — 2026-11-01
+## Unreleased
+
+For 0.2.0 on `@sess.si/sdk` 0.4.0 (unpublished; the dependency moves at its registry transition).
+
+- A receipt newer than this plugin can check (the SDK's `receipt_newer`, code `RECEIPT_NEWER`: a
+  later Sess receipt type, or a revision envelope above `sess_revision: 2`) is a new tool error,
+  `RECEIPT_NEWER`, class `configuration`: "This receipt is newer than @sess.si/openclaw
+  <version>. Update @sess.si/openclaw to check it. No answer data was returned." It is never
+  `VERIFICATION_FAILED` and never blocks. `sess_response` releases no answer data with it and
+  records nothing; `sess_publish` and `sess_complete`, which verify the answer again before
+  advancing, send nothing. After an update, the same handle proceeds. On `@sess.si/sdk` 0.3.0 a
+  newer receipt cannot be told from a bad one: it blocks the interaction with
+  `VERIFICATION_FAILED`.
 
 - The first stable release, published to the `latest` dist-tag. `next` stays at the last release
   candidate, `0.1.0-rc.5`. The tools, their arguments and their results are those of

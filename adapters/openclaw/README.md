@@ -171,6 +171,7 @@ one class of the shared adapter contract:
 | `CANCELLED`                | `unavailable`         | The local wait was cancelled; nothing was cancelled in Sess            |
 | `AUTHORITY_REVOKED`        | `unavailable`         | The host revoked this invocation; see the note below                   |
 | `PROTOCOL_ERROR`           | `configuration`       | Sess returned an invalid response; not retryable, nothing changed      |
+| `RECEIPT_NEWER`            | `configuration`       | The receipt is newer than this plugin; update it. Nothing was returned |
 | `CONFIGURATION`            | `configuration`       | Plugin configuration is invalid or incomplete                          |
 | `CREDENTIAL_MISSING`       | `configuration`       | The API key variable is not set in the Gateway process                 |
 | `HOST_CAPABILITY_MISSING`  | `configuration`       | The OpenClaw host lacks a required capability                          |
