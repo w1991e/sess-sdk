@@ -127,6 +127,13 @@ observation reports a conflict.
 - `receipt_verification` with `KEY_RESOLUTION_FAILED` or `KEY_FETCH_COOLDOWN` → retryable
   unavailable. `VERIFICATION_CONTEXT_MISSING` → configuration error naming the expected-workspace
   setting. Neither records anything nor changes state.
+- `receipt_newer` (`RECEIPT_NEWER`, @sess.si/sdk 0.4.0 and later: a receipt type or revision
+  envelope newer than the installed SDK reads) → the adapter's `RECEIPT_NEWER` error, class
+  `configuration`: not retryable until the package is updated; it records nothing, changes no state
+  and releases no answer data; never `verification_failed` or `blocked`. Its message is "This receipt
+  is newer than {package} {version}. Update {package} to check it. No answer data was returned."
+  (Sess founder 2026-11-17 16:02Z item 4b), with the adapter's own package name and version. The
+  same applies to the re-verification before publish or complete: nothing is sent.
 - **Currentness at release.** Receipt verification proves a retained historical answer, not
   that its revision is still current. After verification succeeds, and again before re-releasing a
   cached `answered` result, the adapter performs a fresh authenticated read of the Session and
@@ -137,7 +144,7 @@ observation reports a conflict.
   `blocked`; in every such case no answer data is released. Local
   generation, revision and state are re-checked with compare-and-apply after every await; a stale
   observation never overwrites a concurrently changed local record and reports a conflict.
-- Every other `receipt_verification` code → `blocked` with a verification-failed error. This
+- Every other `receipt_verification` code (that is, not `receipt_newer`, above) → `blocked` with a verification-failed error. This
   includes `UNKNOWN_KEY_ID`, which fails closed: during a signing-key rotation inside the SDK's key
   refresh cooldown a valid answer can block and needs operator review (documented limitation).
 - Other SDK errors during the read, wait or verification (`api`, `transport`, `timeout`,
@@ -235,7 +242,8 @@ inputs only and are not shipped in either package.
 Recorded once both adapters had landed. Decisions:
 
 - Extract now, as shared pure logic: canonical JSON with its body digest, and verification-error
-  classification (`transient | configuration | genuine | other`).
+  classification (`transient | configuration | genuine | newer | other`; `newer` added with sdk
+  0.4.0's `receipt_newer`).
 - Extract later, after the rules above are aligned: interaction validation and its limits.
 - Never share: host binding/authority, storage, tool schemas and result packaging, diagnostics.
   These are host contracts; drift is caught by tests against this document instead.
