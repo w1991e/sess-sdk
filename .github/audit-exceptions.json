@@ -1,0 +1,10 @@
+{
+  "exceptions": [
+    {
+      "id": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "reason": "development and test toolchain only; the globs it parses come from our own configuration",
+      "until": "2026-11-24T17:18:00Z"
+    }
+  ]
+}
