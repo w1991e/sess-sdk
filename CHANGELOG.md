@@ -16,6 +16,8 @@
 - Nothing else changes: unknown members are still refused, and the signature, timestamp and
   body rules are as before. The runtime dependencies are unchanged. The default `User-Agent`
   names the new version.
+- Note on 0.3.0: its receipt v2 support reads a draft envelope (`sess_revision: 1`) that Sess
+  never issued. The receipt v2 Sess issues is read from 0.4.0.
 
 ## 0.3.0 — 2026-11-08
 

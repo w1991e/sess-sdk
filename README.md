@@ -121,9 +121,9 @@ async function askShort(question: string) {
 ```
 
 **Release status:** `0.3.1` is the current release, served under the `latest` dist-tag. It
-verifies receipt v2, which commits to the record of the round it answered, and still verifies
-receipt v1; its `verifyWebhook` accepts a Sess Ask's webhook messages. `next` stays at the last release candidate,
-`0.1.0-rc.10`. The [changelog](CHANGELOG.md) describes each version; `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
+verifies the receipts Sess issues today (receipt v1) and accepts a Sess Ask's webhook messages.
+Receipt v2, which Sess has not issued yet, is read from `0.4.0`; no earlier version can read it.
+`next` stays at the last release candidate, `0.1.0-rc.10`. The [changelog](CHANGELOG.md) describes each version; `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
 
 ## Commerce
 
