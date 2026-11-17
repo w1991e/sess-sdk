@@ -48,7 +48,7 @@ export function bodyDigest(value: unknown): string {
   return createHash('sha256').update(canonicalJson(value), 'utf8').digest('hex');
 }
 
-export type VerificationClass = 'transient' | 'configuration' | 'genuine' | 'other';
+export type VerificationClass = 'transient' | 'configuration' | 'genuine' | 'newer' | 'other';
 
 const TRANSIENT_VERIFICATION_CODES: ReadonlySet<string> = new Set([
   'KEY_RESOLUTION_FAILED',
@@ -58,12 +58,15 @@ const CONFIGURATION_VERIFICATION_CODES: ReadonlySet<string> = new Set(['VERIFICA
 
 /**
  * Classifies an error thrown by `client.receipts.verifyResponse`. Only `genuine` failures block an
- * interaction; `transient` and `configuration` record nothing and change no state; `other` is
- * handled by the adapter's ordinary SDK error mapping.
+ * interaction; `transient`, `configuration` and `newer` record nothing and change no state; `other`
+ * is handled by the adapter's ordinary SDK error mapping. `newer` is a receipt newer than the
+ * installed SDK can check (@sess.si/sdk 0.4.0 and later: kind `receipt_newer`, code
+ * `RECEIPT_NEWER`). It is never a verification failure, and no answer data is released with it.
  */
 export function classifyVerification(error: unknown): VerificationClass {
   if (!error || typeof error !== 'object') return 'other';
   const { kind, code } = error as { kind?: unknown; code?: unknown };
+  if (kind === 'receipt_newer') return 'newer';
   if (kind !== 'receipt_verification') return 'other';
   if (typeof code === 'string' && TRANSIENT_VERIFICATION_CODES.has(code)) return 'transient';
   if (typeof code === 'string' && CONFIGURATION_VERIFICATION_CODES.has(code)) return 'configuration';

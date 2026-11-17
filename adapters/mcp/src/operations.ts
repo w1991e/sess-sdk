@@ -10,7 +10,13 @@ import {
   type PublishSessionRequest,
 } from '@sess.si/sdk';
 import { loadConfig, type AdapterConfig } from './config.js';
-import { AdapterError, lengthMessage, type Diagnostics, type LengthDetail } from './errors.js';
+import {
+  AdapterError,
+  lengthMessage,
+  receiptNewerMessage,
+  type Diagnostics,
+  type LengthDetail,
+} from './errors.js';
 import {
   ProfileHandleStore,
   RECORD_SCHEMA,
@@ -302,6 +308,15 @@ function planLimitRefusal(error: unknown): boolean {
 function sessCode(error: unknown): string {
   if (error instanceof SessError) return `${error.kind}${safeCode(error) ? `/${safeCode(error)}` : ''}`;
   return 'unexpected';
+}
+
+/**
+ * A receipt newer than this package can check (SDK kind `receipt_newer`, code `RECEIPT_NEWER`):
+ * class `configuration` (adapters/CONTRACT.md): not retryable until the package is updated, no state
+ * change, nothing released. Never `VERIFICATION_FAILED` and never a block.
+ */
+function receiptNewer(): AdapterError {
+  return new AdapterError('RECEIPT_NEWER', receiptNewerMessage());
 }
 
 /** Saving after a confirmed create failed: the Session exists, so the call must not be repeated. */
@@ -720,6 +735,12 @@ export class SessMcpAdapter {
             'NOT_CONFIGURED',
             'The answers cannot be verified because no trusted workspace is known. Set SESS_EXPECTED_WORKSPACE_ID in the MCP server environment and call sess_response again. Nothing was released or changed.',
           );
+        // Newer than this package can check: not a verification failure. No answer of this read
+        // is released, nothing is cached or recorded, and the same read succeeds once updated.
+        if (verification === 'newer') {
+          this.#options.diagnostics('receipt_newer', { code: sessCode(error) });
+          throw receiptNewer();
+        }
         if (verification === 'genuine') {
           this.#options.diagnostics('verification_failed', { code: sessCode(error) });
           throw new AdapterError(
@@ -871,6 +892,14 @@ export class SessMcpAdapter {
           'NOT_CONFIGURED',
           'The answer cannot be verified because no trusted workspace is known. This Sess runtime does not return Sess-Workspace-Id; set SESS_EXPECTED_WORKSPACE_ID in the MCP server environment and call sess_response again. Nothing was accepted or changed.',
         );
+      }
+      if (verification === 'newer') {
+        // The receipt is newer than this package can check (a later Sess receipt type or revision
+        // envelope). That is not a verification failure: the interaction is not blocked, no answer
+        // data is released or recorded, and the state is unchanged, so the same handle releases the
+        // answer once @sess.si/mcp is updated.
+        this.#options.diagnostics('receipt_newer', { code: sessCode(error) });
+        throw receiptNewer();
       }
       if (verification === 'genuine') {
         this.#options.diagnostics('verification_failed', { code: sessCode(error) });
