@@ -11,8 +11,8 @@ transition). Tool schemas stay `sess-mcp-tools/5`.
   <version>. Update @sess.si/mcp to check it. No answer data was returned." It is never
   `VERIFICATION_FAILED` and never blocks. `sess_response` releases no answer data with it, for one
   person or for any respondent of an Ask, and records nothing; after an update the same handle
-  releases the answer. Earlier releases, on `@sess.si/sdk` 0.3.0 and before, cannot tell a newer
-  receipt from a bad one and block the interaction with `VERIFICATION_FAILED`.
+  releases the answer. On `@sess.si/sdk` 0.3.0 a newer receipt cannot be told from a bad one: it
+  blocks the interaction with `VERIFICATION_FAILED`.
 
 Prepared, not yet published. Tool schemas stay `sess-mcp-tools/5`; the five tool names are
 unchanged.
