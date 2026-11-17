@@ -13,9 +13,9 @@ type RecordValue = string | number | boolean | null;
 
 /** Common input of the five builders: the items input plus the page around it. */
 export interface BillInput extends ItemsInput {
-  /** The page's heading, about 40 characters; at most 80. Each builder has a default. */
+  /** The page's heading, about 40 characters; at most 60. Each builder has a default. */
   readonly title?: string;
-  /** Optional context under the title, one or two sentences; at most 280. */
+  /** Optional context under the title, one or two sentences; at most 200. */
   readonly description?: string;
   /** Advanced: the BCP 47 locale the page formats amounts in (default: the page's language). */
   readonly locale?: string;
@@ -37,13 +37,13 @@ export interface BillInput extends ItemsInput {
 export type RefundInput = Omit<BillInput, 'payments'>;
 
 const LIMITS = Object.freeze({
-  title: 80,
-  description: 280,
-  recordKey: 40,
+  title: 60,
+  description: 200,
+  recordKey: 30,
   recordValue: 200,
   recordFields: 50,
   actions: 5,
-  actionLabel: 24,
+  actionLabel: 16,
 });
 const ACTION_ID = /^[a-z][a-z0-9_]{0,31}$/;
 const INTENTS = ['submit', 'continue', 'approve', 'reject', 'request_change'] as const;

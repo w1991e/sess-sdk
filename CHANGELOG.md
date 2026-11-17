@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+Prepared, not released; the version is not yet chosen.
+
+- Sess's 2026-11-07 Surface text limits, in Unicode code points: title (`ask()`'s `question`) 60,
+  was 80; description 200, was 280; heading 40, was 60; field label 40, was 60; option label and
+  `ask()` option 30, was 60; field help 120, was 160; button (`submit_label`, action `label`) 16,
+  was 24; record key 30, was 40; items row name (`ITEMS_LIMITS.name`) 30, was 80. Text 4,000,
+  record caption and string value 200 and a rating's end labels 24 are unchanged. A longer value
+  is refused with its `field`, `limit` and `length`, never truncated.
+- `ask()`'s `details` is now the page's description, under the question, at most 200 (it was a
+  text component above the fields, at most 4,000).
+
 ## 0.3.0 — 2026-11-08
 
 - Receipt v2: `verifyDecisionReceipt` and `receipts.verifyResponse()` verify receipts of type

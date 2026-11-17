@@ -48,7 +48,8 @@ describe('MCP server', () => {
     ]);
     for (const tool of tools) {
       expect(tool.inputSchema.additionalProperties).toBe(false);
-      expect(tool._meta?.['si.sess/toolSchema']).toBe('sess-mcp-tools/5');
+      // Changed: sess-mcp-tools/6, Sess #1086's text limits.
+      expect(tool._meta?.['si.sess/toolSchema']).toBe('sess-mcp-tools/6');
       expect(tool.outputSchema).toBeDefined();
       expect(Object.keys(tool.inputSchema.properties ?? {})).not.toEqual(
         expect.arrayContaining(['api_key', 'origin', 'session_id', 'workspace_id']),
@@ -232,6 +233,9 @@ describe('MCP server', () => {
     // sess_response return `interaction.ask` and the state `closed`. sess_request, sess_publish and
     // sess_complete are unchanged. Renewed again within the unreleased sess-mcp-tools/5: the
     // field's `rating` description in sess_request and sess_publish is Sess's signed RT-08 text.
+    // Renewed for sess-mcp-tools/6 (Sess #1086's 2026-11-07 text limits): every tool's meta names
+    // the new version; sess_request, sess_publish and sess_ask carry the new maxLength values and
+    // their lines, and sess_ask's details is the description (200).
     const contract = Object.fromEntries(
       TOOLS.map(({ name, description: _, ...rest }) => [
         name,
@@ -240,13 +244,13 @@ describe('MCP server', () => {
           .digest('hex'),
       ]),
     );
-    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/5');
+    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/6');
     expect(contract).toEqual({
-      sess_request: '8afdc53bd4fbfc2cd95920e5af4b9df61f1509dd002fc855b188ca12813cb4a3',
-      sess_response: '3fdcb3e97f04658f55b79d2150937d0a88aa85789d65289a5d0d783793fd6d25',
-      sess_publish: 'b6f14f8ac998730c52c10fa4da915f6aae771cd74bc46d60c93f540304c5d337',
-      sess_complete: 'd8a0e150608bbb93f973aef20a521feef41efd84c6e3138b02678aef261b0540',
-      sess_ask: '07a90c9735e2db2f9189b060e3e4927733d3d64ac33dfc6e59a9607b08a1ac2d',
+      sess_request: 'da4115be53c49d941fda52129dff24904282cf8b4ce99645f2743ebd2a73f197',
+      sess_response: 'cbacd482846d0d5dc1ba90c218265b76c0482d5e1d972c29e67254ad1181932b',
+      sess_publish: '72c7918bfc5f0715bca7ba7aa48be2443ed2ae8b26e798817d10aed58dbff7aa',
+      sess_complete: '06442ad25cd67664b9280d88776221d958622e998cac86ffe97263fc00d5ade5',
+      sess_ask: '05116bbf6ad249abc17406476143bf1c1ee37498dffeffa323cb997e43403dca',
     });
     expect(TOOLS.find((t) => t.name === 'sess_response')!.annotations).toEqual({
       title: 'Read the person’s Sess answer',

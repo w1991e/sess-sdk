@@ -25,16 +25,16 @@ export const LIMITS = Object.freeze({
  * pointer), the limit, its length and the fix.
  */
 export const TEXT_LIMITS = Object.freeze({
-  title: 80,
-  description: 280,
-  heading: 60,
+  title: 60,
+  description: 200,
+  heading: 40,
   text: 4000,
-  label: 60,
-  optionLabel: 60,
-  help: 160,
-  actionLabel: 24,
+  label: 40,
+  optionLabel: 30,
+  help: 120,
+  actionLabel: 16,
   recordLabel: 200,
-  recordKey: 40,
+  recordKey: 30,
   recordValue: 200,
   /** Not shown as written (enum values, a schema's own title): the earlier runtime bounds. */
   enumValue: 200,
@@ -682,14 +682,14 @@ export function parseAskArgs(raw: unknown): RequestArgs {
   const fields = a.fields;
   if (!Array.isArray(fields) || fields.length < 1 || fields.length > ASK_LIMITS.fields)
     invalid('fields', `must contain 1..${ASK_LIMITS.fields} fields`);
-  const components: JsonValue[] = [];
-  if (a.details !== undefined)
-    components.push({ type: 'text', text: text(a.details, 'details', TEXT_LIMITS.text) });
+  // details is the page's description, under the question (as the SDK's ask()).
+  const details = a.details === undefined ? undefined : text(a.details, 'details', TEXT_LIMITS.description);
   const expanded = fields.map((f, i) => askField(f, `fields[${i}]`));
-  components.push(...expanded);
+  const components: JsonValue[] = [...expanded];
   const interaction: JsonObject = {
     mode: 'interactive',
     title,
+    ...(details !== undefined ? { description: details } : {}),
     source: { kind: 'sess_surface', components },
     actions: [{ id: 'submit', label: submit, intent: 'submit' }],
   };

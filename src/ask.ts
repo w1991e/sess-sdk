@@ -25,7 +25,7 @@ import { withSignal } from './internal/time.js';
 interface AskFieldBase {
   /** Key of this field in the answer: `^[a-z][a-z0-9_]{0,63}$`. */
   readonly name: string;
-  /** What the field asks for: short, a few words; at most 60. Example: `Refund amount` */
+  /** What the field asks for: short, a few words; at most 40. Example: `Refund amount` */
   readonly label: string;
   /** Default `true`, except boolean fields (default `false`). */
   readonly required?: boolean;
@@ -60,13 +60,13 @@ export type AskField =
     })
   | (AskFieldBase & {
       readonly type: 'choice';
-      /** 1–100 choices. The words shown for one choice: short; at most 60. Example: `Next Monday` */
+      /** 1–100 choices. The words shown for one choice: short; at most 30. Example: `Next Monday` */
       readonly options: readonly [string, ...string[]];
       readonly default?: string;
     })
   | (AskFieldBase & {
       readonly type: 'multi_choice';
-      /** 1–100 choices. The words shown for one choice: short; at most 60. Example: `Next Monday` */
+      /** 1–100 choices. The words shown for one choice: short; at most 30. Example: `Next Monday` */
       readonly options: readonly [string, ...string[]];
       readonly default?: readonly string[];
     });
@@ -78,13 +78,17 @@ export type AskField =
  */
 export interface AskInput<F extends readonly AskField[] = readonly AskField[]> {
   /**
-   * The page's heading: a question or a task, about 40 characters; at most 80.
+   * The page's heading: a question or a task, about 40 characters; at most 60.
    * Examples: `Approve the refund?`, `Pick a delivery date`
    */
   readonly question: string;
-  /** Optional plain-text context shown above the fields, at most 4,000 characters. */
+  /**
+   * Optional context under the question (the page's description): what the person decides and
+   * why, in one or two plain sentences; at most 200.
+   * Example: `The customer was charged twice for order 1042.`
+   */
   readonly details?: string;
-  /** A button: a verb, 1–3 words; at most 24. Default `Send`. Examples: `Approve`, `Send refund` */
+  /** A button: a verb, 1–3 words; at most 16. Default `Send`. Examples: `Approve`, `Send refund` */
   readonly submit_label?: string;
   /** One to twelve fields with unique names. */
   readonly fields: F;
@@ -271,19 +275,19 @@ export interface AskHandle<T> {
 const SURFACE_LIMIT_BYTES = 131_072;
 /**
  * Sess's limits, in Unicode code points (the runtime checks the same numbers; nothing is ever
- * truncated): the question (title) 80, details (a text component) 4,000, the submit button 24,
- * field labels and options 60.
+ * truncated): the question (title) 60, details (the description) 200, the submit button 16,
+ * field labels 40 and options 30.
  */
 const LIMITS = Object.freeze({
   fields: 12,
   options: 100,
   depth: 8,
   textMax: 4000,
-  question: 80,
-  details: 4000,
-  submitLabel: 24,
-  label: 60,
-  option: 60,
+  question: 60,
+  details: 200,
+  submitLabel: 16,
+  label: 40,
+  option: 30,
   /** A rating's end label (`low`, `high`). */
   ratingLabel: 24,
 });
@@ -592,7 +596,6 @@ export function compileAsk(input: unknown): CompiledAsk {
   if (!Array.isArray(fields) || fields.length < 1 || fields.length > LIMITS.fields)
     invalid('fields', `must contain 1–${LIMITS.fields} fields`);
   const components: SurfaceComponent[] = [];
-  if (details !== undefined) components.push({ type: 'text', text: details });
   const names = new Set<string>();
   const compiled: CompiledField[] = [];
   fields.forEach((field, i) => {
@@ -603,6 +606,7 @@ export function compileAsk(input: unknown): CompiledAsk {
   const interaction: InteractiveInteraction = {
     mode: 'interactive',
     title,
+    ...(details !== undefined ? { description: details } : {}),
     source: { kind: 'sess_surface', components },
     actions: [{ id: 'submit', label: submit, intent: 'submit' }],
   };
