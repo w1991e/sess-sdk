@@ -3,7 +3,13 @@ import type { RevisionEnvelope } from './receipts/envelope.js';
 
 /** Unmodified types generated from the reviewed public HTTP contract. */
 export type { components, paths, operations } from './generated/openapi.js';
-export type { RevisionEnvelope } from './receipts/envelope.js';
+export type {
+  EnvelopeAgentTarget,
+  EnvelopeTitles,
+  RevisionEnvelope,
+  RevisionEnvelopeCompact,
+  RevisionEnvelopeFull,
+} from './receipts/envelope.js';
 type Schemas = components['schemas'];
 export type RawCreateSessionRequest = Schemas['CreateSessionRequest'];
 export type RawPublishSessionRequest = Schemas['PatchSessionRequest'];
@@ -16,8 +22,9 @@ export type DisplaySession = Schemas['SessionResponse'];
 interface RevisionEnvelopeMember {
   /**
    * The revision envelope the receipt v2 commits to (`surface.revision_hash`): when the revision
-   * was published and, when one of your API keys published it, that key's ID and its label at the
-   * time. `receipts.verifyResponse` verifies the receipt with it. Absent beside a receipt v1.
+   * was published, the responsible API key's ID, the registered address or Ask the Session came
+   * from, and the titles its owner chose (`sess_revision: 2`). `receipts.verifyResponse` verifies
+   * the receipt with it. Absent beside a receipt v1. Read it only from a verified result.
    */
   revision_envelope?: RevisionEnvelope;
 }

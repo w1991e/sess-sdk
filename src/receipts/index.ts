@@ -1,7 +1,13 @@
 export { verifyDecisionReceipt, verifyRendererIdentities } from './verify.js';
 export { BUNDLED_RENDERER_IDENTITIES, BUNDLED_RENDERER_LIST, newerRendererList } from './renderers.js';
 export type { RendererIdentitiesDocument, RendererIdentity, RendererList } from './renderers.js';
-export type { RevisionEnvelope } from './envelope.js';
+export type {
+  EnvelopeAgentTarget,
+  EnvelopeTitles,
+  RevisionEnvelope,
+  RevisionEnvelopeCompact,
+  RevisionEnvelopeFull,
+} from './envelope.js';
 export type {
   ReceiptClaims,
   ReceiptClaimsV1,

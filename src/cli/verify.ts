@@ -9,11 +9,15 @@ import {
   type DecisionBundleVerification,
   type ExpectedBundleContext,
 } from '../receipts/bundle.js';
+import { SDK_VERSION } from '../internal/version.js';
 import { BUNDLED_RENDERER_IDENTITIES } from '../receipts/renderers.js';
 import { validateKeySet, verifyRendererIdentities } from '../receipts/verify.js';
 
-/** Exit codes: valid, invalid bundle, usage or file error. */
-export const EXIT = Object.freeze({ valid: 0, invalid: 1, usage: 2 });
+/**
+ * Exit codes: valid, invalid bundle, usage or file error, and a bundle newer than this release
+ * checks (a later bundle version, receipt type or revision envelope: reported, never a failure).
+ */
+export const EXIT = Object.freeze({ valid: 0, invalid: 1, usage: 2, newer: 3 });
 
 /** A bundle file larger than this is not read (the bundle bound itself is 1 MiB canonical). */
 const MAX_BUNDLE_FILE_BYTES = 16 * 1024 * 1024;
@@ -52,7 +56,7 @@ Other:
   --json              print the full result as JSON
   -h, --help          show this help
 
-Exit status: 0 valid, 1 invalid, 2 usage or file error.
+Exit status: 0 valid, 1 invalid, 2 usage or file error, 3 newer than this version checks.
 `;
 
 class UsageError extends Error {}
@@ -196,7 +200,7 @@ function parse(argv: readonly string[]): Parsed | 'help' {
 const REASON_TEXT: Record<string, string> = {
   malformed: 'the file is not a decision bundle (bundle-v1 or bundle-v2)',
   oversized: 'the bundle exceeds a decision bundle size bound',
-  unsupported_version: 'the bundle uses a later format version',
+  unsupported_version: 'Update @sess.si/sdk to check it. Nothing in it was checked.',
   receipt_malformed: 'the receipt cannot be read',
   algorithm: 'the receipt does not use the EdDSA algorithm',
   missing_kid: 'the receipt names no key',
@@ -244,6 +248,10 @@ function summary(r: DecisionBundleVerification, renderer?: RendererCheck): strin
     row('Purpose', r.application_purpose);
     row('Expires', safe(c.expires_at));
     if (renderer) row('Renderer', `${safe(c.surface.renderer_version)} (listed)`);
+  } else if (r.reason === 'unsupported_version') {
+    // A later bundle version, receipt type or revision envelope: newer, never a damaged file.
+    lines.push(`Newer decision bundle: this bundle is newer than @sess.si/sdk ${SDK_VERSION}.`);
+    lines.push(`  ${REASON_TEXT.unsupported_version}`);
   } else {
     lines.push(`Invalid decision bundle: ${r.reason}`);
     lines.push(`  ${REASON_TEXT[r.reason ?? ''] ?? ''}`);
@@ -341,7 +349,7 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
     io.stdout(
       parsed.json ? safeJson(renderer ? { ...result, renderer } : result) : summary(result, renderer),
     );
-    return result.valid ? EXIT.valid : EXIT.invalid;
+    return result.valid ? EXIT.valid : result.reason === 'unsupported_version' ? EXIT.newer : EXIT.invalid;
   } catch (e) {
     const message = e instanceof UsageError ? e.message : 'unexpected error';
     io.stderr(`sess: ${message}\nRun "sess --help" for usage.\n`);

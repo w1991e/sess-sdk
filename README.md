@@ -249,7 +249,8 @@ npx -p @sess.si/sdk@0.3.0 sess verify bundle.json --issuer https://api.sess.si -
 The `sess` command first ships in `0.1.0-rc.5`; any later version, `0.3.0` included, has it.
 
 You'll see `Valid decision bundle.` and what was accepted, when, on which revision; or `Invalid`
-and the first reason. Exit status is 0 valid, 1 invalid, 2 usage error; add `--json` for the full
+and the first reason; or `Newer` when the bundle is newer than your version can check (update
+it). Exit status is 0 valid, 1 invalid, 2 usage error, 3 newer; add `--json` for the full
 result. Nothing is sent anywhere. In code, use `verifyDecisionBundle` from `@sess.si/sdk/receipts`
 ([Security](docs/security.md#decision-bundles)). Formats: [receipt-v1](docs/spec/receipt-v1.md) and
 [bundle-v1](docs/spec/bundle-v1.md).

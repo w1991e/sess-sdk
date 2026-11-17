@@ -13,7 +13,7 @@ A bundle contains **only**:
 - the accepted record: the complete normalized Surface document of the accepted revision and the complete validated input, as the receipt's hashes were computed over them;
 - the issuer's public verification keys.
 
-It never contains a private key, an owner credential, a management credential or a human link (the link is a capability), and it contains no data other than the above. The envelope's `key_id` is a non-secret key ID and its `key_label` the integrator's own name for that key.
+It never contains a private key, an owner credential, a management credential or a human link (the link is a capability), and it contains no data other than the above. The envelope's `key_id` is a non-secret key ID; the envelope carries no key label, and is always in its full form (with `titles`, receipt-v2 §2).
 
 ## 2. Format
 
@@ -24,7 +24,7 @@ A JSON object with exactly these members. Unknown members, and mistyped members 
   "type": "sess.decision-bundle",
   "version": 2,
   "receipt": "<receipt-v2 compact JWS>",
-  "revision_envelope": { "sess_revision": 1, "session_id": "…", "revision": 1, "surface_hash": "sha256:…", "renderer_version": "…", "published_at": "…", "key_id": "…", "key_label": "…", "grant_id": null },
+  "revision_envelope": { "sess_revision": 2, "revision": 1, "session_id": "ses_…", "surface_hash": "sha256:…", "renderer_version": "…", "published_at": "…", "key_id": "key_…", "grant_id": null, "agent_target": null, "ask_id": null, "titles": { "nonce": "…", "grant_title": null, "target_title": null, "owner_name": null } },
   "content": { "surface": { … }, "input": { … } },
   "keys": { "keys": [ { "kty": "OKP", "crv": "Ed25519", "x": "…", "kid": "…", "alg": "EdDSA", "use": "sig" } ] }
 }
@@ -67,7 +67,7 @@ The result object of bundle-v1 §6, with these differences for a version 2 bundl
 - `reason` may also be `revision`;
 - a valid result's `receipt.surface` also carries `revision_hash`, and `receipt` also carries `revision_envelope`: the envelope as verified.
 
-A valid version 1 bundle's result is exactly bundle-v1's. A valid result means what bundle-v1 §6 says, and also: this revision was published as the envelope states, when it states, by the API key it names under the label it names (or by no API key, when `key_id` is `null`). A face that shows the publisher shows only the verified envelope's `key_label` and `published_at`.
+A valid version 1 bundle's result is exactly bundle-v1's. A valid result means what bundle-v1 §6 says, and also: this revision was published as the envelope states, when it states, by the API key it names (or by no API key, when `key_id` is `null`), under the titles it carries. A face that shows "Asked by" shows only the verified envelope's most specific title (receipt-v2 §2) and `published_at`; a later envelope or receipt type is reported as `unsupported_version` (newer).
 
 ## 7. Conformance corpus
 
