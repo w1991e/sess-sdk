@@ -84,18 +84,18 @@ try {
 A person reads the page on a phone, so Sess keeps every piece of it short. Lengths count
 characters (Unicode code points), and Sess never truncates:
 
-| What                                    | Style                          | At most  |
-| --------------------------------------- | ------------------------------ | -------- |
-| Title (`question`)                      | A question or a task, about 40 | 60       |
-| Button (`submit_label`)                 | A verb, 1–3 words              | 16       |
-| Field label                             | Short                          | 40       |
-| Option                                  | Short                          | 30       |
-| Help (field `description`)              | One hint                       | 120      |
-| Description under the title (`details`) | One or two sentences           | 200      |
-| Heading                                 | Short                          | 40       |
-| Record caption                          | A few words                    | 200      |
-| Record key / string value               | As written                     | 30 / 200 |
-| Text                                    | Plain text                     | 4,000    |
+| What                        | Style                          | At most  |
+| --------------------------- | ------------------------------ | -------- |
+| Title (`question`)          | A question or a task, about 40 | 60       |
+| Button (`submit_label`)     | A verb, 1–3 words              | 16       |
+| Field label                 | Short                          | 40       |
+| Option                      | Short                          | 30       |
+| Help (field `description`)  | One hint                       | 120      |
+| Description under the title | One or two sentences           | 200      |
+| Heading                     | Short                          | 40       |
+| Record caption              | A few words                    | 200      |
+| Record key / string value   | As written                     | 30 / 200 |
+| Text (`details`)            | Plain text                     | 4,000    |
 
 There are at most 5 buttons. A value over its limit fails with a `SessError` that names it:
 `field` is a JSON pointer such as `/question`, `limit` is the most it may have and `length` is

@@ -57,7 +57,7 @@ export class SessError extends Error {
    * the value to at most `limit` characters and send again.
    */
   declare readonly field?: string;
-  /** With `field`: the most the value may have, in Unicode code points (e.g. title 80). */
+  /** With `field`: the most the value may have, in Unicode code points (e.g. title 60). */
   declare readonly limit?: number;
   /** With `field`: the value's actual length, in Unicode code points. */
   declare readonly length?: number;

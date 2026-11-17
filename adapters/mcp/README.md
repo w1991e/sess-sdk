@@ -327,11 +327,11 @@ Lengths are Unicode code points:
 | Field label                             | Short                          | 40       |
 | Option label, `sess_ask` option         | Short                          | 30       |
 | Help (field `description`)              | One hint                       | 120      |
-| `description`, `sess_ask` `details`     | One or two sentences           | 200      |
+| `description` under the title           | One or two sentences           | 200      |
 | `heading`                               | Short                          | 40       |
 | `record` `label` (caption)              | A few words                    | 200      |
 | `record` key / string value             | As written                     | 30 / 200 |
-| `text`                                  | Plain text                     | 4,000    |
+| `text`, `sess_ask` `details`            | Plain text                     | 4,000    |
 
 A choice without an `option_labels` entry shows its enum ID, so that ID is held to 30 too (named at
 its enum entry, e.g. `/interaction/source/components/2/schema/enum/1`); a long ID with a short

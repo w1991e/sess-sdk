@@ -46,11 +46,10 @@ describe('sess_ask input', () => {
     expect(parseAskArgs(ask).interaction).toEqual({
       mode: 'interactive',
       title: 'Plan an afternoon',
-      // Changed: details is the interaction's description, no longer a text component (Sess #1086).
-      description: 'Conditions are illustrative.',
       source: {
         kind: 'sess_surface',
         components: [
+          { type: 'text', text: 'Conditions are illustrative.' },
           {
             type: 'field',
             name: 'activity',
@@ -131,10 +130,9 @@ describe('sess_ask input', () => {
       JSON.parse(`{"question":"Q","fields":[{"name":"a","label":"A","type":"text"}],"__proto__":{}}`),
       'unsafe key',
     );
-    // Changed: details is held to the description's 200, was the text's 4000 (Sess #1086).
     rejects(
-      { question: 'Q', details: 'x'.repeat(201), fields: [ask.fields[0]] },
-      'Shorten it to at most 200 characters',
+      { question: 'Q', details: 'x'.repeat(4001), fields: [ask.fields[0]] },
+      'Shorten it to at most 4000 characters',
     );
   });
 });

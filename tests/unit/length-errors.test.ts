@@ -23,7 +23,7 @@ function caught(run: () => unknown): SessError {
 }
 
 // Changed: Sess's 2026-11-07 Surface text limits (Sess #1086): question 80 → 60, button 24 → 16,
-// field label 60 → 40, option 60 → 30, details 4000 → 200 (details is now the description).
+// field label 60 → 40, option 60 → 30; details (a text component) stays 4000.
 const ASK_CASES = [
   ['question', 60, (v: string) => ({ ...question, question: v }), '/question'],
   ['submit_label', 16, (v: string) => ({ ...question, submit_label: v }), '/submit_label'],
@@ -34,7 +34,7 @@ const ASK_CASES = [
     (v: string) => ({ ...question, fields: [{ ...field, options: ['Beach', v] }] }),
     '/fields/0/options/1',
   ],
-  ['details', 200, (v: string) => ({ ...question, details: v }), '/details'],
+  ['details', 4000, (v: string) => ({ ...question, details: v }), '/details'],
 ] as const;
 
 describe('sess.ask() length limits, in code points', () => {

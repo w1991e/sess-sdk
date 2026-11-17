@@ -241,13 +241,15 @@ export function createWorkflow({
 
   /** Question 2: the three plans from the fixed rule; pick one or change its time. */
   function pickAPlan(text) {
-    // Option labels stay under 60 characters; the forecast above shows each slot's weather.
-    const plans = state.options.map((o) => [o.id, `${o.idea} — ${o.slot.name}`]);
+    // An option label is the idea alone (at most 30 characters); its time is in "Suggested times".
+    const plans = state.options.map((o) => [o.id, o.idea]);
+    const suggested = Object.fromEntries(state.options.map((o) => [o.idea, o.slot.name]));
     const times = [['keep', 'Keep the suggested time'], ...w.SLOTS.map((s) => [s[0], s[1]])];
     const action = { id: 'approve', label: 'Make my plan', intent: 'approve' };
     return form('Pick your plan', 'Question 2 of 2', action, [
       { type: 'text', text },
       ...w.weatherShown(state.trip, state.weather),
+      { type: 'record', label: 'Suggested times', fields: suggested },
       field('choice', 'Pick a plan', Object.fromEntries(plans), 'Picked by a fixed rule from the forecast.'),
       field('time', 'Time', Object.fromEntries(times)),
     ]);

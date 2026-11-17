@@ -99,12 +99,12 @@ Every field has a unique `name` (`^[a-z][a-z0-9_]{0,63}$`, the key in the answer
 (short, 1–40 characters), optional `required` (default `true`, `false` for `boolean`) and optional
 `default`, a proposal that must itself be a valid value. Each option is 1–30 characters. A question
 has 1–12 fields, a `question` (the page title: a question or a task, about 40 characters, at most
-60), optional `details` (context under the title: one or two plain sentences, 1–200 characters)
-and an optional `submit_label` (the button: a verb of 1–3 words, at most 16 characters; default
-`Send`). It compiles to one interactive Surface: `details` as its `description`, one field
-component per field with its runtime schema, and one `submit` action. Invalid input fails with
-`SessError` kind `configuration`, code `INVALID_QUESTION`, outcome `not_sent`, before credential
-lookup or network access; messages name the path, never your values.
+60), optional `details` (1–4,000 characters of plain text above the fields) and an optional
+`submit_label` (the button: a verb of 1–3 words, at most 16 characters; default `Send`). It
+compiles to one interactive Surface: a text component for `details`, one field component per field
+with its runtime schema, and one `submit` action. Invalid input fails with `SessError` kind
+`configuration`, code `INVALID_QUESTION`, outcome `not_sent`, before credential lookup or network
+access; messages name the path, never your values.
 
 ### A rating
 
@@ -232,19 +232,19 @@ who have not answered yet; those who answered keep their pages and receipts. Wit
 Sess counts lengths in Unicode code points and never truncates. The limits of an interactive
 Surface:
 
-| Value                                             | Style                          | At most  |
-| ------------------------------------------------- | ------------------------------ | -------- |
-| `title`                                           | A question or a task, about 40 | 60       |
-| `description` (under the title; `ask`: `details`) | One or two sentences           | 200      |
-| `heading` component `text`                        | Short                          | 40       |
-| Field `label`                                     | Short                          | 40       |
-| `option_labels` value, `ask` option               | Short                          | 30       |
-| Field `description` (help)                        | One hint                       | 120      |
-| Action `label` (`ask`: `submit_label`)            | A verb, 1–3 words              | 16       |
-| `record` `label` (caption)                        | A few words                    | 200      |
-| `record` key / string value                       | As written                     | 30 / 200 |
-| `text` component                                  | Plain text                     | 4,000    |
-| Rating end label (`rating.low`, `rating.high`)    | A word or two                  | 24       |
+| Value                                          | Style                          | At most  |
+| ---------------------------------------------- | ------------------------------ | -------- |
+| `title`                                        | A question or a task, about 40 | 60       |
+| `description` (under the title)                | One or two sentences           | 200      |
+| `heading` component `text`                     | Short                          | 40       |
+| Field `label`                                  | Short                          | 40       |
+| `option_labels` value, `ask` option            | Short                          | 30       |
+| Field `description` (help)                     | One hint                       | 120      |
+| Action `label` (`ask`: `submit_label`)         | A verb, 1–3 words              | 16       |
+| `record` `label` (caption)                     | A few words                    | 200      |
+| `record` key / string value                    | As written                     | 30 / 200 |
+| `text` component (`ask`: `details`)            | Plain text                     | 4,000    |
+| Rating end label (`rating.low`, `rating.high`) | A word or two                  | 24       |
 
 At most 5 actions. A display Session's title is also at most 60 (the same title message); its
 description stays at most 4,000. A choice without an `option_labels` entry shows its enum ID, so

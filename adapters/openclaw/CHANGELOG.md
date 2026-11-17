@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+Prepared, not released; the version is not yet chosen.
+
+- Sess's 2026-11-07 Surface text limits, in the `sess_request` and `sess_publish` parameters,
+  the `sess_request` description and the local checks, in Unicode code points: title 60, was 80;
+  description 200, was 280; heading 40, was 60; field label 40, was 60; option label 30, was 60;
+  help 120, was 160; action label 16, was 24; record key 30, was 40. Text 4,000, record caption
+  and string value 200 are unchanged. A longer value is refused with `INVALID_ARGUMENTS` naming
+  its field, limit and length, never truncated.
+
 ## 0.1.0 — 2026-11-01
 
 - The first stable release, published to the `latest` dist-tag. `next` stays at the last release

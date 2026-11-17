@@ -20,7 +20,7 @@ const ask = tool('sess_ask').properties;
 /**
  * Every string a person reads, its schema and its limit. Changed: Sess's 2026-11-07 limits
  * (Sess #1086): title 60, description 200, heading 40, label 40, help 120, option 30, button 16;
- * sess_ask details is now the description (200).
+ * sess_ask details stays a text component (4000).
  */
 const VISIBLE: [string, Schema, number][] = [
   ['interaction.title', (interactionSchema as Schema).properties.title, 60],
@@ -34,7 +34,7 @@ const VISIBLE: [string, Schema, number][] = [
   ['field.option_labels value', component('field').option_labels.additionalProperties, 30],
   ['action.label', (interactionSchema as Schema).properties.actions.items.properties.label, 16],
   ['sess_ask.question', ask.question, 60],
-  ['sess_ask.details', ask.details, 200],
+  ['sess_ask.details', ask.details, 4000],
   ['sess_ask.submit_label', ask.submit_label, 16],
   ['sess_ask.fields[].label', ask.fields.items.properties.label, 40],
   ['sess_ask.fields[].options[]', ask.fields.items.properties.options.items, 30],
@@ -215,12 +215,10 @@ describe('every limit: N accepted, N+1 refused with field, limit, length and the
     });
   });
 
-  // Changed: question 60, button 16, field label 40, option 30, details 200 (Sess #1086); details
-  // is now a case, as it moved from the text limit to the description's.
+  // Changed: question 60, button 16, field label 40, option 30 (Sess #1086).
   it.each([
     ['question', 60, (v: string) => ({ ...ASK_EXAMPLE, question: v }), '/question'],
     ['submit_label', 16, (v: string) => ({ ...ASK_EXAMPLE, submit_label: v }), '/submit_label'],
-    ['details', 200, (v: string) => ({ ...ASK_EXAMPLE, details: v }), '/details'],
     [
       'field label',
       40,

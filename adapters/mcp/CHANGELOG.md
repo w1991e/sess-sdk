@@ -3,15 +3,17 @@
 ## Unreleased
 
 Prepared, not released; the version is not yet chosen. Tool schemas `sess-mcp-tools/6` (was
-`/5`); the five tool names are unchanged.
+`/5`), for the limits only: the `maxLength` values and the lines that state them; no property,
+type or output changed, and the five tool names are unchanged.
 
 - Sess's 2026-11-07 Surface text limits, in the tool schemas, their lines and the local checks:
   title (`sess_ask` `question`) 60, was 80; description 200, was 280; heading 40, was 60; field
   label 40, was 60; option label and `sess_ask` option 30, was 60; help 120, was 160; button
-  (`submit_label`, action `label`) 16, was 24; record key 30, was 40. Text 4,000, record caption
-  and string value 200 and a rating's end labels 24 are unchanged.
-- `sess_ask`'s `details` is now the page's description, under the question, at most 200 (it was a
-  text component above the fields, at most 4,000).
+  (`submit_label`, action `label`) 16, was 24; record key 30, was 40. Text 4,000 (with
+  `sess_ask`'s `details`, still a text component above the fields), record caption and string
+  value 200 and a rating's end labels 24 are unchanged.
+- Release order: 0.3.0 below (prepared, not published, tool schemas `sess-mcp-tools/5`) must be
+  cut from a commit before this change merges; this entry is not part of 0.3.0.
 
 ## 0.3.0
 

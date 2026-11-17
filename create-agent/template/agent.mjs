@@ -66,12 +66,14 @@ function whereAndWhen() {
 
 /** Question 2: three plans from a fixed rule; pick one or change its time. */
 function pickAPlan(trip, weather, options) {
-  // Option labels stay under 60 characters; the forecast above shows each slot's weather.
-  const plans = options.map((o) => [o.id, `${o.idea} — ${o.slot.name}`]);
+  // An option label is the idea alone (at most 30 characters); its time is in "Suggested times".
+  const plans = options.map((o) => [o.id, o.idea]);
+  const suggested = Object.fromEntries(options.map((o) => [o.idea, o.slot.name]));
   const times = [['keep', 'Keep the suggested time'], ...w.SLOTS.map((s) => [s[0], s[1]])];
   const action = { id: 'approve', label: 'Make my plan', intent: 'approve' };
   return form('Pick your plan', 'Question 2 of 2', action, [
     ...w.weatherShown(trip, weather),
+    { type: 'record', label: 'Suggested times', fields: suggested },
     field('choice', 'Pick a plan', Object.fromEntries(plans), w.RULE),
     field('time', 'Time', Object.fromEntries(times)),
   ]);

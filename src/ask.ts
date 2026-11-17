@@ -82,11 +82,7 @@ export interface AskInput<F extends readonly AskField[] = readonly AskField[]> {
    * Examples: `Approve the refund?`, `Pick a delivery date`
    */
   readonly question: string;
-  /**
-   * Optional context under the question (the page's description): what the person decides and
-   * why, in one or two plain sentences; at most 200.
-   * Example: `The customer was charged twice for order 1042.`
-   */
+  /** Optional plain-text context shown above the fields, at most 4,000 characters. */
   readonly details?: string;
   /** A button: a verb, 1–3 words; at most 16. Default `Send`. Examples: `Approve`, `Send refund` */
   readonly submit_label?: string;
@@ -275,7 +271,7 @@ export interface AskHandle<T> {
 const SURFACE_LIMIT_BYTES = 131_072;
 /**
  * Sess's limits, in Unicode code points (the runtime checks the same numbers; nothing is ever
- * truncated): the question (title) 60, details (the description) 200, the submit button 16,
+ * truncated): the question (title) 60, details (a text component) 4,000, the submit button 16,
  * field labels 40 and options 30.
  */
 const LIMITS = Object.freeze({
@@ -284,7 +280,7 @@ const LIMITS = Object.freeze({
   depth: 8,
   textMax: 4000,
   question: 60,
-  details: 200,
+  details: 4000,
   submitLabel: 16,
   label: 40,
   option: 30,
@@ -596,6 +592,7 @@ export function compileAsk(input: unknown): CompiledAsk {
   if (!Array.isArray(fields) || fields.length < 1 || fields.length > LIMITS.fields)
     invalid('fields', `must contain 1–${LIMITS.fields} fields`);
   const components: SurfaceComponent[] = [];
+  if (details !== undefined) components.push({ type: 'text', text: details });
   const names = new Set<string>();
   const compiled: CompiledField[] = [];
   fields.forEach((field, i) => {
@@ -606,7 +603,6 @@ export function compileAsk(input: unknown): CompiledAsk {
   const interaction: InteractiveInteraction = {
     mode: 'interactive',
     title,
-    ...(details !== undefined ? { description: details } : {}),
     source: { kind: 'sess_surface', components },
     actions: [{ id: 'submit', label: submit, intent: 'submit' }],
   };

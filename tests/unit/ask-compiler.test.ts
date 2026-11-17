@@ -177,11 +177,9 @@ describe('the simple-field compiler', () => {
   it('compiles every kind to the runtime field schema', () => {
     const { interaction } = compileAsk(everyKind);
     expect(interaction.title).toBe(everyKind.question);
-    // Changed: details is the interaction's description (at most 200), no longer a text component
-    // (Sess #1086's 200-character description).
-    expect(interaction.description).toBe(everyKind.details);
     expect(interaction.actions).toEqual([{ id: 'submit', label: 'Send answer', intent: 'submit' }]);
     expect(interaction.source.components).toEqual([
+      { type: 'text', text: everyKind.details },
       { type: 'field', name: 'approved', label: 'Approve it', required: false, schema: { type: 'boolean' } },
       {
         type: 'field',

@@ -235,7 +235,7 @@ describe('MCP server', () => {
     // field's `rating` description in sess_request and sess_publish is Sess's signed RT-08 text.
     // Renewed for sess-mcp-tools/6 (Sess #1086's 2026-11-07 text limits): every tool's meta names
     // the new version; sess_request, sess_publish and sess_ask carry the new maxLength values and
-    // their lines, and sess_ask's details is the description (200).
+    // their lines (sess_ask's details stays a text component, 4000).
     const contract = Object.fromEntries(
       TOOLS.map(({ name, description: _, ...rest }) => [
         name,
@@ -250,7 +250,7 @@ describe('MCP server', () => {
       sess_response: 'cbacd482846d0d5dc1ba90c218265b76c0482d5e1d972c29e67254ad1181932b',
       sess_publish: '72c7918bfc5f0715bca7ba7aa48be2443ed2ae8b26e798817d10aed58dbff7aa',
       sess_complete: '06442ad25cd67664b9280d88776221d958622e998cac86ffe97263fc00d5ade5',
-      sess_ask: '05116bbf6ad249abc17406476143bf1c1ee37498dffeffa323cb997e43403dca',
+      sess_ask: '8e317f9b946f06e71c227e958b20c6cd12a015c02e395c1d721abe70c7a4adaf',
     });
     expect(TOOLS.find((t) => t.name === 'sess_response')!.annotations).toEqual({
       title: 'Read the person’s Sess answer',

@@ -682,14 +682,14 @@ export function parseAskArgs(raw: unknown): RequestArgs {
   const fields = a.fields;
   if (!Array.isArray(fields) || fields.length < 1 || fields.length > ASK_LIMITS.fields)
     invalid('fields', `must contain 1..${ASK_LIMITS.fields} fields`);
-  // details is the page's description, under the question (as the SDK's ask()).
-  const details = a.details === undefined ? undefined : text(a.details, 'details', TEXT_LIMITS.description);
+  const components: JsonValue[] = [];
+  if (a.details !== undefined)
+    components.push({ type: 'text', text: text(a.details, 'details', TEXT_LIMITS.text) });
   const expanded = fields.map((f, i) => askField(f, `fields[${i}]`));
-  const components: JsonValue[] = [...expanded];
+  components.push(...expanded);
   const interaction: JsonObject = {
     mode: 'interactive',
     title,
-    ...(details !== undefined ? { description: details } : {}),
     source: { kind: 'sess_surface', components },
     actions: [{ id: 'submit', label: submit, intent: 'submit' }],
   };

@@ -41,28 +41,31 @@ function overLimits(interaction: any): string[] {
     if (typeof value === 'string' && [...value].length > limit)
       over.push(`${path} ${[...value].length}>${limit}`);
   };
-  check('title', interaction.title, 80);
+  // Changed: Sess's 2026-11-07 Surface text limits (Sess #1086): title 60, description 200,
+  // button 16, heading 40, record key 30, field label 40, help 120, option label 30. The record
+  // caption is checked at Sess's 200 (this check held it to 60 before).
+  check('title', interaction.title, 60);
   if ([...interaction.title].length >= 40)
     over.push(`title ${[...interaction.title].length} is not under 40`);
-  check('description', interaction.description, 280);
+  check('description', interaction.description, 200);
   if (interaction.actions.length > 5) over.push('more than 5 actions');
-  interaction.actions.forEach((a: any, i: number) => check(`actions/${i}/label`, a.label, 24));
+  interaction.actions.forEach((a: any, i: number) => check(`actions/${i}/label`, a.label, 16));
   interaction.source.components.forEach((c: any, i: number) => {
     const at = `components/${i}`;
-    if (c.type === 'heading') check(`${at}/text`, c.text, 60);
+    if (c.type === 'heading') check(`${at}/text`, c.text, 40);
     if (c.type === 'text') check(`${at}/text`, c.text, 4000);
     if (c.type === 'record') {
-      check(`${at}/label`, c.label, 60);
+      check(`${at}/label`, c.label, 200);
       for (const [key, value] of Object.entries(c.fields)) {
-        check(`${at}/fields key`, key, 40);
+        check(`${at}/fields key`, key, 30);
         check(`${at}/fields/${key}`, value, 200);
       }
     }
     if (c.type === 'field') {
-      check(`${at}/label`, c.label, 60);
-      check(`${at}/description`, c.description, 160);
+      check(`${at}/label`, c.label, 40);
+      check(`${at}/description`, c.description, 120);
       for (const [key, label] of Object.entries(c.option_labels ?? {}))
-        check(`${at}/option_labels/${key}`, label, 60);
+        check(`${at}/option_labels/${key}`, label, 30);
     }
   });
   return over;
@@ -141,18 +144,36 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     // Round 1 asks where and when; round 2 shows the forecast with attribution and three plans.
     expect(world.interactions.map((i) => i.title)).toEqual(['Plan your weekend', 'Pick your plan']);
     expect(components(world, 1).map((c) => c.name ?? c.type)).toEqual(['text', 'place', 'day']);
-    expect(components(world, 2).map((c) => c.name ?? c.type)).toEqual(['record', 'text', 'choice', 'time']);
+    // Changed (Sess #1086, option label at most 30): a plan's option label is its idea alone, and
+    // each plan's time is in a "Suggested times" record before the choice (as Sess's demo agent).
+    expect(components(world, 2).map((c) => c.name ?? c.type)).toEqual([
+      'record',
+      'text',
+      'record',
+      'choice',
+      'time',
+    ]);
     expect(texts(world, 2)[1]).toContain(JSON.stringify(ATTRIBUTION));
-    const choice = components(world, 2)[2] as {
+    expect(components(world, 2)[2]).toEqual({
+      type: 'record',
+      label: 'Suggested times',
+      fields: {
+        'A walk or hike outdoors': 'Morning, 09:00–12:00',
+        'A picnic in the park': 'Afternoon, 12:00–17:00',
+        'A bike ride': 'Evening, 17:00–21:00',
+      },
+    });
+    const choice = components(world, 2)[3] as {
       schema: { enum: string[] };
       option_labels: Record<string, string>;
     };
     expect(choice.schema.enum).toEqual(['option_1', 'option_2', 'option_3']);
     expect(Object.values(choice.option_labels)).toEqual([
-      'A walk or hike outdoors — Morning, 09:00–12:00',
-      'A picnic in the park — Afternoon, 12:00–17:00',
-      'A bike ride — Evening, 17:00–21:00',
+      'A walk or hike outdoors',
+      'A picnic in the park',
+      'A bike ride',
     ]);
+    for (const label of Object.values(choice.option_labels)) expect(label).not.toContain('—');
     // Every value a person reads is within Sess's limits; titles under 40 characters.
     expect(world.interactions.flatMap(overLimits)).toEqual([]);
 
@@ -304,7 +325,13 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     const round2 = texts(world, 2).join();
     expect(round2).toContain('The weather service could not be reached.');
     expect(round2).not.toContain('°C');
-    expect(round2).not.toContain('"record"');
+    // Changed: the only record is the plans' "Suggested times" (Sess #1086); no forecast record.
+    expect(round2).not.toContain('Forecast for');
+    expect(
+      components(world, 2)
+        .filter((c) => c.type === 'record')
+        .map((c) => c.label),
+    ).toEqual(['Suggested times']);
   });
 
   it('refuses to start without SESS_API_KEY or a SESS_DEMO_CONTACT, before any request', async () => {

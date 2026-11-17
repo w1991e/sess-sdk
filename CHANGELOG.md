@@ -9,9 +9,14 @@ Prepared, not released; the version is not yet chosen.
   `ask()` option 30, was 60; field help 120, was 160; button (`submit_label`, action `label`) 16,
   was 24; record key 30, was 40; items row name (`ITEMS_LIMITS.name`) 30, was 80. Text 4,000,
   record caption and string value 200 and a rating's end labels 24 are unchanged. A longer value
-  is refused with its `field`, `limit` and `length`, never truncated.
-- `ask()`'s `details` is now the page's description, under the question, at most 200 (it was a
-  text component above the fields, at most 4,000).
+  is refused with its `field`, `limit` and `length`, never truncated. `ask()`'s `details` is
+  unchanged: a text component above the fields, at most 4,000.
+- The weekend-planner recipe (`examples/recipes/workflow.mjs`), as the create-agent starter: a
+  plan's option label is its idea alone (at most 28 characters), and each plan's time is in a
+  "Suggested times" record before the choice. **Proposed copy change, for the founder's look.**
+- The bundled contract snapshot (`contract/openapi.json`) and the generated types are refreshed
+  from Sess at release, once Sess #1086 is on Sess master; until then they still state the earlier
+  limits.
 
 ## 0.3.0 — 2026-11-08
 

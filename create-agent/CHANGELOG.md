@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+Prepared, not released; the version is not yet chosen.
+
+- Sess's 2026-11-07 Surface text limits (an option label is at most 30, was 60). **Proposed copy
+  change, for the founder's look:** question 2's plan options read the idea alone, such as
+  "A picnic in the park" (they read "A picnic in the park — Afternoon, 12:00–17:00"), and each
+  plan's time is in a new record, "Suggested times", before the choice, as on Sess's own demo.
+  The template README states the new limits: title 60, button 16, field label 40, choice 30,
+  help 120.
+
 ## 0.1.0 — 2026-11-01
 
 - The first stable release, published to the `latest` dist-tag. Create and run with

@@ -17,9 +17,12 @@ const RATING_LINE = [
  * default 5), `low` and `high`; sess_request's field `rating: { low?, high? }`. In the same
  * unreleased version, the Ask (Sess P2-24(d)): sess_ask's Advanced `respondents`, a result's
  * `interaction.ask` and the state `closed`.
- * sess-mcp-tools/6: Sess's 2026-11-07 Surface text limits (title 60, button 16, field label 40,
- * option label 30, help 120, description 200, heading 40, record key 30; text 4000, record caption
- * and value 200 and rating end label 24 unchanged).
+ * sess-mcp-tools/6: the limits only. Sess's 2026-11-07 Surface text limits (Sess #1086) change
+ * maxLength values and the lines that state them in sess_request, sess_publish and sess_ask: title
+ * 60, button 16, field label 40, option label 30, help 120, description 200, heading 40, record
+ * key 30. Text 4000 (sess_ask's `details`, still a text component), record caption and value 200
+ * and rating end label 24 are unchanged; no property, type, enum or output is added, removed or
+ * moved, and the five tool names are the same.
  */
 export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/6';
 export const TOOL_NAMES = [
@@ -641,7 +644,7 @@ export const TOOLS = [
       examples: [ASK_EXAMPLE],
       properties: {
         question: titleSchema,
-        details: shown(L.description, TEXT_DOCS.description),
+        details: shown(L.text, TEXT_DOCS.text),
         submit_label: { ...buttonSchema, description: `${TEXT_DOCS.actionLabel.line} Default "Send".` },
         fields: {
           type: 'array',
