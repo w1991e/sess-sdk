@@ -1,10 +1,3 @@
 {
-  "exceptions": [
-    {
-      "id": "GHSA-fc5q-39xc-vjpf",
-      "package": "picomatch",
-      "reason": "development and test toolchain only; the globs it parses come from our own configuration. The only allowed routes run inside OpenClaw's own npm: openclaw > npm, then through node-gyp > tinyglobby (optionally then fdir) to its one installed picomatch. The user's OpenClaw brings that npm whether or not our plugin is installed, and our code never loads it. No published package's own dependencies or optionalDependencies reach picomatch by any route.",
-      "until": "2026-11-24T17:18:00Z"
-    }
-  ]
+  "exceptions": []
 }
