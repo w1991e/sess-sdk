@@ -19,14 +19,14 @@ not move it. `0.1.0-rc.4` ([release/rc4-packet.md](release/rc4-packet.md)), `0.1
 ([release/rc1-packet.md](release/rc1-packet.md)) are published as well. Each candidate gets such a
 packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
 
-Expected `0.1.0` tarball (`npm run check` on Node 24.21.0 and npm 11.19.0; the release run's
+Expected `0.2.0` tarball (`npm run check` on Node 24.21.0 and npm 11.19.0; the release run's
 SHA-256 must equal it). A packed change before the tag updates these values in the same PR:
 
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
-| Filename  | `sess.si-openclaw-0.1.0.tgz`                                                                      |
-| SHA-256   | `5ba2ef031bac8dde2aff1760b432b2a7610a4b240438fd0486dfdd2a881bad9b`                                |
-| Integrity | `sha512-pYvj4Pjvh7gsqdIamVt9cbdlHTQ199iPD9qVL/5OjW4hImGV0S0f252DLDck91dMmrpSsRxvXlgR3ndCCWNxpw==` |
+| Filename  | `sess.si-openclaw-0.2.0.tgz`                                                                      |
+| SHA-256   | `0d3fdff9502d3b9d6856d396917216e2bf02b1295b20b6167557515dce187e1e`                                |
+| Integrity | `sha512-2fnzl1H/xBRZIsk4iivuwoywYmfeknrG/OSWC1GngrFfiicrvYXJG0+g/vt6FJuZ1wNYzvvnehYXkJb7cIfkuA==` |
 
 ## Prerequisites (owner actions, in order)
 
