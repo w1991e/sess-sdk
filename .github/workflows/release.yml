@@ -55,7 +55,9 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       # All project code and dependency checks run without an OIDC publishing identity.
       - run: npm run check
-      - run: npm audit --audit-level=moderate
+      # The dependency audit at every dependency and moderate level, with the founder's dated
+      # exceptions (.github/audit-exceptions.json; Sess founder 2026-11-17 22:05Z item 1).
+      - run: node scripts/audit-dependencies.mjs
       - name: Record the tested artifact digest
         id: record
         run: |
