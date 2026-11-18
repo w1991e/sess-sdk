@@ -56,8 +56,9 @@ at that tag and publishes only those bytes.
 
 A prepared, unpublished version is recorded in `release/sdk-next-candidate.json` while one
 exists; consumers stay on the
-published pin until the registry transition. No version is prepared now. The last published
-version's packet is [`release/v0.3.0-packet.md`](../release/v0.3.0-packet.md).
+published pin until the registry transition. `0.4.0` is prepared now, recorded in
+`release/sdk-next-candidate.json` and not yet published. The last published version's packet is
+[`release/v0.3.0-packet.md`](../release/v0.3.0-packet.md).
 
 ## Selected publishing mode
 
