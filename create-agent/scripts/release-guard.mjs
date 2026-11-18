@@ -35,6 +35,7 @@ export const PACKED_FILES = [
   'template/_env.example',
   'template/_gitignore',
   'template/agent.mjs',
+  'template/ask.mjs',
   'template/package.json',
   'template/weather.mjs',
 ];

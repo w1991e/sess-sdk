@@ -10,6 +10,12 @@ signed receipt for each answer.
 **What you'll see:** a Sess link to open on your phone; answer its two questions and your plan
 prints here, ending with `verified ✓`.
 
+## Ask a group
+
+[ask.mjs](ask.mjs) asks three people one question through one link; each person answers on their
+own page. Run `node ask.mjs`, share the link it prints, and each answer prints here as it comes
+in, ending with `verified ✓`.
+
 ## Details
 
 ### Settings

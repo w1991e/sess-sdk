@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { GENERATED, INITIALIZER, ROOT, initialize, npm, scratch } from './helpers.js';
@@ -142,10 +142,25 @@ describe('@sess.si/create-agent initializer', { timeout: 30_000 }, () => {
     const app = join(cwd, 'starter');
     writeFileSync(join(app, 'agent.mjs'), `${readFileSync(join(app, 'agent.mjs'), 'utf8')}// edited\n`);
     writeFileSync(join(app, 'extra.js'), '');
+    rmSync(join(app, 'ask.mjs'));
     const run = parity(app);
     expect(run.status).toBe(1);
     expect(run.output).toContain('agent.mjs differs from create-agent/template/agent.mjs');
     expect(run.output).toContain('extra.js is not part of the template');
+    expect(run.output).toContain('ask.mjs is missing');
+  });
+
+  it('writes the Ask example byte for byte, and the README points to it', () => {
+    const cwd = scratch('sess-create-ask-');
+    expect(initialize(cwd, 'agent').status).toBe(0);
+    const app = join(cwd, 'agent');
+    const template = join(ROOT, 'create-agent', 'template');
+    expect(readFileSync(join(app, 'ask.mjs'))).toEqual(readFileSync(join(template, 'ask.mjs')));
+    // The example needs only the SDK and the API key, not the weekend planner or its contact.
+    const ask = readFileSync(join(app, 'ask.mjs'), 'utf8');
+    expect(ask).toContain("import { Sess } from '@sess.si/sdk';");
+    expect(ask).not.toMatch(/SESS_DEMO_CONTACT|weather\.mjs/);
+    expect(readFileSync(join(app, 'README.md'), 'utf8')).toContain('\n## Ask a group\n\n[ask.mjs](ask.mjs)');
   });
 
   it('pins the template to the exact published SDK version in release/sdk-candidate.json', () => {
@@ -169,6 +184,7 @@ describe('@sess.si/create-agent initializer', { timeout: 30_000 }, () => {
       'template/_env.example',
       'template/_gitignore',
       'template/agent.mjs',
+      'template/ask.mjs',
       'template/package.json',
       'template/weather.mjs',
     ]);
