@@ -7,9 +7,9 @@ import { EXCEPTIONS_PATH, NPM_ARGS, evaluate, parseExceptions } from '../../scri
 const PICOMATCH = 'GHSA-fc5q-39xc-vjpf';
 const REASON =
   'development and test toolchain only; the globs it parses come from our own configuration. ' +
-  "The one allowed path, openclaw > npm > node-gyp > tinyglobby > picomatch, is OpenClaw's own tree: " +
-  "the user's OpenClaw brings it with or without our plugin, and our code never loads it. " +
-  "No published package's own dependencies or optionalDependencies reach picomatch.";
+  "The only allowed routes run inside OpenClaw's own npm: openclaw > npm, then through node-gyp > tinyglobby (optionally then fdir) to its one installed picomatch. " +
+  "The user's OpenClaw brings that npm whether or not our plugin is installed, and our code never loads it. " +
+  "No published package's own dependencies or optionalDependencies reach picomatch by any route.";
 const UNTIL = '2026-11-24T17:18:00Z';
 const BEFORE = new Date('2026-11-17T22:05:00Z');
 

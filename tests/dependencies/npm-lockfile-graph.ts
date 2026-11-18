@@ -5,7 +5,8 @@
 // workspace entry, or a reference that resolves to no entry throws instead of being skipped, so a
 // format change cannot make the walk silently find nothing. The one skip is a peer dependency that
 // peerDependenciesMeta marks optional and that the lockfile does not install. runtimeChainsAllowing
-// allows one named chain under a host peer and nothing else (Sess founder 2026-11-18 01:38Z).
+// allows one family of routes inside a host peer's own npm and nothing else, checked route by route
+// (Sess founder 2026-11-18 01:38Z and 02:01Z; ASTRA-69-R2).
 // Used by dev-only-picomatch.test.ts (founder 2026-11-17 22:05Z item 1).
 
 export type LockEntry = {
@@ -119,30 +120,122 @@ export function chainEnd(lock: Lock, names: readonly string[]): string | null {
 }
 
 /**
- * A package's runtime chains to `wanted`, with at most one host-peer path allowed. `hostPath` names
- * a chain from the root's peer `hostPath[0]` (the host application) to `wanted`. Two walks:
+ * The host's own routes that may reach `wanted` (Sess founder 2026-11-18 02:01Z, option 1): a route
+ * enters through the root's peer `peer` and then its `dependencies` edge to `enter`, stays inside
+ * `enter`'s own install directory, and reaches `wanted` only through one of `tails` (each step's
+ * package and edge), ending at the one installed copy that `[peer, enter, ...tails[0]]` ends at.
+ */
+export type HostFamily = {
+  peer: string;
+  enter: string;
+  tails: readonly (readonly { name: string; edges: readonly Edge[] }[])[];
+};
+
+/**
+ * A package's runtime chains to `wanted`, with one family of host-peer routes allowed. Two walks:
  *  - the root's dependencies, optionalDependencies and every other peer: every `wanted` reached
  *    here is `found`, by whatever chain, so the package's own graph never uses the allowance;
- *  - the host peer alone: the one `wanted` entry the named chain ends at is `allowed`; any other
- *    `wanted` entry under the host (another copy, by another chain) is `found`.
- * With no host path, or a lockfile that no longer holds that exact chain, nothing is allowed.
+ *  - the host peer alone: every distinct runtime route to a `wanted` entry is enumerated, not only
+ *    the first route to each entry (ASTRA-69-R2), so a second route to the same installed copy is
+ *    checked on its own. A route is `allowed` only when it is in `family` (HostFamily); every
+ *    other route under the host, to the same copy or another, is `found`.
+ * With no family, nothing is allowed. With a family whose named chain the lockfile no longer
+ * holds, nothing under the host is allowed.
  */
 export function runtimeChainsAllowing(
   lock: Lock,
   wanted: string,
-  hostPath?: readonly string[],
+  family?: HostFamily,
 ): { found: string[]; allowed: string[] } {
-  if (hostPath === undefined) return { found: chainsTo(lock, RUNTIME_EDGES, wanted), allowed: [] };
-  const peer = hostPath[0];
-  if (peer === undefined || hostPath.length < 2 || hostPath[hostPath.length - 1] !== wanted)
-    throw new Error(`host path ${hostPath.join(' > ')} does not run from a peer to ${wanted}`);
-  const own = hitsOf(lock, RUNTIME_EDGES, wanted, { kind: 'withoutPeer', peer });
-  const host = hitsOf(lock, ['peerDependencies'], wanted, { kind: 'onlyPeer', peer });
-  const end = chainEnd(lock, hostPath);
-  return {
-    found: [...own, ...host.filter((hit) => hit.key !== end)].map((hit) => hit.chain),
-    allowed: host.filter((hit) => hit.key === end).map((hit) => hit.chain),
+  if (family === undefined) return { found: chainsTo(lock, RUNTIME_EDGES, wanted), allowed: [] };
+  const first = family.tails[0];
+  if (
+    first === undefined ||
+    family.tails.some((tail) => tail.length === 0 || tail[tail.length - 1]?.name !== wanted)
+  )
+    throw new Error(`host family under ${family.peer} has a tail that does not end at ${wanted}`);
+  const own = hitsOf(lock, RUNTIME_EDGES, wanted, { kind: 'withoutPeer', peer: family.peer });
+  const found = own.map((hit) => hit.chain);
+  const allowed: string[] = [];
+  const copy = chainEnd(lock, [family.peer, family.enter, ...first.map((step) => step.name)]);
+  const inside = `${resolve(lock, resolve(lock, '', family.peer) ?? '', family.enter) ?? '\0'}/node_modules/`;
+  const inFamily = (route: Step[]): boolean => {
+    const [peerStep, enterStep, ...rest] = route;
+    if (copy === null || peerStep === undefined || enterStep === undefined) return false;
+    if (peerStep.edge !== 'peerDependencies' || peerStep.name !== family.peer) return false;
+    if (enterStep.edge !== 'dependencies' || enterStep.name !== family.enter) return false;
+    if (route.some((step) => step.real !== step.name)) return false;
+    if (!rest.every((step) => step.key.startsWith(inside))) return false;
+    if (route[route.length - 1]?.key !== copy) return false;
+    return family.tails.some((tail) => {
+      if (rest.length < tail.length) return false;
+      const middle = rest.slice(0, rest.length - tail.length);
+      const end = rest.slice(rest.length - tail.length);
+      return (
+        middle.every((step) => step.edge === 'dependencies' && step.name !== wanted) &&
+        end.every((step, i) => step.name === tail[i]?.name && (tail[i]?.edges ?? []).includes(step.edge))
+      );
+    });
   };
+  for (const route of hostPaths(lock, family.peer, wanted))
+    (inFamily(route) ? allowed : found).push([lock.name, ...route.map((step) => step.label)].join(' > '));
+  return { found, allowed };
+}
+
+type Step = { key: string; name: string; real: string; edge: Edge; label: string };
+
+/**
+ * Every distinct runtime path from the root's peer `peer` to an entry named `wanted`, with
+ * path-local cycle protection. Only entries from which `wanted` is reachable are entered, so the
+ * enumeration stays within the routes that matter. Fails closed as hitsOf does.
+ */
+function hostPaths(lock: Lock, peer: string, wanted: string): Step[][] {
+  const stepsFrom = (from: string, edges: readonly Edge[], chain: string): Step[] => {
+    const entry = lock.packages.get(from) as LockEntry;
+    const steps: Step[] = [];
+    for (const edge of edges)
+      for (const name of Object.keys(entry[edge] ?? {})) {
+        if (from === '' && !(edge === 'peerDependencies' && name === peer)) continue;
+        const key = resolve(lock, from, name);
+        if (key === null) {
+          if (edge === 'peerDependencies' && entry.peerDependenciesMeta?.[name]?.optional === true) continue;
+          throw new Error(`${chain}: ${edge} ${name} resolves to no lockfile entry`);
+        }
+        const target = lock.packages.get(key) as LockEntry;
+        const real = packageName(key, target);
+        const label = `${real}@${target.version ?? '?'}${edge === 'peerDependencies' ? ' (peer)' : ''}`;
+        steps.push({ key, name, real, edge, label });
+      }
+    return steps;
+  };
+  // Which entries reach `wanted` (memoised; a node on the current stack counts as not reaching).
+  const reaches = new Map<string, boolean>();
+  const reach = (key: string, stack: Set<string>): boolean => {
+    const known = reaches.get(key);
+    if (known !== undefined) return known;
+    if (stack.has(key)) return false;
+    stack.add(key);
+    let hit = false;
+    for (const step of stepsFrom(key, RUNTIME_EDGES, key))
+      if (step.real === wanted || step.name === wanted || reach(step.key, stack)) hit = true;
+    stack.delete(key);
+    reaches.set(key, hit);
+    return hit;
+  };
+  const paths: Step[][] = [];
+  const walk = (from: string, edges: readonly Edge[], path: Step[], onPath: Set<string>): void => {
+    for (const step of stepsFrom(from, edges, [lock.name, ...path.map((p) => p.label)].join(' > '))) {
+      if (onPath.has(step.key)) continue;
+      const next = [...path, step];
+      if (step.real === wanted || step.name === wanted) paths.push(next);
+      if (!reach(step.key, new Set())) continue;
+      onPath.add(step.key);
+      walk(step.key, RUNTIME_EDGES, next, onPath);
+      onPath.delete(step.key);
+    }
+  };
+  walk('', ['peerDependencies'], [], new Set());
+  return paths;
 }
 
 function hitsOf(lock: Lock, rootEdges: readonly Edge[], wanted: string, filter: RootFilter): Hit[] {

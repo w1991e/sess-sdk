@@ -6,12 +6,14 @@
 // package: @sess.si/sdk, @sess.si/mcp, @sess.si/openclaw and @sess.si/create-agent with its starter.
 // Each graph is read from the lockfile that package's CI installs from.
 //
-// One path is allowed, and nothing else (Sess founder 2026-11-18 01:38Z): under @sess.si/openclaw's
-// host peer, openclaw > npm > node-gyp > tinyglobby > picomatch. A host peer's own tree is the
-// host's: the user's OpenClaw brings it with or without our plugin, and our code never loads it.
-// The allowance covers only the picomatch entry that exact chain ends at, reached under the host
-// peer. Each published package's own dependencies and optionalDependencies (and any other peer)
-// must still not reach picomatch, and another picomatch copy under the host fails.
+// One family of routes is allowed, and nothing else (Sess founder 2026-11-18 01:38Z, and 02:01Z
+// option 1): under @sess.si/openclaw's host peer, a route that enters through openclaw > npm, stays
+// inside that npm's own install directory and reaches picomatch only through node-gyp > tinyglobby
+// (optionally then fdir), ending at the one installed copy openclaw > npm > node-gyp > tinyglobby >
+// picomatch ends at. These routes are inside the host's own npm: the user's OpenClaw brings it with
+// or without our plugin, and our code never loads it. Every route under the host is checked on its
+// own (ASTRA-69-R2); any route outside the family fails. Each published package's own dependencies
+// and optionalDependencies (and any other peer) must still not reach picomatch by any route.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
@@ -19,11 +21,31 @@ import {
   chainsTo,
   parseLock,
   runtimeChainsAllowing,
+  type HostFamily,
   type Lock,
 } from './npm-lockfile-graph.js';
 
 const WANTED = 'picomatch';
-const HOST_PATH = ['openclaw', 'npm', 'node-gyp', 'tinyglobby', 'picomatch'] as const;
+const FAMILY: HostFamily = {
+  peer: 'openclaw',
+  enter: 'npm',
+  tails: [
+    [
+      { name: 'node-gyp', edges: ['dependencies'] },
+      { name: 'tinyglobby', edges: ['dependencies'] },
+      { name: 'picomatch', edges: ['dependencies'] },
+    ],
+    [
+      { name: 'node-gyp', edges: ['dependencies'] },
+      { name: 'tinyglobby', edges: ['dependencies'] },
+      { name: 'fdir', edges: ['dependencies'] },
+      // fdir declares picomatch as its (optional) peer.
+      { name: 'picomatch', edges: ['dependencies', 'peerDependencies'] },
+    ],
+  ],
+};
+const NAMED =
+  '@sess.si/openclaw > openclaw@2026.10.3 (peer) > npm@12.1.0 > node-gyp@13.0.0 > tinyglobby@0.2.17 > picomatch@4.0.5';
 const read = (path: string): string => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const manifest = (path: string): Record<string, unknown> => JSON.parse(read(path)) as Record<string, unknown>;
 const lockAt = (path: string): Lock => parseLock(read(path), path);
@@ -95,16 +117,22 @@ describe('the picomatch audit exception: picomatch stays out of every published 
     const lockfile = lockAt(path);
     const pkg = manifest('adapters/openclaw/package.json');
     agrees(lockfile, pkg);
-    expect(Object.keys((pkg.peerDependencies ?? {}) as Record<string, string>)).toContain(HOST_PATH[0]);
-    const { found, allowed } = runtimeChainsAllowing(lockfile, WANTED, HOST_PATH);
+    expect(Object.keys((pkg.peerDependencies ?? {}) as Record<string, string>)).toContain(FAMILY.peer);
+    const { found, allowed } = runtimeChainsAllowing(lockfile, WANTED, FAMILY);
+    // A new route outside the family, under the host or from the package's own graph, fails here.
     expect(found).toEqual([]);
-    // Non-vacuous: today the allowance matches, so a lockfile that drops the path fails here and the
-    // allowance is removed rather than left standing.
-    expect(allowed).toEqual([
-      '@sess.si/openclaw > openclaw@2026.10.3 (peer) > npm@12.1.0 > node-gyp@13.0.0 > tinyglobby@0.2.17 > picomatch@4.0.5',
-    ]);
-    // Without the allowance the same walk fails, on that path.
-    expect(runtimeChainsAllowing(lockfile, WANTED).found).toEqual(allowed);
+    // Non-vacuous: today the named route is among the allowed ones, so a lockfile that drops it fails
+    // here and the allowance is removed rather than left standing. Every allowed route ends at the
+    // one copy inside the host's npm.
+    expect(allowed).toContain(NAMED);
+    for (const route of allowed) {
+      expect(route).toMatch(/^@sess\.si\/openclaw > openclaw@[^ ]+ \(peer\) > npm@[^ ]+ > /);
+      expect(route).toMatch(
+        / > node-gyp@[^ ]+ > tinyglobby@[^ ]+ > (picomatch@4\.0\.5|fdir@[^ ]+ > picomatch@4\.0\.5 \(peer\))$/,
+      );
+    }
+    // Without the allowance the same walk fails (the first route to the copy).
+    expect(runtimeChainsAllowing(lockfile, WANTED).found).toEqual([NAMED]);
     expect(devChains(path)).not.toEqual([]);
   });
 
@@ -171,7 +199,7 @@ describe('the picomatch audit exception: picomatch stays out of every published 
       );
     });
 
-    describe('the one allowed host-peer path', () => {
+    describe('the one allowed family of host-peer routes', () => {
       const HOST: Record<string, Record<string, unknown>> = {
         ...PACKAGES,
         'node_modules/openclaw': { version: '1.0.0', dependencies: { npm: '1' } },
@@ -183,12 +211,90 @@ describe('the picomatch audit exception: picomatch stays out of every published 
       const ALLOWED =
         'x > openclaw@1.0.0 (peer) > npm@1.0.0 > node-gyp@1.0.0 > tinyglobby@1.0.0 > picomatch@4.0.5';
       const allowing = (root: Record<string, unknown>, packages = HOST) =>
-        runtimeChainsAllowing(parseLock(lock(root, packages), 'synthetic'), WANTED, HOST_PATH);
+        runtimeChainsAllowing(parseLock(lock(root, packages), 'synthetic'), WANTED, FAMILY);
 
       it('passes the named path through the host peer, and only as allowed', () => {
         expect(allowing({ peerDependencies: { openclaw: '1' } })).toEqual({ found: [], allowed: [ALLOWED] });
         // The same lockfile without the allowance finds it.
         expect(walk({ peerDependencies: { openclaw: '1' } }, HOST)).toEqual([ALLOWED]);
+      });
+
+      // Each side of the family's boundary (founder 02:01Z item 4), on the same installed copy.
+      it('allows every route in the family: a longer route inside npm, and the fdir tail through its peer', () => {
+        const family = {
+          ...HOST,
+          'node_modules/npm': { version: '1.0.0', dependencies: { 'node-gyp': '1', pacote: '1' } },
+          'node_modules/npm/node_modules/pacote': { version: '1.0.0', dependencies: { 'node-gyp': '1' } },
+          'node_modules/npm/node_modules/tinyglobby': {
+            version: '1.0.0',
+            dependencies: { picomatch: '4', fdir: '6' },
+          },
+          'node_modules/npm/node_modules/tinyglobby/node_modules/fdir': {
+            version: '6.0.0',
+            peerDependencies: { picomatch: '4' },
+          },
+        };
+        const result = allowing({ peerDependencies: { openclaw: '1' } }, family);
+        expect(result.found).toEqual([]);
+        expect([...result.allowed].sort()).toEqual(
+          [
+            ALLOWED,
+            'x > openclaw@1.0.0 (peer) > npm@1.0.0 > node-gyp@1.0.0 > tinyglobby@1.0.0 > fdir@6.0.0 > picomatch@4.0.5 (peer)',
+            'x > openclaw@1.0.0 (peer) > npm@1.0.0 > pacote@1.0.0 > node-gyp@1.0.0 > tinyglobby@1.0.0 > picomatch@4.0.5',
+            'x > openclaw@1.0.0 (peer) > npm@1.0.0 > pacote@1.0.0 > node-gyp@1.0.0 > tinyglobby@1.0.0 > fdir@6.0.0 > picomatch@4.0.5 (peer)',
+          ].sort(),
+        );
+      });
+
+      it("fails a new route to the same copy outside the family: ASTRA's shortcut, another tail, an optional edge", () => {
+        // ASTRA-69-R2: openclaw > shortcut > picomatch, listed before npm, to the same hoisted copy.
+        const hoisted: Record<string, Record<string, unknown>> = {
+          'node_modules/openclaw': { version: '1.0.0', dependencies: { shortcut: '1', npm: '1' } },
+          'node_modules/shortcut': { version: '1.0.0', dependencies: { picomatch: '4' } },
+          'node_modules/npm': { version: '1.0.0', dependencies: { 'node-gyp': '1' } },
+          'node_modules/node-gyp': { version: '1.0.0', dependencies: { tinyglobby: '1' } },
+          'node_modules/tinyglobby': { version: '1.0.0', dependencies: { picomatch: '4' } },
+          'node_modules/picomatch': { version: '4.0.5' },
+        };
+        const shortcut = allowing({ peerDependencies: { openclaw: '1' } }, hoisted);
+        expect(shortcut.found).toContain('x > openclaw@1.0.0 (peer) > shortcut@1.0.0 > picomatch@4.0.5');
+        expect(shortcut.allowed.some((route) => route.includes('shortcut'))).toBe(false);
+        // Hoisted out of npm's own directory, the named route is outside the family too.
+        expect(shortcut.allowed).toEqual([]);
+        // Inside npm, another package after tinyglobby that reaches the same copy.
+        const tail = {
+          ...HOST,
+          'node_modules/npm/node_modules/tinyglobby': {
+            version: '1.0.0',
+            dependencies: { picomatch: '4', other: '1' },
+          },
+          'node_modules/npm/node_modules/tinyglobby/node_modules/other': {
+            version: '1.0.0',
+            dependencies: { picomatch: '4' },
+          },
+        };
+        expect(allowing({ peerDependencies: { openclaw: '1' } }, tail)).toEqual({
+          found: [
+            'x > openclaw@1.0.0 (peer) > npm@1.0.0 > node-gyp@1.0.0 > tinyglobby@1.0.0 > other@1.0.0 > picomatch@4.0.5',
+          ],
+          allowed: [ALLOWED],
+        });
+        // A longer route inside npm through an optionalDependencies edge is outside the family.
+        const optional = {
+          ...HOST,
+          'node_modules/npm': {
+            version: '1.0.0',
+            dependencies: { 'node-gyp': '1' },
+            optionalDependencies: { pacote: '1' },
+          },
+          'node_modules/npm/node_modules/pacote': { version: '1.0.0', dependencies: { 'node-gyp': '1' } },
+        };
+        expect(allowing({ peerDependencies: { openclaw: '1' } }, optional)).toEqual({
+          found: [
+            'x > openclaw@1.0.0 (peer) > npm@1.0.0 > pacote@1.0.0 > node-gyp@1.0.0 > tinyglobby@1.0.0 > picomatch@4.0.5',
+          ],
+          allowed: [ALLOWED],
+        });
       });
 
       it('fails another chain under the host peer, to another copy', () => {
@@ -277,9 +383,11 @@ describe('the picomatch audit exception: picomatch stays out of every published 
           /missing resolves to no lockfile entry/,
         );
         const synthetic = parseLock(lock({ peerDependencies: { openclaw: '1' } }, HOST), 'synthetic');
-        expect(() => runtimeChainsAllowing(synthetic, WANTED, ['openclaw', 'npm'])).toThrow(/does not run/);
-        expect(() => runtimeChainsAllowing(synthetic, WANTED, [WANTED])).toThrow(/does not run/);
-        expect(() => runtimeChainsAllowing(synthetic, WANTED, [])).toThrow(/does not run/);
+        const bad = (tails: HostFamily['tails']) => () =>
+          runtimeChainsAllowing(synthetic, WANTED, { ...FAMILY, tails });
+        expect(bad([])).toThrow(/does not end at/);
+        expect(bad([[]])).toThrow(/does not end at/);
+        expect(bad([[{ name: 'npm', edges: ['dependencies'] }]])).toThrow(/does not end at/);
       });
     });
 
