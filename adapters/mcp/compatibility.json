@@ -51,16 +51,17 @@
       },
       {
         "name": "hono",
-        "version": "4.13.13",
+        "version": "4.13.16",
         "license": "MIT",
-        "integrity": "sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA=="
+        "integrity": "sha512-AOLOEhvrV+iH92xXCnFr/5+3KjPKcI3xP63XJtX5spAnkznPdHijlIsUTpi7/9EhWqrTCekw5c5zh1K+YsVw7A==",
+        "note": "Pinned by package.json overrides to 4.13.16 (GHSA-4m76-xfj5-7975, GHSA-h7mg-cq63-vhpq, GHSA-3gg2-335m-rxc6, GHSA-46wx-v44x-9hh2, GHSA-4h7h-rv7c-7m2v; <=4.13.15). The override applies where this package is the root project: this repository and its packed-package check. An install from npm resolves @modelcontextprotocol/node's own ^4.11.4, which selects the newest 4.x (4.13.19 when this was recorded)."
       },
       {
         "name": "@hono/node-server",
-        "version": "2.1.5",
+        "version": "2.1.6",
         "license": "MIT",
-        "integrity": "sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q==",
-        "note": "Pinned by package.json overrides over @modelcontextprotocol/node 2.1.1's ^1.19.9 (GHSA-rmxm-3fg6-px4f, >=1.19.10 <2.1.3: serveStatic decodes the request path a second time; no patched 1.x). The override applies where this package is the root project: this repository and its packed-package check, which therefore exercise 2.1.5. An install from npm resolves @modelcontextprotocol/node's own range, 1.19.x (last tested here: 1.19.17); that carries the advisory on serveStatic, a code path the adapter never loads (only src/http.ts imports @modelcontextprotocol/node, and only its toNodeHandler)."
+        "integrity": "sha512-p/KH9MnfNcsm3sR6x4lNgm5j+QN4Et8srKredl9DZfXiyZ1UQ3aQ2YVpFLbqktYN5JI+DB+VZFKM2PqE5hLKjQ==",
+        "note": "Pinned by package.json overrides over @modelcontextprotocol/node 2.1.1's ^1.19.9 (GHSA-rmxm-3fg6-px4f, >=1.19.10 <2.1.3: serveStatic decodes the request path a second time; no patched 1.x; then 2.1.6 for GHSA-qv5m-9pm6-hqp3 and GHSA-jpvv-r467-5p4w, 2.0.0-2.1.5). The override applies where this package is the root project: this repository and its packed-package check, which therefore exercise 2.1.6. An install from npm resolves @modelcontextprotocol/node's own range, 1.19.x (last tested here: 1.19.17); that carries the advisory on serveStatic, a code path the adapter never loads (only src/http.ts imports @modelcontextprotocol/node, and only its toNodeHandler)."
       }
     ],
     "serverApi": "low-level Server (request handlers). stdio: Server.connect(StdioServerTransport) through the raw-message unsafe-key guard, a 2025-era connection exactly as before. HTTP: createMcpHandler with its default legacy: 'stateless' fallback, one server instance per request.",

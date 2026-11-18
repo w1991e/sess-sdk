@@ -14,8 +14,9 @@
 //    `npm exec --package=<tarball>`), then the README's `npm install --ignore-scripts` and
 //    `npm start`. The clock stops when the agent prints "Agent running.".
 // 3. Accepts the install only if @sess.si/sdk is the pinned version from the public registry with
-//    the integrity recorded in release/sdk-candidate.json, and the generated files pass the
-//    template parity check.
+//    the integrity recorded in release/sdk-candidate.json, its installed runtime graph reaches no
+//    picomatch (scripts/check-starter-graph.mjs on the lockfile this install wrote; ASTRA-70-R1),
+//    and the generated files pass the template parity check.
 // 4. Lets the agent finish both rounds against the offline fake world (create-agent/test/
 //    fake-world.mjs: fake SESS API with genuinely signed receipts, fake MET Norway and NWS). Every
 //    Sess request carries the starter's User-Agent, `sess-create-agent/<version>` then the SDK's.
@@ -46,6 +47,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { assertPackedHygiene } from '../../scripts/check-packed-hygiene.mjs';
+import { WANTED, starterChains } from '../../scripts/check-starter-graph.mjs';
 
 const BUDGET_MS = 60_000;
 const PUBLIC_REGISTRY = 'https://registry.npmjs.org/';
@@ -283,7 +285,8 @@ process.exit(exitCode);
 
 /** The install in `app` is the pinned, published SDK, with no install scripts anywhere. */
 function checkInstall(app) {
-  const lock = JSON.parse(readFileSync(join(app, 'package-lock.json'), 'utf8'));
+  const lockText = readFileSync(join(app, 'package-lock.json'), 'utf8');
+  const lock = JSON.parse(lockText);
   const entry = lock.packages?.[`node_modules/${pin.name}`] ?? {};
   if (entry.version !== pin.version) fail(`installed ${pin.name}@${entry.version}, not ${pin.version}`);
   if (entry.resolved !== `${PUBLIC_REGISTRY}${pin.name}/-/sdk-${pin.version}.tgz`)
@@ -291,6 +294,9 @@ function checkInstall(app) {
   if (entry.integrity !== pin.integrity) fail(`${pin.name} integrity ${entry.integrity} is not the pin`);
   const scripts = Object.entries(lock.packages ?? {}).filter(([, value]) => value.hasInstallScript);
   if (scripts.length) fail(`dependencies with install scripts: ${scripts.map(([key]) => key).join(', ')}`);
+  // The graph this install resolved, transitively; the SDK's direct pins do not fix it (ASTRA-70-R1).
+  const chains = starterChains(lockText, `${app}/package-lock.json`);
+  if (chains.length) fail(`${WANTED} is in the starter's installed runtime graph: ${chains.join('; ')}`);
 }
 
 /**

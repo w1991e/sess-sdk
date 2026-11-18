@@ -249,7 +249,6 @@ function summary(r: DecisionBundleVerification, renderer?: RendererCheck): strin
     if (renderer) row('Renderer', `${safe(c.surface.renderer_version)} (listed)`);
   } else if (r.reason === 'unsupported_version') {
     // A later bundle version, receipt type or revision envelope: newer, never a damaged file.
-    // The Sess founder's line (2026-11-17 22:48Z item 6), complete on its own.
     lines.push(`This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`);
   } else {
     lines.push(`Invalid decision bundle: ${r.reason}`);
