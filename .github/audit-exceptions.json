@@ -3,7 +3,7 @@
     {
       "id": "GHSA-fc5q-39xc-vjpf",
       "package": "picomatch",
-      "reason": "development and test toolchain only; the globs it parses come from our own configuration",
+      "reason": "development and test toolchain only; the globs it parses come from our own configuration. The one allowed path, openclaw > npm > node-gyp > tinyglobby > picomatch, is OpenClaw's own tree: the user's OpenClaw brings it with or without our plugin, and our code never loads it. No published package's own dependencies or optionalDependencies reach picomatch.",
       "until": "2026-11-24T17:18:00Z"
     }
   ]

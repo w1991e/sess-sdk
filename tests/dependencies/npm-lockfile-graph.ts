@@ -4,7 +4,8 @@
 // never followed. It fails closed: an unreadable lockfile, another lockfile version, a link or
 // workspace entry, or a reference that resolves to no entry throws instead of being skipped, so a
 // format change cannot make the walk silently find nothing. The one skip is a peer dependency that
-// peerDependenciesMeta marks optional and that the lockfile does not install.
+// peerDependenciesMeta marks optional and that the lockfile does not install. runtimeChainsAllowing
+// allows one named chain under a host peer and nothing else (Sess founder 2026-11-18 01:38Z).
 // Used by dev-only-picomatch.test.ts (founder 2026-11-17 22:05Z item 1).
 
 export type LockEntry = {
@@ -77,19 +78,82 @@ export function resolve(lock: Lock, from: string, name: string): string | null {
 export const packageName = (key: string, entry: LockEntry): string =>
   entry.name ?? key.slice(key.lastIndexOf('node_modules/') + 'node_modules/'.length);
 
+type Hit = { key: string; chain: string };
+/** Which of the root's own edges a walk starts from: all, all but one peer, or that peer only. */
+type RootFilter =
+  { kind: 'all' } | { kind: 'withoutPeer'; peer: string } | { kind: 'onlyPeer'; peer: string };
+
+const startsHere = (filter: RootFilter, edge: Edge, name: string): boolean => {
+  if (filter.kind === 'all') return true;
+  const isPeer = edge === 'peerDependencies' && name === filter.peer;
+  return filter.kind === 'onlyPeer' ? isPeer : !isPeer;
+};
+
 /**
  * Every lockfile entry named `wanted` (by real name or by the name it is installed under) reachable
  * from the root's `rootEdges`, then through every entry's runtime edges, each with the first chain
  * that reaches it: "root > name@version > ... > wanted@version". Each entry is reported once.
  */
 export function chainsTo(lock: Lock, rootEdges: readonly Edge[], wanted: string): string[] {
-  const found: string[] = [];
+  return hitsOf(lock, rootEdges, wanted, { kind: 'all' }).map((hit) => hit.chain);
+}
+
+/**
+ * The lockfile entry a named chain of packages ends at, or null if the lockfile does not hold that
+ * exact chain: the root declares `names[0]` as a peer dependency, each later name is in the
+ * `dependencies` of the one before, each resolves the way Node resolves it, and each installed
+ * package's real name is the name in the chain (an alias does not match).
+ */
+export function chainEnd(lock: Lock, names: readonly string[]): string | null {
+  if (names.length === 0) return null;
+  let from = '';
+  for (const [index, name] of names.entries()) {
+    const entry = lock.packages.get(from) as LockEntry;
+    const declared = index === 0 ? entry.peerDependencies : entry.dependencies;
+    if (declared?.[name] === undefined) return null;
+    const key = resolve(lock, from, name);
+    if (key === null || packageName(key, lock.packages.get(key) as LockEntry) !== name) return null;
+    from = key;
+  }
+  return from;
+}
+
+/**
+ * A package's runtime chains to `wanted`, with at most one host-peer path allowed. `hostPath` names
+ * a chain from the root's peer `hostPath[0]` (the host application) to `wanted`. Two walks:
+ *  - the root's dependencies, optionalDependencies and every other peer: every `wanted` reached
+ *    here is `found`, by whatever chain, so the package's own graph never uses the allowance;
+ *  - the host peer alone: the one `wanted` entry the named chain ends at is `allowed`; any other
+ *    `wanted` entry under the host (another copy, by another chain) is `found`.
+ * With no host path, or a lockfile that no longer holds that exact chain, nothing is allowed.
+ */
+export function runtimeChainsAllowing(
+  lock: Lock,
+  wanted: string,
+  hostPath?: readonly string[],
+): { found: string[]; allowed: string[] } {
+  if (hostPath === undefined) return { found: chainsTo(lock, RUNTIME_EDGES, wanted), allowed: [] };
+  const peer = hostPath[0];
+  if (peer === undefined || hostPath.length < 2 || hostPath[hostPath.length - 1] !== wanted)
+    throw new Error(`host path ${hostPath.join(' > ')} does not run from a peer to ${wanted}`);
+  const own = hitsOf(lock, RUNTIME_EDGES, wanted, { kind: 'withoutPeer', peer });
+  const host = hitsOf(lock, ['peerDependencies'], wanted, { kind: 'onlyPeer', peer });
+  const end = chainEnd(lock, hostPath);
+  return {
+    found: [...own, ...host.filter((hit) => hit.key !== end)].map((hit) => hit.chain),
+    allowed: host.filter((hit) => hit.key === end).map((hit) => hit.chain),
+  };
+}
+
+function hitsOf(lock: Lock, rootEdges: readonly Edge[], wanted: string, filter: RootFilter): Hit[] {
+  const found: Hit[] = [];
   const seen = new Set<string>();
   const queue: { key: string; chain: string[] }[] = [];
   const visit = (from: string, edges: readonly Edge[], chain: string[]): void => {
     const entry = lock.packages.get(from) as LockEntry;
     for (const edge of edges) {
       for (const name of Object.keys(entry[edge] ?? {})) {
+        if (from === '' && !startsHere(filter, edge, name)) continue;
         const key = resolve(lock, from, name);
         if (key === null) {
           if (edge === 'peerDependencies' && entry.peerDependenciesMeta?.[name]?.optional === true) continue;
@@ -101,7 +165,7 @@ export function chainsTo(lock: Lock, rootEdges: readonly Edge[], wanted: string)
         const real = packageName(key, target);
         const label = `${real}@${target.version ?? '?'}${edge === 'peerDependencies' ? ' (peer)' : ''}`;
         const next = [...chain, label];
-        if (real === wanted || name === wanted) found.push(next.join(' > '));
+        if (real === wanted || name === wanted) found.push({ key, chain: next.join(' > ') });
         queue.push({ key, chain: next });
       }
     }

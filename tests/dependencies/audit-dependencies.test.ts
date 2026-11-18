@@ -5,7 +5,11 @@ import { describe, expect, it } from 'vitest';
 import { EXCEPTIONS_PATH, NPM_ARGS, evaluate, parseExceptions } from '../../scripts/audit-dependencies.mjs';
 
 const PICOMATCH = 'GHSA-fc5q-39xc-vjpf';
-const REASON = 'development and test toolchain only; the globs it parses come from our own configuration';
+const REASON =
+  'development and test toolchain only; the globs it parses come from our own configuration. ' +
+  "The one allowed path, openclaw > npm > node-gyp > tinyglobby > picomatch, is OpenClaw's own tree: " +
+  "the user's OpenClaw brings it with or without our plugin, and our code never loads it. " +
+  "No published package's own dependencies or optionalDependencies reach picomatch.";
 const UNTIL = '2026-11-24T17:18:00Z';
 const BEFORE = new Date('2026-11-17T22:05:00Z');
 
