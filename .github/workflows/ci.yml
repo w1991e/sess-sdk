@@ -71,7 +71,9 @@ jobs:
       - run: npm run check
       - name: Four-package latest readback self-test
         run: node --test scripts/test-check-latest-release.mjs
-      - run: npm audit --audit-level=moderate
+      # npm audit over every dependency at moderate, with the dated exceptions in
+      # .github/audit-exceptions.json (rules in the script's header; SECURITY.md).
+      - run: node scripts/audit-dependencies.mjs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sdk-package-node-${{ matrix.node }}
