@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0 — unreleased
+## 0.4.0 — 2026-11-18
 
 - Receipt v2 reads the frozen revision envelope, `sess_revision: 2`, and only it: ten common
   members (`sess_revision`, `revision`, `session_id`, `surface_hash`, `renderer_version`,

@@ -14,7 +14,7 @@ terminal with a verified receipt.
 **Install** the SDK in your own server project:
 
 ```sh
-npm install --save-exact @sess.si/sdk@0.3.0
+npm install --save-exact @sess.si/sdk@0.4.0
 ```
 
 ## Ask a person
@@ -120,10 +120,10 @@ async function askShort(question: string) {
 }
 ```
 
-**Release status:** `0.3.0` is the current release, served under the `latest` dist-tag. It
-verifies receipt v2, which commits to the record of the round it answered, and still verifies
-receipt v1. `next` stays at the last release candidate,
-`0.1.0-rc.10`. The [changelog](CHANGELOG.md) describes each version; `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
+**Release status:** `0.4.0` is the current release, served under the `latest` dist-tag. It
+verifies receipt v2 in its frozen format, still verifies receipt v1, and accepts a Sess Ask's
+webhook messages. A receipt newer than this release is reported as newer, never as a failed check.
+`next` stays at the last release candidate, `0.1.0-rc.10`. The [changelog](CHANGELOG.md) describes each version; `npm view @sess.si/sdk dist-tags` shows what the registry serves now.
 
 ## Commerce
 
@@ -243,10 +243,10 @@ exact Surface and input, and the issuer's public keys. Check it on your own comp
 trust (never the keys inside the bundle):
 
 ```sh
-npx -p @sess.si/sdk@0.3.0 sess verify bundle.json --issuer https://api.sess.si --keys sess-receipt-keys.json
+npx -p @sess.si/sdk@0.4.0 sess verify bundle.json --issuer https://api.sess.si --keys sess-receipt-keys.json
 ```
 
-The `sess` command first ships in `0.1.0-rc.5`; any later version, `0.3.0` included, has it.
+The `sess` command first ships in `0.1.0-rc.5`; any later version, `0.4.0` included, has it.
 
 You'll see `Valid decision bundle.` and what was accepted, when, on which revision; or `Invalid`
 and the first reason; or `This bundle is newer than @sess.si/sdk {version}. Update @sess.si/sdk to
