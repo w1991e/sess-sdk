@@ -11,8 +11,21 @@
 // trusted-key validation, revision-envelope reading and canonical JSON helpers.
 import { createHash } from 'node:crypto';
 import { decodeProtectedHeader, errors, importJWK, jwtVerify, type JWTPayload } from 'jose';
-import { parseRevisionEnvelope, revisionHash, type RevisionEnvelope } from './envelope.js';
-import { canonicalJson, exactKeys, isRecord, jsonDigest } from './json.js';
+import {
+  parseFullRevisionEnvelope,
+  parseRevisionEnvelope,
+  revisionEnvelopeIsNewer,
+  revisionHash,
+  type RevisionEnvelopeFull,
+} from './envelope.js';
+import {
+  canonicalJson,
+  exactKeys,
+  isNewerReceiptTyp,
+  isRecord,
+  jsonDigest,
+  RECEIPT_V2_ACTION_LABEL_MAX,
+} from './json.js';
 import { validateKeySet, type ReceiptKeySet } from './verify.js';
 
 const BUNDLE_TYPE = 'sess.decision-bundle';
@@ -59,8 +72,8 @@ export type DecisionBundle = DecisionBundleV1 | DecisionBundleV2;
 /** A bundle-v2 object: bundle-v1's members plus `revision_envelope`, exactly. */
 export interface DecisionBundleV2 extends Omit<DecisionBundleV1, 'version'> {
   version: 2;
-  /** The revision envelope the receipt v2 commits to (receipt-v2 §2). */
-  revision_envelope: RevisionEnvelope;
+  /** The revision envelope the receipt v2 commits to (receipt-v2 §2), in its full form. */
+  revision_envelope: RevisionEnvelopeFull;
 }
 
 /** A bundle-v1 object: exactly these members. */
@@ -88,7 +101,12 @@ type ReceiptRejection =
   | 'expired'
   | 'claims'
   /** Receipt v2: the revision envelope is missing, malformed, or of another digest or record. */
-  | 'revision';
+  | 'revision'
+  /**
+   * Newer than this release: a later Sess receipt `typ`, or a receipt v2 whose envelope has a
+   * later `sess_revision`. A bundle reports it as `unsupported_version`; nothing is released.
+   */
+  | 'newer';
 
 /** Why a bundle is invalid: the first check that failed (bundle-v1 §5, bundle-v2 §5). */
 export type BundleRejection =
@@ -96,7 +114,7 @@ export type BundleRejection =
   | 'oversized'
   | 'unsupported_version'
   | 'receipt_malformed'
-  | Exclude<ReceiptRejection, 'malformed'>
+  | Exclude<ReceiptRejection, 'malformed' | 'newer'>
   | 'not_yet_valid'
   | 'surface_mismatch'
   | 'input_mismatch'
@@ -144,11 +162,12 @@ export interface VerifiedReceiptSummary {
   accepted_at: string;
   expires_at: string;
   /**
-   * bundle-v2 only: the verified revision envelope (absent for a bundle-v1 result). Its
-   * `key_label` and `published_at` say which of the workspace's API keys published the revision,
-   * under which label, and when; a face shows a publisher only from here.
+   * bundle-v2 only: the verified revision envelope, in its full form (absent for a bundle-v1
+   * result). A face shows "Asked by" and `published_at` only from here: the most specific title,
+   * `titles.grant_title`, else `titles.target_title`, else `titles.owner_name`, each the owner's
+   * own words, never a verified identity.
    */
-  revision_envelope?: RevisionEnvelope;
+  revision_envelope?: RevisionEnvelopeFull;
 }
 
 /** The result every face reports (bundle-v1 §6, bundle-v2 §6). JSON-serializable. */
@@ -256,6 +275,7 @@ function receiptV1Claims(p: Record<string, unknown>, version: 1 | 2): ReceiptV1C
     exactKeys(a, ['id', 'label', 'summary']) &&
     nonEmpty(a.id) &&
     nonEmpty(a.label) &&
+    (version === 1 || [...a.label].length <= RECEIPT_V2_ACTION_LABEL_MAX) &&
     typeof a.summary === 'string' &&
     isRecord(act) &&
     exactKeys(act, ['assurance', 'subject']) &&
@@ -292,6 +312,9 @@ async function verifyReceiptV1(
   } catch {
     throw new ReceiptV1Failure('malformed');
   }
+  // A Sess format this release does not know is newer, before any other check: its key, its
+  // algorithm and its claims may all be ones this release has never seen.
+  if (isNewerReceiptTyp(header.typ)) throw new ReceiptV1Failure('newer');
   if (header.alg !== RECEIPT_ALG) throw new ReceiptV1Failure('algorithm');
   if (typeof header.kid !== 'string' || header.kid.length === 0) throw new ReceiptV1Failure('missing_kid');
   const jwk = keys.keys.find((k) => k.kid === header.kid);
@@ -325,7 +348,10 @@ async function verifyReceiptV1(
   if (`sha256:${createHash('sha256').update(signed).digest('hex')}` !== jsonDigest(claims))
     throw new ReceiptV1Failure('claims');
   if (options.version === 2) {
-    // receipt-v2 §7: missing or null, malformed, of another digest, or of another record.
+    // receipt-v2 §7: missing or null, malformed, of another digest, or of another record. An
+    // envelope of a later sess_revision is newer, never read as this version.
+    if (envelope !== undefined && envelope !== null && revisionEnvelopeIsNewer(envelope))
+      throw new ReceiptV1Failure('newer');
     const parsed = parseRevisionEnvelope(envelope);
     if (
       parsed === null ||
@@ -562,8 +588,15 @@ export async function verifyDecisionBundle(
       return invalid('audience', {
         context: { status: 'mismatch', checked: supplied, mismatches: ['audience'] },
       });
+    // A receipt newer than this release (a later Sess typ, a later envelope) is a newer bundle:
+    // reported as unsupported_version, and nothing is released.
+    if (e.code === 'newer') return invalid('unsupported_version');
     return invalid(e.code === 'malformed' ? 'receipt_malformed' : e.code);
   }
+  // A person's file carries the full form: a compact envelope is a QR code's, never a bundle's, so
+  // it is refused as `revision` even when its digest matches.
+  const verifiedEnvelope = v2 ? parseFullRevisionEnvelope(envelope) : null;
+  if (v2 && verifiedEnvelope === null) return invalid('revision');
   if (claims.iat > Math.floor(now.getTime() / 1000) + CLOCK_TOLERANCE_S) return invalid('not_yet_valid');
 
   if (claims.surface.hash !== jsonDigest(b.content.surface))
@@ -604,7 +637,7 @@ export async function verifyDecisionBundle(
       accepted_at: claims.accepted_at,
       expires_at: new Date(claims.exp * 1000).toISOString(),
       // bundle-v2: the envelope as verified (its digest is the receipt's revision_hash).
-      ...(v2 ? { revision_envelope: parseRevisionEnvelope(envelope) as RevisionEnvelope } : {}),
+      ...(verifiedEnvelope ? { revision_envelope: verifiedEnvelope } : {}),
     },
   };
 }

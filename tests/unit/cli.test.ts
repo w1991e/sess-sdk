@@ -10,7 +10,9 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { SDK_VERSION } from '../../src/internal/version.js';
 import { verifyDecisionBundle, type DecisionBundleVerification } from '../../src/receipts/index.js';
+import { buildCorpusV2Vectors } from '../fixtures/bundle/corpus-v2-vectors.js';
 import {
   buildCorpusVectors,
   corpusBundleWithClaims,
@@ -109,6 +111,17 @@ const outcome = (r: DecisionBundleVerification): FrozenOutcome => ({
   application_purpose: r.application_purpose,
 });
 
+/** The documented exit status: 0 valid, 3 newer than this release checks, 1 any other invalid. */
+const exitFor = (o: FrozenOutcome) => (o.valid ? 0 : o.reason === 'unsupported_version' ? 3 : 1);
+
+/** The summary's first line: valid, newer (never reported as a failure), or invalid and its reason. */
+const firstLineFor = (o: FrozenOutcome) =>
+  o.valid
+    ? 'Valid decision bundle.'
+    : o.reason === 'unsupported_version'
+      ? `This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`
+      : `Invalid decision bundle: ${o.reason}`;
+
 /** Strings that must never appear in CLI output for a vector. */
 function secretsOf(v: CorpusVector): string[] {
   const b = v.bundle as {
@@ -172,7 +185,7 @@ describe('sess verify <file>', () => {
     }
   });
 
-  it('reaches every frozen trusted and public result, equal to the library face, with exit 0/1 and no network', async () => {
+  it('reaches every frozen trusted and public result, equal to the library face, with exit 0/1/3 and no network', async () => {
     expect(vectors.map((v) => v.id)).toEqual(CORPUS.vectors.map((v) => v.id));
     const runs = await pool(vectors, 8, async (v) => {
       const trusted = await sess([
@@ -197,9 +210,9 @@ describe('sess verify <file>', () => {
       const p = JSON.parse(pub.stdout) as DecisionBundleVerification;
       expect(outcome(t), `${v.id} trusted`).toEqual(frozen.expected.trusted);
       expect(outcome(p), `${v.id} public`).toEqual(frozen.expected.public);
-      expect(trusted.code, `${v.id} trusted exit`).toBe(frozen.expected.trusted.valid ? 0 : 1);
-      expect(pub.code, `${v.id} public exit`).toBe(frozen.expected.public.valid ? 0 : 1);
-      expect(human.code, `${v.id} human exit`).toBe(frozen.expected.trusted.valid ? 0 : 1);
+      expect(trusted.code, `${v.id} trusted exit`).toBe(exitFor(frozen.expected.trusted));
+      expect(pub.code, `${v.id} public exit`).toBe(exitFor(frozen.expected.public));
+      expect(human.code, `${v.id} human exit`).toBe(exitFor(frozen.expected.trusted));
       // The CLI reports the library's result object exactly (the public face's time differs).
       const library = await verifyDecisionBundle(v.bundle, {
         issuer: CORPUS_ISSUER,
@@ -214,11 +227,7 @@ describe('sess verify <file>', () => {
       });
       expect({ ...p, checked_at: '' }, `${v.id} public result`).toEqual({ ...libraryPublic, checked_at: '' });
       // The summary names the outcome and reason in a few lines.
-      expect(human.stdout.split('\n')[0]).toBe(
-        frozen.expected.trusted.valid
-          ? 'Valid decision bundle.'
-          : `Invalid decision bundle: ${frozen.expected.trusted.reason}`,
-      );
+      expect(human.stdout.split('\n')[0]).toBe(firstLineFor(frozen.expected.trusted));
       expect(human.stdout.split('\n').length).toBeLessThanOrEqual(12);
       for (const secret of secretsOf(v))
         for (const run of [trusted, pub, human])
@@ -227,6 +236,28 @@ describe('sess verify <file>', () => {
     }
     expect(checked).toBe(35);
   }, 120_000);
+
+  it('reports a bundle-v2 with a later receipt type or a later envelope as newer, exit 3, never throwing and releasing nothing', async () => {
+    const v2 = await buildCorpusV2Vectors();
+    for (const id of ['v2-receipt-newer-typ', 'v2-envelope-newer', 'v2-valid-full-context']) {
+      const v = v2.find((x) => x.id === id) as CorpusVector;
+      await writeFile(join(dir, `${id}.json`), JSON.stringify(v.bundle));
+    }
+    for (const id of ['v2-receipt-newer-typ', 'v2-envelope-newer']) {
+      const human = await sess([...base(id), '--now', CORPUS_NOW.toISOString()]);
+      expect([human.code, human.stderr], id).toEqual([3, '']);
+      expect(human.stdout.split('\n').slice(0, 2)).toEqual([
+        `This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`,
+        `  Checked at  ${CORPUS_NOW.toISOString()}`,
+      ]);
+      const json = await sess([...base(id), '--now', CORPUS_NOW.toISOString(), '--json']);
+      expect(json.code).toBe(3);
+      const r = JSON.parse(json.stdout) as DecisionBundleVerification;
+      expect([r.valid, r.reason, r.receipt, r.actor]).toEqual([false, 'unsupported_version', null, null]);
+    }
+    // The control: a current bundle-v2 is valid, exit 0.
+    expect((await sess([...base('v2-valid-full-context'), '--now', CORPUS_NOW.toISOString()])).code).toBe(0);
+  }, 60_000);
 
   it('summarizes a valid decision without naming a person', async () => {
     const r = await sess([

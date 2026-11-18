@@ -10,6 +10,12 @@ export type SessErrorKind =
   | 'protocol'
   | 'unknown_outcome'
   | 'receipt_verification'
+  /**
+   * The receipt is newer than this release can check (code `RECEIPT_NEWER`): a later receipt type
+   * or a later revision envelope. Nothing was verified and no answer data is returned. It is not a
+   * verification failure: update @sess.si/sdk to check it.
+   */
+  | 'receipt_newer'
   | 'wait_ended';
 export type WriteOutcome = 'not_sent' | 'rejected' | 'unknown';
 export interface SessErrorDetails {

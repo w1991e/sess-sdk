@@ -137,6 +137,11 @@ const ADDED = {
     'CreateAskResponse',
     // Receipt v2 (0.3.0): the revision envelope beside a receipt v2.
     'RevisionEnvelope',
+    // The frozen receipt v2 envelope (0.4.0): its two forms and nested members, types only.
+    'EnvelopeAgentTarget',
+    'EnvelopeTitles',
+    'RevisionEnvelopeCompact',
+    'RevisionEnvelopeFull',
     'invoice',
     'items',
     'lintText',
@@ -161,6 +166,11 @@ const ADDED = {
     'ReceiptClaimsV1',
     'ReceiptClaimsV2',
     'RevisionEnvelope',
+    // The frozen receipt v2 envelope (0.4.0): types only; no new runtime export.
+    'EnvelopeAgentTarget',
+    'EnvelopeTitles',
+    'RevisionEnvelopeCompact',
+    'RevisionEnvelopeFull',
   ],
   './webhooks': [],
   // S-07: the new optional QR entry point.

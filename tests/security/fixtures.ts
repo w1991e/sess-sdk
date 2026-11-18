@@ -7,7 +7,7 @@ import type {
   ReceiptKeySet,
   VerifyDecisionReceiptInput,
 } from '../../src/receipts/verify.js';
-import type { RevisionEnvelope } from '../../src/receipts/envelope.js';
+import type { RevisionEnvelope, RevisionEnvelopeFull } from '../../src/receipts/envelope.js';
 
 // RFC 8032 §7.1 test 1 seed. This public test vector is never a runtime or fixture-secret input.
 const seed = '9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60';
@@ -153,23 +153,66 @@ export function fixture(acceptedMillis = now - 1000) {
   return { claims, response, surface, session, keys, input };
 }
 
-/** The revision envelope of the fixture's revision 1 (receipt-v2 §2), as Sess returns it. */
+/** A titles nonce: sixteen 0x5a bytes, unpadded base64url (the Sess QR evidence's). */
+export const NONCE = Buffer.alloc(16, 0x5a).toString('base64url');
+
+/**
+ * The revision envelope of the fixture's revision 1 (receipt-v2 §2, `sess_revision: 2`) in its
+ * full form, as Sess returns it: published by an API key on a Session started at the registered
+ * address `bike-shop`, titled "Example bike shop".
+ */
 export function envelopeOf(
   f: ReturnType<typeof fixture>,
   over: Record<string, unknown> = {},
-): RevisionEnvelope {
+): RevisionEnvelopeFull {
   return {
-    sess_revision: 1,
-    session_id: sessionId,
+    sess_revision: 2,
     revision: 1,
+    session_id: sessionId,
     surface_hash: f.claims.surface.hash,
     renderer_version: f.claims.surface.renderer_version,
     published_at: '2026-10-12T17:50:00.123Z',
     key_id: 'key_01JABCDEFGHJKMNPQRSTVWXYZ2',
-    key_label: 'Production agent',
     grant_id: null,
+    agent_target: { id: 'tgt_01JABCDEFGHJKMNPQRSTVWXYZ4', version: 3, name: 'bike-shop' },
+    ask_id: null,
+    titles: { nonce: NONCE, grant_title: null, target_title: 'Example bike shop', owner_name: null },
     ...over,
-  } as RevisionEnvelope;
+  } as RevisionEnvelopeFull;
+}
+
+/** The ten common members, in order (receipt-v2 §2). */
+export const ENVELOPE_MEMBERS = [
+  'sess_revision',
+  'revision',
+  'session_id',
+  'surface_hash',
+  'renderer_version',
+  'published_at',
+  'key_id',
+  'grant_id',
+  'agent_target',
+  'ask_id',
+] as const;
+
+/** `titles_digest`, by hand: base64url SHA-256 of the independent canonical JSON of `titles`. */
+export function titlesDigestOf(titles: unknown): string {
+  return createHash('sha256').update(independentCanonical(titles)).digest('base64url');
+}
+
+/** The compact form of a full envelope, by hand: the common members, then `titles_digest`. */
+export function compactOf(envelope: object): Record<string, unknown> {
+  const { titles, ...rest } = envelope as Record<string, unknown>;
+  return { ...rest, titles_digest: titlesDigestOf(titles) };
+}
+
+/**
+ * `revision_hash`, by hand (receipt-v2 §2): the SHA-256 of the canonical compact form; a full form
+ * has its `titles` replaced by their digest first. Any other object is digested as it is.
+ */
+export function revisionDigest(envelope: object): string {
+  const e = envelope as Record<string, unknown>;
+  return digest(Object.hasOwn(e, 'titles') ? compactOf(e) : e);
 }
 
 /**
@@ -182,12 +225,12 @@ export function fixtureV2(
   options: { envelope?: object; committed?: object } = {},
 ) {
   const f = fixture(acceptedMillis);
-  const envelope = (options.envelope ?? envelopeOf(f)) as RevisionEnvelope;
+  const envelope = (options.envelope ?? envelopeOf(f)) as RevisionEnvelopeFull;
   const committed = options.committed ?? envelope;
   const claims: ReceiptClaimsV2 = {
     ...(f.claims as ReceiptClaimsV1),
     sess_receipt: 2,
-    surface: { ...f.claims.surface, revision_hash: digest(committed) },
+    surface: { ...f.claims.surface, revision_hash: revisionDigest(committed) },
   };
   const receipt = signClaims(claims, { alg: 'EdDSA', kid: 'rfc8032-test-1', typ: 'sess-receipt-2+jwt' });
   const response: AcceptedResponse = { ...f.response, receipt, revision_envelope: envelope };

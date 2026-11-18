@@ -6,8 +6,11 @@ import {
   checkedInstant,
   deepFreeze,
   exactKeys,
+  isNewerReceiptTyp,
   isRecord,
   jsonDigest,
+  newerReceiptError,
+  RECEIPT_V2_ACTION_LABEL_MAX,
   snapshotJson,
   verificationError,
   waitWithSignal,
@@ -19,7 +22,12 @@ import {
   type RendererIdentitiesDocument,
   type RendererList,
 } from './renderers.js';
-import { parseRevisionEnvelope, revisionHash, type RevisionEnvelope } from './envelope.js';
+import {
+  parseRevisionEnvelope,
+  revisionEnvelopeIsNewer,
+  revisionHash,
+  type RevisionEnvelope,
+} from './envelope.js';
 
 export const MAX_RECEIPT_BYTES = 64 * 1024;
 export const MAX_RECEIPT_KEY_SET_BYTES = 256 * 1024;
@@ -295,6 +303,7 @@ function claimsOf(raw: unknown, version: 1 | 2): ReceiptClaims {
     !identifier(action.id) ||
     typeof action.label !== 'string' ||
     action.label.length === 0 ||
+    (version === 2 && [...action.label].length > RECEIPT_V2_ACTION_LABEL_MAX) ||
     typeof action.summary !== 'string' ||
     typeof raw.input_hash !== 'string' ||
     !DIGEST.test(raw.input_hash) ||
@@ -327,7 +336,12 @@ function claimsOf(raw: unknown, version: 1 | 2): ReceiptClaims {
  * the revision envelope it commits to. A receipt v2 whose envelope is missing or null, malformed,
  * of another digest than `surface.revision_hash`, or naming another Session, revision, Surface
  * hash or renderer identity is refused with `REVISION_ENVELOPE_MISMATCH`, after the issuer,
- * audience, record, time and signature checks.
+ * audience, record, time and signature checks. The envelope is `sess_revision: 2`, in its full
+ * (`titles`) or compact (`titles_digest`) form; a receipt v2 action label is at most 24 code points.
+ *
+ * A receipt newer than this release, a later Sess receipt `typ` (checked before anything else in
+ * the receipt) or a receipt v2 whose envelope has a later `sess_revision`, is refused with kind
+ * `receipt_newer` and code `RECEIPT_NEWER`, never as a verification failure; nothing is returned.
  */
 export async function verifyDecisionReceipt(
   input: VerifyDecisionReceiptInput,
@@ -415,6 +429,9 @@ export async function verifyDecisionReceipt(
     );
   }
   const parts = receipt.split('.') as [string, string, string];
+  // A Sess format this release does not know is newer, before any other check: its key, its
+  // algorithm and its claims may all be ones this release has never seen. Nothing is returned.
+  if (declaresNewerTyp(parts[0])) throw newerReceiptError();
   const header = headerOf(parts[0]);
   let raw: unknown;
   const payloadText = decodeSegment(parts[1]);
@@ -539,13 +556,27 @@ export async function verifyDecisionReceipt(
 
 const MALFORMED_ENVELOPE = Symbol('malformed revision envelope');
 
-/** Receipt v2: the supplied envelope must be the one the receipt commits to (receipt-v2 §7). */
+/** Whether the (unverified) protected header names a later Sess format; never throws. */
+function declaresNewerTyp(encoded: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(decodeSegment(encoded));
+    return isRecord(parsed) && isNewerReceiptTyp(parsed.typ);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Receipt v2: the supplied envelope must be the one the receipt commits to (receipt-v2 §7). An
+ * envelope of a later `sess_revision` is newer: never accepted, and nothing is returned.
+ */
 function checkRevisionEnvelope(claims: ReceiptClaimsV2, supplied: unknown): void {
   if (supplied === null)
     throw verificationError(
       'REVISION_ENVELOPE_MISMATCH',
       'A version 2 receipt is verified only with its revision envelope, and none was supplied.',
     );
+  if (revisionEnvelopeIsNewer(supplied)) throw newerReceiptError();
   const envelope = parseRevisionEnvelope(supplied);
   if (envelope === null)
     throw verificationError('REVISION_ENVELOPE_MISMATCH', 'The revision envelope is malformed.');

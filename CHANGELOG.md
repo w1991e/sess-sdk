@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.4.0 — unreleased
+
+- Receipt v2 reads the frozen revision envelope, `sess_revision: 2`, and only it: ten common
+  members (`sess_revision`, `revision`, `session_id`, `surface_hash`, `renderer_version`,
+  `published_at`, `key_id`, `grant_id`, `agent_target`, `ask_id`), then exactly one of `titles`
+  (`nonce`, `grant_title`, `target_title`, `owner_name`) or `titles_digest`. `revision_hash` is
+  the digest of the compact form, so both forms of one round verify the same. Each title is one
+  line of plain text, 1 to 60 code points, under the shared title rule (no bidirectional,
+  zero-width or invisible characters). There is no `key_label`. Both forms, neither, any other
+  member, and the nine-member `sess_revision: 1` envelope that 0.3.0 read (never issued) are
+  refused with `REVISION_ENVELOPE_MISMATCH`. A receipt v2 `action.label` over 24 code points is
+  `INVALID_CLAIMS`. 0.3.x cannot read an issued receipt v2; update to this version.
+- A receipt newer than this release, a later Sess receipt type or an envelope of a later
+  `sess_revision`, is reported as newer, never as a verification failure, and nothing is
+  returned: `verifyDecisionReceipt`, `receipts.verifyResponse()`, and `sess.ask()`'s `answer()`
+  and `read()`, throw a `SessError` of the new kind `receipt_newer` with code `RECEIPT_NEWER`;
+  `verifyDecisionBundle` returns `unsupported_version`; `sess verify` says the bundle is newer and
+  exits with the new status 3.
+- `verifyDecisionBundle` refuses a bundle-v2 whose envelope is the compact form (a QR code's, never
+  a file's) with `revision`. A valid result's `revision_envelope` is the full form.
+- New types `RevisionEnvelopeFull`, `RevisionEnvelopeCompact`, `EnvelopeTitles` and
+  `EnvelopeAgentTarget`; `RevisionEnvelope` is now the union of the two forms. The receipt-v2 and
+  bundle-v2 specifications and the bundle-v2 conformance corpus are copies from Sess commit
+  `33cfc41`.
+- The runtime dependencies are unchanged. The default `User-Agent` names the new version.
+
 ## 0.3.0 — 2026-11-08
 
 - Receipt v2: `verifyDecisionReceipt` and `receipts.verifyResponse()` verify receipts of type
