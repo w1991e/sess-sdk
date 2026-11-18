@@ -7,8 +7,10 @@ maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`
 never to `latest`; a stable version (`X.Y.Z`) goes to `latest`, the same rule as the SDK, the MCP
 adapter and create-agent (owner decision 2026-10-31).
 
-`0.1.0` is prepared, unpublished, for `latest` (tag `openclaw-v0.1.0`; expected tarball below).
-Until it is approved, `latest` points at the `0.0.0-stage` placeholder. `next` stays at the last
+`0.2.0` is prepared, unpublished, for `latest` (tag `openclaw-v0.2.0`, on `@sess.si/sdk` 0.4.0;
+expected tarball below; [release/v0.2.0-packet.md](release/v0.2.0-packet.md) is the maintainer's
+order). Until it is approved, `latest` stays at `0.1.0` (published 2026-11-01;
+[release/v0.1.0-packet.md](release/v0.1.0-packet.md)). `next` stays at the last
 release candidate, `0.1.0-rc.5` (published 2026-10-27; integrity and SHA-256 as recorded in
 [release/rc5-packet.md](release/rc5-packet.md) and `compatibility.json`); the stable release does
 not move it. `0.1.0-rc.4` ([release/rc4-packet.md](release/rc4-packet.md)), `0.1.0-rc.3`
@@ -37,7 +39,7 @@ SHA-256 must equal it). A packed change before the tag updates these values in t
 1. **SDK publication.** `@sess.si/sdk` at the exact version in `package.json` (the repository pin
    `release/sdk-candidate.json`) must be published on the public npm registry with the same bytes
    the lockfile pins (`package-lock.json` integrity); the release guard refuses otherwise.
-   `@sess.si/sdk@0.3.0` is published under the `latest` dist-tag with those bytes. CI and
+   `@sess.si/sdk@0.4.0` is published under the `latest` dist-tag with those bytes. CI and
    `npm run check` install it from the registry and verify it against the pin
    (`scripts/registry-sdk.mjs`). A future SDK pin must be published before the adapter adopts it.
 2. **GitHub environment `npm-openclaw-release` — exists.** It has a required reviewer (the

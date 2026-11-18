@@ -1,10 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
-For the release on `@sess.si/sdk` 0.4.0 (unpublished; the dependency moves at its registry
-transition). Tool schemas stay `sess-mcp-tools/5`.
+Prepared, not yet published. Tool schemas stay `sess-mcp-tools/5`; the five tool names are
+unchanged.
 
+- Depends on `@sess.si/sdk` 0.4.0 (was 0.3.0; sha256 `24408ed8…5187`), resolved from the
+  registry. It verifies the receipts Sess issues.
 - A receipt newer than this package can check (the SDK's `receipt_newer`, code `RECEIPT_NEWER`: a
   later Sess receipt type, or a revision envelope above `sess_revision: 2`) is a new tool error,
   `RECEIPT_NEWER`, class `configuration`, not retryable: "This receipt is newer than @sess.si/mcp
@@ -14,8 +16,9 @@ transition). Tool schemas stay `sess-mcp-tools/5`.
   releases the answer. On `@sess.si/sdk` 0.3.0 a newer receipt cannot be told from a bad one: it
   blocks the interaction with `VERIFICATION_FAILED`.
 
-Prepared, not yet published. Tool schemas stay `sess-mcp-tools/5`; the five tool names are
-unchanged.
+## 0.3.0 — 2026-11-10
+
+Tool schemas stay `sess-mcp-tools/5`; the five tool names are unchanged.
 
 - Depends on `@sess.si/sdk` 0.3.0 (was 0.2.0; sha256 `bc3a7a2d…a097`), resolved from the
   registry. It verifies the receipts Sess issues.

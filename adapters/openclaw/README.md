@@ -6,7 +6,7 @@ An OpenClaw agent asks a person for a structured decision. Sess hosts the form b
 link, the person answers on any device, and the agent receives the answer only after the SDK has
 verified its signed receipt for that exact revision.
 
-> **Status:** `0.1.0` is the first stable release, on the npm dist-tag `latest`. `next` stays at `0.1.0-rc.5`. It depends on `@sess.si/sdk@0.1.0`. Qualified host: OpenClaw 2026.10.3 (Node 24.16 or later). OpenClaw 2026.10.7 (Node 24.22.1 or later) ran the agent-turn round trip on the preview on 27 October; production qualification follows. See [compatibility.json](compatibility.json) for exactly what was tested.
+> **Status:** `0.2.0` is the current release, on the npm dist-tag `latest`. `next` stays at `0.1.0-rc.5`. It depends on `@sess.si/sdk@0.4.0`. Qualified host: OpenClaw 2026.10.3 (Node 24.16 or later). OpenClaw 2026.10.7 (Node 24.22.1 or later) ran the agent-turn round trip on the preview on 27 October; production qualification follows. See [compatibility.json](compatibility.json) for exactly what was tested.
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ verified its signed receipt for that exact revision.
 ## Install and enable
 
 ```bash
-openclaw plugins install npm:@sess.si/openclaw@0.1.0 --no-enable
+openclaw plugins install npm:@sess.si/openclaw@0.2.0 --no-enable
 openclaw sess setup          # preview only: prints exactly what would change
 openclaw sess setup --yes    # apply the previewed change
 openclaw sess doctor

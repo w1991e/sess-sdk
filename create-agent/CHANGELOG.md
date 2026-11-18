@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+Prepared, not yet published.
+
+- The agent it writes depends exactly on `@sess.si/sdk` `0.4.0` (0.1.0 wrote `0.1.0`). It
+  verifies the receipts Sess issues. The SDK's [changelog](../CHANGELOG.md) lists everything from
+  0.1.1 to 0.4.0.
+- The agent names itself to Sess as User-Agent `sess-create-agent/0.2.0`.
+- Otherwise the same as `0.1.0`: the same files, prompts, link line and next steps.
+
 ## 0.1.0 — 2026-11-01
 
 - The first stable release, published to the `latest` dist-tag. Create and run with
