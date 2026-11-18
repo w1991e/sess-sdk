@@ -64,12 +64,13 @@ describe('the dependency audit with dated advisory exceptions', () => {
     expect(NPM_ARGS).toEqual(['audit', '--json', '--audit-level=moderate']);
   });
 
-  it('the exceptions file holds exactly the picomatch advisory, its reason verbatim and its date', () => {
+  // GHSA-fc5q-39xc-vjpf (picomatch) was withdrawn on 2026-11-18 at 15:38:56Z, so its exception is
+  // deleted, as the audit requires of an exception whose advisory is no longer reported. The
+  // picomatch entries below are synthetic: they keep the rules tested.
+  it('the exceptions file holds no exception', () => {
     const parsed = parseExceptions(readFileSync(EXCEPTIONS_PATH, 'utf8'));
     expect(parsed.errors).toEqual([]);
-    expect(parsed.exceptions.map(({ untilMs: _, ...e }) => e)).toEqual([
-      { id: PICOMATCH, package: 'picomatch', reason: REASON, until: UNTIL },
-    ]);
+    expect(parsed.exceptions).toEqual([]);
   });
 
   it('passes on the picomatch advisory alone, before its date', () => {

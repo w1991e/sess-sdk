@@ -1,7 +1,7 @@
-// The dependency audit excepts GHSA-fc5q-39xc-vjpf (picomatch, no fixed version published) until
-// its date in .github/audit-exceptions.json, for the reason given there, which starts "development
-// and test toolchain only; the globs it parses come from our own configuration". This checks it (founder
-// 2026-11-17 22:05Z item 1): picomatch, or anything that brings it in, must not be reachable in the
+// The dependency audit excepted GHSA-fc5q-39xc-vjpf (picomatch) until that advisory was withdrawn on
+// 2026-11-18 at 15:38:56Z; its exception in .github/audit-exceptions.json is deleted. Its reason
+// started "development and test toolchain only; the globs it parses come from our own
+// configuration". This check stays (founder 2026-11-17 22:05Z item 1): picomatch, or anything that brings it in, must not be reachable in the
 // runtime graph (dependencies, optionalDependencies, peerDependencies, transitively) of any published
 // package: @sess.si/sdk, @sess.si/mcp, @sess.si/openclaw and @sess.si/create-agent with its starter.
 // Each graph is read from the lockfile that package's CI installs from. The starter ships no
@@ -96,11 +96,11 @@ const walk = (root: Record<string, unknown>, packages = PACKAGES): string[] =>
   chainsTo(parseLock(lock(root, packages), 'synthetic'), RUNTIME_EDGES, WANTED);
 
 describe('the picomatch audit exception: picomatch stays out of every published runtime graph', () => {
-  it('the audit exceptions all name picomatch, so this test checks each one', () => {
+  it('any audit exception names picomatch, so this test checks each one (none is listed today)', () => {
     const { exceptions } = JSON.parse(read('.github/audit-exceptions.json')) as {
       exceptions: { package: string }[];
     };
-    expect(exceptions.map((e) => e.package)).toEqual([WANTED]);
+    expect(exceptions.filter((e) => e.package !== WANTED)).toEqual([]);
   });
 
   it('@sess.si/sdk: picomatch is not reachable at runtime, and is reachable from its devDependencies', () => {
