@@ -404,13 +404,18 @@ Codes map to the shared adapter error classes (`adapters/CONTRACT.md`, "Error cl
 | `RECOVERY_BLOCKED`                                                                                        | `blocked`                       | No; owner resolution                                                                                                                                  |
 | `SESS_UNAVAILABLE`                                                                                        | `unavailable`                   | Yes, later; nothing changed                                                                                                                           |
 | `NOT_CONFIGURED`, `SESS_PROTOCOL_ERROR`                                                                   | `configuration`                 | After the owner fixes the configuration                                                                                                               |
+| `RECEIPT_NEWER`                                                                                           | `configuration`                 | After the owner updates `@sess.si/mcp`; nothing changed                                                                                               |
 | `STATE_STORE_ERROR`, `STATE_STORE_FULL`                                                                   | `store`                         | Only if `retryable` is true (a transient read/write failure); unreadable, inconsistent or unsupported-version records and a full store need the owner |
 
 Receipt verification is classified by the shared core (`src/internal/shared.ts`, a byte-identical
 copy of `adapters/shared/core.ts`): a key-set fetch failure or refresh cooldown is
 `SESS_UNAVAILABLE`; a missing trusted workspace (`VERIFICATION_CONTEXT_MISSING`) is
-`NOT_CONFIGURED` naming `SESS_EXPECTED_WORKSPACE_ID`. Neither records anything or changes state.
-Every other verification failure blocks. Other SDK errors while reading, waiting or verifying
+`NOT_CONFIGURED` naming `SESS_EXPECTED_WORKSPACE_ID`. A receipt newer than this package can check
+(the SDK's `receipt_newer`, `RECEIPT_NEWER`: a later receipt type or revision envelope) is
+`RECEIPT_NEWER`: "This receipt is newer than @sess.si/mcp <version>. Update @sess.si/mcp to check
+it. No answer data was returned." It is not a verification failure and never blocks; once the
+package is updated, the same `sess_response` releases the answer. None of these records anything,
+releases answer data or changes state. Every other verification failure blocks. Other SDK errors while reading, waiting or verifying
 change nothing: `api`, `transport`, `timeout` and `unknown_outcome` are retryable
 `SESS_UNAVAILABLE`; `aborted` ends the wait as `needs_resume`; `configuration` (`NOT_CONFIGURED`)
 and `protocol` (`SESS_PROTOCOL_ERROR`) are not retryable. A saved publish/complete that the SDK

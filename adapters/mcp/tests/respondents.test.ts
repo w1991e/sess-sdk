@@ -10,6 +10,7 @@ import { sdkClient, type AskOperations, type AskPage, type SessClient } from '..
 import { createSessMcpServer } from '../src/server.js';
 import { TOOLS } from '../src/tools.js';
 import { parseAskArgs, parseRequestArgs, type JsonObject } from '../src/validate.js';
+import { VERSION } from '../src/version.js';
 import { API_KEY, FakeSess, ORIGIN, ROUND_1, clientFor, env, tempDir } from './helpers.js';
 import {
   FAKE_ASK_ID,
@@ -465,6 +466,50 @@ describe('sess_ask with respondents: the Ask through the tools', () => {
     );
     expect(read.content[0]!.text).not.toContain('understood');
     expect(lines.join('')).toContain('RECORD_BINDING_MISMATCH');
+  });
+
+  it('a respondent’s receipt newer than this package releases no answer of the read, never fails verification; updated, the read releases them', async () => {
+    const asks = new FakeAsks();
+    const lines: string[] = [];
+    const accept = verifierFor(asks);
+    let newerFor: string | undefined;
+    // What @sess.si/sdk 0.4.0 throws for a later receipt type or revision envelope.
+    const verify = (async (input: { sessionId: string; response: AcceptedResponse }, options: object) => {
+      if (input.sessionId === newerFor)
+        throw new SessError('receipt_newer' as never, 'newer', { code: 'RECEIPT_NEWER' });
+      return (accept as any)(input, options);
+    }) as unknown as Verify;
+    const { client } = await connect(asks, verify, lines);
+    const { handle } = (await call(client, 'sess_ask', { ...QUESTION, respondents: { max: 3 } }))
+      .structuredContent.interaction;
+    asks.answer(asks.start(), { understood: 'Yes' });
+    const second = asks.start();
+    asks.answer(second, { understood: 'No' });
+    newerFor = second;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const read = await call(client, 'sess_response', { handle, revision: 1 });
+      expect(read.isError).toBe(true);
+      expect(read.structuredContent).toBeUndefined();
+      // The error and nothing else: no respondent, answer or count reaches the agent.
+      expect(read.content[0]!.text).toBe(
+        JSON.stringify({
+          error: {
+            code: 'RECEIPT_NEWER',
+            message: `This receipt is newer than @sess.si/mcp ${VERSION}. Update @sess.si/mcp to check it. No answer data was returned.`,
+            retryable: false,
+          },
+        }),
+      );
+    }
+    expect(lines.join('')).toContain('receipt_newer code=receipt_newer/RECEIPT_NEWER');
+    expect(lines.join('')).not.toContain('verification_failed');
+    // Updated: the same handle reads both answers; nothing was blocked or cached against them.
+    newerFor = undefined;
+    const read = (await call(client, 'sess_response', { handle, revision: 1 })).structuredContent.interaction;
+    expect(read.ask.respondents.map((r: any) => r.response.data)).toEqual([
+      { understood: 'Yes' },
+      { understood: 'No' },
+    ]);
   });
 
   it('releases no answer given by another action than submit', async () => {

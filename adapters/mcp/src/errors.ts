@@ -1,3 +1,5 @@
+import { VERSION } from './version.js';
+
 /**
  * Adapter errors are reported to the MCP client as tool execution errors (`isError: true`) with a
  * stable code and a fixed, secret-free message. They never carry SESS response bodies, request
@@ -21,6 +23,7 @@ export const ADAPTER_ERROR_CODES = [
   'MUTATION_REJECTED',
   'RECOVERY_BLOCKED',
   'VERIFICATION_FAILED',
+  'RECEIPT_NEWER',
   'SESS_UNAVAILABLE',
   'SESS_PROTOCOL_ERROR',
   'STATE_STORE_ERROR',
@@ -46,6 +49,14 @@ export function lengthMessage(field: string, limit: number, length: number): str
   if (field === '/interaction/title' || field === '/question')
     return `The title can be at most ${limit} characters. Keep it to a short heading, about 40.`;
   return `${field} is ${length} characters; the limit is ${limit}. Shorten it to at most ${limit} characters.`;
+}
+
+/**
+ * The signed line for an answer whose receipt is newer than this package can check. It is never a verification failure: nothing is released, recorded
+ * or blocked, and the same answer verifies once the package is updated.
+ */
+export function receiptNewerMessage(): string {
+  return `This receipt is newer than @sess.si/mcp ${VERSION}. Update @sess.si/mcp to check it. No answer data was returned.`;
 }
 
 /** Sess's sentence for an enum ID with no option label, shown as its own label and too long. */
@@ -111,6 +122,7 @@ export const DIAGNOSTIC_EVENTS = [
   'verification_deferred',
   'verification_not_configured',
   'verification_failed',
+  'receipt_newer',
   'answered',
   'currentness_read_failed',
   'answer_superseded',

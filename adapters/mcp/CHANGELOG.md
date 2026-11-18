@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.3.0
+## Unreleased
+
+For the release on `@sess.si/sdk` 0.4.0 (unpublished; the dependency moves at its registry
+transition). Tool schemas stay `sess-mcp-tools/5`.
+
+- A receipt newer than this package can check (the SDK's `receipt_newer`, code `RECEIPT_NEWER`: a
+  later Sess receipt type, or a revision envelope above `sess_revision: 2`) is a new tool error,
+  `RECEIPT_NEWER`, class `configuration`, not retryable: "This receipt is newer than @sess.si/mcp
+  <version>. Update @sess.si/mcp to check it. No answer data was returned." It is never
+  `VERIFICATION_FAILED` and never blocks. `sess_response` releases no answer data with it, for one
+  person or for any respondent of an Ask, and records nothing; after an update the same handle
+  releases the answer. On `@sess.si/sdk` 0.3.0 a newer receipt cannot be told from a bad one: it
+  blocks the interaction with `VERIFICATION_FAILED`.
 
 Prepared, not yet published. Tool schemas stay `sess-mcp-tools/5`; the five tool names are
 unchanged.

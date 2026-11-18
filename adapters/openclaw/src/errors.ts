@@ -21,6 +21,7 @@ export type AdapterErrorCode =
   | 'MUTATION_OUTCOME_UNKNOWN'
   | 'MUTATION_REJECTED'
   | 'VERIFICATION_FAILED'
+  | 'RECEIPT_NEWER'
   | 'CANCELLED'
   | 'PROTOCOL_ERROR'
   | 'UNAVAILABLE';
@@ -60,6 +61,9 @@ export const ERROR_CLASSES: Readonly<Record<AdapterErrorCode, ErrorClass>> = Obj
   CONFIGURATION: 'configuration',
   // Non-retryable with no state change; the contract has no dedicated protocol class.
   PROTOCOL_ERROR: 'configuration',
+  // A receipt newer than this plugin can check: not retryable until the plugin is updated, with no
+  // state change and nothing released; never a verification failure.
+  RECEIPT_NEWER: 'configuration',
   CREDENTIAL_MISSING: 'configuration',
   HOST_CAPABILITY_MISSING: 'configuration',
   HOST_BINDING_UNAVAILABLE: 'configuration',
