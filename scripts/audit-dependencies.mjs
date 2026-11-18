@@ -146,7 +146,12 @@ export function evaluate({ npm, exceptions, now }) {
         continue;
       }
       const advisory = { id: match[1], package: via.name, severity: via.severity, title: via.title };
-      advisories.set(`${advisory.id} ${advisory.package}`, advisory);
+      // The same advisory may be listed more than once; it keeps its highest severity, so a later
+      // lower listing never hides a higher one from rules 6 and 8 (ASTRA-69-R1).
+      const key2 = `${advisory.id} ${advisory.package}`;
+      const prior = advisories.get(key2);
+      if (!prior || SEVERITIES.indexOf(advisory.severity) > SEVERITIES.indexOf(prior.severity))
+        advisories.set(key2, advisory);
     }
   }
   if (failures.length > 0) return done();

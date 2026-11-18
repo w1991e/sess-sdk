@@ -100,6 +100,33 @@ describe('the dependency audit with dated advisory exceptions', () => {
     expect(run(PICOMATCH_ENTRIES, { now: new Date(Date.parse(UNTIL) - 1) }).ok).toBe(true);
   });
 
+  it('a duplicate listing at a lower severity never hides the higher one or its expiry (ASTRA-69-R1)', () => {
+    const duplicated: Entry[] = [
+      entry('picomatch', 'high', [
+        advisory(PICOMATCH, 'picomatch', 'high'),
+        advisory(PICOMATCH, 'picomatch', 'low'),
+      ]),
+      ...PICOMATCH_ENTRIES.slice(1),
+    ];
+    const expired = run(duplicated, { now: new Date('2026-11-25T00:00:00Z') });
+    expect(expired.ok).toBe(false);
+    expect(expired.failures).toEqual([
+      `advisory ${PICOMATCH} (picomatch, high: picomatch advisory): exception expired at ${UNTIL}`,
+    ]);
+    const lowFirst: Entry[] = [
+      entry('picomatch', 'high', [
+        advisory(PICOMATCH, 'picomatch', 'low'),
+        advisory(PICOMATCH, 'picomatch', 'high'),
+      ]),
+      ...PICOMATCH_ENTRIES.slice(1),
+    ];
+    expect(run(lowFirst, { now: new Date('2026-11-25T00:00:00Z') }).ok).toBe(false);
+    expect(run(lowFirst, { exceptions: exceptionsText([]) }).failures).toEqual([
+      `advisory ${PICOMATCH} (picomatch, high: picomatch advisory)`,
+    ]);
+    expect(run(duplicated).ok).toBe(true);
+  });
+
   it('fails on picomatch with no exception', () => {
     const result = run(PICOMATCH_ENTRIES, { exceptions: exceptionsText([]) });
     expect(result.failures).toEqual([`advisory ${PICOMATCH} (picomatch, high: picomatch advisory)`]);
