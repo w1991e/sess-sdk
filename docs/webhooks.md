@@ -61,7 +61,7 @@ JSON middleware/parser runs. Use the framework's documented raw-body mechanism. 
 framework dependency is required by the SDK. Do not decompress or rewrite a body in a
 way that changes the signed bytes before verification.
 
-## Two message types, with separate handling
+## Three message types, with separate handling
 
 After authentication and schema checks, the verifier returns a deeply readonly,
 runtime-frozen discriminated union:
@@ -70,7 +70,13 @@ runtime-frozen discriminated union:
   object. Do not enqueue a challenge as accepted user input.
 - `type: 'response.accepted'`: a stable `event_id`, `session_id`, `sequence`, `revision`,
   `action_id`, typed `data`, `accepted_at`, and `receipt`. Its event ID must equal the
-  transport's `webhook-id`.
+  transport's `webhook-id`. When the answer is one respondent's to a Sess Ask, the message
+  also carries `ask_id` (`ask_…`); any other Session's message has no `ask_id`.
+- `type: 'ask.closed'` (type `AskClosed`): a Sess Ask closed. It carries exactly a stable
+  `event_id`, `ask_id`, `closed_by` (`max`: the last place was started; `owner`: you
+  closed it), `started` (how many people had started) and `closed_at`. Its event ID must
+  equal the transport's `webhook-id`. Deduplicate on `event_id`, as for responses.
+  Any other member is refused with `WEBHOOK_INVALID_PAYLOAD`.
 
 A challenge is a management handshake, and `verifyWebhook()` is the incoming verifier.
 The similarly named `sess.webhooks.verifyEndpoint()` sends the outbound management
@@ -86,12 +92,12 @@ The [Node HTTP receiver example](../examples/webhook-receiver.ts) exposes:
 
 ```ts
 import type { DeepReadonly } from '@sess.si/sdk/receipts';
-import type { WebhookEvent } from '@sess.si/sdk/webhooks';
+import type { AskClosed, WebhookEvent } from '@sess.si/sdk/webhooks';
 
 interface DurableInbox {
   accept(message: {
     workspaceId: string;
-    event: DeepReadonly<WebhookEvent>;
+    event: DeepReadonly<WebhookEvent | AskClosed>;
   }): Promise<'inserted' | 'duplicate'>;
 }
 ```
