@@ -30,7 +30,10 @@ checks that no published package's own dependencies or optionalDependencies reac
 route. Under `@sess.si/openclaw`'s OpenClaw host peer it checks every route and allows one family
 and nothing else: routes inside OpenClaw's own npm, entering through openclaw > npm and reaching
 picomatch only through node-gyp > tinyglobby (optionally then fdir), to its one installed copy. The
-user's OpenClaw brings that npm whether or not our plugin is installed, and our code never loads it. On 23 November (day 6), if no fix has
+user's OpenClaw brings that npm whether or not our plugin is installed, and our code never loads it.
+The starter that `@sess.si/create-agent` writes ships no lockfile, so its graph is resolved when the
+user installs it: the create-agent clean install walks the lockfile each real starter install
+produced (`scripts/check-starter-graph.mjs`) and fails on any route to picomatch. On 23 November (day 6), if no fix has
 shipped, renewal or another route goes to the founder that day. The day a fixed picomatch ships,
 upgrade and delete the exception in the same change; the audit fails on an exception whose advisory
 is no longer reported, and on one past its date.

@@ -4,7 +4,8 @@
 // 2026-11-17 22:05Z item 1): picomatch, or anything that brings it in, must not be reachable in the
 // runtime graph (dependencies, optionalDependencies, peerDependencies, transitively) of any published
 // package: @sess.si/sdk, @sess.si/mcp, @sess.si/openclaw and @sess.si/create-agent with its starter.
-// Each graph is read from the lockfile that package's CI installs from.
+// Each graph is read from the lockfile that package's CI installs from. The starter ships no
+// lockfile; its installed graph is checked by scripts/check-starter-graph.mjs in the clean install.
 //
 // One family of routes is allowed, and nothing else (Sess founder 2026-11-18 01:38Z, and 02:01Z
 // option 1): under @sess.si/openclaw's host peer, a route that enters through openclaw > npm, stays
@@ -136,7 +137,7 @@ describe('the picomatch audit exception: picomatch stays out of every published 
     expect(devChains(path)).not.toEqual([]);
   });
 
-  it('@sess.si/create-agent: no runtime dependency, and its starter installs only @sess.si/sdk, whose graph is the root lockfile', () => {
+  it('@sess.si/create-agent: no runtime dependency, and its starter declares only the pinned @sess.si/sdk, whose recorded dependencies do not drift from the root', () => {
     const pkg = manifest('create-agent/package.json');
     expect(pkg.name).toBe('@sess.si/create-agent');
     for (const field of [...DECLARED, ...BUNDLED])
@@ -147,9 +148,12 @@ describe('the picomatch audit exception: picomatch stays out of every published 
     const root = manifest('package.json');
     // The starter installs the published pin (release/sdk-candidate.json), which may be a version
     // behind the root while a successor is prepared (scripts/sdk-pin.mjs). The pin records that
-    // version's own dependencies; they must be the root's exactly, so the root lockfile's graph is
-    // the graph the starter installs. A pin with other dependencies fails here rather than being
-    // assumed.
+    // version's own dependencies, and comparing them with the root's is a drift check only. Equal
+    // direct pins do not pin their transitive resolutions, and the starter ships no lockfile, so
+    // neither this nor the root lockfile's walk below is proof of the starter's graph (ASTRA-70-R1).
+    // That graph is checked where it is resolved: scripts/check-starter-graph.mjs walks the lockfile
+    // of each real starter install made by create-agent/scripts/clean-install-check.mjs (CI
+    // "Create-agent clean install"); tests/dependencies/starter-graph.test.ts tests that check.
     const pin = manifest('release/sdk-candidate.json');
     expect(pin.name).toBe('@sess.si/sdk');
     expect(starter.dependencies).toEqual({ '@sess.si/sdk': pin.version });
