@@ -186,8 +186,9 @@ type Step = { key: string; name: string; real: string; edge: Edge; label: string
 
 /**
  * Every distinct runtime path from the root's peer `peer` to an entry named `wanted`, with
- * path-local cycle protection. Only entries from which `wanted` is reachable are entered, so the
- * enumeration stays within the routes that matter. Fails closed as hitsOf does.
+ * path-local cycle protection. Only entries from which `wanted` is reachable at all (canReach,
+ * computed once, path-independent) are entered, so the enumeration stays within the routes that
+ * matter and drops none. Fails closed as hitsOf does, over every entry under the peer.
  */
 function hostPaths(lock: Lock, peer: string, wanted: string): Step[][] {
   const stepsFrom = (from: string, edges: readonly Edge[], chain: string): Step[] => {
@@ -208,27 +209,44 @@ function hostPaths(lock: Lock, peer: string, wanted: string): Step[][] {
       }
     return steps;
   };
-  // Which entries reach `wanted` (memoised; a node on the current stack counts as not reaching).
-  const reaches = new Map<string, boolean>();
-  const reach = (key: string, stack: Set<string>): boolean => {
-    const known = reaches.get(key);
-    if (known !== undefined) return known;
-    if (stack.has(key)) return false;
-    stack.add(key);
-    let hit = false;
-    for (const step of stepsFrom(key, RUNTIME_EDGES, key))
-      if (step.real === wanted || step.name === wanted || reach(step.key, stack)) hit = true;
-    stack.delete(key);
-    reaches.set(key, hit);
-    return hit;
-  };
+  // Which entries under the host can reach `wanted` at all, computed once and independent of any
+  // walk's current path (ASTRA-69-R2, the cycle case): a forward pass collects every entry under
+  // the peer and its edges, then a reverse pass marks each entry with an edge to `wanted` and,
+  // transitively, every entry with an edge to a marked one. Graph reachability never drops a simple
+  // route, so pruning with it is exact; the route walk keeps its own path-local cycle guard.
+  const edgesOf = new Map<string, Step[]>();
+  const pending = stepsFrom('', ['peerDependencies'], lock.name).map((step) => step.key);
+  while (pending.length > 0) {
+    const key = pending.pop() as string;
+    if (edgesOf.has(key)) continue;
+    const steps = stepsFrom(key, RUNTIME_EDGES, key);
+    edgesOf.set(key, steps);
+    for (const step of steps) if (!edgesOf.has(step.key)) pending.push(step.key);
+  }
+  const into = new Map<string, string[]>();
+  const canReach = new Set<string>();
+  const marked: string[] = [];
+  for (const [key, steps] of edgesOf)
+    for (const step of steps) {
+      into.set(step.key, [...(into.get(step.key) ?? []), key]);
+      if ((step.real === wanted || step.name === wanted) && !canReach.has(key)) {
+        canReach.add(key);
+        marked.push(key);
+      }
+    }
+  while (marked.length > 0)
+    for (const from of into.get(marked.pop() as string) ?? [])
+      if (!canReach.has(from)) {
+        canReach.add(from);
+        marked.push(from);
+      }
   const paths: Step[][] = [];
   const walk = (from: string, edges: readonly Edge[], path: Step[], onPath: Set<string>): void => {
     for (const step of stepsFrom(from, edges, [lock.name, ...path.map((p) => p.label)].join(' > '))) {
       if (onPath.has(step.key)) continue;
       const next = [...path, step];
       if (step.real === wanted || step.name === wanted) paths.push(next);
-      if (!reach(step.key, new Set())) continue;
+      if (!canReach.has(step.key)) continue;
       onPath.add(step.key);
       walk(step.key, RUNTIME_EDGES, next, onPath);
       onPath.delete(step.key);

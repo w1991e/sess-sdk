@@ -261,6 +261,20 @@ describe('the picomatch audit exception: picomatch stays out of every published 
         expect(shortcut.allowed.some((route) => route.includes('shortcut'))).toBe(false);
         // Hoisted out of npm's own directory, the named route is outside the family too.
         expect(shortcut.allowed).toEqual([]);
+        // ASTRA-69-R2, the cycle case: openclaw > npm and openclaw > shortcut, with npm > shortcut >
+        // npm a cycle. openclaw > shortcut > npm > node-gyp > tinyglobby > picomatch does not enter
+        // through openclaw > npm, so it is outside the family and must be found.
+        const cycle = {
+          ...HOST,
+          'node_modules/openclaw': { version: '1.0.0', dependencies: { npm: '1', shortcut: '1' } },
+          'node_modules/npm': { version: '1.0.0', dependencies: { shortcut: '1', 'node-gyp': '1' } },
+          'node_modules/shortcut': { version: '1.0.0', dependencies: { npm: '1' } },
+        };
+        const cyclic = allowing({ peerDependencies: { openclaw: '1' } }, cycle);
+        expect(cyclic.found).toContain(
+          'x > openclaw@1.0.0 (peer) > shortcut@1.0.0 > npm@1.0.0 > node-gyp@1.0.0 > tinyglobby@1.0.0 > picomatch@4.0.5',
+        );
+        expect(cyclic.allowed).toEqual([ALLOWED]);
         // Inside npm, another package after tinyglobby that reaches the same copy.
         const tail = {
           ...HOST,
