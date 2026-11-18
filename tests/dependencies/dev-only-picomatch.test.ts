@@ -145,9 +145,18 @@ describe('the picomatch audit exception: picomatch stays out of every published 
     for (const field of ['optionalDependencies', 'peerDependencies', ...BUNDLED])
       expect(starter[field], `starter ${field}`).toBeUndefined();
     const root = manifest('package.json');
-    // The starter's one dependency is the SDK version the root lockfile describes; another version
-    // would need its own lockfile, so it fails here rather than being assumed.
-    expect(starter.dependencies).toEqual({ '@sess.si/sdk': root.version });
+    // The starter installs the published pin (release/sdk-candidate.json), which may be a version
+    // behind the root while a successor is prepared (scripts/sdk-pin.mjs). The pin records that
+    // version's own dependencies; they must be the root's exactly, so the root lockfile's graph is
+    // the graph the starter installs. A pin with other dependencies fails here rather than being
+    // assumed.
+    const pin = manifest('release/sdk-candidate.json');
+    expect(pin.name).toBe('@sess.si/sdk');
+    expect(starter.dependencies).toEqual({ '@sess.si/sdk': pin.version });
+    const pinned = (pin.package ?? {}) as Record<string, unknown>;
+    expect(pinned.dependencies ?? {}, 'the pin records its dependencies').toEqual(root.dependencies ?? {});
+    for (const field of ['optionalDependencies', 'peerDependencies'])
+      expect(pinned[field], `the pin's ${field}`).toBeUndefined();
     expect(runtimeChains('package.json', 'package-lock.json')).toEqual([]);
   });
 
