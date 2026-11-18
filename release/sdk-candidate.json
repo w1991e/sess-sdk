@@ -1,10 +1,10 @@
 {
   "$comment": "Single SDK candidate pin. Update only with `npm run pin:update` after a reviewed packed-file change; consumers and npm run check verify against it.",
   "name": "@sess.si/sdk",
-  "version": "0.3.0",
-  "filename": "sess.si-sdk-0.3.0.tgz",
-  "sha256": "bc3a7a2dc0ecaa07b2279f1b787030a33c2a7e81b67722f9c7cb5551beeca097",
-  "integrity": "sha512-zEofbIK8KT5A1KZp7FxUiC39Q0c3FrnmSouyzrr47jh28jKCIQN0PuuAcp7lIShxfuRFAWVivOPYhBI3suFAug==",
+  "version": "0.4.0",
+  "filename": "sess.si-sdk-0.4.0.tgz",
+  "sha256": "24408ed874d310e97fab52557c47898acfab84d8ee5e15e4f63fcdfba33a5187",
+  "integrity": "sha512-Lq9uMucc7N/tBKVIr5Qp4rwRuKH7uBdSkbysyR8soFelxicByWziZrSgfUudu23x4FXKVVj5zx0EgR2qsr8zYQ==",
   "package": {
     "license": "Apache-2.0",
     "dependencies": {
