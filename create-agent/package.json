@@ -1,6 +1,6 @@
 {
   "name": "@sess.si/create-agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Create your first Sess agent: npm create @sess.si/agent@latest",
   "type": "module",
   "license": "Apache-2.0",

@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "package": {
     "name": "@sess.si/mcp",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "toolSchema": "sess-mcp-tools/5"
   },
-  "status": "0.3.0 prepared on @sess.si/sdk 0.3.0 for npm dist-tag latest, unpublished, with tool schema sess-mcp-tools/5; latest is 0.2.0 until 0.3.0 is published (0.2.0, on @sess.si/sdk 0.2.0, with tool schema sess-mcp-tools/5, on latest since 2026-11-07T20:30:24Z, registry read 2026-11-09 21:38Z; its release readback is not yet recorded in release.published, which still records 0.1.1); next stays at 0.1.0-rc.4.",
+  "status": "At this artifact's preparation (2026-11-18), 0.4.0 was prepared on @sess.si/sdk 0.4.0 for npm dist-tag latest, not yet published, with tool schema sess-mcp-tools/5; latest was then 0.3.0 (on @sess.si/sdk 0.3.0, with tool schema sess-mcp-tools/5, on latest since 2026-11-10T22:12:00Z, registry read 2026-11-18; its release readback, like 0.2.0's, was not yet recorded in release.published, which then recorded 0.1.1); next was then at 0.1.0-rc.4. This is a snapshot taken when the artifact was prepared; the npm registry is the live record.",
   "recordedAt": "2026-11-07",
   "node": {
     "engines": ">=22.14.0 <25",
@@ -152,12 +152,12 @@
   ],
   "sessSdk": {
     "name": "@sess.si/sdk",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "status": "published (registry)",
-    "sha256": "bc3a7a2dc0ecaa07b2279f1b787030a33c2a7e81b67722f9c7cb5551beeca097",
-    "integrity": "sha512-zEofbIK8KT5A1KZp7FxUiC39Q0c3FrnmSouyzrr47jh28jKCIQN0PuuAcp7lIShxfuRFAWVivOPYhBI3suFAug==",
-    "candidatePath": ".candidate/sess.si-sdk-0.3.0.tgz",
-    "source": "https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.3.0.tgz",
+    "sha256": "24408ed874d310e97fab52557c47898acfab84d8ee5e15e4f63fcdfba33a5187",
+    "integrity": "sha512-Lq9uMucc7N/tBKVIr5Qp4rwRuKH7uBdSkbysyR8soFelxicByWziZrSgfUudu23x4FXKVVj5zx0EgR2qsr8zYQ==",
+    "candidatePath": ".candidate/sess.si-sdk-0.4.0.tgz",
+    "source": "https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.4.0.tgz",
     "releaseHold": "none for the SDK dependency; review the regenerated package-lock.json",
     "history": "0.1.0-rc.3 (sha256 b4d29d8ff01fe8f21d2c7d72e1a8c7ed08ec7cf903efd98715a55a308daa0502) was the earlier approved candidate; it is held by owner decision (2026-10-14) and not published. 0.1.0-rc.4 is the first SDK candidate to be published."
   },
@@ -174,15 +174,15 @@
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "0.3.0 prepared on @sess.si/sdk 0.3.0, unpublished; the tag mcp-v0.3.0 stages it for npm dist-tag latest (release.prepared). @sess.si/mcp@0.2.0 is on latest since 2026-11-07T20:30:24Z from the tag mcp-v0.2.0 (registry read 2026-11-09 21:38Z; its readback is not yet recorded as release.published). release.published still records @sess.si/mcp@0.1.1, published on latest on 2026-11-05 from the tag mcp-v0.1.1, with tool schema sess-mcp-tools/4. next stays at 0.1.0-rc.4. The SDK dependency is in registry mode.",
+    "status": "At this artifact's preparation (2026-11-18), 0.4.0 was prepared on @sess.si/sdk 0.4.0, not yet published; the tag mcp-v0.4.0 was to stage it for npm dist-tag latest (release.prepared). @sess.si/mcp@0.3.0 was then on latest, since 2026-11-10T22:12:00Z from the tag mcp-v0.3.0, and 0.2.0 had been latest from 2026-11-07T20:30:24Z (registry read 2026-11-18; neither readback was yet recorded as release.published). release.published then recorded @sess.si/mcp@0.1.1, published on latest on 2026-11-05 from the tag mcp-v0.1.1, with tool schema sess-mcp-tools/4. next was then at 0.1.0-rc.4. The SDK dependency is in registry mode. This is a snapshot taken when the artifact was prepared; the npm registry is the live record.",
     "prepared": {
-      "version": "0.3.0",
+      "version": "0.4.0",
       "distTag": "latest",
-      "tag": "mcp-v0.3.0",
+      "tag": "mcp-v0.4.0",
       "toolSchema": "sess-mcp-tools/5",
-      "sessSdk": "0.3.0 (registry, dist-tag latest)",
+      "sessSdk": "0.4.0 (registry, dist-tag latest)",
       "mcpName": "si.sess/sess",
-      "note": "Prepared and unpublished.The release guard derives latest for a version without -rc.N. Once the stage is approved and read back, this entry becomes release.published, and the published 0.2.0, once its readback is recorded, and 0.1.1 move to release.earlier."
+      "note": "At this artifact's preparation (2026-11-18), prepared and not yet published. The release guard derives latest for a version without -rc.N. Once the stage is approved and read back, the record update makes this entry release.published, and the published 0.3.0 and 0.2.0, once their readbacks are recorded, and 0.1.1 move to release.earlier."
     },
     "published": {
       "version": "0.1.1",

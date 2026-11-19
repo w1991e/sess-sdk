@@ -61,13 +61,29 @@ test('compatibility.json never calls the unpublished package version published',
     c.release.status = releaseStatus;
     return c;
   };
-  const prepared = `${candidate.version} prepared, unpublished; ${recorded} published (next)`;
+  const prepared = `At this artifact's preparation (2026-11-18), ${candidate.version} was prepared, not yet published; ${recorded} was then on next`;
   checkCompatibilityStatus({ manifest: candidate, compatibility: record(prepared, prepared) });
+  // The present-tense form, which the packed tarball would carry as false after publication, is
+  // refused, as are an undated snapshot, another version's snapshot and a missing status.
+  const presentTense = `${candidate.version} prepared, unpublished; latest is ${recorded} until ${candidate.version} is published`;
   for (const [status, releaseStatus] of [
     ['published (next)', prepared],
     [prepared, `@sess.si/mcp@${recorded} published on npm dist-tag next`],
     [`published (next); ${candidate.version} prepared, unpublished`, prepared],
+    [presentTense, prepared],
+    [prepared, presentTense],
+    [`At this artifact's preparation, ${candidate.version} was prepared, not yet published`, prepared],
+    [`At this artifact's preparation (2026-11-18), 9.9.9 was prepared, not yet published`, prepared],
+    [
+      `At this artifact's preparation (2026-11-18), ${candidate.version} was prepared and published`,
+      prepared,
+    ],
+    [
+      `Published. At this artifact's preparation (2026-11-18), ${candidate.version} was prepared, not yet published`,
+      prepared,
+    ],
     [undefined, prepared],
+    [prepared, undefined],
   ])
     refuses(
       () => checkCompatibilityStatus({ manifest: candidate, compatibility: record(status, releaseStatus) }),

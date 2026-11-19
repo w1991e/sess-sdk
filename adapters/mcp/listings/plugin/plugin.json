@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "sess",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Let your agent ask people for answers and approvals by link, with signed receipts.",
   "author": {
     "name": "Sess",

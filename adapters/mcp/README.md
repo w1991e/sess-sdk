@@ -30,7 +30,7 @@ Or run it on your machine. Put your Sess API key in `SESS_API_KEY` (from your Se
 keys), run this, then start Claude Code from that same terminal. Never paste the key into a chat.
 
 ```sh
-claude mcp add --scope local sess -- npx -y @sess.si/mcp@0.3.0
+claude mcp add --scope local sess -- npx -y @sess.si/mcp@0.4.0
 ```
 
 ## claude.ai
@@ -108,7 +108,7 @@ keys), then use this entry instead. Never paste the key into a chat.
   "mcpServers": {
     "sess": {
       "command": "npx",
-      "args": ["-y", "@sess.si/mcp@0.3.0"],
+      "args": ["-y", "@sess.si/mcp@0.4.0"],
       "env": { "SESS_API_KEY": "${env:SESS_API_KEY}" }
     }
   }
@@ -121,7 +121,7 @@ Put your Sess API key in `SESS_API_KEY` (from your Sess account, under API keys)
 your terminal:
 
 ```sh
-agy mcp add sess npx -y @sess.si/mcp@0.3.0
+agy mcp add sess npx -y @sess.si/mcp@0.4.0
 ```
 
 Antigravity asks before it uses a Sess tool, usually once or twice the first time. Choose Allow,
@@ -182,7 +182,7 @@ chat.
   "mcpServers": {
     "sess": {
       "command": "npx",
-      "args": ["-y", "@sess.si/mcp@0.3.0"],
+      "args": ["-y", "@sess.si/mcp@0.4.0"],
       "env": { "SESS_API_KEY": "your Sess API key" }
     }
   }
@@ -201,7 +201,7 @@ https://mcp.sess.si/mcp
 Or add this as a local MCP server in your agent:
 
 ```sh
-npx -y @sess.si/mcp@0.3.0
+npx -y @sess.si/mcp@0.4.0
 ```
 
 Your agent asks before it starts the server. The server reads your Sess API key from the
@@ -535,7 +535,7 @@ The adapter is an independent package with its own lockfile. `package.json` alwa
 exact SDK version from the repository's single pin, `release/sdk-candidate.json` (name, version,
 filename, SHA-256, SHA-512). `package-lock.json` is a maintainer file only; npm never ships it to
 consumers. The lock resolves the SDK to the genuine npm registry tarball
-(`https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.2.0.tgz`, dist-tag `latest`) with the pinned
+(`https://registry.npmjs.org/@sess.si/sdk/-/sdk-0.4.0.tgz`, dist-tag `latest`) with the pinned
 integrity, so no local SDK build or pack is needed. `compatibility.json` mirrors the pin;
 `npm run pin:update` at the root keeps both, the lockfile and the dependency in step after a
 deliberate change, and the root `npm run check` fails on drift.
