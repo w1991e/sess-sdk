@@ -7,16 +7,14 @@ version.
 
 ## This release
 
-- `@sess.si/mcp@0.4.0`, tool schema `sess-mcp-tools/5`, on `@sess.si/sdk@0.4.0`, is prepared and
-  not yet published. Until it is published, npm `latest` is `0.3.0`.
-- `@sess.si/mcp@0.4.0`, on `@sess.si/sdk@0.3.0`, is on npm `latest` since 2026-11-10T22:12:00Z
-  (registry read 2026-11-18). `next` stays at `0.1.0-rc.4`. `npm view @sess.si/mcp dist-tags`
-  shows what the registry serves now.
+- `@sess.si/mcp@0.4.0`, tool schema `sess-mcp-tools/5`, on `@sess.si/sdk@0.4.0`, is on npm
+  `latest` since 2026-11-19 (release run 44595616448, read back from the registry). It replaced
+  `0.3.0` (on `@sess.si/sdk@0.3.0`, `latest` since 2026-11-10T22:12:00Z). `next` stays at
+  `0.1.0-rc.4`. `npm view @sess.si/mcp dist-tags` shows what the registry serves now.
 - `compatibility.json` records 0.4.0 as prepared and not yet published, as a snapshot dated at the
   artifact's preparation (2026-11-18), so the packed file stays true after publication. Its
   published entry still records 0.1.1; it changes when a release readback is recorded there.
 - The README names `@sess.si/mcp@0.4.0` in every install line; the line is bumped on each release.
-  Until 0.4.0 is published, that line does not install.
 
 ## Node
 

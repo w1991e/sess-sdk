@@ -7,10 +7,10 @@ maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`
 never to `latest`; a stable version (`X.Y.Z`) goes to `latest`, the same rule as the SDK, the MCP
 adapter and create-agent (owner decision 2026-10-31).
 
-`0.2.0` is prepared, unpublished, for `latest` (tag `openclaw-v0.2.0`, on `@sess.si/sdk` 0.4.0;
-expected tarball below; [release/v0.2.0-packet.md](release/v0.2.0-packet.md) is the maintainer's
-order). Until it is approved, `latest` stays at `0.1.0` (published 2026-11-01;
-[release/v0.1.0-packet.md](release/v0.1.0-packet.md)). `next` stays at the last
+The current release, `0.2.0`, is published on `latest` (tag `openclaw-v0.2.0`, on `@sess.si/sdk`
+0.4.0, since 2026-11-19; release run 44598313537; tarball below;
+[release/v0.2.0-packet.md](release/v0.2.0-packet.md) is its published record). It replaced `0.1.0`
+(published 2026-11-01; [release/v0.1.0-packet.md](release/v0.1.0-packet.md)). `next` stays at the last
 release candidate, `0.1.0-rc.5` (published 2026-10-27; integrity and SHA-256 as recorded in
 [release/rc5-packet.md](release/rc5-packet.md) and `compatibility.json`); the stable release does
 not move it. `0.1.0-rc.4` ([release/rc4-packet.md](release/rc4-packet.md)), `0.1.0-rc.3`
@@ -19,8 +19,8 @@ not move it. `0.1.0-rc.4` ([release/rc4-packet.md](release/rc4-packet.md)), `0.1
 ([release/rc1-packet.md](release/rc1-packet.md)) are published as well. Each candidate gets such a
 packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
 
-Expected `0.2.0` tarball (`npm run check` on Node 24.21.0 and npm 11.19.0; the release run's
-SHA-256 must equal it). A packed change before the tag updates these values in the same PR:
+The `0.2.0` tarball (`npm run check` on Node 24.21.0 and npm 11.19.0; the release run and the
+registry tarball equal it):
 
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
