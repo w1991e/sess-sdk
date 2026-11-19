@@ -2,8 +2,6 @@
 
 ## 0.2.0
 
-Prepared, not yet published.
-
 - Depends on `@sess.si/sdk` 0.4.0 (was 0.1.0; sha256 `24408ed8…5187`), resolved from the
   registry. It verifies the receipts Sess issues.
 - A receipt newer than this plugin can check (the SDK's `receipt_newer`, code `RECEIPT_NEWER`: a

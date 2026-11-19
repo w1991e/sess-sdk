@@ -2,8 +2,7 @@
 
 ## 0.4.0
 
-Prepared, not yet published. Tool schemas stay `sess-mcp-tools/5`; the five tool names are
-unchanged.
+Tool schemas stay `sess-mcp-tools/5`; the five tool names are unchanged.
 
 - Depends on `@sess.si/sdk` 0.4.0 (was 0.3.0; sha256 `24408ed8…5187`), resolved from the
   registry. It verifies the receipts Sess issues.
