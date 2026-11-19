@@ -25,8 +25,8 @@ SHA-256 must equal it). A packed change before the tag updates these values in t
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | Filename  | `sess.si-openclaw-0.2.0.tgz`                                                                      |
-| SHA-256   | `06237e1ed98d514f51ce924874bc195ea7f0bb8c9c108217c83884127419b643`                                |
-| Integrity | `sha512-QgwYwvtMvzqklIQWFG21OsGLipaoJD3wWrmSI6sugbljfMp5g6R+NZ9/8NaKnJ0jajtZ5sakQf7Vo+8qVwvq1w==` |
+| SHA-256   | `93562028772849e93c6b00f8aef9d4f4beb4941e8ab6cd1b15f72b6bcadd899f`                                |
+| Integrity | `sha512-VTIsAJeF9Jw7i/XFanbxTVYoJIa0RXszSROfCwDKPXWhA136R8CBfwRAmS4NyqJVKolsu/9kAHA4gSxy/Uaq6A==` |
 
 ## Prerequisites (owner actions, in order)
 
