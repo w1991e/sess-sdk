@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+Prepared, not yet published.
+
+- Sess's tighter text limits: title 60, description 200, heading 40, field label 40, field help
+  120, option label 30, record key 24, button 16; every other limit is unchanged.
+
 ## 0.2.0
 
 - Depends on `@sess.si/sdk` 0.4.0 (was 0.1.0; sha256 `24408ed8…5187`), resolved from the
