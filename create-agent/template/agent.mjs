@@ -66,8 +66,8 @@ function whereAndWhen() {
 
 /** Question 2: three plans from a fixed rule; pick one or change its time. */
 function pickAPlan(trip, weather, options) {
-  // Option labels stay under 60 characters; the forecast above shows each slot's weather.
-  const plans = options.map((o) => [o.id, `${o.idea} — ${o.slot.name}`]);
+  // "Idea, part of day" (a slot's id): at most 30 characters; the forecast shows the hours.
+  const plans = options.map((o) => [o.id, `${o.idea}, ${o.slot.id}`]);
   const times = [['keep', 'Keep the suggested time'], ...w.SLOTS.map((s) => [s[0], s[1]])];
   const action = { id: 'approve', label: 'Make my plan', intent: 'approve' };
   return form('Pick your plan', 'Question 2 of 2', action, [
