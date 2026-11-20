@@ -25,16 +25,16 @@ export const LIMITS = Object.freeze({
  * pointer), the limit, its length and the fix.
  */
 export const TEXT_LIMITS = Object.freeze({
-  title: 80,
-  description: 280,
-  heading: 60,
+  title: 60,
+  description: 200,
+  heading: 40,
   text: 4000,
-  label: 60,
-  optionLabel: 60,
-  help: 160,
-  actionLabel: 24,
+  label: 40,
+  optionLabel: 30,
+  help: 120,
+  actionLabel: 16,
   recordLabel: 200,
-  recordKey: 40,
+  recordKey: 24,
   recordValue: 200,
   /** Not shown as written (enum values, a schema's own title): the earlier runtime bounds. */
   enumValue: 200,
