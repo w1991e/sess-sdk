@@ -232,7 +232,9 @@ describe('MCP server', () => {
     // sess_response return `interaction.ask` and the state `closed`. sess_request, sess_publish and
     // sess_complete are unchanged. Renewed again within the unreleased sess-mcp-tools/5: the
     // field's `rating` description in sess_request and sess_publish is Sess's signed RT-08 text.
-    // Renewed for sess-mcp-tools/6: Sess's tighter text limits (maxLength and the limit prose).
+    // Renewed for sess-mcp-tools/6: Sess's tighter text limits (maxLength and the limit prose) in
+    // sess_request, sess_publish and sess_ask; sess_response and sess_complete change only by the
+    // version their meta names (with /5 in its place they hash to their /5 pins).
     const contract = Object.fromEntries(
       TOOLS.map(({ name, description: _, ...rest }) => [
         name,
@@ -243,11 +245,11 @@ describe('MCP server', () => {
     );
     expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/6');
     expect(contract).toEqual({
-      sess_request: '8afdc53bd4fbfc2cd95920e5af4b9df61f1509dd002fc855b188ca12813cb4a3',
-      sess_response: '3fdcb3e97f04658f55b79d2150937d0a88aa85789d65289a5d0d783793fd6d25',
-      sess_publish: 'b6f14f8ac998730c52c10fa4da915f6aae771cd74bc46d60c93f540304c5d337',
-      sess_complete: 'd8a0e150608bbb93f973aef20a521feef41efd84c6e3138b02678aef261b0540',
-      sess_ask: '07a90c9735e2db2f9189b060e3e4927733d3d64ac33dfc6e59a9607b08a1ac2d',
+      sess_request: '37ce75bd52c791cb4b56b56547d0929d48ca755941d98bd74511dc1c0c26c35b',
+      sess_response: 'cbacd482846d0d5dc1ba90c218265b76c0482d5e1d972c29e67254ad1181932b',
+      sess_publish: '03f2a208eb7e2c79c1dc2f686bf5a77c3920134c49d68ca56a010be622492044',
+      sess_complete: '06442ad25cd67664b9280d88776221d958622e998cac86ffe97263fc00d5ade5',
+      sess_ask: '8e317f9b946f06e71c227e958b20c6cd12a015c02e395c1d721abe70c7a4adaf',
     });
     expect(TOOLS.find((t) => t.name === 'sess_response')!.annotations).toEqual({
       title: 'Read the person’s Sess answer',
