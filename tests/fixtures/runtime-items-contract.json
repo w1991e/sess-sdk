@@ -1,7 +1,7 @@
 {
   "source": "Sess runtime w1991e/sess at source_runtime_commit: the items and record components of SurfaceComponent and the interactive interaction of PatchSessionRequest from packages/spec/openapi.json, and the ISO 4217 minor-unit table of packages/core/src/currency.ts. Extracted verbatim for the Commerce builders contract test; refresh from the runtime, never by hand.",
-  "source_runtime_commit": "897148727a2a79bada3651543461e1673ab580a2",
-  "openapi_git_blob_sha1": "6e0e47ecfd4c61e29bf67d2ceddc69fbbc878d4a",
+  "source_runtime_commit": "9f8e199bba487da149f8bad21b6d3c1461b7dbbb",
+  "openapi_git_blob_sha1": "7bace44e185f4c97b56f736cbbe3771e689be32f",
   "currency_git_blob_sha1": "467fa88007ecebbfa6438d30f3121660ea4fc372",
   "items_component": {
     "additionalProperties": false,

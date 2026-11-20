@@ -8613,7 +8613,7 @@
                   ]
                 },
                 "verified": {
-                  "description": "Whether the copy is available and every round it serves was checked and verified at this read, its signature and its questions and answers both (each round’s `signature` and `contents` `verified`, as POST /personal/copies/open gives them): the list row’s state is “Verified” only then, else “Unverified”, unless `status` makes it “Partial” or “Unavailable” (founder 2026-11-08 08:05Z). false unless `status` is `available` (founder 2026-11-08 18:55Z), even when every round a partly unavailable copy still serves verifies; false when the copy serves no round.",
+                  "description": "Whether the copy is available and every round it serves was checked and verified at this read, its signature and its questions and answers both (each round’s `signature` and `contents` `verified`, as POST /personal/copies/open gives them): the list row says no state then (founder 2026-11-19 15:13Z item 4), else “Unverified”, unless `status` makes it “Partial” or “Unavailable” (founder 2026-11-08 08:05Z). false unless `status` is `available` (founder 2026-11-08 18:55Z), even when every round a partly unavailable copy still serves verifies; false when the copy serves no round.",
                   "type": "boolean"
                 }
               }

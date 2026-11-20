@@ -1,8 +1,8 @@
 {
-  "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (w1991e/sess branch spec/surface-limits-rebuild, the #1086 rebuild: the tighter Surface text limits, founder 2026-11-07 01:30Z item 1, restated 2026-11-20 00:22Z; not yet on sess master or served by production)",
-  "source_runtime_commit": "897148727a2a79bada3651543461e1673ab580a2",
-  "source_git_blob_sha1": "6e0e47ecfd4c61e29bf67d2ceddc69fbbc878d4a",
-  "snapshot_sha256": "c63c71fd7c6da6c9c4d76f7674533faca5706924bab286ba31ea849922522953",
+  "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (w1991e/sess branch spec/surface-limits-signed, the #1086 rebuild: the tighter Surface text limits, founder 2026-11-07 01:30Z item 1, restated 2026-11-20 00:22Z; not yet on sess master or served by production)",
+  "source_runtime_commit": "9f8e199bba487da149f8bad21b6d3c1461b7dbbb",
+  "source_git_blob_sha1": "7bace44e185f4c97b56f736cbbe3771e689be32f",
+  "snapshot_sha256": "c1ca5b485cdb92ffb5a0691a4ae03be3c9ffa662b67f344b7bdcde66605aea1b",
   "generator": "openapi-typescript",
   "generator_version": "7.13.0",
   "recorded_at": "2026-11-20",
