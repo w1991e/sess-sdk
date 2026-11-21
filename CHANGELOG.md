@@ -1,8 +1,6 @@
 # Changelog
 
-## 0.5.0
-
-Prepared, not yet published.
+## 0.5.0 — 2026-11-21
 
 - Sess's tighter text limits: title 60, description 200, heading 40, field label 40, field help
   120, option label 30, record key 24, button 16, items row name 30; every other limit is unchanged.
