@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "package": "@sess.si/openclaw",
   "version": "0.3.0",
-  "status": "At this artifact's preparation (2026-11-18), 0.2.0 was prepared for npm dist-tag latest on @sess.si/sdk 0.4.0, not yet published; latest was then 0.1.0 (on @sess.si/sdk 0.1.0, on latest since 2026-11-01T03:50:21Z, registry read 2026-11-18, integrity equal to release/v0.1.0-packet.md; its release readback was not yet recorded in publication, which then recorded 0.1.0-rc.5); 0.1.0-rc.5 (2026-10-27), 0.1.0-rc.4 (2026-10-27), 0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next was then at 0.1.0-rc.5, on @sess.si/sdk 0.1.0-rc.8; G0/G1 qualification as recorded below; not independently verified. This is a snapshot taken when the artifact was prepared; the npm registry is the live record.",
+  "status": "At this artifact's preparation (2026-11-21), 0.3.0 was prepared for npm dist-tag latest on @sess.si/sdk 0.4.0, not yet published; latest was then 0.2.0 (on @sess.si/sdk 0.4.0, on latest since 2026-11-19T21:47:12Z, registry read 2026-11-19, integrity equal to release/v0.2.0-packet.md; its release readback, like 0.1.0's, was not yet recorded in publication, which then recorded 0.1.0-rc.5); 0.1.0-rc.5 (2026-10-27), 0.1.0-rc.4 (2026-10-27), 0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next was then at 0.1.0-rc.5, on @sess.si/sdk 0.1.0-rc.8; G0/G1 qualification as recorded below; not independently verified. This is a snapshot taken when the artifact was prepared; the npm registry is the live record.",
   "publication": {
     "version": "0.1.0-rc.5",
     "distTag": "next",
