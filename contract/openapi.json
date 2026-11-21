@@ -6780,7 +6780,7 @@
                 "type": "string"
               },
               "field": {
-                "description": "INVALID_SCHEMA for a value over its length limit, and for an items component (Commerce): a JSON pointer to the value in the request body, for example /interaction/title (for a record key, the pointer names that key) or /interaction/source/components/2/currency; and VALIDATION_FAILED for an agent’s sharing title (reason title_invalid or title_required): /title. A request body that does not match the schema (founder 2026-10-24) carries field, the pointer to its first failing value, with expected: for a missing property the pointer names it; for an unknown property it is the object that holds it (the unknown name is never repeated); a pointer never passes through a key you chose (it stops at the object holding that key). Other schema errors (malformed JSON, path and query values) carry no field, limit, length, expected or actual.",
+                "description": "INVALID_SCHEMA for a value over its length limit, and for an items component (Commerce): a JSON pointer to the value in the request body, for example /interaction/title (for a record key, the pointer names that key) or /interaction/source/components/2/currency; and VALIDATION_FAILED for an agent’s sharing title (reason title_invalid or title_required): /title. A request body that does not match the schema carries field, the pointer to its first failing value, with expected: for a missing property the pointer names it; for an unknown property it is the object that holds it (the unknown name is never repeated); a pointer never passes through a key you chose (it stops at the object holding that key). Other schema errors (malformed JSON, path and query values) carry no field, limit, length, expected or actual.",
                 "type": "string"
               },
               "limit": {
@@ -8088,11 +8088,11 @@
             ]
           },
           "last_saved_just_now": {
-            "description": "Where Save lands (founder 2026-10-24 00:25Z): `last_saved` was saved within the last ten minutes on the server’s clock, so Your receipts marks it \"Saved just now\". False when there is none.",
+            "description": "Where Save lands: `last_saved` was saved within the last ten minutes on the server’s clock, so Your receipts marks it \"Saved just now\". False when there is none.",
             "type": "boolean"
           },
           "has_workspace": {
-            "description": "Founder 2026-11-08 10:15Z: this session’s own verified address also has a developer account (a workspace), so Your receipts’ account menu links to the console, whose own sign-in still applies. False when it has none or the lookup failed.",
+            "description": "This session’s own verified address also has a developer account (a workspace), so Your receipts’ account menu links to the console, whose own sign-in still applies. False when it has none or the lookup failed.",
             "type": "boolean"
           }
         }
@@ -8504,7 +8504,7 @@
           "cursor": {
             "maxLength": 2048,
             "pattern": "^[A-Za-z0-9_-]+$",
-            "description": "A page position from a previous answer’s next or previous, under the same sort, order, status and search (founder 2026-11-03 05:42Z item 9): opaque, sealed for this personal session, never a credential. One that does not open here is the first page.",
+            "description": "A page position from a previous answer’s next or previous, under the same sort, order, status and search: opaque, sealed for this personal session, never a credential. One that does not open here is the first page.",
             "type": "string"
           }
         }
@@ -8555,7 +8555,7 @@
                 "date_text": {
                   "minLength": 1,
                   "maxLength": 16,
-                  "description": "The date the list row and the opened receipt’s header show, as text, written by the server when it answers (founder 2026-11-07 20:05Z: one smart date for every list row, rendered when the page is served, no script): the last answer’s time the copy serves, else `saved_at`, against the server’s clock in UTC: “now” under a minute, “5m” under an hour, “3h” under 24 hours, “Yesterday” on the UTC day before, else “6 Nov”, with the year (“6 Nov 2025”) only in another year. Display text, never parsed; the exact times stay in `saved_at`, `answered_at` and each round’s `accepted_at`.",
+                  "description": "The date the list row and the opened receipt’s header show, as text, written by the server when it answers (one smart date for every list row, rendered when the page is served, no script): the last answer’s time the copy serves, else `saved_at`, against the server’s clock in UTC: “now” under a minute, “5m” under an hour, “3h” under 24 hours, “Yesterday” on the UTC day before, else “6 Nov”, with the year (“6 Nov 2025”) only in another year. Display text, never parsed; the exact times stay in `saved_at`, `answered_at` and each round’s `accepted_at`.",
                   "type": "string"
                 },
                 "status": {
@@ -8613,7 +8613,7 @@
                   ]
                 },
                 "verified": {
-                  "description": "Whether the copy is available and every round it serves was checked and verified at this read, its signature and its questions and answers both (each round’s `signature` and `contents` `verified`, as POST /personal/copies/open gives them): the list row says no state then (founder 2026-11-19 15:13Z item 4), else “Unverified”, unless `status` makes it “Partial” or “Unavailable” (founder 2026-11-08 08:05Z). false unless `status` is `available` (founder 2026-11-08 18:55Z), even when every round a partly unavailable copy still serves verifies; false when the copy serves no round.",
+                  "description": "Whether the copy is available and every round it serves was checked and verified at this read, its signature and its questions and answers both (each round’s `signature` and `contents` `verified`, as POST /personal/copies/open gives them): the list row says no state then, else “Unverified”, unless `status` makes it “Partial” or “Unavailable”. false unless `status` is `available`, even when every round a partly unavailable copy still serves verifies; false when the copy serves no round.",
                   "type": "boolean"
                 }
               }
@@ -8688,7 +8688,7 @@
           "date_text": {
             "minLength": 1,
             "maxLength": 16,
-            "description": "The date the list row and the opened receipt’s header show, as text, written by the server when it answers (founder 2026-11-07 20:05Z: one smart date for every list row, rendered when the page is served, no script): the last answer’s time the copy serves, else `saved_at`, against the server’s clock in UTC: “now” under a minute, “5m” under an hour, “3h” under 24 hours, “Yesterday” on the UTC day before, else “6 Nov”, with the year (“6 Nov 2025”) only in another year. Display text, never parsed; the exact times stay in `saved_at`, `answered_at` and each round’s `accepted_at`.",
+            "description": "The date the list row and the opened receipt’s header show, as text, written by the server when it answers (one smart date for every list row, rendered when the page is served, no script): the last answer’s time the copy serves, else `saved_at`, against the server’s clock in UTC: “now” under a minute, “5m” under an hour, “3h” under 24 hours, “Yesterday” on the UTC day before, else “6 Nov”, with the year (“6 Nov 2025”) only in another year. Display text, never parsed; the exact times stay in `saved_at`, `answered_at` and each round’s `accepted_at`.",
             "type": "string"
           },
           "status": {

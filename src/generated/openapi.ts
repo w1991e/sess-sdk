@@ -4446,7 +4446,7 @@ export interface components {
         request_id: string;
         /** @description A stable machine-readable refinement of some codes (P1 A4 webhook errors; P2 target, admission and limit errors). */
         reason?: string;
-        /** @description INVALID_SCHEMA for a value over its length limit, and for an items component (Commerce): a JSON pointer to the value in the request body, for example /interaction/title (for a record key, the pointer names that key) or /interaction/source/components/2/currency; and VALIDATION_FAILED for an agent’s sharing title (reason title_invalid or title_required): /title. A request body that does not match the schema (founder 2026-10-24) carries field, the pointer to its first failing value, with expected: for a missing property the pointer names it; for an unknown property it is the object that holds it (the unknown name is never repeated); a pointer never passes through a key you chose (it stops at the object holding that key). Other schema errors (malformed JSON, path and query values) carry no field, limit, length, expected or actual. */
+        /** @description INVALID_SCHEMA for a value over its length limit, and for an items component (Commerce): a JSON pointer to the value in the request body, for example /interaction/title (for a record key, the pointer names that key) or /interaction/source/components/2/currency; and VALIDATION_FAILED for an agent’s sharing title (reason title_invalid or title_required): /title. A request body that does not match the schema carries field, the pointer to its first failing value, with expected: for a missing property the pointer names it; for an unknown property it is the object that holds it (the unknown name is never repeated); a pointer never passes through a key you chose (it stops at the object holding that key). Other schema errors (malformed JSON, path and query values) carry no field, limit, length, expected or actual. */
         field?: string;
         /** @description With field: the most the value may have, in Unicode code points. Interactive Surface: title 60, description 200, heading 40, text 4,000, record caption 200, record key 24, record string value 200, field label 40, field description 120, option label 30, rating end label 24, action label 16, items caption 200, item name 30, item detail 160, totals label 40, quantity unit 16. Display Session: title 60, description 4,000. For an items component’s rows or totals (field ending /rows or /totals) it is a count: rows 100, totals 8. */
         limit?: number;
@@ -4826,9 +4826,9 @@ export interface components {
       csrf: string;
       /** @description The saved copy (its item) this session’s latest Save wrote or found, while it exists; null otherwise. Bound to this session: another session never sees it. */
       last_saved: string | null;
-      /** @description Where Save lands (founder 2026-10-24 00:25Z): `last_saved` was saved within the last ten minutes on the server’s clock, so Your receipts marks it "Saved just now". False when there is none. */
+      /** @description Where Save lands: `last_saved` was saved within the last ten minutes on the server’s clock, so Your receipts marks it "Saved just now". False when there is none. */
       last_saved_just_now: boolean;
-      /** @description Founder 2026-11-08 10:15Z: this session’s own verified address also has a developer account (a workspace), so Your receipts’ account menu links to the console, whose own sign-in still applies. False when it has none or the lookup failed. */
+      /** @description This session’s own verified address also has a developer account (a workspace), so Your receipts’ account menu links to the console, whose own sign-in still applies. False when it has none or the lookup failed. */
       has_workspace: boolean;
     };
     PersonalDone: {
@@ -4938,7 +4938,7 @@ export interface components {
       order?: 'asc' | 'desc';
       /** @description How many matching copies to skip (pages of 20), when no cursor is given. Kept for a page loaded before cursors; the page itself sends a cursor. */
       offset?: number;
-      /** @description A page position from a previous answer’s next or previous, under the same sort, order, status and search (founder 2026-11-03 05:42Z item 9): opaque, sealed for this personal session, never a credential. One that does not open here is the first page. */
+      /** @description A page position from a previous answer’s next or previous, under the same sort, order, status and search: opaque, sealed for this personal session, never a credential. One that does not open here is the first page. */
       cursor?: string;
     };
     PersonalCopiesPage: {
@@ -4948,7 +4948,7 @@ export interface components {
         saved_at: string;
         /** @description When the last round the copy serves now was answered (its `accepted_at`, as opening the copy shows it): the date the list shows and sorts by. null when the copy serves no round or gives no readable time (the list then shows and sorts by `saved_at`). */
         answered_at: string | null;
-        /** @description The date the list row and the opened receipt’s header show, as text, written by the server when it answers (founder 2026-11-07 20:05Z: one smart date for every list row, rendered when the page is served, no script): the last answer’s time the copy serves, else `saved_at`, against the server’s clock in UTC: “now” under a minute, “5m” under an hour, “3h” under 24 hours, “Yesterday” on the UTC day before, else “6 Nov”, with the year (“6 Nov 2025”) only in another year. Display text, never parsed; the exact times stay in `saved_at`, `answered_at` and each round’s `accepted_at`. */
+        /** @description The date the list row and the opened receipt’s header show, as text, written by the server when it answers (one smart date for every list row, rendered when the page is served, no script): the last answer’s time the copy serves, else `saved_at`, against the server’s clock in UTC: “now” under a minute, “5m” under an hour, “3h” under 24 hours, “Yesterday” on the UTC day before, else “6 Nov”, with the year (“6 Nov 2025”) only in another year. Display text, never parsed; the exact times stay in `saved_at`, `answered_at` and each round’s `accepted_at`. */
         date_text: string;
         /** @description `partly_unavailable` or `unavailable` when an operator restriction or deletion whose scope reaches personal copies withholds rounds or holder proofs of it: that content is never served, and the status never says why. */
         status: 'available' | 'partly_unavailable' | 'unavailable';
@@ -4958,7 +4958,7 @@ export interface components {
         label: string | null;
         /** @description The name the agent was published under for this conversation when it was saved (a shared card’s display title, or its name when it had none; or the Sess demo), kept as it was then and given as a person reads it (a title exactly as written; a card name with its hyphens as spaces and a capital first letter, so weekend-planner is Weekend planner): a historical display name, never a verified identity. null when there was none, or when nothing of the copy is served now. */
         agent: string | null;
-        /** @description Whether the copy is available and every round it serves was checked and verified at this read, its signature and its questions and answers both (each round’s `signature` and `contents` `verified`, as POST /personal/copies/open gives them): the list row says no state then (founder 2026-11-19 15:13Z item 4), else “Unverified”, unless `status` makes it “Partial” or “Unavailable” (founder 2026-11-08 08:05Z). false unless `status` is `available` (founder 2026-11-08 18:55Z), even when every round a partly unavailable copy still serves verifies; false when the copy serves no round. */
+        /** @description Whether the copy is available and every round it serves was checked and verified at this read, its signature and its questions and answers both (each round’s `signature` and `contents` `verified`, as POST /personal/copies/open gives them): the list row says no state then, else “Unverified”, unless `status` makes it “Partial” or “Unavailable”. false unless `status` is `available`, even when every round a partly unavailable copy still serves verifies; false when the copy serves no round. */
         verified: boolean;
       }[];
       /** @description Every saved copy that matches. */
@@ -4978,7 +4978,7 @@ export interface components {
       item: string;
       /** Format: date-time */
       saved_at: string;
-      /** @description The date the list row and the opened receipt’s header show, as text, written by the server when it answers (founder 2026-11-07 20:05Z: one smart date for every list row, rendered when the page is served, no script): the last answer’s time the copy serves, else `saved_at`, against the server’s clock in UTC: “now” under a minute, “5m” under an hour, “3h” under 24 hours, “Yesterday” on the UTC day before, else “6 Nov”, with the year (“6 Nov 2025”) only in another year. Display text, never parsed; the exact times stay in `saved_at`, `answered_at` and each round’s `accepted_at`. */
+      /** @description The date the list row and the opened receipt’s header show, as text, written by the server when it answers (one smart date for every list row, rendered when the page is served, no script): the last answer’s time the copy serves, else `saved_at`, against the server’s clock in UTC: “now” under a minute, “5m” under an hour, “3h” under 24 hours, “Yesterday” on the UTC day before, else “6 Nov”, with the year (“6 Nov 2025”) only in another year. Display text, never parsed; the exact times stay in `saved_at`, `answered_at` and each round’s `accepted_at`. */
       date_text: string;
       /** @description `partly_unavailable` or `unavailable` when an operator restriction or deletion whose scope reaches personal copies withholds rounds or holder proofs of it: that content is never served, and the status never says why. */
       status: 'available' | 'partly_unavailable' | 'unavailable';
