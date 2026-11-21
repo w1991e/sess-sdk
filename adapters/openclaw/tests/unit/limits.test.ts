@@ -12,16 +12,16 @@ const component = (type: string) => components.find((c) => c.properties.type.enu
 const EXAMPLE = root.examples[0] as Schema;
 
 const VISIBLE: [string, Schema, number][] = [
-  ['title', root.properties.title, 80],
-  ['description', root.properties.description, 280],
-  ['heading', component('heading').text, 60],
+  ['title', root.properties.title, 60],
+  ['description', root.properties.description, 200],
+  ['heading', component('heading').text, 40],
   ['text', component('text').text, 4000],
   ['record label', component('record').label, 200],
   ['record value', component('record').fields.additionalProperties, 200],
-  ['field label', component('field').label, 60],
-  ['field description', component('field').description, 160],
-  ['option label', component('field').option_labels.additionalProperties, 60],
-  ['action label', root.properties.actions.items.properties.label, 24],
+  ['field label', component('field').label, 40],
+  ['field description', component('field').description, 120],
+  ['option label', component('field').option_labels.additionalProperties, 30],
+  ['action label', root.properties.actions.items.properties.label, 16],
 ];
 
 describe('the tool schema teaches the limits', () => {
@@ -38,10 +38,10 @@ describe('the tool schema teaches the limits', () => {
 
   it('mirrors Sess’s wording exactly; example titles are under 40', () => {
     expect(root.properties.title.description).toBe(
-      "The page's heading: a question or a task, about 40 characters; at most 80.",
+      "The page's heading: a question or a task, about 40 characters; at most 60.",
     );
     expect(root.properties.actions.items.properties.label.description).toBe(
-      'A button: a verb, 1–3 words; at most 24.',
+      'A button: a verb, 1–3 words; at most 16.',
     );
     for (const title of [...root.properties.title.examples, EXAMPLE.title])
       expect([...title].length).toBeLessThan(40);
@@ -49,7 +49,7 @@ describe('the tool schema teaches the limits', () => {
 
   it('the complete example passes the adapter’s own validation', () => {
     expect(parseRequestArgs({ interaction: EXAMPLE }).interaction).toEqual(EXAMPLE);
-    expect(component('record').fields.description).toContain('at most 40');
+    expect(component('record').fields.description).toContain('at most 24');
   });
 });
 
@@ -145,13 +145,13 @@ describe('every limit: N accepted, N+1 refused with field, limit, length and the
       // Sess's own sentences: the title has its own; every other value names its pointer.
       expect(error.message).toBe(
         field === '/interaction/title'
-          ? 'INVALID_ARGUMENTS: The title can be at most 80 characters. Keep it to a short heading, about 40.'
+          ? 'INVALID_ARGUMENTS: The title can be at most 60 characters. Keep it to a short heading, about 40.'
           : `INVALID_ARGUMENTS: ${field} is ${limit + 1} characters; the limit is ${limit}. Shorten it to at most ${limit} characters.`,
       );
     });
   }
 
-  describe('an unlabelled enum ID is the visible option text: held to 60 at its enum entry', () => {
+  describe('an unlabelled enum ID is the visible option text: held to 30 at its enum entry', () => {
     const withChoice = (schema: Schema, option_labels?: Record<string, string>) => {
       const i = structuredClone(EXAMPLE);
       i.source.components.push({
@@ -172,12 +172,12 @@ describe('every limit: N accepted, N+1 refused with field, limit, length and the
       ] as const)(`%s, no or partial labels (${unit})`, (_, schemaOf, field) => {
         for (const labels of [undefined, { short: 'Short' }]) {
           expect(() =>
-            parseRequestArgs({ interaction: withChoice(schemaOf(unit.repeat(60)), labels) }),
+            parseRequestArgs({ interaction: withChoice(schemaOf(unit.repeat(30)), labels) }),
           ).not.toThrow();
-          const error = refused(withChoice(schemaOf(unit.repeat(61)), labels));
-          expect(error.toJSON()).toMatchObject({ code: 'INVALID_ARGUMENTS', field, limit: 60, length: 61 });
+          const error = refused(withChoice(schemaOf(unit.repeat(31)), labels));
+          expect(error.toJSON()).toMatchObject({ code: 'INVALID_ARGUMENTS', field, limit: 30, length: 31 });
           expect(error.message).toBe(
-            `INVALID_ARGUMENTS: ${field} is 61 characters and has no option label, so it is shown as its label; the limit is 60. Give it an option label of at most 60 characters, or shorten it.`,
+            `INVALID_ARGUMENTS: ${field} is 31 characters and has no option label, so it is shown as its label; the limit is 30. Give it an option label of at most 30 characters, or shorten it.`,
           );
         }
         const id = unit.repeat(200);

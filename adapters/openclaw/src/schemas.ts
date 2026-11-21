@@ -37,16 +37,16 @@ const INTENTS = new Set(['submit', 'continue', 'approve', 'reject', 'request_cha
  * the limit, its length and the fix.
  */
 export const TEXT_LIMITS = Object.freeze({
-  title: 80,
-  description: 280,
-  heading: 60,
+  title: 60,
+  description: 200,
+  heading: 40,
   text: 4000,
-  label: 60,
-  optionLabel: 60,
-  help: 160,
-  actionLabel: 24,
+  label: 40,
+  optionLabel: 30,
+  help: 120,
+  actionLabel: 16,
   recordLabel: 200,
-  recordKey: 40,
+  recordKey: 24,
   recordValue: 200,
   /** Not shown as written (enum values, a schema's own title): the earlier runtime bounds. */
   schemaTitle: 200,
@@ -267,8 +267,7 @@ export const INTERACTION_SCHEMA = {
                   multiline: { type: 'boolean' },
                   option_labels: {
                     type: 'object',
-                    description:
-                      'Display labels for enum values. A value without a label is shown as written, so it is then held to 60 characters too; give a long ID a short label.',
+                    description: `Display labels for enum values. A value without a label is shown as written, so it is then held to ${TEXT_LIMITS.optionLabel} characters too; give a long ID a short label.`,
                     maxProperties: LIMITS.enumOptions,
                     additionalProperties: shown(TEXT_LIMITS.optionLabel, TEXT_DOCS.optionLabel),
                   },

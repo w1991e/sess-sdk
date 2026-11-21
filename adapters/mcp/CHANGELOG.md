@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+Prepared, not yet published. Tool schemas are `sess-mcp-tools/6`; the five tool names are unchanged.
+
+- Sess's tighter text limits: title 60, description 200, heading 40, field label 40, field help
+  120, option label 30, record key 24, button 16; every other limit is unchanged.
+
 ## 0.4.0
 
 Tool schemas stay `sess-mcp-tools/5`; the five tool names are unchanged.

@@ -1,6 +1,6 @@
 {
   "name": "sess",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Let your agent ask people for answers and approvals by link, with signed receipts.",
   "author": { "name": "Sess" },
   "homepage": "https://sess.si",

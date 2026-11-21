@@ -141,13 +141,13 @@ function summarize(forecast, date, zone) {
 /** @type {[idea: string, suits: ((slot: any) => boolean) | null][]} */
 const IDEAS = [
   // Each idea goes in a slot whose weather suits it, a free slot first. null: any weather.
-  ['A walk or hike outdoors', (w) => w.rain < 0.2 && w.temp >= 6 && w.temp <= 26 && w.wind < 10],
-  ['A picnic in the park', (w) => w.rain < 0.2 && w.temp >= 16 && w.wind < 6],
-  ['A bike ride', (w) => w.rain < 0.2 && w.temp >= 8 && w.wind < 7],
-  ['A market or a stroll in town', (w) => w.rain < 1 && w.temp >= 3],
-  ['A museum or gallery', null],
-  ['A café and a good book', null],
-  ['A film at the cinema', null],
+  ['Walk or hike', (w) => w.rain < 0.2 && w.temp >= 6 && w.temp <= 26 && w.wind < 10],
+  ['Picnic in the park', (w) => w.rain < 0.2 && w.temp >= 16 && w.wind < 6],
+  ['Bike ride', (w) => w.rain < 0.2 && w.temp >= 8 && w.wind < 7],
+  ['Stroll in town', (w) => w.rain < 1 && w.temp >= 3],
+  ['Museum or gallery', null],
+  ['Café and a book', null],
+  ['Film at the cinema', null],
 ];
 
 export function propose(slots) {

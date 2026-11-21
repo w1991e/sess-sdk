@@ -17,8 +17,10 @@ const RATING_LINE = [
  * default 5), `low` and `high`; sess_request's field `rating: { low?, high? }`. In the same
  * unreleased version, the Ask (Sess P2-24(d)): sess_ask's Advanced `respondents`, a result's
  * `interaction.ask` and the state `closed`.
+ * sess-mcp-tools/6: Sess's tighter length limits (title 60, description 200, heading 40, labels
+ * 40, help 120, options 30, button 16, record key 24); every other limit is unchanged.
  */
-export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/5';
+export const TOOL_SCHEMA_VERSION = 'sess-mcp-tools/6';
 export const TOOL_NAMES = [
   'sess_request',
   'sess_response',
@@ -369,8 +371,7 @@ export const interactionSchema = {
                   multiline: { type: 'boolean' },
                   option_labels: {
                     type: 'object',
-                    description:
-                      'Display labels for enum values. A value without a label is shown as written, so it is then held to 60 characters too; give a long ID a short label.',
+                    description: `Display labels for enum values. A value without a label is shown as written, so it is then held to ${L.optionLabel} characters too; give a long ID a short label.`,
                     additionalProperties: shown(L.optionLabel, TEXT_DOCS.optionLabel),
                   },
                   rating: {
@@ -517,7 +518,7 @@ export const TOOLS = [
       'Give the link only to the intended person in this private conversation; anyone holding it can answer. ' +
       `${RECEIPT_LIMIT} ` +
       'Then call sess_response with the handle and revision. Do not call sess_request again for the same question. ' +
-      'Keep it short: a title of about 40 characters (at most 80), button labels a verb of 1-3 words (at most 24), field labels at most 60, help one hint (at most 160). ' +
+      `Keep it short: a title of about 40 characters (at most ${L.title}), button labels a verb of 1-3 words (at most ${L.actionLabel}), field labels at most ${L.label}, help one hint (at most ${L.help}). ` +
       TOO_LONG,
     inputSchema: {
       type: 'object',
@@ -628,7 +629,7 @@ export const TOOLS = [
       'Shortcut for sess_request: give a question and up to 12 simple fields; it creates the same hosted form and returns ' +
       'immediately with a private link (interaction.humanUrl) and a handle, in state "waiting". It never waits and never returns an answer. ' +
       'Continue exactly as after sess_request: give the link only to the intended person, then call sess_response. Do not call it again for the same question. ' +
-      'Keep it short: the question is a short heading, about 40 characters (at most 80); the button a verb of 1-3 words (at most 24); labels and options at most 60. ' +
+      `Keep it short: the question is a short heading, about 40 characters (at most ${L.title}); the button a verb of 1-3 words (at most ${L.actionLabel}); labels at most ${L.label}, options at most ${L.optionLabel}. ` +
       TOO_LONG +
       ' Advanced: to ask many people through one link, add respondents with max. Share that link with everyone who should answer; each person gets their own page. Read their answers with sess_response.' +
       ` Example: ${JSON.stringify(ASK_EXAMPLE)}`,

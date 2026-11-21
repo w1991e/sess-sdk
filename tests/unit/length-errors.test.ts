@@ -23,12 +23,12 @@ function caught(run: () => unknown): SessError {
 }
 
 const ASK_CASES = [
-  ['question', 80, (v: string) => ({ ...question, question: v }), '/question'],
-  ['submit_label', 24, (v: string) => ({ ...question, submit_label: v }), '/submit_label'],
-  ['field label', 60, (v: string) => ({ ...question, fields: [{ ...field, label: v }] }), '/fields/0/label'],
+  ['question', 60, (v: string) => ({ ...question, question: v }), '/question'],
+  ['submit_label', 16, (v: string) => ({ ...question, submit_label: v }), '/submit_label'],
+  ['field label', 40, (v: string) => ({ ...question, fields: [{ ...field, label: v }] }), '/fields/0/label'],
   [
     'option',
-    60,
+    30,
     (v: string) => ({ ...question, fields: [{ ...field, options: ['Beach', v] }] }),
     '/fields/0/options/1',
   ],
@@ -54,7 +54,7 @@ describe('sess.ask() length limits, in code points', () => {
         // Sess's own sentences: the title (the question) has its own; others name the pointer.
         expect(error.message).toBe(
           pointer === '/question'
-            ? 'The title can be at most 80 characters. Keep it to a short heading, about 40.'
+            ? 'The title can be at most 60 characters. Keep it to a short heading, about 40.'
             : `${pointer} is ${limit + 1} characters; the limit is ${limit}. Shorten it to at most ${limit} characters.`,
         );
         expect(error.message).not.toContain(unit.repeat(limit));
@@ -79,10 +79,10 @@ describe('sess.ask() length limits, in code points', () => {
     const fetch = vi.fn();
     const apiKey = vi.fn(() => API_KEY);
     const sess = new Sess({ apiKey, fetch });
-    await expect(sess.ask({ ...question, question: 'q'.repeat(81) })).rejects.toMatchObject({
+    await expect(sess.ask({ ...question, question: 'q'.repeat(61) })).rejects.toMatchObject({
       field: '/question',
-      limit: 80,
-      length: 81,
+      limit: 60,
+      length: 61,
       outcome: 'not_sent',
     });
     expect(apiKey).not.toHaveBeenCalled();
@@ -111,33 +111,33 @@ describe('a length refusal from Sess (400 INVALID_SCHEMA)', () => {
   };
 
   it('keeps field, limit and length, names the fix, and is an authoritative rejection', async () => {
-    const error = await create({ field: '/interaction/title', limit: 80, length: 95 });
+    const error = await create({ field: '/interaction/title', limit: 60, length: 95 });
     expect(error).toMatchObject({
       kind: 'api',
       code: 'INVALID_SCHEMA',
       status: 400,
       outcome: 'rejected',
       field: '/interaction/title',
-      limit: 80,
+      limit: 60,
       length: 95,
     });
     expect(error.message).toBe(
-      'The title can be at most 80 characters. Keep it to a short heading, about 40.',
+      'The title can be at most 60 characters. Keep it to a short heading, about 40.',
     );
-    const label = await create({ field: '/interaction/actions/0/label', limit: 24, length: 30 });
+    const label = await create({ field: '/interaction/actions/0/label', limit: 16, length: 30 });
     expect(label.message).toBe(
-      '/interaction/actions/0/label is 30 characters; the limit is 24. Shorten it to at most 24 characters.',
+      '/interaction/actions/0/label is 30 characters; the limit is 16. Shorten it to at most 16 characters.',
     );
     // A record key ends the pointer (Sess's shape), and survives.
     const key = await create({
       field: '/interaction/source/components/0/fields/A row name that is far too long here',
-      limit: 40,
-      length: 41,
+      limit: 24,
+      length: 25,
     });
     expect(key.field).toBe('/interaction/source/components/0/fields/A row name that is far too long here');
     expect(JSON.parse(JSON.stringify(error))).toMatchObject({
       field: '/interaction/title',
-      limit: 80,
+      limit: 60,
       length: 95,
     });
     expect(inspect(error)).not.toContain(API_KEY);
