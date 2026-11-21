@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+Prepared, not yet published.
+
+- Sess's tighter text limits: title 60, description 200, heading 40, field label 40, field help
+  120, option label 30, record key 24, button 16; every other limit is unchanged. Each plan is
+  now "idea, part of day", such as `Picnic in the park, afternoon`.
+- The agent names itself to Sess as User-Agent `sess-create-agent/0.3.0`.
+
 ## 0.2.0 — 2026-11-19
 
 - The agent it writes depends exactly on `@sess.si/sdk` `0.4.0` (0.1.0 wrote `0.1.0`). It

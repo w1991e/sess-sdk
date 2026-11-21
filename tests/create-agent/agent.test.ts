@@ -41,28 +41,28 @@ function overLimits(interaction: any): string[] {
     if (typeof value === 'string' && [...value].length > limit)
       over.push(`${path} ${[...value].length}>${limit}`);
   };
-  check('title', interaction.title, 80);
+  check('title', interaction.title, 60);
   if ([...interaction.title].length >= 40)
     over.push(`title ${[...interaction.title].length} is not under 40`);
-  check('description', interaction.description, 280);
+  check('description', interaction.description, 200);
   if (interaction.actions.length > 5) over.push('more than 5 actions');
-  interaction.actions.forEach((a: any, i: number) => check(`actions/${i}/label`, a.label, 24));
+  interaction.actions.forEach((a: any, i: number) => check(`actions/${i}/label`, a.label, 16));
   interaction.source.components.forEach((c: any, i: number) => {
     const at = `components/${i}`;
-    if (c.type === 'heading') check(`${at}/text`, c.text, 60);
+    if (c.type === 'heading') check(`${at}/text`, c.text, 40);
     if (c.type === 'text') check(`${at}/text`, c.text, 4000);
     if (c.type === 'record') {
-      check(`${at}/label`, c.label, 60);
+      check(`${at}/label`, c.label, 200);
       for (const [key, value] of Object.entries(c.fields)) {
-        check(`${at}/fields key`, key, 40);
+        check(`${at}/fields key`, key, 24);
         check(`${at}/fields/${key}`, value, 200);
       }
     }
     if (c.type === 'field') {
-      check(`${at}/label`, c.label, 60);
-      check(`${at}/description`, c.description, 160);
+      check(`${at}/label`, c.label, 40);
+      check(`${at}/description`, c.description, 120);
       for (const [key, label] of Object.entries(c.option_labels ?? {}))
-        check(`${at}/option_labels/${key}`, label, 60);
+        check(`${at}/option_labels/${key}`, label, 30);
     }
   });
   return over;
@@ -105,13 +105,13 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     expect(lines[link - 1]).toBe('Open this private link on your phone. Anyone with it can answer:');
     expect(lines.findIndex((line) => line.startsWith('Question 2'))).toBeGreaterThan(link);
     expect(run.stdout).toMatch(
-      /\nYour plan: A picnic in the park, Sunday \d{1,2} \w+, Evening, 17:00–21:00 in Oslo \(18 °C · dry · wind 3 m\/s\)\.\n/,
+      /\nYour plan: Picnic in the park, Sunday \d{1,2} \w+, Evening, 17:00–21:00 in Oslo \(18 °C · dry · wind 3 m\/s\)\.\n/,
     );
     expect(run.stdout).toContain(
       `${ATTRIBUTION}\nPicked by a fixed rule from the forecast. No AI model is used.`,
     );
     expect(run.stdout).toMatch(
-      /You approved "A picnic in the park, Sunday .*, Evening, 17:00–21:00" at \d\d:\d\d · verified ✓/,
+      /You approved "Picnic in the park, Sunday .*, Evening, 17:00–21:00" at \d\d:\d\d · verified ✓/,
     );
     expect(run.stdout).toContain('Verify this yourself at https://sess.si/verify\n');
     expect(run.stdout).toMatch(/Session ses_\w+ is completed\.\n$/);
@@ -149,9 +149,9 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     };
     expect(choice.schema.enum).toEqual(['option_1', 'option_2', 'option_3']);
     expect(Object.values(choice.option_labels)).toEqual([
-      'A walk or hike outdoors — Morning, 09:00–12:00',
-      'A picnic in the park — Afternoon, 12:00–17:00',
-      'A bike ride — Evening, 17:00–21:00',
+      'Walk or hike, morning',
+      'Picnic in the park, afternoon',
+      'Bike ride, evening',
     ]);
     // Every value a person reads is within Sess's limits; titles under 40 characters.
     expect(world.interactions.flatMap(overLimits)).toEqual([]);
@@ -293,7 +293,7 @@ describe('generated starter agent', { timeout: 60_000 }, () => {
     expect(run.stderr).toBe('');
     expect(run.code).toBe(0);
     expect(run.stdout).toMatch(
-      /Your plan: A museum or gallery, Saturday .*, Morning, 09:00–12:00 in London \(No forecast\)\./,
+      /Your plan: Museum or gallery, Saturday .*, Morning, 09:00–12:00 in London \(No forecast\)\./,
     );
     expect(run.stdout).toContain('No forecast was available for this plan.');
     expect(run.stdout).not.toContain('°C');
