@@ -89,8 +89,8 @@
   },
   "categories": ["Productivity", "Developer Tools"],
   "stdio": {
-    "status": "published",
-    "note": "@sess.si/mcp@0.5.0 (package.json's version) is on npm latest since 2026-11-22T01:26:29Z (tag mcp-v0.5.0, release run 44971198424; a read-only npm view on 2026-11-22 read dist-tags latest 0.5.0, next 0.1.0-rc.4, and mcpName si.sess/sess). The MCP Registry entry si.sess/sess still lists 0.3.0 (the Registry's public API read on 2026-11-22 at 01:54Z: isLatest true, packages [@sess.si/mcp 0.3.0]); it takes 0.5.0 when the owner submits server.json, which has not happened. Published is not host qualification.",
+    "status": "unpublished",
+    "note": "@sess.si/mcp@0.6.0 (package.json's version) is prepared, not on npm: it is staged by the tag mcp-v0.6.0 and approved by the owner, after @sess.si/sdk 0.6.0 is published. 0.5.0 stays on latest until then (published 2026-11-22T01:26:29Z from the tag mcp-v0.5.0, release run 44971198424; a read-only npm view on 2026-11-22 read dist-tags latest 0.5.0, next 0.1.0-rc.4, and mcpName si.sess/sess), and the MCP Registry entry si.sess/sess still lists 0.3.0 (the Registry's public API read on 2026-11-22 at 01:54Z: isLatest true, packages [@sess.si/mcp 0.3.0]); the entry takes 0.6.0 only after 0.6.0 is on npm and the owner submits server.json. Published is not host qualification.",
     "runtimeHint": "npx",
     "environmentVariables": [
       {

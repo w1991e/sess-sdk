@@ -30,7 +30,7 @@ Or run it on your machine. Put your Sess API key in `SESS_API_KEY` (from your Se
 keys), run this, then start Claude Code from that same terminal. Never paste the key into a chat.
 
 ```sh
-claude mcp add --scope local sess -- npx -y @sess.si/mcp@0.5.0
+claude mcp add --scope local sess -- npx -y @sess.si/mcp@0.6.0
 ```
 
 ## claude.ai
@@ -108,7 +108,7 @@ keys), then use this entry instead. Never paste the key into a chat.
   "mcpServers": {
     "sess": {
       "command": "npx",
-      "args": ["-y", "@sess.si/mcp@0.5.0"],
+      "args": ["-y", "@sess.si/mcp@0.6.0"],
       "env": { "SESS_API_KEY": "${env:SESS_API_KEY}" }
     }
   }
@@ -121,7 +121,7 @@ Put your Sess API key in `SESS_API_KEY` (from your Sess account, under API keys)
 your terminal:
 
 ```sh
-agy mcp add sess npx -y @sess.si/mcp@0.5.0
+agy mcp add sess npx -y @sess.si/mcp@0.6.0
 ```
 
 Antigravity asks before it uses a Sess tool, usually once or twice the first time. Choose Allow,
@@ -137,7 +137,7 @@ yours. OpenClaw uses the Sess plugin, `@sess.si/openclaw`, rather than this serv
    is published on npm with a signed build. Answer `y`.
 
    ```sh
-   openclaw plugins install npm:@sess.si/openclaw@0.1.0 --no-enable
+   openclaw plugins install npm:@sess.si/openclaw@0.3.0 --no-enable
    openclaw sess setup --yes
    ```
 
@@ -182,7 +182,7 @@ chat.
   "mcpServers": {
     "sess": {
       "command": "npx",
-      "args": ["-y", "@sess.si/mcp@0.5.0"],
+      "args": ["-y", "@sess.si/mcp@0.6.0"],
       "env": { "SESS_API_KEY": "your Sess API key" }
     }
   }
@@ -201,7 +201,7 @@ https://mcp.sess.si/mcp
 Or add this as a local MCP server in your agent:
 
 ```sh
-npx -y @sess.si/mcp@0.5.0
+npx -y @sess.si/mcp@0.6.0
 ```
 
 Your agent asks before it starts the server. The server reads your Sess API key from the

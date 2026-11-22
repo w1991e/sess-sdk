@@ -20,6 +20,12 @@ the last release candidate, `0.1.0-rc.4`. The MCP Registry submission of `server
 owner's and has not happened yet: the Registry's latest `si.sess/sess` is still 0.3.0 (read
 2026-11-22).
 
+`0.6.0` is prepared, not published (tag `mcp-v0.6.0`, tool schemas `sess-mcp-tools/6`). Its
+contents are the `0.6.0` entry in [CHANGELOG.md](CHANGELOG.md). It ships only on `@sess.si/sdk`
+0.6.0: its packet, `release/v0.6.0-packet.md`, is written in the SDK's registry transition PR,
+once `@sess.si/sdk` 0.6.0 is published and the tarball can be computed. `0.5.0` stays on `latest`
+until it is published. `@sess.si/mcp` 0.6.0 must never ship on `@sess.si/sdk` 0.5.0.
+
 The last published candidate is `0.1.0-rc.4` (npm `next`, 2026-10-27; integrity and SHA-256 as
 recorded in [release/rc4-packet.md](release/rc4-packet.md) and `compatibility.json`). `0.1.0-rc.3` ([release/rc3-packet.md](release/rc3-packet.md)), `0.1.0-rc.2`
 ([release/rc2-packet.md](release/rc2-packet.md)) and `0.1.0-rc.1`

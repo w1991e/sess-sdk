@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0
+
+Prepared, not yet published. Tool schemas stay `sess-mcp-tools/6`; the five tool names are
+unchanged.
+
+- The README's OpenClaw section installs `@sess.si/openclaw@0.3.0`, the current OpenClaw release
+  (was 0.1.0).
+
 ## 0.5.0 — 2026-11-22
 
 Tool schemas are `sess-mcp-tools/6`; the five tool names are unchanged.

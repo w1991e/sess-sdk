@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "package": {
     "name": "@sess.si/mcp",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "toolSchema": "sess-mcp-tools/6"
   },
-  "status": "0.5.0 published on npm dist-tag latest on 2026-11-22, on @sess.si/sdk 0.5.0, with tool schema sess-mcp-tools/6 (release.published, read back 2026-11-22). Before it, 0.4.0 (on @sess.si/sdk 0.4.0, with tool schema sess-mcp-tools/5, from 2026-11-19T19:25:40Z), 0.3.0 (from 2026-11-10T22:12:00Z), 0.2.0 (from 2026-11-07T20:30:24Z) and 0.1.1 (from 2026-11-05) were latest (release.earlier); next is at 0.1.0-rc.4. Recorded 2026-11-22; the npm registry is the live record.",
+  "status": "At this artifact's preparation (2026-11-22), 0.6.0 was prepared for npm dist-tag latest, not yet published, with tool schema sess-mcp-tools/6, to ship only on @sess.si/sdk 0.6.0 (itself prepared, not yet published; the SDK dependency stays 0.5.0 until the SDK's registry transition); latest was then 0.5.0 (on @sess.si/sdk 0.5.0, with tool schema sess-mcp-tools/6, on latest since 2026-11-22T01:26:29Z; release.published, read back 2026-11-22); 0.4.0, 0.3.0, 0.2.0 and 0.1.1 had been latest before it (release.earlier); next was then at 0.1.0-rc.4. This is a snapshot taken when the artifact was prepared; the npm registry is the live record.",
   "recordedAt": "2026-11-07",
   "node": {
     "engines": ">=22.14.0 <25",
@@ -174,7 +174,16 @@
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "@sess.si/mcp@0.5.0 published on npm dist-tag latest on 2026-11-22 from the tag mcp-v0.5.0, on @sess.si/sdk 0.5.0, with tool schema sess-mcp-tools/6 (staged by the release workflow, approved by a maintainer with npm 2FA; release.published). 0.4.0 (from the tag mcp-v0.4.0, 2026-11-19), 0.3.0 (2026-11-10), 0.2.0 (2026-11-07) and 0.1.1 (2026-11-05) were latest before it (release.earlier). next is at 0.1.0-rc.4. No unpublished version is pending. The SDK dependency is in registry mode. Recorded 2026-11-22; the npm registry is the live record.",
+    "status": "At this artifact's preparation (2026-11-22), 0.6.0 was prepared, not yet published; the tag mcp-v0.6.0 was to stage it for npm dist-tag latest (release.prepared), only after @sess.si/sdk 0.6.0 is published and the dependency moves to it. @sess.si/mcp@0.5.0 was then on latest, since 2026-11-22T01:26:29Z from the tag mcp-v0.5.0, on @sess.si/sdk 0.5.0, with tool schema sess-mcp-tools/6 (release.published, read back 2026-11-22); 0.4.0 (2026-11-19), 0.3.0 (2026-11-10), 0.2.0 (2026-11-07) and 0.1.1 (2026-11-05) had been latest before it (release.earlier). next was then at 0.1.0-rc.4. The SDK dependency is in registry mode. This is a snapshot taken when the artifact was prepared; the npm registry is the live record.",
+    "prepared": {
+      "version": "0.6.0",
+      "distTag": "latest",
+      "tag": "mcp-v0.6.0",
+      "toolSchema": "sess-mcp-tools/6",
+      "sessSdk": "0.6.0 (registry, dist-tag latest), once published; 0.5.0 until the SDK's registry transition",
+      "mcpName": "si.sess/sess",
+      "note": "At this artifact's preparation (2026-11-22), prepared and not yet published. The release guard derives latest for a version without -rc.N. @sess.si/mcp 0.6.0 must never ship on @sess.si/sdk 0.5.0. Once the stage is approved and read back, the record update makes this entry release.published, and the published 0.5.0 moves to the front of release.earlier."
+    },
     "published": {
       "version": "0.5.0",
       "distTag": "latest",

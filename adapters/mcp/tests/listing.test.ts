@@ -151,12 +151,13 @@ describe('listing.json artifacts', () => {
     expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
     // Production serves the icon URLs, so that is no blocker. Cline's 400x400 is served at a
     // read-back URL, so it is no blocker either.
-    // 0.5.0 published: package.json's version, 0.5.0, is on npm latest and npm's readback declares
-    // si.sess/sess (2026-11-22), so neither npm blocker stands; the unpublished and stale-readback
-    // probes below still raise them. The Registry's own latest (0.3.0) is the owner's submission.
+    // 0.6.0 prep: package.json's version, 0.6.0, is not on npm yet; 0.5.0 stays on latest (npm's
+    // readback of 0.5.0 declares si.sess/sess, 2026-11-22). Both npm blockers stand until 0.6.0 is
+    // published and read back (they stood likewise at the 0.5.0 prep). The Registry's own latest
+    // (0.3.0) is the owner's submission.
     expect(text).not.toMatch(/icon URLs/);
-    expect(text).not.toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
-    expect(text).not.toMatch(/MCP Registry: @sess\.si\/mcp@[^ ]+ on npm declares mcpName/);
+    expect(text).toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
+    expect(text).toMatch(/MCP Registry: @sess\.si\/mcp@0\.5\.0 on npm declares mcpName si\.sess\/sess;/);
     expect(text).not.toMatch(/MCP Registry npm package:/);
     expect(text).not.toMatch(/Cline: needs a 400x400 PNG/);
     const unserved = inputs();
@@ -442,6 +443,12 @@ describe('listing.json artifacts', () => {
     const pins = [...readme.matchAll(/@sess\.si\/mcp@([^\s"`')]+)/g)].map((m) => m[1]);
     expect(pins.length).toBeGreaterThanOrEqual(4);
     for (const pin of pins) expect(pin).toBe(version);
+    // The OpenClaw install line names the OpenClaw release that is published (its
+    // compatibility.json publication record), never an earlier one (Sess L-139: 0.5.0's packed
+    // README still said 0.1.0).
+    const openclaw = JSON.parse(read('../openclaw/compatibility.json')).publication.version;
+    const openclawPins = [...readme.matchAll(/npm:@sess\.si\/openclaw@([^\s"`')]+)/g)].map((m) => m[1]);
+    expect(openclawPins).toEqual([openclaw]);
     expect(readme.match(/\]\(COMPATIBILITY\.md\)/g)).toHaveLength(1);
     expect(readme).not.toMatch(/_(?:un)?tested_/);
     expect(existsSync(join(base, 'COMPATIBILITY.md'))).toBe(true);
@@ -454,9 +461,9 @@ describe('listing.json artifacts', () => {
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
       ['streamable-http', 'qualified'],
-      // The round used the remote link. The stdio link names 0.5.0, on npm latest since
-      // 2026-11-22, so it is published; published is not host qualification.
-      ['stdio', 'published'],
+      // The round used the remote link. 0.6.0 prep: the stdio link names 0.6.0, prepared and not
+      // yet on npm, so it is unpublished.
+      ['stdio', 'unpublished'],
     ]);
     // Cursor's evidence is the founder's round, and it claims no outside user.
     const cursorProvider = inputs().listing.providers.cursorInstall;
@@ -544,9 +551,9 @@ describe('listing.json artifacts', () => {
     expect(issue).toContain('https://mcp.sess.si/mcp');
     expect(issue).toContain('https://sess.si');
     expect(issue).toContain('https://www.npmjs.com/package/@sess.si/mcp');
-    // package.json's version: 0.5.0, on npm latest since 2026-11-22 (was 0.4.0); the issue is
-    // still a draft.
-    expect(issue).toContain('/@sess.si/mcp, version 0.5.0 (stdio;');
+    // package.json's version. 0.6.0 prep: 0.6.0 is prepared, not yet on npm (0.5.0 stays on
+    // latest); the issue is a draft, filed only after 0.6.0 is published (was 0.5.0).
+    expect(issue).toContain('/@sess.si/mcp, version 0.6.0 (stdio;');
   });
 
   it('the mcp.so draft fills the Remote Server form, quotes only signed copy and marks owner steps', () => {
@@ -642,9 +649,9 @@ describe('listing.json artifacts', () => {
     );
     expect(draft('punkpeye/awesome-mcp-servers')).not.toContain('badges/score.svg');
     expect(draft('punkpeye/awesome-mcp-servers')).not.toMatch(/^OWNER: .*(markers|🎖️)/m);
-    // The draft names package.json's version (was 0.4.0); "on npm" holds: 0.5.0 is on npm latest
-    // since 2026-11-22.
-    expect(draft('punkpeye/awesome-mcp-servers')).toContain('version 0.5.0 on npm');
+    // 0.6.0 prep: the draft names package.json's version (was 0.5.0); "on npm" holds only once
+    // 0.6.0 is published, before the draft is posted.
+    expect(draft('punkpeye/awesome-mcp-servers')).toContain('version 0.6.0 on npm');
     // The remote list: three lines, homepage link, endpoint, connector badge, OAuth marker.
     expect(draft('punkpeye/awesome-remote-mcp-servers')).toContain(
       [
