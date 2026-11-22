@@ -4037,6 +4037,228 @@
           }
         }
       },
+      "ClosingVerifyRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["closing_receipt", "rounds"],
+        "properties": {
+          "closing_receipt": {
+            "minLength": 1,
+            "maxLength": 8192,
+            "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+            "description": "The kept file’s closing receipt, its exact compact JWS.",
+            "type": "string"
+          },
+          "rounds": {
+            "minItems": 1,
+            "maxItems": 64,
+            "description": "The file’s round receipts, in the order the file carries them.",
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": ["receipt"],
+              "properties": {
+                "receipt": {
+                  "minLength": 1,
+                  "maxLength": 32768,
+                  "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+                  "type": "string"
+                },
+                "revision_envelope": {
+                  "description": "A receipt v2’s revision envelope, as the file carries it.",
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
+                      "type": "object",
+                      "properties": {}
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "ClosingVerifyResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["completeness", "closing", "set_match", "independent_time", "presentation"],
+        "properties": {
+          "completeness": {
+            "description": "closing-receipt-v1 §6.1: derived from authenticity and set match alone.",
+            "anyOf": [
+              {
+                "const": "complete",
+                "type": "string"
+              },
+              {
+                "const": "failed",
+                "type": "string"
+              },
+              {
+                "const": "unsupported",
+                "type": "string"
+              },
+              {
+                "const": "none",
+                "type": "string"
+              }
+            ]
+          },
+          "closing": {
+            "additionalProperties": false,
+            "description": "The closing receipt’s own authenticity.",
+            "type": "object",
+            "required": ["status", "reason"],
+            "properties": {
+              "status": {
+                "anyOf": [
+                  {
+                    "const": "valid",
+                    "type": "string"
+                  },
+                  {
+                    "const": "invalid",
+                    "type": "string"
+                  },
+                  {
+                    "const": "missing",
+                    "type": "string"
+                  },
+                  {
+                    "const": "unsupported",
+                    "type": "string"
+                  },
+                  {
+                    "const": "unverifiable",
+                    "type": "string"
+                  }
+                ]
+              },
+              "reason": {
+                "maxLength": 64,
+                "type": "string"
+              }
+            }
+          },
+          "set_match": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["status", "reason", "present", "signed_count"],
+            "properties": {
+              "status": {
+                "anyOf": [
+                  {
+                    "const": "valid",
+                    "type": "string"
+                  },
+                  {
+                    "const": "invalid",
+                    "type": "string"
+                  },
+                  {
+                    "const": "missing",
+                    "type": "string"
+                  },
+                  {
+                    "const": "unsupported",
+                    "type": "string"
+                  },
+                  {
+                    "const": "unverifiable",
+                    "type": "string"
+                  }
+                ]
+              },
+              "reason": {
+                "maxLength": 64,
+                "type": "string"
+              },
+              "present": {
+                "minimum": 0,
+                "maximum": 64,
+                "type": "integer"
+              },
+              "signed_count": {
+                "anyOf": [
+                  {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "independent_time": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["status", "reason"],
+            "properties": {
+              "status": {
+                "const": "missing",
+                "type": "string"
+              },
+              "reason": {
+                "const": "no_timestamp_evidence",
+                "type": "string"
+              }
+            }
+          },
+          "presentation": {
+            "additionalProperties": false,
+            "description": "What a person’s page shows: complete (the set-match row, with the signed count), failed (the shared failed-evidence result) or none (no row and no line).",
+            "type": "object",
+            "required": ["state", "count", "anchored_at"],
+            "properties": {
+              "state": {
+                "anyOf": [
+                  {
+                    "const": "complete",
+                    "type": "string"
+                  },
+                  {
+                    "const": "failed",
+                    "type": "string"
+                  },
+                  {
+                    "const": "none",
+                    "type": "string"
+                  }
+                ]
+              },
+              "count": {
+                "anyOf": [
+                  {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "anchored_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
       "KeepChallengeRequest": {
         "additionalProperties": false,
         "type": "object",
@@ -9356,6 +9578,31 @@
                     }
                   }
                 }
+              }
+            }
+          },
+          "closing": {
+            "additionalProperties": false,
+            "description": "Decision 0016: the Session’s closing receipt, checked on the server (closing-receipt-v1 §6.1) against the copy as served now. Absent when the copy carries none, or when it can’t be decided here.",
+            "type": "object",
+            "required": ["verified", "count"],
+            "properties": {
+              "verified": {
+                "description": "true: the copy’s rounds are exactly the set the closing receipt signs; false: the closing receipt it carries does not verify or does not match (the copy is then unverified).",
+                "type": "boolean"
+              },
+              "count": {
+                "description": "The signed count of answers recorded, when verified; else null.",
+                "anyOf": [
+                  {
+                    "minimum": 1,
+                    "maximum": 64,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             }
           }
@@ -19960,6 +20207,74 @@
           },
           "400": {
             "description": "The body is not JSON (`INVALID_SCHEMA`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large (`PAYLOAD_TOO_LARGE`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many checks; try again after `Retry-After` (`RATE_LIMITED`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Receipts are not set up here, or the 2-second deadline passed and the connection is closed (`SERVICE_UNAVAILABLE`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/receipts/verify-closing": {
+      "post": {
+        "operationId": "verifyClosingReceipt",
+        "description": "Checks a kept file’s closing receipt and its round receipts with this server’s own receipt keys. No credential needed.\n\n- Nothing in the request is trusted.\n- It reports the closing receipt’s own check, whether the receipts sent are exactly the set it signs, and what a person’s page shows.\n- It looks nothing up and stores nothing, and evidence that fails is still a 200 result.\n\nAdvanced: The formats are in DOCS/spec/closing-receipt-v1.md §6.1 and DOCS/spec/keep-v4.md §3. Send the round receipts in the order the file carries them, at most 64. The body is JSON, at most 2097152 bytes. It shares the bundle check’s rate limits per client and in total, and its absolute 2-second deadline from arrival, after which the connection is closed with `Connection: close`. Responses are sent with `Cache-Control: no-store, no-transform` and `Referrer-Policy: no-referrer`, with CORS only for the product site’s origins. Never put a receipt in an address.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClosingVerifyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The result of the closing check and how to present it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosingVerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body is not a closing check (`INVALID_SCHEMA`).",
             "content": {
               "application/json": {
                 "schema": {

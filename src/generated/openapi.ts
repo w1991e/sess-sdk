@@ -2137,6 +2137,31 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/v1/receipts/verify-closing': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * @description Checks a kept file’s closing receipt and its round receipts with this server’s own receipt keys. No credential needed.
+     *
+     *     - Nothing in the request is trusted.
+     *     - It reports the closing receipt’s own check, whether the receipts sent are exactly the set it signs, and what a person’s page shows.
+     *     - It looks nothing up and stores nothing, and evidence that fails is still a 200 result.
+     *
+     *     Advanced: The formats are in the Sess closing-receipt-v1 specification §6.1 and the Sess keep-v4 specification §3. Send the round receipts in the order the file carries them, at most 64. The body is JSON, at most 2097152 bytes. It shares the bundle check’s rate limits per client and in total, and its absolute 2-second deadline from arrival, after which the connection is closed with `Connection: close`. Responses are sent with `Cache-Control: no-store, no-transform` and `Referrer-Policy: no-referrer`, with CORS only for the product site’s origins. Never put a receipt in an address.
+     */
+    post: operations['verifyClosingReceipt'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/v1/targets': {
     parameters: {
       query?: never;
@@ -3742,6 +3767,45 @@ export interface components {
         expired_for_live_use: boolean | null;
       };
     };
+    ClosingVerifyRequest: {
+      /** @description The kept file’s closing receipt, its exact compact JWS. */
+      closing_receipt: string;
+      /** @description The file’s round receipts, in the order the file carries them. */
+      rounds: {
+        receipt: string;
+        /** @description A receipt v2’s revision envelope, as the file carries it. */
+        revision_envelope?: {
+          [key: string]: unknown;
+        } | null;
+      }[];
+    };
+    ClosingVerifyResponse: {
+      /** @description closing-receipt-v1 §6.1: derived from authenticity and set match alone. */
+      completeness: 'complete' | 'failed' | 'unsupported' | 'none';
+      /** @description The closing receipt’s own authenticity. */
+      closing: {
+        status: 'valid' | 'invalid' | 'missing' | 'unsupported' | 'unverifiable';
+        reason: string;
+      };
+      set_match: {
+        status: 'valid' | 'invalid' | 'missing' | 'unsupported' | 'unverifiable';
+        reason: string;
+        present: number;
+        signed_count: number | null;
+      };
+      independent_time: {
+        /** @constant */
+        status: 'missing';
+        /** @constant */
+        reason: 'no_timestamp_evidence';
+      };
+      /** @description What a person’s page shows: complete (the set-match row, with the signed count), failed (the shared failed-evidence result) or none (no row and no line). */
+      presentation: {
+        state: 'complete' | 'failed' | 'none';
+        count: number | null;
+        anchored_at: string | null;
+      };
+    };
     KeepChallengeRequest: {
       /** @description The Keep grant secrets this browser holds for this link: each the 32-byte secret whose domain-separated SHA-256 was the client_event_id of a round it submitted (`kg-` + hash). A round is authorized only by its own grant. Sent in the body only, never in a URL. */
       grants: string[];
@@ -5113,6 +5177,13 @@ export interface components {
           sent_to: string | null;
         };
       }[];
+      /** @description Decision 0016: the Session’s closing receipt, checked on the server (closing-receipt-v1 §6.1) against the copy as served now. Absent when the copy carries none, or when it can’t be decided here. */
+      closing?: {
+        /** @description true: the copy’s rounds are exactly the set the closing receipt signs; false: the closing receipt it carries does not verify or does not match (the copy is then unverified). */
+        verified: boolean;
+        /** @description The signed count of answers recorded, when verified; else null. */
+        count: number | null;
+      };
     };
     PersonalCopyLabelRequest: {
       item: string;
@@ -11321,6 +11392,66 @@ export interface operations {
         };
       };
       /** @description The body is not JSON (`INVALID_SCHEMA`). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description The body is too large (`PAYLOAD_TOO_LARGE`). */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Too many checks; try again after `Retry-After` (`RATE_LIMITED`). */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Receipts are not set up here, or the 2-second deadline passed and the connection is closed (`SERVICE_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  verifyClosingReceipt: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClosingVerifyRequest'];
+      };
+    };
+    responses: {
+      /** @description The result of the closing check and how to present it. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClosingVerifyResponse'];
+        };
+      };
+      /** @description The body is not a closing check (`INVALID_SCHEMA`). */
       400: {
         headers: {
           [name: string]: unknown;

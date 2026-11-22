@@ -1,8 +1,8 @@
 {
-  "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (w1991e/sess branch spec/surface-limits-signed, the #1086 rebuild: the tighter Surface text limits, founder 2026-11-07 01:30Z item 1, restated 2026-11-20 00:22Z; not yet on sess master or served by production; merged with sess master 7be0bf3a, which adds the closing receipt beside the Event log, SessionClosing, Decision 0016 car 5, sess #1382)",
-  "source_runtime_commit": "97b04dfd5b1e45a927b298e5e66e8e5379e7f200",
-  "source_git_blob_sha1": "1c7a52d728c5b76bdc399304b59b839b5f90c491",
-  "snapshot_sha256": "fb1b24edbaf35a00ba867ca5e495af3896b8b5e838332a3b03b764f91314e250",
+  "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (w1991e/sess master: the tighter Surface text limits, sess #1390; the closing receipt beside the Event log, SessionClosing, Decision 0016 car 5, sess #1382; POST /v1/receipts/verify-closing and the kept copy's closing check, Decision 0016 car 4, sess #1391, whose commit 79caadd8 has the same blob)",
+  "source_runtime_commit": "938852bac6d13e7f18a94c1dec49aa4f1b647e4c",
+  "source_git_blob_sha1": "d307b676fccf8385140f704c3b4de27e0e67956a",
+  "snapshot_sha256": "d6cad25e378e87c36ddade879bf9e1c5896ae7bdb7ae23dfe219d50ddc83b86f",
   "generator": "openapi-typescript",
   "generator_version": "7.13.0",
   "recorded_at": "2026-11-22",
