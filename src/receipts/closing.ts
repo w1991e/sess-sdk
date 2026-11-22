@@ -273,7 +273,7 @@ export async function verifyClosingReceipt(
     );
   if (typeof header.kid !== 'string' || header.kid.length === 0)
     throw verificationError('UNSUPPORTED_HEADER', 'The closing receipt names no signing key.');
-  // The whole header is checked before any key is looked up (ASTRA-SDK-80-1): an application's
+  // The whole header is checked before any key is looked up: an application's
   // key resolver only ever sees a key ID of the receipt key grammar from a header of exactly
   // {alg, kid, typ}, each once (six string tokens are three names and three values).
   const strings = headerText.match(/"(?:[^"\\\u0000-\u001f]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*"/g);
