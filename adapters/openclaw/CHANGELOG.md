@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0
+## 0.3.0 — 2026-11-22
 
 - Depends on `@sess.si/sdk` 0.5.0 (was 0.4.0; sha256 `84f6e005…7f24`), resolved from the
   registry. It verifies the receipts Sess issues.

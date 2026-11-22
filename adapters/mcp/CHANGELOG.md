@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0
+## 0.5.0 — 2026-11-22
 
 Tool schemas are `sess-mcp-tools/6`; the five tool names are unchanged.
 
