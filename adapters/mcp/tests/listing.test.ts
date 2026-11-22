@@ -151,12 +151,12 @@ describe('listing.json artifacts', () => {
     expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
     // Production serves the icon URLs, so that is no blocker. Cline's 400x400 is served at a
     // read-back URL, so it is no blocker either.
-    // 0.5.0 prep: package.json's version, 0.5.0, is not on npm yet; 0.4.0 stays on latest and the
-    // Registry's latest. Both npm blockers stand until 0.5.0 is published and read back (they stood
-    // likewise at the 0.4.0 prep).
+    // 0.5.0 published: package.json's version, 0.5.0, is on npm latest and npm's readback declares
+    // si.sess/sess (2026-11-22), so neither npm blocker stands; the unpublished and stale-readback
+    // probes below still raise them. The Registry's own latest (0.3.0) is the owner's submission.
     expect(text).not.toMatch(/icon URLs/);
-    expect(text).toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
-    expect(text).toMatch(/MCP Registry: @sess\.si\/mcp@0\.2\.0 on npm declares mcpName si\.sess\/sess;/);
+    expect(text).not.toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
+    expect(text).not.toMatch(/MCP Registry: @sess\.si\/mcp@[^ ]+ on npm declares mcpName/);
     expect(text).not.toMatch(/MCP Registry npm package:/);
     expect(text).not.toMatch(/Cline: needs a 400x400 PNG/);
     const unserved = inputs();
@@ -454,9 +454,9 @@ describe('listing.json artifacts', () => {
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
       ['streamable-http', 'qualified'],
-      // The round used the remote link. 0.5.0 prep: the stdio link names 0.5.0, prepared and not
-      // yet on npm, so it is unpublished.
-      ['stdio', 'unpublished'],
+      // The round used the remote link. The stdio link names 0.5.0, on npm latest since
+      // 2026-11-22, so it is published; published is not host qualification.
+      ['stdio', 'published'],
     ]);
     // Cursor's evidence is the founder's round, and it claims no outside user.
     const cursorProvider = inputs().listing.providers.cursorInstall;
@@ -544,8 +544,8 @@ describe('listing.json artifacts', () => {
     expect(issue).toContain('https://mcp.sess.si/mcp');
     expect(issue).toContain('https://sess.si');
     expect(issue).toContain('https://www.npmjs.com/package/@sess.si/mcp');
-    // package.json's version. 0.5.0 prep: 0.5.0 is prepared, not yet on npm (0.4.0 stays on
-    // latest); the issue is a draft, filed only after 0.5.0 is published (was 0.4.0).
+    // package.json's version: 0.5.0, on npm latest since 2026-11-22 (was 0.4.0); the issue is
+    // still a draft.
     expect(issue).toContain('/@sess.si/mcp, version 0.5.0 (stdio;');
   });
 
@@ -642,8 +642,8 @@ describe('listing.json artifacts', () => {
     );
     expect(draft('punkpeye/awesome-mcp-servers')).not.toContain('badges/score.svg');
     expect(draft('punkpeye/awesome-mcp-servers')).not.toMatch(/^OWNER: .*(markers|🎖️)/m);
-    // 0.5.0 prep: the draft names package.json's version (was 0.4.0); "on npm" holds only once
-    // 0.5.0 is published, before the draft is posted.
+    // The draft names package.json's version (was 0.4.0); "on npm" holds: 0.5.0 is on npm latest
+    // since 2026-11-22.
     expect(draft('punkpeye/awesome-mcp-servers')).toContain('version 0.5.0 on npm');
     // The remote list: three lines, homepage link, endpoint, connector badge, OAuth marker.
     expect(draft('punkpeye/awesome-remote-mcp-servers')).toContain(
