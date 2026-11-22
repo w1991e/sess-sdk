@@ -1,8 +1,6 @@
 # Changelog
 
-## Unreleased
-
-<!-- Proposed wording for this entry, not yet signed. -->
+## 0.6.0 — 2026-11-22
 
 - The closing receipt: when a Session ends with at least one accepted answer, Sess signs how it
   ended and every accepted answer's receipt, in order. `sessions.listEvents()` returns it as
