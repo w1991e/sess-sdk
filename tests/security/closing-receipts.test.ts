@@ -236,6 +236,50 @@ describe('the round set a closing receipt signs (Decision 0016 C-50, closing-rec
       code: 'UNSUPPORTED_HEADER',
     });
   });
+
+  it('checks the whole header before its key resolver sees anything (ASTRA-SDK-80-1)', async () => {
+    const payload = Buffer.from(JSON.stringify(closingClaimsOf(corpus.base))).toString('base64url');
+    const signature = vector('valid-final-expiry').split('.')[2];
+    const jws = (headerJson: string) =>
+      `${Buffer.from(headerJson).toString('base64url')}.${payload}.${signature}`;
+    const typ = 'sess-closing-receipt+jwt';
+    const refused = [
+      // An oversized key ID, and ones outside the receipt key grammar.
+      JSON.stringify({ alg: 'EdDSA', kid: 'x'.repeat(4000), typ }),
+      JSON.stringify({ alg: 'EdDSA', kid: 'x'.repeat(65), typ }),
+      JSON.stringify({ alg: 'EdDSA', kid: 'closing corpus/current', typ }),
+      // An extra member, a duplicated member, and a typ that is not a string.
+      JSON.stringify({ alg: 'EdDSA', kid: 'closing-corpus-current', typ, x: 1 }),
+      `{"alg":"EdDSA","kid":"closing-corpus-current","kid":"closing-corpus-current","typ":"${typ}"}`,
+      JSON.stringify({ alg: 'EdDSA', kid: 'closing-corpus-current', typ: 1 }),
+    ];
+    for (const headerJson of refused) {
+      const keyResolver = vi.fn(() => {
+        throw new Error('the resolver must not be called');
+      });
+      await expect(
+        verifyClosingReceipt({
+          receipt: jws(headerJson),
+          issuer: CLOSING_CORPUS_ISSUER,
+          audience: CLOSING_CORPUS_AUDIENCE,
+          keyResolver,
+        }),
+        headerJson.slice(0, 80),
+      ).rejects.toMatchObject({ code: 'UNSUPPORTED_HEADER' });
+      expect(keyResolver, headerJson.slice(0, 80)).not.toHaveBeenCalled();
+    }
+    // A 64-character key ID is the grammar's longest: it reaches the resolver, which does not know it.
+    const longest = vi.fn(() => closingCorpusTrustedKeys());
+    await expect(
+      verifyClosingReceipt({
+        receipt: jws(JSON.stringify({ alg: 'EdDSA', kid: 'k'.repeat(64), typ })),
+        issuer: CLOSING_CORPUS_ISSUER,
+        audience: CLOSING_CORPUS_AUDIENCE,
+        keyResolver: longest,
+      }),
+    ).rejects.toMatchObject({ code: 'UNKNOWN_KEY_ID' });
+    expect(longest).toHaveBeenCalledWith(expect.objectContaining({ kid: 'k'.repeat(64) }));
+  });
 });
 
 describe('each verifier refuses the other receipt type (Decision 0016 C-50)', () => {

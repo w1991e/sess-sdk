@@ -26,6 +26,8 @@ import {
 export const CLOSING_RECEIPT_TYP = 'sess-closing-receipt+jwt';
 /** A closing receipt is at most 8,192 bytes (its archival object's bound, closing-receipt-v1 §7). */
 export const MAX_CLOSING_RECEIPT_BYTES = 8192;
+/** The receipt key ID grammar (verify.ts, bundle.ts). */
+const KID = /^[A-Za-z0-9._-]{1,64}$/;
 /** A round receipt entering the commitment is at most 32,768 bytes (closing-receipt-v1 §3). */
 const MAX_ROUND_RECEIPT_BYTES = 32_768;
 const COMPACT_JWS = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
@@ -271,6 +273,15 @@ export async function verifyClosingReceipt(
     );
   if (typeof header.kid !== 'string' || header.kid.length === 0)
     throw verificationError('UNSUPPORTED_HEADER', 'The closing receipt names no signing key.');
+  // The whole header is checked before any key is looked up (ASTRA-SDK-80-1): an application's
+  // key resolver only ever sees a key ID of the receipt key grammar from a header of exactly
+  // {alg, kid, typ}, each once (six string tokens are three names and three values).
+  const strings = headerText.match(/"(?:[^"\\\u0000-\u001f]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*"/g);
+  if (!exactKeys(header, ['alg', 'kid', 'typ']) || strings?.length !== 6 || !KID.test(header.kid))
+    throw verificationError(
+      'UNSUPPORTED_HEADER',
+      'The closing receipt protected header has missing or unsupported fields.',
+    );
   const kid = header.kid;
   const publicKey = await trustedKeyLookup(keys, resolver, issuer, signal)(kid);
   if (!publicKey)
@@ -278,16 +289,11 @@ export async function verifyClosingReceipt(
       'UNKNOWN_KEY_ID',
       'The closing receipt signing key is not in the trusted key set.',
     );
-  // A round receipt (or any other format) offered as a closing receipt stops here.
+  // A round receipt (or any other format) offered as a closing receipt stops here: after the key,
+  // as the specification's first-failure order has it (closing-receipt-v1 §6: unknown_kid, then
+  // type) and Sess's own verifier does.
   if (header.typ !== CLOSING_RECEIPT_TYP)
     throw verificationError('UNSUPPORTED_TYPE', 'This is not a closing receipt.');
-  // Exactly {alg, kid, typ}, each once (six string tokens are three names and three values).
-  const strings = headerText.match(/"(?:[^"\\\u0000-\u001f]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*"/g);
-  if (!exactKeys(header, ['alg', 'kid', 'typ']) || strings?.length !== 6)
-    throw verificationError(
-      'UNSUPPORTED_HEADER',
-      'The closing receipt protected header has missing or unsupported fields.',
-    );
   try {
     const key = await waitWithSignal(
       importJWK({ ...publicKey, key_ops: ['verify'], ext: false }, 'EdDSA'),
