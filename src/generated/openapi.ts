@@ -1320,7 +1320,7 @@ export interface paths {
     /**
      * @description Lists the workspace’s receipts in the console, as details only.
      *
-     *     Each row shows the receipt and Session IDs, the workspace’s sequence number, when the answer was accepted, the witness status and whether the answers are still kept; receipts held unverified have their own view. A receipt or an answer is never shown on this page. The page shows 25 at a time, counted under the same filters, with Previous and Next. Someone who is not signed in is sent to the sign-in page.
+     *     Each row shows the receipt and Session IDs, the workspace’s sequence number, when the answer was accepted and whether the answers are still kept; receipts held unverified have their own view. A receipt or an answer is never shown on this page. The page shows 25 at a time, counted under the same filters, with Previous and Next. Someone who is not signed in is sent to the sign-in page.
      *
      *     Advanced: The query takes `custody` (`exception`), `from` and `to` (UTC dates, `to` included), `target` (a target ID), `q` (a part of the Session title, matched as plain text) and `cursor`, an opaque page position, forward or back; one that is not of this view gives the first page. The page is labelled "issued records in this defined scope/range".
      */
@@ -1410,7 +1410,7 @@ export interface paths {
     /**
      * @description Shows one receipt of the workspace in the console.
      *
-     *     You see its receipt number, its event and Session IDs, when the answer was accepted, the witness status and whether the answers are still kept, with Verify and the receipt download when the receipt has a signed archival core. A receipt, an answer or a Sess link is never shown on the page. Another workspace’s receipt, an unknown one and a malformed ID get the same answer; someone who is not signed in is sent to the sign-in page.
+     *     You see its receipt number, its event and Session IDs, when the answer was accepted and whether the answers are still kept, with Verify and the receipt download when the receipt has a signed archival core. A receipt, an answer or a Sess link is never shown on the page. Another workspace’s receipt, an unknown one and a malformed ID get the same answer; someone who is not signed in is sent to the sign-in page.
      */
     get: operations['evidenceReceiptPage'];
     put?: never;
@@ -1652,9 +1652,10 @@ export interface paths {
      *     - Each published revision, and the completion.
      *     - Events never change, and every accepted answer stays listed after later revisions and completion.
      *     - Where link extensions are on, every accepted extension of the Sess link is listed beside the events, never with an answer value.
+     *     - Once the Session has ended with at least one accepted answer, its closing receipt comes with the events.
      *     - A display Session has no events.
      *
-     *     Advanced: Answers are `response.accepted` by `link_holder`, with the revision, `action_id` and the data; `revision.published` and `session.completed` are by `owner`. Event IDs and sequence numbers never change. The list is not paginated: a Session has a few Events per round. `link_extensions` lists each extension’s old and new deadline, whether it was asked for after the deadline, and when. Responses are sent with `Cache-Control: no-store, no-transform`.
+     *     Advanced: Answers are `response.accepted` by `link_holder`, with the revision, `action_id` and the data; `revision.published` and `session.completed` are by `owner`. Event IDs and sequence numbers never change. The list is not paginated: a Session has a few Events per round. `link_extensions` lists each extension’s old and new deadline, whether it was asked for after the deadline, and when. `closing` is the closing receipt (`typ` `sess-closing-receipt+jwt`) with the cause and count it signs: never an Event and never a receipt for one answer, and webhooks do not carry it. Responses are sent with `Cache-Control: no-store, no-transform`.
      */
     get: operations['listSessionEvents'];
     put?: never;
@@ -3325,6 +3326,42 @@ export interface components {
         /** @description When the extension was accepted. */
         extended_at: string;
       }[];
+      /** @description The Session’s closing receipt: a signed record of how it ended and of every accepted answer’s receipt, in order. Present only once the Session has ended with at least one accepted answer, its closing receipt is signed and the receipts listed above are exactly the ones it commits to; absent otherwise. */
+      closing?: {
+        /**
+         * @description What `receipt` is: a closing receipt, version 1. Never a receipt for one answer, so never verify it as one.
+         * @constant
+         */
+        typ: 'sess-closing-receipt+jwt';
+        /** @description The closing receipt’s ID, the `jti` it signs. */
+        closure_id: string;
+        /** @description How the Session ended, as the closing receipt signs it: `completed_by_owner` when your agent completed it, `completed_by_ask_rule` when its Ask completed it on the answer, `final_expiry` when its Sess link expired for good. `revoked` ends a Session with no accepted answer, which has no closing receipt. */
+        cause: 'completed_by_owner' | 'completed_by_ask_rule' | 'final_expiry' | 'revoked';
+        /** @description The Event that ended the Session, as the closing receipt signs it: its `session.completed`, or for `final_expiry` the expiry Event Sess recorded, which this list does not include. null only for `revoked`. */
+        terminal_event_id: string | null;
+        /** @description How many answers were accepted in the Session, at least 1: the count the closing receipt signs. Each is a `response.accepted` Event above. */
+        accepted_rounds: number;
+        /** @description The closing receipt exactly as signed: a compact JWS (EdDSA/Ed25519, typ sess-closing-receipt+jwt, no exp) that commits, in order, to the exact bytes of every accepted answer’s receipt. Verify it with GET /.well-known/sess-receipt-keys.json; it is signed once and never re-signed. */
+        receipt: string;
+      };
+    };
+    /** @description The Session’s closing receipt: a signed record of how it ended and of every accepted answer’s receipt, in order. Present only once the Session has ended with at least one accepted answer, its closing receipt is signed and the receipts listed above are exactly the ones it commits to; absent otherwise. */
+    SessionClosing: {
+      /**
+       * @description What `receipt` is: a closing receipt, version 1. Never a receipt for one answer, so never verify it as one.
+       * @constant
+       */
+      typ: 'sess-closing-receipt+jwt';
+      /** @description The closing receipt’s ID, the `jti` it signs. */
+      closure_id: string;
+      /** @description How the Session ended, as the closing receipt signs it: `completed_by_owner` when your agent completed it, `completed_by_ask_rule` when its Ask completed it on the answer, `final_expiry` when its Sess link expired for good. `revoked` ends a Session with no accepted answer, which has no closing receipt. */
+      cause: 'completed_by_owner' | 'completed_by_ask_rule' | 'final_expiry' | 'revoked';
+      /** @description The Event that ended the Session, as the closing receipt signs it: its `session.completed`, or for `final_expiry` the expiry Event Sess recorded, which this list does not include. null only for `revoked`. */
+      terminal_event_id: string | null;
+      /** @description How many answers were accepted in the Session, at least 1: the count the closing receipt signs. Each is a `response.accepted` Event above. */
+      accepted_rounds: number;
+      /** @description The closing receipt exactly as signed: a compact JWS (EdDSA/Ed25519, typ sess-closing-receipt+jwt, no exp) that commits, in order, to the exact bytes of every accepted answer’s receipt. Verify it with GET /.well-known/sess-receipt-keys.json; it is signed once and never re-signed. */
+      receipt: string;
     };
     ReceiptKeysResponse: {
       /** @description The active signing key and every retained verification key (rotation overlap). A receipt verifies with the key whose kid its protected header names; there is no fallback key. */
@@ -3762,8 +3799,8 @@ export interface components {
     KeptConversation: {
       /** @constant */
       type: 'sess.kept-conversation';
-      /** @description 2 (keep-v2: a round also carries revision_envelope) exactly when the file holds a receipt v2 round; else 1 (keep-v1, as written before receipt v2); 3 (keep-v3, archival-person-projection §3: person envelopes and holder proofs v2) for every file once keep-v3 writing is on. Readers take all three. */
-      version: 1 | 2 | 3;
+      /** @description 2 (keep-v2: a round also carries revision_envelope) exactly when the file holds a receipt v2 round; else 1 (keep-v1, as written before receipt v2); 3 (keep-v3, archival-person-projection §3: person envelopes and holder proofs v2) for every file once keep-v3 writing is on; 4 (keep-v4, Decision 0016: keep-v3 with closing_receipt) for every file once keep-v4 writing is on. Readers take all four. */
+      version: 1 | 2 | 3 | 4;
       issuer: string;
       workspace_id: string;
       session_id: string;
@@ -3957,6 +3994,8 @@ export interface components {
                 'not_preserved' | 'final_only' | 'not_enrolled' | 'holder_withheld' | 'holder_core_bound';
             };
       }[];
+      /** @description keep-v4 only (Decision 0016): the Session’s closing receipt (closing-receipt-v1), its exact compact JWS as sealed, present only when the file holds exactly the accepted rounds it commits to; else null. Never a count or list of rounds the file lacks. */
+      closing_receipt?: string | null;
     };
     WebhookRegisterRequest: {
       /** @description Absolute https:// URL on port 443, without user info or fragment. Registering replaces the current endpoint (which stops receiving new deliveries); the new one receives nothing until verified. */
@@ -4419,6 +4458,7 @@ export interface components {
           | 'IDEMPOTENCY_CONFLICT'
           | 'PRECONDITION_REQUIRED'
           | 'SESSION_COMPLETED'
+          | 'SESSION_ENDED'
           | 'ACTION_NOT_ALLOWED'
           | 'ACTION_NOT_FOUND'
           | 'VALIDATION_FAILED'
@@ -4444,7 +4484,7 @@ export interface components {
         /** @description Plain words for people; clients read code, field, limit, length and expected, never this text. For a value over its length limit it names the value, its length and the limit, and says how to fix it: "Shorten it to at most <limit> characters." A 401 for a create sent with no Authorization header also names the no-signup trial, POST /v1/trial/sessions. */
         message: string;
         request_id: string;
-        /** @description A stable machine-readable refinement of some codes (P1 A4 webhook errors; P2 target, admission and limit errors). */
+        /** @description A stable machine-readable refinement of some codes (P1 A4 webhook errors; P2 target, admission and limit errors; SESSION_ENDED: the terminal cause, `final_expiry` or `revoked`). */
         reason?: string;
         /** @description INVALID_SCHEMA for a value over its length limit, and for an items component (Commerce): a JSON pointer to the value in the request body, for example /interaction/title (for a record key, the pointer names that key) or /interaction/source/components/2/currency; and VALIDATION_FAILED for an agent’s sharing title (reason title_invalid or title_required): /title. A request body that does not match the schema carries field, the pointer to its first failing value, with expected: for a missing property the pointer names it; for an unknown property it is the object that holds it (the unknown name is never repeated); a pointer never passes through a key you chose (it stops at the object holding that key). Other schema errors (malformed JSON, path and query values) carry no field, limit, length, expected or actual. */
         field?: string;
@@ -9987,7 +10027,7 @@ export interface operations {
           'application/json': components['schemas']['Error'];
         };
       };
-      /** @description The Session is already completed, is a display Session, or the idempotency key was used for a different request (`SESSION_COMPLETED`, `ACTION_NOT_ALLOWED` or `IDEMPOTENCY_CONFLICT`). */
+      /** @description The Session is already completed (`SESSION_COMPLETED`); has already ended (`SESSION_ENDED`, with its terminal cause in `reason`: `final_expiry` when its link expired for good, `revoked` when the close of its Ask ended it); or is a display Session (`ACTION_NOT_ALLOWED`). The idempotency key was used for a different request (`IDEMPOTENCY_CONFLICT`). */
       409: {
         headers: {
           [name: string]: unknown;
