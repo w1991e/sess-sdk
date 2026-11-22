@@ -1,10 +1,7 @@
 # Compatibility and evidence
 
-SDK version: **0.4.0**, published on npm under the `latest` dist-tag with provenance and pinned in
-[release/sdk-candidate.json](../release/sdk-candidate.json): receipt v2 reads the frozen revision
-envelope, a newer receipt is reported as `RECEIPT_NEWER`, and `verifyWebhook` accepts a Sess Ask's
-webhook messages. Its revision envelope types are written by hand from the receipt-v2 specification
-(a copy from Sess commit `33cfc41`) until the reviewed snapshot carries them. **0.3.0** remains published: receipt v2 and bundle-v2 verification, with receipt
+SDK version: **0.5.0**, published on npm under the `latest` dist-tag with provenance and pinned in release/sdk-candidate.json: it checks Sess's tighter text limits before anything is sent. **0.4.0** remains published and verifies every receipt as before, but Sess refuses its longer texts: an agent on 0.4.0 that sends a title over 60 characters gets Sess's refusal instead of the SDK's.
+**0.3.0** remains published: receipt v2 and bundle-v2 verification, with receipt
 v1 and bundle-v1 verified as before; it cannot read an issued receipt v2.
 **0.2.0** remains published: the rating field and respondents (the
 Ask) in `sess.ask`. Their types (the field's `rating`, `/v1/asks`) are written by hand from the

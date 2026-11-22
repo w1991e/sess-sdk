@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "package": "@sess.si/openclaw",
   "version": "0.3.0",
-  "status": "At this artifact's preparation (2026-11-21), 0.3.0 was prepared for npm dist-tag latest on @sess.si/sdk 0.4.0, not yet published; latest was then 0.2.0 (on @sess.si/sdk 0.4.0, on latest since 2026-11-19T21:47:12Z, registry read 2026-11-19, integrity equal to release/v0.2.0-packet.md; its release readback, like 0.1.0's, was not yet recorded in publication, which then recorded 0.1.0-rc.5); 0.1.0-rc.5 (2026-10-27), 0.1.0-rc.4 (2026-10-27), 0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next was then at 0.1.0-rc.5, on @sess.si/sdk 0.1.0-rc.8; G0/G1 qualification as recorded below; not independently verified. This is a snapshot taken when the artifact was prepared; the npm registry is the live record.",
+  "status": "At this artifact's preparation (2026-11-22), 0.3.0 was prepared for npm dist-tag latest on @sess.si/sdk 0.5.0, not yet published; latest was then 0.2.0 (on @sess.si/sdk 0.4.0, on latest since 2026-11-19T21:47:12Z, registry read 2026-11-22, integrity equal to release/v0.2.0-packet.md; its release readback, like 0.1.0's, was not yet recorded in publication, which then recorded 0.1.0-rc.5); 0.1.0-rc.5 (2026-10-27), 0.1.0-rc.4 (2026-10-27), 0.1.0-rc.3 (2026-10-23), 0.1.0-rc.2 (2026-10-19) and 0.1.0-rc.1 (2026-10-17) published on npm dist-tag next; next was then at 0.1.0-rc.5, on @sess.si/sdk 0.1.0-rc.8; G0/G1 qualification as recorded below; not independently verified. This is a snapshot taken when the artifact was prepared; the npm registry is the live record.",
   "publication": {
     "version": "0.1.0-rc.5",
     "distTag": "next",
@@ -18,7 +18,7 @@
     "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/40468980341",
     "sessSdk": "0.1.0-rc.8, which bundles the sess-html-form-1 and sess-html-form-2 renderer identities",
     "readBack": "2026-10-27: npm view time, dist.integrity, dist.attestations and dist-tags; the registry tarball's SHA-256 and integrity equal release/rc5-packet.md",
-    "latest": "at this artifact's preparation (registry read 2026-11-19), 0.2.0, since 2026-11-19T21:47:12Z, and 0.1.0 had been latest from 2026-11-01T03:50:21Z; before it, the 0.0.0-stage placeholder, deprecated with a pointer to @next",
+    "latest": "at this artifact's preparation (registry read 2026-11-22), 0.2.0, since 2026-11-19T21:47:12Z, and 0.1.0 had been latest from 2026-11-01T03:50:21Z; before it, the 0.0.0-stage placeholder, deprecated with a pointer to @next",
     "registryInstall": "not yet qualified: openclaw plugins install npm:@sess.si/openclaw@0.1.0-rc.5 has not been run as a recorded test",
     "hostIssue": "OpenClaw's capability review is skipped when a Gateway is running: openclaw plugins install from npm then asks only the npm question and the Gateway accepts the plugin's capabilities without listing them (OpenClaw 2026.10.3 and 2026.10.7; README). Reported upstream on 2026-10-27 as https://github.com/openclaw/openclaw/issues/186189 ([Bug]: plugins install from npm skips the capability review when a Gateway is running), open at the time of recording."
   },
