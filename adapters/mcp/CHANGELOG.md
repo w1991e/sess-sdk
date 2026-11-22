@@ -2,12 +2,14 @@
 
 ## 0.5.0
 
-Prepared, not yet published. Tool schemas are `sess-mcp-tools/6`; the five tool names are unchanged.
+Tool schemas are `sess-mcp-tools/6`; the five tool names are unchanged.
 
+- Depends on `@sess.si/sdk` 0.5.0 (was 0.4.0; sha256 `84f6e005…7f24`), resolved from the
+  registry. It verifies the receipts Sess issues.
 - Sess's tighter text limits: title 60, description 200, heading 40, field label 40, field help
   120, option label 30, record key 24, button 16; every other limit is unchanged.
 
-## 0.4.0
+## 0.4.0 — 2026-11-19
 
 Tool schemas stay `sess-mcp-tools/5`; the five tool names are unchanged.
 

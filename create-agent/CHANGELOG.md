@@ -4,6 +4,9 @@
 
 Prepared, not yet published.
 
+- The agent it writes depends exactly on `@sess.si/sdk` `0.5.0` (0.2.0 wrote `0.4.0`). It
+  verifies the receipts Sess issues. The SDK's [changelog](../CHANGELOG.md) lists what 0.5.0
+  changes.
 - Sess's tighter text limits: title 60, description 200, heading 40, field label 40, field help
   120, option label 30, record key 24, button 16; every other limit is unchanged. Each plan is
   now "idea, part of day", such as `Picnic in the park, afternoon`.
