@@ -8,7 +8,7 @@ never to `latest`; a stable version (`X.Y.Z`) goes to `latest`, the same rule as
 adapter and create-agent (owner decision 2026-10-31).
 
 The current release, `0.2.0`, is published on `latest` (tag `openclaw-v0.2.0`, on `@sess.si/sdk`
-0.4.0, since 2026-11-19; release run 44598313537; tarball below;
+0.4.0, since 2026-11-19; release run 44598313537;
 [release/v0.2.0-packet.md](release/v0.2.0-packet.md) is its published record). It replaced `0.1.0`
 (published 2026-11-01; [release/v0.1.0-packet.md](release/v0.1.0-packet.md)). `next` stays at the last
 release candidate, `0.1.0-rc.5` (published 2026-10-27; integrity and SHA-256 as recorded in
@@ -19,14 +19,19 @@ not move it. `0.1.0-rc.4` ([release/rc4-packet.md](release/rc4-packet.md)), `0.1
 ([release/rc1-packet.md](release/rc1-packet.md)) are published as well. Each candidate gets such a
 packet, `release/rc<N>-packet.md`, updated in the same PR as any packed change.
 
-The `0.2.0` tarball (`npm run check` on Node 24.21.0 and npm 11.19.0; the release run and the
-registry tarball equal it):
+`0.3.0` is prepared, not published, for `latest` (tag `openclaw-v0.3.0`, on `@sess.si/sdk` 0.5.0;
+expected tarball below; [release/v0.3.0-packet.md](release/v0.3.0-packet.md) is the maintainer's
+order). Until it is approved, `latest` stays at `0.2.0`. `@sess.si/openclaw` 0.3.0 must never ship
+on `@sess.si/sdk` 0.4.0. The `0.2.0` tarball is recorded in its packet.
+
+Expected `0.3.0` tarball (`npm run check` on Node 24.21.0 and npm 11.19.0; the release run's
+SHA-256 must equal it). A packed change before the tag updates these values in the same PR:
 
 | Field     | Value                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
-| Filename  | `sess.si-openclaw-0.2.0.tgz`                                                                      |
-| SHA-256   | `93562028772849e93c6b00f8aef9d4f4beb4941e8ab6cd1b15f72b6bcadd899f`                                |
-| Integrity | `sha512-VTIsAJeF9Jw7i/XFanbxTVYoJIa0RXszSROfCwDKPXWhA136R8CBfwRAmS4NyqJVKolsu/9kAHA4gSxy/Uaq6A==` |
+| Filename  | `sess.si-openclaw-0.3.0.tgz`                                                                      |
+| SHA-256   | `00d818656e5d410c7d15ffb5c04b611f9a065c7c81983355ff6472b3087d9023`                                |
+| Integrity | `sha512-QZ1aO5w5oMs8LPhRizkZB0Jn4a4EsXZKuCZuXPG48310aqcf20tWF4fRfaqjfLpbJNHHXqqL18hfy34yfFfg1Q==` |
 
 ## Prerequisites (owner actions, in order)
 
@@ -39,7 +44,7 @@ registry tarball equal it):
 1. **SDK publication.** `@sess.si/sdk` at the exact version in `package.json` (the repository pin
    `release/sdk-candidate.json`) must be published on the public npm registry with the same bytes
    the lockfile pins (`package-lock.json` integrity); the release guard refuses otherwise.
-   `@sess.si/sdk@0.4.0` is published under the `latest` dist-tag with those bytes. CI and
+   `@sess.si/sdk@0.5.0` is published under the `latest` dist-tag with those bytes. CI and
    `npm run check` install it from the registry and verify it against the pin
    (`scripts/registry-sdk.mjs`). A future SDK pin must be published before the adapter adopts it.
 2. **GitHub environment `npm-openclaw-release` — exists.** It has a required reviewer (the
