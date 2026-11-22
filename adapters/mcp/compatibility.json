@@ -5,7 +5,7 @@
     "version": "0.5.0",
     "toolSchema": "sess-mcp-tools/6"
   },
-  "status": "At this artifact's preparation (2026-11-22), 0.5.0 was prepared on @sess.si/sdk 0.5.0 for npm dist-tag latest, not yet published, with tool schema sess-mcp-tools/6; latest was then 0.4.0 (on @sess.si/sdk 0.4.0, with tool schema sess-mcp-tools/5, on latest since 2026-11-19T19:25:40Z, registry read 2026-11-22; its release readback, like 0.3.0's and 0.2.0's, was not yet recorded in release.published, which then recorded 0.1.1); next was then at 0.1.0-rc.4. This is a snapshot taken when the artifact was prepared; the npm registry is the live record.",
+  "status": "0.5.0 published on npm dist-tag latest on 2026-11-22, on @sess.si/sdk 0.5.0, with tool schema sess-mcp-tools/6 (release.published, read back 2026-11-22). Before it, 0.4.0 (on @sess.si/sdk 0.4.0, with tool schema sess-mcp-tools/5, from 2026-11-19T19:25:40Z), 0.3.0 (from 2026-11-10T22:12:00Z), 0.2.0 (from 2026-11-07T20:30:24Z) and 0.1.1 (from 2026-11-05) were latest (release.earlier); next is at 0.1.0-rc.4. Recorded 2026-11-22; the npm registry is the live record.",
   "recordedAt": "2026-11-07",
   "node": {
     "engines": ">=22.14.0 <25",
@@ -167,38 +167,88 @@
     "name": "si.sess/sess",
     "validated": "2026-10-14 with ajv against the downloaded 2025-12-11 schema (sha256 3fba09590c99f61735d234822279f4223fab9e300c0a81e81c91ab62a4114de0). Since Q-2 (2026-10-15) server.json is generated from listing.json and npm run check validates it against that schema, vendored at listings/schemas/ with the same SHA-256 (rechecked 2026-10-23: still current).",
     "remote": "https://mcp.sess.si/mcp (streamable-http) is the entry's one remote; production host qualification has not passed; see LISTINGS.md before submitting",
-    "packages": "none: the entry is remote-only while the npm package is deferred, so the registry cross-checks no published mcpName. package.json mcpName stays io.github.w1991e/sess, the published 0.1.0-rc.4's and 0.1.0-rc.3's; listing the stdio package needs a successor candidate whose mcpName is si.sess/sess",
-    "status": "domain namespace si.sess/sess (DNS authentication of sess.si) chosen by the owner for the registry entry, replacing io.github.w1991e/sess; remote-only; not submitted"
+    "packages": "the npm stdio package @sess.si/mcp beside the remote, since the entry's 0.1.1; package.json mcpName is si.sess/sess (since 0.1.1), and @sess.si/mcp@0.5.0 on npm declares it (read 2026-11-22). The earlier mcpName io.github.w1991e/sess is the published 0.1.0's and the release candidates'",
+    "status": "domain namespace si.sess/sess (DNS authentication of sess.si), chosen by the owner, replacing io.github.w1991e/sess. Listed: the Registry's public API (read 2026-11-22 01:54Z) has si.sess/sess 0.3.0 as latest, with @sess.si/mcp 0.3.0, and 0.2.0, 0.1.1 and 0.1.0 active as prior versions. server.json 0.4.0 was never submitted, and 0.5.0 is not submitted yet; submitting it is an owner action"
   },
   "release": {
     "workflow": ".github/workflows/mcp-release.yml",
     "tag": "mcp-v<version>",
     "environment": "npm-mcp-release",
-    "status": "At this artifact's preparation (2026-11-22), 0.5.0 was prepared on @sess.si/sdk 0.5.0, not yet published; the tag mcp-v0.5.0 was to stage it for npm dist-tag latest (release.prepared). @sess.si/mcp@0.4.0 was then on latest, since 2026-11-19T19:25:40Z from the tag mcp-v0.4.0, and 0.3.0 and 0.2.0 had been latest from 2026-11-10T22:12:00Z and 2026-11-07T20:30:24Z (registry read 2026-11-22; none of those readbacks was yet recorded as release.published). release.published then recorded @sess.si/mcp@0.1.1, published on latest on 2026-11-05 from the tag mcp-v0.1.1, with tool schema sess-mcp-tools/4. next was then at 0.1.0-rc.4. The SDK dependency is in registry mode. This is a snapshot taken when the artifact was prepared; the npm registry is the live record.",
-    "prepared": {
+    "status": "@sess.si/mcp@0.5.0 published on npm dist-tag latest on 2026-11-22 from the tag mcp-v0.5.0, on @sess.si/sdk 0.5.0, with tool schema sess-mcp-tools/6 (staged by the release workflow, approved by a maintainer with npm 2FA; release.published). 0.4.0 (from the tag mcp-v0.4.0, 2026-11-19), 0.3.0 (2026-11-10), 0.2.0 (2026-11-07) and 0.1.1 (2026-11-05) were latest before it (release.earlier). next is at 0.1.0-rc.4. No unpublished version is pending. The SDK dependency is in registry mode. Recorded 2026-11-22; the npm registry is the live record.",
+    "published": {
       "version": "0.5.0",
       "distTag": "latest",
-      "tag": "mcp-v0.5.0",
+      "publishedAt": "2026-11-22T01:26:29.292Z",
+      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.5.0.tgz",
+      "sha256": "4d7428337697624d56af3142fc5e7d91ab0b0ddae10127776ee5c3bc437551fc",
+      "integrity": "sha512-VX9a+s/eWi9R2GOCrYrYy09yqaBx73kaFQcrudKthx504WKtW56WRTLOQ348xi7vphCzSCVvyJigz5YjB0veJg==",
+      "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
+      "sourceCommit": "82752de60822aa584248dd6a50b9748e38120742",
+      "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/44971198424",
       "toolSchema": "sess-mcp-tools/6",
-      "sessSdk": "0.5.0 (registry, dist-tag latest)",
+      "sessSdk": "0.5.0 (registry)",
       "mcpName": "si.sess/sess",
-      "note": "At this artifact's preparation (2026-11-22), prepared and not yet published. The release guard derives latest for a version without -rc.N. Once the stage is approved and read back, the record update makes this entry release.published, and the published 0.4.0, 0.3.0 and 0.2.0, once their readbacks are recorded, and 0.1.1 move to release.earlier."
-    },
-    "published": {
-      "version": "0.1.1",
-      "distTag": "latest",
-      "publishedAt": "2026-11-05T23:42:39.201Z",
-      "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.1.tgz",
-      "sha256": "0a9ced3ffbbcce9f7e9a3ead1d78310e0a8f3da2ec63402a9b9e9a725708c383",
-      "integrity": "sha512-81+xDSRbn6nmMzVIOaDydSsSb9ewkCGKWViRN93lKDrxXnHN+IE9aUtEJEzW3qnKUqhwo1XhZ4Ri8aFAFgqS5Q==",
-      "sourceCommit": "e7d2ca082a0d85074b3afbf182fc1c9679193943",
-      "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/42130554660",
-      "toolSchema": "sess-mcp-tools/4",
-      "sessSdk": "0.1.1 (registry)",
-      "mcpName": "si.sess/sess",
-      "readBack": "2026-11-06: registry time, dist.integrity, dist.attestations, dependencies, mcpName and dist-tags; the registry tarball's SHA-256 and integrity equal release/v0.1.1-packet.md"
+      "readBack": "2026-11-22: registry time, dist.integrity, dist.attestations, dependencies, mcpName and dist-tags; the registry tarball's SHA-256 and integrity equal release/v0.5.0-packet.md"
     },
     "earlier": [
+      {
+        "version": "0.4.0",
+        "distTag": "latest",
+        "publishedAt": "2026-11-19T19:25:40.827Z",
+        "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.4.0.tgz",
+        "sha256": "a5c9b20d285ec30de8972b16d7e52ef0666ed8cc9371d36caadb29b095a5a37b",
+        "integrity": "sha512-8OsM1EKuoMPyuRH8D7CBv7GZhy9gcUOxpJnUMmKVnLs66yJ/jToHYW2Swd8aUYVPdmSVBYSVEtRjQhapVfZ4Vw==",
+        "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
+        "sourceCommit": "b2c3b97be8f102f4e65f55cf5b762665fb69ddfe",
+        "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/44595616448",
+        "toolSchema": "sess-mcp-tools/5",
+        "sessSdk": "0.4.0 (registry)",
+        "mcpName": "si.sess/sess",
+        "readBack": "2026-11-22: registry time, dist.integrity, dist.attestations, dependencies and mcpName; the registry tarball's SHA-256 and integrity equal release/v0.4.0-packet.md"
+      },
+      {
+        "version": "0.3.0",
+        "distTag": "latest",
+        "publishedAt": "2026-11-10T22:12:00.217Z",
+        "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.3.0.tgz",
+        "sha256": "6c07cb22156fb05ff6434d7d6778f58a2f581d93c0375c21e37af586ef7d0f87",
+        "integrity": "sha512-Qe2wiZDNYux2uLF+JxA5z8VutiPflr2UUXkBBc7D5+ZiE6yd/VTTz1zSEXSnXpdQxlhGxbe3dWhLH7lM5CXwmA==",
+        "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
+        "sourceCommit": "4db8689049c72d1270f847ffcf54a14ab5c8aecf",
+        "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/42910286180",
+        "toolSchema": "sess-mcp-tools/5",
+        "sessSdk": "0.3.0 (registry)",
+        "mcpName": "si.sess/sess",
+        "readBack": "2026-11-22: registry time, dist.integrity, dist.attestations, dependencies and mcpName; the registry tarball's SHA-256 and integrity equal release/v0.3.0-packet.md"
+      },
+      {
+        "version": "0.2.0",
+        "distTag": "latest",
+        "publishedAt": "2026-11-07T20:30:24.396Z",
+        "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.2.0.tgz",
+        "sha256": "9ac2fe99d39b6b6593ccd1dd987a22453e98117286ceaeb8db7a22158a0c50d3",
+        "integrity": "sha512-qSLLukQnxmWNFwBNM9X3NUUU1RdINxz/Wxktg2buYCSwdwrpia67/rQmliEyrfwNTzrGqwE/xUOOwllLA6Hw8w==",
+        "provenance": "SLSA provenance (https://slsa.dev/provenance/v1) attestation present in the registry metadata",
+        "sourceCommit": "2d443ddca2207dbae19177b9af7cca57c764b0f2",
+        "toolSchema": "sess-mcp-tools/5",
+        "sessSdk": "0.2.0 (registry)",
+        "mcpName": "si.sess/sess",
+        "readBack": "2026-11-22: registry time, dist.integrity, dist.attestations, dependencies and mcpName; the registry tarball's SHA-256 and integrity equal release/v0.2.0-packet.md. Its release run is no longer listed by the GitHub API (read 2026-11-22)."
+      },
+      {
+        "version": "0.1.1",
+        "distTag": "latest",
+        "publishedAt": "2026-11-05T23:42:39.201Z",
+        "tarball": "https://registry.npmjs.org/@sess.si/mcp/-/mcp-0.1.1.tgz",
+        "sha256": "0a9ced3ffbbcce9f7e9a3ead1d78310e0a8f3da2ec63402a9b9e9a725708c383",
+        "integrity": "sha512-81+xDSRbn6nmMzVIOaDydSsSb9ewkCGKWViRN93lKDrxXnHN+IE9aUtEJEzW3qnKUqhwo1XhZ4Ri8aFAFgqS5Q==",
+        "sourceCommit": "e7d2ca082a0d85074b3afbf182fc1c9679193943",
+        "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/42130554660",
+        "toolSchema": "sess-mcp-tools/4",
+        "sessSdk": "0.1.1 (registry)",
+        "mcpName": "si.sess/sess",
+        "readBack": "2026-11-06: registry time, dist.integrity, dist.attestations, dependencies, mcpName and dist-tags; the registry tarball's SHA-256 and integrity equal release/v0.1.1-packet.md"
+      },
       {
         "version": "0.1.0",
         "distTag": "latest",

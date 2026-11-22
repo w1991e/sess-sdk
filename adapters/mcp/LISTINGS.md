@@ -211,9 +211,9 @@ Annotations are hints for hosts, not part of the versioned `sess-mcp-tools/5` sc
 
 After any change to `listing.json`, run `npm run listing` and commit the result.
 
-`compatibility.json` still has stale lines (it calls 0.1.1 "prepared" and "unpublished", and its
-`registry` block calls the entry remote-only and not submitted; npm has 0.2.0 on `latest`, and the
-Registry lists it). It ships in the package, so they are corrected at the next release.
+`compatibility.json` in this repository records the published 0.5.0 and the listed entry
+(2026-11-22). It ships in the package, so the copy inside each published tarball keeps the
+snapshot taken when that version was prepared.
 
 ## Owner submission steps
 
@@ -229,12 +229,16 @@ Official registry only (`registry.modelcontextprotocol.io`), under the domain na
 which the owner keeps in the macOS Keychain item `sess-mcp-registry-ed25519`. The key never goes
 into this repository, a file, a log, a chat or an agent prompt.
 
-**0.2.0 is on npm `latest` and the Registry's latest.** Read-only GETs on 2026-11-09 at 21:38Z: npm
-`dist-tags` `latest` 0.2.0 (published 2026-11-07T20:30:24Z, `mcpName` `si.sess/sess`), `next`
-0.1.0-rc.4; the Registry's `si.sess/sess` 0.2.0, `active`, `publishedAt` 2026-11-07T20:37:46Z,
-`isLatest` true, package `@sess.si/mcp` 0.2.0. So `stdio.status` is `published` and
-`npmPackage.publishedVersion` is 0.2.0 (founder 2026-11-09 21:36Z). 0.1.1 and 0.1.0 stay `active`
-as prior versions, not latest. The record of 0.1.1 follows.
+**0.5.0 is on npm `latest`; the Registry's latest is still 0.3.0.** Read-only GETs on 2026-11-22
+at 01:54Z: npm `dist-tags` `latest` 0.5.0 (published 2026-11-22T01:26:29Z, `mcpName`
+`si.sess/sess`), `next` 0.1.0-rc.4; the Registry's `si.sess/sess` 0.3.0, `active`, `publishedAt`
+2026-11-10T23:09:20Z, `isLatest` true, package `@sess.si/mcp` 0.3.0. So `stdio.status` is
+`published` and `npmPackage.publishedVersion` is 0.5.0 (npm's readback). Submitting `server.json`
+0.5.0 with the steps below is the owner's and has not happened; 0.4.0 was never submitted. 0.2.0,
+0.1.1 and 0.1.0 stay `active` as prior versions, not latest.
+
+**0.2.0 was the Registry's latest** on 2026-11-09 at 21:38Z (`publishedAt` 2026-11-07T20:37:46Z,
+package `@sess.si/mcp` 0.2.0; founder 2026-11-09 21:36Z). The record of 0.1.1 follows.
 
 **0.1.1 was published and listed** (founder 2026-11-06 02:50Z). The founder published it from
 master's `server.json` at about 02:49Z (validate, DNS TXT, DNS login and publish all OK). The
