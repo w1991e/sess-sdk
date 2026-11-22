@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+<!-- Proposed wording for this entry, not yet signed. -->
+
+- The closing receipt: when a Session ends with at least one accepted answer, Sess signs how it
+  ended and every accepted answer's receipt, in order. `sessions.listEvents()` returns it as
+  `closing`, beside `events`, never as an Event; it is absent otherwise. New type
+  `SessionClosing`.
+- `receipts.verifyClosing({ sessionId, closing })` verifies it against the Session's Event log and
+  the published keys and returns `{ claims, closing }`. `verifyClosingReceipt` in
+  `@sess.si/sdk/receipts` verifies one offline. A round receipt offered as a closing receipt is
+  refused with `UNSUPPORTED_TYPE`; rounds that are not exactly the signed ones with
+  `CLOSING_ROUNDS_MISMATCH`. New types `ClosingReceiptClaims`, `ClosingCause`,
+  `VerifyClosingReceiptInput`, `VerifyClosingReceiptOptions`, `VerifyClosingInput` and
+  `VerifiedClosing`.
+- Unchanged: `verifyDecisionReceipt` still refuses a closing receipt as newer (`RECEIPT_NEWER`),
+  and `verifyWebhook` still refuses every Session message but `response.accepted`.
+- The closing-receipt-v1 specification and conformance corpus are copies from Sess commit
+  `7be0bf3`. The runtime dependencies are unchanged.
+
 ## 0.5.0 — 2026-11-21
 
 - Sess's tighter text limits: title 60, description 200, heading 40, field label 40, field help

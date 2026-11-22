@@ -1,7 +1,7 @@
-// The receipt-v1, receipt-v2, bundle-v1 and bundle-v2 specifications and the bundle-v1 and
-// bundle-v2 conformance corpora are verbatim copies of the Sess repository's files. This check
-// fails if any copy differs from the SHA-256 of the Sess copy recorded in docs/spec/source.json,
-// or if the record itself is incomplete.
+// The receipt-v1, receipt-v2, bundle-v1, bundle-v2 and closing-receipt-v1 specifications and the
+// bundle-v1, bundle-v2 and closing-receipt-v1 conformance corpora are verbatim copies of the Sess
+// repository's files. This check fails if any copy differs from the SHA-256 of the Sess copy
+// recorded in docs/spec/source.json, or if the record itself is incomplete.
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
@@ -13,6 +13,8 @@ const required = [
   'docs/spec/receipt-v2.md',
   'docs/spec/bundle-v2.md',
   'tests/fixtures/bundle/bundle-v2-corpus.json',
+  'docs/spec/closing-receipt-v1.md',
+  'tests/fixtures/bundle/closing-receipt-v1-corpus.json',
 ];
 if (record.repository !== 'Sess runtime' || !/^[0-9a-f]{40}$/.test(record.commit ?? ''))
   throw new Error('docs/spec/source.json must record the Sess runtime and a full source commit.');

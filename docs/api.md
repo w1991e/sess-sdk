@@ -78,6 +78,14 @@ behavior. `receipts.verifyResponse({sessionId, response, expectedWorkspaceId?}, 
 returns deeply readonly, runtime-protected `{claims, response, surface}` after full verification.
 See [Security](security.md) for offline verifier inputs and trust requirements.
 
+<!-- Proposed wording for this paragraph, not yet signed. -->
+
+Once a Session has ended with at least one accepted answer, `sessions.listEvents()` also returns its
+closing receipt as `closing`, beside `events` (never one of them).
+`receipts.verifyClosing({sessionId, closing, expectedWorkspaceId?}, options?)` returns deeply
+readonly `{claims, closing}` after full verification; see
+[Security](security.md#closing-receipt).
+
 ## Ask one question
 
 `sess.ask({ question, fields, details?, submit_label? }, options?)` takes the question-plus-fields

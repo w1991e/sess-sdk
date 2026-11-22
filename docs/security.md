@@ -123,6 +123,39 @@ checks it against the authorized Session's retained response. Application busine
 data still needs application validation before use. Verification does not infer your
 domain schema or coerce a string into a number.
 
+<!-- Proposed wording for this section, not yet signed. -->
+
+## Closing receipt
+
+When a Session ends with at least one accepted answer, Sess signs one closing receipt
+([closing-receipt-v1](spec/closing-receipt-v1.md)): how the Session ended and every accepted
+answer's receipt, in order. It is not a receipt for any one answer. `sess.sessions.listEvents(id)`
+returns it as `closing`, beside `events`: `{ typ, closure_id, cause, terminal_event_id,
+accepted_rounds, receipt }`. It is never an Event. It is absent while the Session is open, when it
+ended with no accepted answer, and until its receipt is signed. Webhooks do not carry it.
+
+`sess.receipts.verifyClosing({ sessionId, closing, expectedWorkspaceId? })` returns deeply
+readonly `{ claims, closing }`. It reads the Session's Event log again and requires the supplied
+`closing` to be the one served. It verifies the receipt with the published keys
+(`/.well-known/sess-receipt-keys.json`). It requires the cause, terminal Event, closure and count to
+be the ones signed, and the commitment to match exactly the served answers' receipts, in order.
+Each answer's own receipt is still verified with `verifyResponse`. Offline, `verifyClosingReceipt`
+from `@sess.si/sdk/receipts` takes the receipt, the trusted issuer and workspace, exactly one of
+`keys` or `keyResolver`, and optionally `expected: { sessionId, closureId }` and the round
+receipts as `rounds`.
+
+It checks, in order: `alg` `EdDSA` (`UNSUPPORTED_ALGORITHM`); a trusted `kid`
+(`UNKNOWN_KEY_ID`); `typ` exactly `sess-closing-receipt+jwt` (`UNSUPPORTED_TYPE`, so a round
+receipt is refused here); a header of exactly `alg`, `kid` and `typ`; the signature
+(`INVALID_SIGNATURE`); issuer and workspace (`ISSUER_MISMATCH`, `AUDIENCE_MISMATCH`); format
+version 1 (`UNSUPPORTED_RECEIPT_VERSION`); the strict claims, with no `exp` (`INVALID_CLAIMS`);
+RFC 8785 canonical JSON (`NON_CANONICAL_PAYLOAD`); then the Session and closure
+(`RECORD_BINDING_MISMATCH`) and the round set (`CLOSING_ROUNDS_MISMATCH`). A higher format version,
+or a commitment scope this release does not know, is newer: kind `receipt_newer`, code
+`RECEIPT_NEWER`, and nothing is returned. `verifyDecisionReceipt` and `verifyResponse()` refuse a
+closing receipt the same way. The SDK reaches the same result as Sess on every vector of the
+shared closing-receipt-v1 conformance corpus.
+
 ## Decision bundles
 
 A [bundle-v1](spec/bundle-v1.md) decision bundle is a deliberate disclosure of one accepted

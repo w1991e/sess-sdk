@@ -142,7 +142,7 @@ export interface VerifyDecisionReceiptOptions {
   signal?: AbortSignal;
 }
 
-function identifier(value: unknown): value is string {
+export function identifier(value: unknown): value is string {
   return (
     typeof value === 'string' &&
     value.length > 0 &&
@@ -200,7 +200,7 @@ export function validateKeySet(raw: unknown): ReceiptKeySet {
   return deepFreeze(value) as unknown as ReceiptKeySet;
 }
 
-function decodeSegment(segment: string): string {
+export function decodeSegment(segment: string): string {
   const bytes = Buffer.from(segment, 'base64url');
   if (bytes.toString('base64url') !== segment)
     throw verificationError('MALFORMED_RECEIPT', 'The receipt is not canonical base64url.');
@@ -598,7 +598,7 @@ function checkRevisionEnvelope(claims: ReceiptClaimsV2, supplied: unknown): void
 }
 
 /** Resolves a kid to a trusted key: from the explicit set, or the trusted resolver (validated). */
-function trustedKeyLookup(
+export function trustedKeyLookup(
   keys: ReceiptKeySet | undefined,
   resolver: ReceiptKeyResolver | undefined,
   issuer: string,

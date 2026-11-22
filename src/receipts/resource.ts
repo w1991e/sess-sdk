@@ -5,9 +5,12 @@ import type {
   ApiResult,
   InteractiveSurfaceRevision,
   Session,
+  SessionClosing,
+  SessionEvents,
   SurfaceRevision,
   VersionedResult,
 } from '../types.js';
+import { verifyClosingReceipt, type ClosingReceiptClaims } from './closing.js';
 import { ReceiptKeyCache } from './key-cache.js';
 import {
   abortError,
@@ -65,6 +68,20 @@ interface Context {
     path: string,
     options: VerificationRequestOptions & { maxResponseBytes: number },
   ) => Promise<ApiResult<unknown>>;
+  /** The Session's Event log, read for closing receipt verification. */
+  listEvents?: (id: string, options: VerificationRequestOptions) => Promise<ApiResult<SessionEvents>>;
+}
+
+export interface VerifyClosingInput {
+  sessionId: string;
+  /** `closing` from `sessions.listEvents()`. */
+  closing: SessionClosing;
+  expectedWorkspaceId?: string;
+}
+
+export interface VerifiedClosing {
+  claims: DeepReadonly<ClosingReceiptClaims>;
+  closing: DeepReadonly<SessionClosing>;
 }
 
 export interface VerifyResponseInput {
@@ -85,6 +102,57 @@ export interface ReceiptResource {
     input: VerifyResponseInput,
     options?: VerificationRequestOptions,
   ): Promise<DeepReadonly<VerifiedResponse>>;
+  /**
+   * Verifies a Session's closing receipt against the authorized Event log: the supplied `closing`
+   * must be the one Sess serves now, its receipt must verify under the issuer's published keys
+   * (closing-receipt-v1), name this Session, closure, cause, end and count, and commit to exactly
+   * the served accepted answers' receipts, in order. Each answer's own receipt is verified with
+   * `verifyResponse`.
+   */
+  verifyClosing(
+    input: VerifyClosingInput,
+    options?: VerificationRequestOptions,
+  ): Promise<DeepReadonly<VerifiedClosing>>;
+}
+
+/** One operation's overall deadline and cancellation, as each verification method uses. */
+function deadline(budget: number, options: VerificationRequestOptions) {
+  if (!Number.isSafeInteger(budget) || budget <= 0 || budget > 2_147_483_647) {
+    throw new SessError(
+      'configuration',
+      'Receipt verification requires a finite positive operation timeout.',
+    );
+  }
+  const { timeoutMs, maxRetries, signal: originalSignal } = options;
+  if (originalSignal?.aborted) throw abortError(originalSignal);
+  const controller = new AbortController();
+  const abort = () => controller.abort(originalSignal?.reason);
+  originalSignal?.addEventListener('abort', abort, { once: true });
+  const started = performance.now();
+  const expired = () =>
+    controller.abort(new SessError('timeout', 'Receipt verification exceeded its overall deadline.'));
+  const timer = setTimeout(expired, budget);
+  return {
+    signal: controller.signal,
+    requestOptions(): VerificationRequestOptions {
+      if (controller.signal.aborted) throw abortError(controller.signal);
+      const remaining = Math.floor(budget - (performance.now() - started));
+      if (remaining <= 0) {
+        expired();
+        throw abortError(controller.signal);
+      }
+      return {
+        signal: controller.signal,
+        operationTimeoutMs: remaining,
+        ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+        ...(maxRetries !== undefined ? { maxRetries } : {}),
+      };
+    },
+    done() {
+      clearTimeout(timer);
+      originalSignal?.removeEventListener('abort', abort);
+    },
+  };
 }
 
 /** Internal bridge: all HTTP is supplied by the client's ordinary bounded transport. */
@@ -96,6 +164,7 @@ export function createReceiptResource(context: Context): ReceiptResource {
   const retrieve = context.retrieveSession;
   const surfaceRead = context.retrieveSurface;
   const publicGet = context.publicGet;
+  const eventsRead = context.listEvents;
   const keyPath = '/.well-known/sess-receipt-keys.json';
   const cache = new ReceiptKeyCache({
     issuer,
@@ -261,6 +330,92 @@ export function createReceiptResource(context: Context): ReceiptResource {
       } finally {
         clearTimeout(timer);
         originalSignal?.removeEventListener('abort', abort);
+      }
+    },
+
+    async verifyClosing(
+      input: VerifyClosingInput,
+      options: VerificationRequestOptions = {},
+    ): Promise<DeepReadonly<VerifiedClosing>> {
+      const sessionId = input?.sessionId;
+      const supplied = input?.closing == null ? undefined : snapshotJson(input.closing);
+      const requestedWorkspace = input?.expectedWorkspaceId;
+      const { timeoutMs, maxRetries } = options;
+      if (typeof eventsRead !== 'function')
+        throw new SessError('configuration', 'Closing receipt verification needs the Session Event log.');
+      if (supplied === undefined || typeof supplied.receipt !== 'string')
+        throw verificationError(
+          'CLOSING_RECEIPT_UNAVAILABLE',
+          'This Session has no closing receipt yet: it has not ended with an accepted answer, or its receipt is not signed yet.',
+        );
+      if (requestedWorkspace && configuredWorkspace && requestedWorkspace !== configuredWorkspace)
+        throw verificationError(
+          'AUDIENCE_MISMATCH',
+          'The supplied workspace differs from this client’s trusted workspace.',
+        );
+      const run = deadline(options.operationTimeoutMs ?? defaultBudget, options);
+      try {
+        const read = snapshotJson(
+          await waitWithSignal(eventsRead(sessionId, run.requestOptions()), run.signal),
+        );
+        const trustedWorkspace = requestedWorkspace ?? configuredWorkspace ?? read.meta.workspaceId;
+        if (typeof trustedWorkspace !== 'string' || trustedWorkspace.length === 0)
+          throw verificationError(
+            'VERIFICATION_CONTEXT_MISSING',
+            'Provide expectedWorkspaceId or use a runtime that returns authenticated Sess-Workspace-Id context.',
+          );
+        if (read.meta.workspaceId !== undefined && read.meta.workspaceId !== trustedWorkspace)
+          throw verificationError(
+            'AUDIENCE_MISMATCH',
+            'The authorized resource belongs to a different workspace.',
+          );
+        const served = read.data.closing;
+        if (
+          read.data.id !== sessionId ||
+          served === undefined ||
+          canonicalJson(served) !== canonicalJson(supplied)
+        )
+          throw verificationError(
+            'RECORD_BINDING_MISMATCH',
+            'The supplied closing receipt is not the one the authorized Event log carries.',
+          );
+        const rounds = read.data.events
+          .filter((event) => event.type === 'response.accepted')
+          .map((event) => event.receipt);
+        if (rounds.some((receipt) => typeof receipt !== 'string'))
+          throw verificationError(
+            'CLOSING_ROUNDS_MISMATCH',
+            'An accepted answer in the Event log has no receipt, so it cannot match the closing receipt.',
+          );
+        const claims = await verifyClosingReceipt(
+          {
+            receipt: served.receipt,
+            issuer,
+            audience: trustedWorkspace,
+            expected: { sessionId, closureId: served.closure_id },
+            rounds: rounds as string[],
+            keyResolver: (resolverContext) =>
+              cache.resolve({
+                ...resolverContext,
+                ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+                ...(maxRetries !== undefined ? { maxRetries } : {}),
+              }),
+          },
+          { signal: run.signal },
+        );
+        // The facts served beside the receipt are the ones it signs.
+        if (
+          claims.terminal.cause !== served.cause ||
+          claims.terminal.event_id !== served.terminal_event_id ||
+          claims.commitments.find((c) => c.scope === 'accepted_rounds')?.count !== served.accepted_rounds
+        )
+          throw verificationError(
+            'RECORD_BINDING_MISMATCH',
+            'The closing receipt does not sign the cause, end and count served beside it.',
+          );
+        return deepFreeze({ claims, closing: served });
+      } finally {
+        run.done();
       }
     },
   });
