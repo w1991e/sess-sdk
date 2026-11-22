@@ -1,8 +1,6 @@
 # Changelog
 
-## 0.3.0
-
-Prepared, not yet published.
+## 0.3.0 — 2026-11-22
 
 - The agent it writes depends exactly on `@sess.si/sdk` `0.5.0` (0.2.0 wrote `0.4.0`). It
   verifies the receipts Sess issues. The SDK's [changelog](../CHANGELOG.md) lists what 0.5.0

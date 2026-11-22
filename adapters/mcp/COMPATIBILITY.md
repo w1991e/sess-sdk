@@ -7,17 +7,19 @@ version.
 
 ## This release
 
-- `@sess.si/mcp@0.5.0`, tool schema `sess-mcp-tools/6`, on `@sess.si/sdk@0.5.0`, is prepared and
-  not yet published. Until it is published, npm `latest` is `0.4.0`.
-- `@sess.si/mcp@0.4.0`, tool schema `sess-mcp-tools/5`, on `@sess.si/sdk@0.4.0`, is on npm
-  `latest` since 2026-11-19 (release run 44595616448, read back from the registry). It replaced
-  `0.3.0` (on `@sess.si/sdk@0.3.0`, `latest` since 2026-11-10T22:12:00Z). `next` stays at
-  `0.1.0-rc.4`. `npm view @sess.si/mcp dist-tags` shows what the registry serves now.
-- `compatibility.json` records 0.5.0 as prepared and not yet published, as a snapshot dated at the
-  artifact's preparation (2026-11-22), so the packed file stays true after publication. Its
-  published entry still records 0.1.1; it changes when a release readback is recorded there.
+- `@sess.si/mcp@0.5.0`, tool schema `sess-mcp-tools/6`, on `@sess.si/sdk@0.5.0`, is on npm
+  `latest` since 2026-11-22 (release run 44971198424, read back from the registry). It replaced
+  `0.4.0` (tool schema `sess-mcp-tools/5`, on `@sess.si/sdk@0.4.0`, `latest` since
+  2026-11-19T19:25:40Z), which replaced `0.3.0` (on `@sess.si/sdk@0.3.0`, `latest` since
+  2026-11-10T22:12:00Z). `next` stays at `0.1.0-rc.4`. `npm view @sess.si/mcp dist-tags` shows what
+  the registry serves now.
+- The MCP Registry still lists `si.sess/sess` 0.3.0 as its latest (read 2026-11-22). Submitting
+  `server.json` 0.5.0 is the owner's step and has not happened yet.
+- `compatibility.json` in this repository records 0.5.0's publication readback
+  (`release.published`, with 0.4.0, 0.3.0, 0.2.0 and 0.1.1 in `release.earlier`). The copy packed
+  in the 0.5.0 tarball is the snapshot dated at the artifact's preparation (2026-11-22), which
+  records 0.5.0 as prepared and not yet published; it stays true of that moment.
 - The README names `@sess.si/mcp@0.5.0` in every install line; the line is bumped on each release.
-  Until 0.5.0 is published, that line does not install.
 
 ## Node
 

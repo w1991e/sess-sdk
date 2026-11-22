@@ -7,19 +7,18 @@ tarball only after a maintainer approves the protected environment, and nothing 
 until a maintainer approves the staged version with npm 2FA. Release candidates (`-rc.N`) go to
 `next`, never to `latest`; a stable version (no `-rc.N`) goes to `latest`.
 
-The current release, `0.4.0`, is published on `latest` (tag `mcp-v0.4.0`, on `@sess.si/sdk`
-0.4.0, tool schemas `sess-mcp-tools/5`, since 2026-11-19; release run 44595616448), replacing
-`0.3.0`. Its contents are the `0.4.0` entry in [CHANGELOG.md](CHANGELOG.md), and
-[release/v0.4.0-packet.md](release/v0.4.0-packet.md) is its published record. `0.3.0`
-([release/v0.3.0-packet.md](release/v0.3.0-packet.md), on `@sess.si/sdk` 0.3.0, since
-2026-11-10T22:12:00Z), `0.2.0` ([release/v0.2.0-packet.md](release/v0.2.0-packet.md)) and `0.1.1`
+The current release, `0.5.0`, is published on `latest` (tag `mcp-v0.5.0`, on `@sess.si/sdk`
+0.5.0, tool schemas `sess-mcp-tools/6`, since 2026-11-22; release run 44971198424), replacing
+`0.4.0`. Its contents are the `0.5.0` entry in [CHANGELOG.md](CHANGELOG.md), and
+[release/v0.5.0-packet.md](release/v0.5.0-packet.md) is its published record. `0.4.0`
+([release/v0.4.0-packet.md](release/v0.4.0-packet.md), on `@sess.si/sdk` 0.4.0, since
+2026-11-19T19:25:40Z), `0.3.0` ([release/v0.3.0-packet.md](release/v0.3.0-packet.md), on
+`@sess.si/sdk` 0.3.0, since 2026-11-10T22:12:00Z), `0.2.0`
+([release/v0.2.0-packet.md](release/v0.2.0-packet.md)) and `0.1.1`
 ([release/v0.1.1-packet.md](release/v0.1.1-packet.md)) were `latest` before it. `next` stays at
-the last release candidate, `0.1.0-rc.4`.
-
-`0.5.0` is prepared, not published (tag `mcp-v0.5.0`, on `@sess.si/sdk` 0.5.0, tool schemas
-`sess-mcp-tools/6`). Its contents are the `0.5.0` entry in [CHANGELOG.md](CHANGELOG.md);
-[release/v0.5.0-packet.md](release/v0.5.0-packet.md) is the maintainer's order. `0.4.0` stays on
-`latest` until it is published. `@sess.si/mcp` 0.5.0 must never ship on `@sess.si/sdk` 0.4.0.
+the last release candidate, `0.1.0-rc.4`. The MCP Registry submission of `server.json` 0.5.0 is the
+owner's and has not happened yet: the Registry's latest `si.sess/sess` is still 0.3.0 (read
+2026-11-22).
 
 The last published candidate is `0.1.0-rc.4` (npm `next`, 2026-10-27; integrity and SHA-256 as
 recorded in [release/rc4-packet.md](release/rc4-packet.md) and `compatibility.json`). `0.1.0-rc.3` ([release/rc3-packet.md](release/rc3-packet.md)), `0.1.0-rc.2`
