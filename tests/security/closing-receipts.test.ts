@@ -252,6 +252,9 @@ describe('the round set a closing receipt signs (Decision 0016 C-50, closing-rec
       JSON.stringify({ alg: 'EdDSA', kid: 'closing-corpus-current', typ, x: 1 }),
       `{"alg":"EdDSA","kid":"closing-corpus-current","kid":"closing-corpus-current","typ":"${typ}"}`,
       JSON.stringify({ alg: 'EdDSA', kid: 'closing-corpus-current', typ: 1 }),
+      // A typ that holds the closing type's string without being one still has six string tokens.
+      JSON.stringify({ alg: 'EdDSA', kid: 'closing-corpus-current', typ: [typ] }),
+      JSON.stringify({ alg: 'EdDSA', kid: 'closing-corpus-current', typ: { x: 1 } }),
     ];
     for (const headerJson of refused) {
       const keyResolver = vi.fn(() => {
