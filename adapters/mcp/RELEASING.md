@@ -24,7 +24,10 @@ owner's and has not happened yet: the Registry's latest `si.sess/sess` is still 
 contents are the `0.6.0` entry in [CHANGELOG.md](CHANGELOG.md). It ships only on `@sess.si/sdk`
 0.6.0: its packet, `release/v0.6.0-packet.md`, is written in the SDK's registry transition PR,
 once `@sess.si/sdk` 0.6.0 is published and the tarball can be computed. `0.5.0` stays on `latest`
-until it is published. `@sess.si/mcp` 0.6.0 must never ship on `@sess.si/sdk` 0.5.0.
+until it is published. `@sess.si/mcp` 0.6.0 must never ship on `@sess.si/sdk` 0.5.0, and the release
+guard refuses it: `compatibility.json` names 0.6.0 as the SDK it ships on (`release.prepared.sessSdkVersion`),
+so the tag `mcp-v0.6.0` is refused until the registry transition moves the dependency, the lock
+and `sessSdk` to the published 0.6.0.
 
 The last published candidate is `0.1.0-rc.4` (npm `next`, 2026-10-27; integrity and SHA-256 as
 recorded in [release/rc4-packet.md](release/rc4-packet.md) and `compatibility.json`). `0.1.0-rc.3` ([release/rc3-packet.md](release/rc3-packet.md)), `0.1.0-rc.2`
@@ -97,6 +100,11 @@ Prepare job (`contents: read`, no OIDC identity), Node 24.21.0 and npm 11.19.0:
 - the tag is exactly `refs/tags/mcp-v<package.json version>` in `w1991e/sess-sdk`; the package is
   `@sess.si/mcp` at `adapters/mcp` in that repository, public, not private; `mcpName` equals the
   `server.json` name and `server.json` names the same npm package and version;
+- the version ships on the SDK its `compatibility.json` release entry names (`sessSdkVersion`, an
+  exact version): the `package.json` dependency, the lock and `compatibility.json`'s `sessSdk` must
+  all be that version, or the release is refused. A version prepared ahead of its SDK's registry
+  transition is held this way until the transition moves every record to the published SDK, and
+  `npm run check` records its packed artifact as `releasable: false` with the reason;
 - the lock resolves `@sess.si/sdk` to the genuine registry tarball with the pinned integrity
   (`setup --require-registry`; the candidate mode is refused);
 - the tagged commit is reachable from `origin/master`, and the tree is clean;
@@ -110,8 +118,8 @@ Publish job (environment `npm-mcp-release`; only this job has `id-token: write`)
 
 - downloads that artifact by ID; the checkout supplies only `package.json` and the dependency-free
   guard script; nothing is installed or rebuilt;
-- re-verifies name, version, filename, Node, registry SDK mode, source commit and both digests
-  against the prepare job's outputs;
+- re-verifies name, version, filename, Node, registry SDK mode, the recorded `releasable` status,
+  source commit and both digests against the prepare job's outputs;
 - `npm stage publish <tarball> --ignore-scripts --provenance --access public --tag <tag>`, where a
   `-rc.N` version always uses `next` (never `latest`) and a stable version `latest`. The trusted publisher is stage-only; a
   maintainer verifies the staged digest and runs `npm stage approve` with npm 2FA;
@@ -119,8 +127,9 @@ Publish job (environment `npm-mcp-release`; only this job has `id-token: write`)
   bytes, the dist-tag (and that an rc is not `latest`), dependencies, and provenance attestations.
 
 Run the guard tests locally with `npm run release:self-test`; they refuse a wrong tag, version,
-package name or path, the candidate SDK, an off-master commit, a dirty tree, changed bytes and a
-mismatched readback. Nothing in them publishes.
+package name or path, the candidate SDK, a version on an SDK other than the one it ships on (0.6.0
+on `@sess.si/sdk` 0.5.0), an off-master commit, a dirty tree, changed bytes and a mismatched
+readback. Nothing in them publishes or reads the registry.
 
 ## After publication
 

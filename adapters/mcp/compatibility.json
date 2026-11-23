@@ -181,8 +181,9 @@
       "tag": "mcp-v0.6.0",
       "toolSchema": "sess-mcp-tools/6",
       "sessSdk": "0.6.0 (registry, dist-tag latest), once published; 0.5.0 until the SDK's registry transition",
+      "sessSdkVersion": "0.6.0",
       "mcpName": "si.sess/sess",
-      "note": "At this artifact's preparation (2026-11-22), prepared and not yet published. The release guard derives latest for a version without -rc.N. @sess.si/mcp 0.6.0 must never ship on @sess.si/sdk 0.5.0. Once the stage is approved and read back, the record update makes this entry release.published, and the published 0.5.0 moves to the front of release.earlier."
+      "note": "At this artifact's preparation (2026-11-22), prepared and not yet published. The release guard derives latest for a version without -rc.N. @sess.si/mcp 0.6.0 must never ship on @sess.si/sdk 0.5.0: the release guard refuses to prepare it, and records the packed artifact as not releasable, until package.json, package-lock.json and sessSdk all resolve sessSdkVersion. Once the stage is approved and read back, the record update makes this entry release.published, and the published 0.5.0 moves to the front of release.earlier."
     },
     "published": {
       "version": "0.5.0",
@@ -196,6 +197,7 @@
       "releaseRun": "https://github.com/w1991e/sess-sdk/actions/runs/44971198424",
       "toolSchema": "sess-mcp-tools/6",
       "sessSdk": "0.5.0 (registry)",
+      "sessSdkVersion": "0.5.0",
       "mcpName": "si.sess/sess",
       "readBack": "2026-11-22: registry time, dist.integrity, dist.attestations, dependencies, mcpName and dist-tags; the registry tarball's SHA-256 and integrity equal release/v0.5.0-packet.md"
     },
