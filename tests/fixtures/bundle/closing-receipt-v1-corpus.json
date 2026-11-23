@@ -1,0 +1,275 @@
+{
+  "$comment": "closing-receipt-v1 conformance corpus (DOCS/spec/closing-receipt-v1.md §9). Rebuilt by closing-corpus-vectors.ts from labelled public test seeds; this file freezes each round receipt and each closing-receipt vector by the SHA-256 and byte length of its exact compact JWS, the expected verification result (issuer https://receipts.corpus.sess.test, audience wks_corpus), and the commitment (base64url SHA-256) of each ordered list of round receipts. Test-only keys: never trust them outside tests.",
+  "format": "sess.closing-receipt-v1-corpus",
+  "version": 1,
+  "issuer": "https://receipts.corpus.sess.test",
+  "audience": "wks_corpus",
+  "keys": {
+    "current": {
+      "kid": "closing-corpus-current",
+      "seed_label": "sess closing-receipt-v1 corpus test key v1 current"
+    },
+    "stranger": {
+      "kid": "closing-corpus-current",
+      "seed_label": "sess closing-receipt-v1 corpus test key v1 stranger"
+    }
+  },
+  "trusted_keys": ["current"],
+  "rounds": [
+    {
+      "id": "round-1-v1",
+      "sha256": "sha256:60d10add95e48de5b85394bb05ba70976b63f9bbb2c30c1a4a90e8cec5824c6c",
+      "byte_length": 1170
+    },
+    {
+      "id": "round-2-v1",
+      "sha256": "sha256:182f4a8907278912f20953a20cb5be7c29181dd3d48dc6f6ce42c080968dc2f6",
+      "byte_length": 1170
+    },
+    {
+      "id": "round-3-v1",
+      "sha256": "sha256:314d49560a26099151c9f9705404fcc4a1174437882c18269ef1fc429a9c7441",
+      "byte_length": 1170
+    },
+    {
+      "id": "round-4-v2",
+      "sha256": "sha256:28d927886bdf358800ecb7fe147c178be493013b8b11a9fb555d4718fefcd592",
+      "byte_length": 311
+    }
+  ],
+  "vectors": [
+    {
+      "id": "valid-final-expiry",
+      "description": "Final expiry with three accepted rounds: valid, actor class sess.",
+      "sha256": "sha256:9ff30249240f151b39f4fecb374219fb279d9344f3ec8cdaa5b88b6f450a8986",
+      "byte_length": 910,
+      "expected": "valid"
+    },
+    {
+      "id": "valid-completed-by-owner",
+      "description": "Completion by the owner with one round: valid, actor class owner.",
+      "sha256": "sha256:258385b0bf00892c119f3179e502aab3375d8f92b7c63df139e6c82e4c978373",
+      "byte_length": 924,
+      "expected": "valid"
+    },
+    {
+      "id": "valid-completed-by-ask-rule-with-v2-round",
+      "description": "Completion by an Ask’s rule over a receipt-v1 and a receipt-v2-shaped round: valid.",
+      "sha256": "sha256:537d673a58a6323a9eea98f90ffb6f2a06d0038522866ede72e3fb403d51d7f2",
+      "byte_length": 928,
+      "expected": "valid"
+    },
+    {
+      "id": "round-receipt-offered",
+      "description": "A round receipt offered as a closing receipt: refused by its typ.",
+      "sha256": "sha256:60d10add95e48de5b85394bb05ba70976b63f9bbb2c30c1a4a90e8cec5824c6c",
+      "byte_length": 1170,
+      "expected": "type"
+    },
+    {
+      "id": "has-exp",
+      "description": "A closing receipt carrying exp: the strict schema refuses it.",
+      "sha256": "sha256:0d3d85ca70d0dd7c0b773a2f4ff3def6d782e3f945b2e0ac707bb061edfec18c",
+      "byte_length": 933,
+      "expected": "claims"
+    },
+    {
+      "id": "newer-format-version",
+      "description": "sess_closing_receipt 2: newer than this verifier; nothing is released.",
+      "sha256": "sha256:69ce1abbb64379ecdfa699c7e7caaf799fd9e0b2d73497e5c581850df3c41952",
+      "byte_length": 910,
+      "expected": "newer"
+    },
+    {
+      "id": "format-version-zero",
+      "description": "sess_closing_receipt 0: below 1, unsupported, never completeness.",
+      "sha256": "sha256:a62518365d993090f0fcc209edd006d47550c759e5423f768489b55ead8dbb2c",
+      "byte_length": 910,
+      "expected": "unsupported"
+    },
+    {
+      "id": "format-version-not-whole",
+      "description": "sess_closing_receipt 1.5: not a whole number, unsupported.",
+      "sha256": "sha256:b684520228cb2725639b9bf06fdd55bf5c8d78fee6ed0baa615c801917bc4b67",
+      "byte_length": 913,
+      "expected": "unsupported"
+    },
+    {
+      "id": "unknown-extra-scope",
+      "description": "accepted_rounds and an extra published_pages scope this verifier does not know: the whole receipt is newer and nothing is released.",
+      "sha256": "sha256:391cc8e67b6a8bdc172344d9df25b64efdfe7438df9311a941298681f87abc30",
+      "byte_length": 1040,
+      "expected": "newer"
+    },
+    {
+      "id": "missing-accepted-rounds",
+      "description": "Only an unknown scope, no accepted_rounds: a version 1 receipt has it; refused.",
+      "sha256": "sha256:331c4149057d1a88315c4ab3dc9d6869da922f0cc62c6a2133893037c551f770",
+      "byte_length": 910,
+      "expected": "claims"
+    },
+    {
+      "id": "duplicate-scope",
+      "description": "accepted_rounds twice: scopes are unique; refused.",
+      "sha256": "sha256:bab91387dbd9945d49ad33f400a57b631d320a2842749617533b2cc363a9bc42",
+      "byte_length": 1040,
+      "expected": "claims"
+    },
+    {
+      "id": "scopes-out-of-order",
+      "description": "published_pages before accepted_rounds: the list is ordered by scope; refused.",
+      "sha256": "sha256:e860e2278a7e19945537aea8c4299e0a7b749e6405a50d0d56b7c755920afc6f",
+      "byte_length": 1040,
+      "expected": "claims"
+    },
+    {
+      "id": "scope-not-a-plain-word",
+      "description": "A scope that is not a plain lowercase word: refused.",
+      "sha256": "sha256:0a448a7bd441df42082756af3886dc1563f3da0054d713b3fe3a5d4adf46f0c0",
+      "byte_length": 1040,
+      "expected": "claims"
+    },
+    {
+      "id": "commitment-entry-extra-member",
+      "description": "A commitment entry with a member beyond scope, count and commitment: refused.",
+      "sha256": "sha256:879f1f91990c71070a0619e2c526addb1551a15454d48f83bb184633b4fc6ea8",
+      "byte_length": 930,
+      "expected": "claims"
+    },
+    {
+      "id": "commitment-not-base64url",
+      "description": "A commitment written as sha256:<hex> rather than base64url: refused.",
+      "sha256": "sha256:f9d00b8c8c51115f8a0211550914af62306e71a83e9a97b422d1fa55488ce8b8",
+      "byte_length": 948,
+      "expected": "claims"
+    },
+    {
+      "id": "commitment-not-canonical",
+      "description": "A 43-character commitment whose last character carries bits a 32-byte value cannot have (ends in B): refused.",
+      "sha256": "sha256:ac50f0e1822d5203208d907cfd7fac9707fa6e1ee553bc94be8140af28a8859d",
+      "byte_length": 910,
+      "expected": "claims"
+    },
+    {
+      "id": "too-many-commitments",
+      "description": "17 entries (accepted_rounds and 16 other scopes), over the 16 allowed: refused.",
+      "sha256": "sha256:24b9d9b679d12922ed62bc26bddb117d3e5698bdb9c4023c815a164b32daa462",
+      "byte_length": 2830,
+      "expected": "claims"
+    },
+    {
+      "id": "unknown-scope-negative-count",
+      "description": "An unknown scope with a negative count: the entry’s form is still checked; refused.",
+      "sha256": "sha256:d58d6d02c415cc8443cee98223cf36fbf2d9a477241e3dc7b5e7dc20c50008a4",
+      "byte_length": 1041,
+      "expected": "claims"
+    },
+    {
+      "id": "actor-class-not-derived",
+      "description": "Final expiry claiming the owner as its actor: refused.",
+      "sha256": "sha256:7198cf11fdb3aa3c4402dd2f89902f11b11900ee2b72cca926696654f8407092",
+      "byte_length": 912,
+      "expected": "claims"
+    },
+    {
+      "id": "issued-before-recorded",
+      "description": "Issued before it was recorded (backdated): refused.",
+      "sha256": "sha256:ac899fefee1e88d179b53a8e80d576a4b71472cb4e7ebb436234f9ddce7d3540",
+      "byte_length": 910,
+      "expected": "claims"
+    },
+    {
+      "id": "zero-rounds",
+      "description": "A count of zero: no closing receipt exists for it; refused.",
+      "sha256": "sha256:0dbc89aa675edc1cd906fee5526374e13c09e3b645d5dd9d639c498cd51da2f6",
+      "byte_length": 910,
+      "expected": "claims"
+    },
+    {
+      "id": "tampered-payload",
+      "description": "Another Session under the original signature: refused.",
+      "sha256": "sha256:c35ebc024bf90763b373b1c9d43f1a0c45dbc8fae66d60070ed540fcf7efa607",
+      "byte_length": 905,
+      "expected": "signature"
+    },
+    {
+      "id": "tampered-signature",
+      "description": "A changed signature: refused.",
+      "sha256": "sha256:5c9754ac4674ff638306041b5b20459a775f845ae8c80fe7df2c3edb2891d05f",
+      "byte_length": 910,
+      "expected": "signature"
+    },
+    {
+      "id": "stranger-key",
+      "description": "Signed by another key under the issuer’s kid: refused.",
+      "sha256": "sha256:9955ed6c7efcc8b315636e448dbd5a8a5db8461229b6b9bc1fd220228a67fabb",
+      "byte_length": 910,
+      "expected": "signature"
+    },
+    {
+      "id": "wrong-issuer",
+      "description": "Another issuer: refused.",
+      "sha256": "sha256:0cdf245b776b1f7aaed5a1edd3631f376b5fe912d5cde05e270823c432dde043",
+      "byte_length": 906,
+      "expected": "issuer"
+    },
+    {
+      "id": "wrong-audience",
+      "description": "Another workspace: refused.",
+      "sha256": "sha256:47d7f2f5647e55ef598485c1e5fe9a57c34ec0bdc945049597fd89b5569f4bcd",
+      "byte_length": 926,
+      "expected": "audience"
+    },
+    {
+      "id": "non-canonical-payload",
+      "description": "The same claims in non-canonical JSON: refused.",
+      "sha256": "sha256:203f04aa10e7458943b1ed7572ec7abbe786c7ae0deacc4160b26dabd4855a85",
+      "byte_length": 1009,
+      "expected": "claims"
+    },
+    {
+      "id": "alg-none",
+      "description": "alg none: refused.",
+      "sha256": "sha256:e26d03846ae82f6f8a09ed249142d361a494534fd7f12b3d84c73e7f5f8e0a08",
+      "byte_length": 781,
+      "expected": "algorithm"
+    }
+  ],
+  "commitments": [
+    {
+      "id": "one-round",
+      "rounds": ["round-1-v1"],
+      "commitment": "0H5YKvNwMo5PxskVgPm4gGy0QKaylCPG-3gchDyJC_o"
+    },
+    {
+      "id": "three-rounds",
+      "rounds": ["round-1-v1", "round-2-v1", "round-3-v1"],
+      "commitment": "iyI95VZbNHemcdQ2E9FI_4r47O5g1bOXEH99CZLvb0o"
+    },
+    {
+      "id": "three-rounds-reordered",
+      "rounds": ["round-2-v1", "round-1-v1", "round-3-v1"],
+      "commitment": "9Ui3lDneANzqSW3jQiDfyttVhBSVSwZQLZJvLyqsdl8"
+    },
+    {
+      "id": "middle-round-removed",
+      "rounds": ["round-1-v1", "round-3-v1"],
+      "commitment": "IIEfVYRJz8h8gkzBPjpHLqgg6udANa845ZoPQPu0g44"
+    },
+    {
+      "id": "last-round-removed",
+      "rounds": ["round-1-v1", "round-2-v1"],
+      "commitment": "L4omMhoIUQx4t3tRFCNu5k-1AoWLP1cTOeFANGsSm_k"
+    },
+    {
+      "id": "duplicated-round",
+      "rounds": ["round-1-v1", "round-1-v1", "round-2-v1", "round-3-v1"],
+      "commitment": "3zVhNmCM0Qw8tNarbK62GRv0ibf7EhrdmBbPClbFF3M"
+    },
+    {
+      "id": "v1-and-v2-rounds",
+      "rounds": ["round-1-v1", "round-4-v2"],
+      "commitment": "f0-NNsLfwlRZ3BXbOi0YpdwUpQP9L3sR0uuO1pr0XUI"
+    }
+  ]
+}

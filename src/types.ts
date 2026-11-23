@@ -40,7 +40,17 @@ export type InteractiveSurfaceRevision = Schemas['InteractiveSurfaceResponse'];
 export type SurfaceRevision = DisplaySurfaceRevision | InteractiveSurfaceRevision;
 /** One Event of `GET /v1/sessions/{id}/events`; `revision_envelope` on `response.accepted` only. */
 export type SessionEvent = GeneratedSessionEvents['events'][number] & RevisionEnvelopeMember;
-export type SessionEvents = Omit<GeneratedSessionEvents, 'events'> & { events: SessionEvent[] };
+/**
+ * The Session's closing receipt (`closing` on `GET /v1/sessions/{id}/events`): beside the Events,
+ * never one of them and never a round's `receipt`. Present only once the Session has ended with at
+ * least one accepted answer and the Events carry exactly the rounds it signs. Verify it with
+ * `receipts.verifyClosing()` or `verifyClosingReceipt`, never as a receipt for one answer.
+ */
+export type SessionClosing = Schemas['SessionClosing'];
+export type SessionEvents = Omit<GeneratedSessionEvents, 'events' | 'closing'> & {
+  events: SessionEvent[];
+  closing?: SessionClosing;
+};
 /**
  * The Sess link's state at the time of a Session read (Decision 0009 Amendment 10): `live` takes
  * answers; `lapsed` is past its deadline but the person can still ask for more time, so the

@@ -7,6 +7,9 @@ version.
 
 ## This release
 
+- `@sess.si/mcp@0.6.0`, tool schema `sess-mcp-tools/6`, is prepared and not yet published. It
+  ships only on `@sess.si/sdk@0.6.0`, itself prepared and not yet published; until the SDK's
+  registry transition its dependency stays `0.5.0`. Until it is published, npm `latest` is `0.5.0`.
 - `@sess.si/mcp@0.5.0`, tool schema `sess-mcp-tools/6`, on `@sess.si/sdk@0.5.0`, is on npm
   `latest` since 2026-11-22 (release run 44971198424, read back from the registry). It replaced
   `0.4.0` (tool schema `sess-mcp-tools/5`, on `@sess.si/sdk@0.4.0`, `latest` since
@@ -18,8 +21,11 @@ version.
 - `compatibility.json` in this repository records 0.5.0's publication readback
   (`release.published`, with 0.4.0, 0.3.0, 0.2.0 and 0.1.1 in `release.earlier`). The copy packed
   in the 0.5.0 tarball is the snapshot dated at the artifact's preparation (2026-11-22), which
-  records 0.5.0 as prepared and not yet published; it stays true of that moment.
-- The README names `@sess.si/mcp@0.5.0` in every install line; the line is bumped on each release.
+  records 0.5.0 as prepared and not yet published; it stays true of that moment. It now records
+  0.6.0 as prepared and not yet published (`release.prepared`), as a snapshot dated at the
+  artifact's preparation (2026-11-22).
+- The README names `@sess.si/mcp@0.6.0` in every install line; the line is bumped on each release.
+  Until 0.6.0 is published, that line does not install.
 
 ## Node
 
@@ -58,10 +64,10 @@ through Claude Code's `~/.claude.json`, which Grok Build also reads, so the add 
 in that round; the add command was run once on its own in a clean home directory against the
 preview server, where it registered the server.
 
-## The local server (`npx -y @sess.si/mcp@0.5.0`)
+## The local server (`npx -y @sess.si/mcp@0.6.0`)
 
 The `sess-mcp` bin speaks stdio only. No host has been recorded running the registry form
-`npx -y @sess.si/mcp@0.5.0`; the runs below used a packed, installed tarball
+`npx -y @sess.si/mcp@0.6.0`; the runs below used a packed, installed tarball
 (`npx --no-install sess-mcp`) or an earlier release. Packed and loopback installs are candidate
 evidence; they do not qualify a public registry install.
 
@@ -81,7 +87,7 @@ evidence; they do not qualify a public registry install.
   config directory), so prefer the environment form on shared machines. The server name must come
   **before** `-e`: in 2.1.299 the form `claude mcp add -e SESS_API_KEY=… sess -- …` fails with
   "Invalid environment variable format".
-- Not tested: the registry `npx -y @sess.si/mcp@0.5.0` form; environment inheritance when an
+- Not tested: the registry `npx -y @sess.si/mcp@0.6.0` form; environment inheritance when an
   interactive Claude Code session starts the server (it was observed for the `claude mcp list`
   health check); a model-driven round through Claude Code; a macOS host.
 - Enterprise-managed Claude Code installations may forbid adding MCP servers

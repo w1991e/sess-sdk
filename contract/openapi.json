@@ -2272,6 +2272,144 @@
                 }
               }
             }
+          },
+          "closing": {
+            "additionalProperties": false,
+            "description": "The Session’s closing receipt: a signed record of how it ended and of every accepted answer’s receipt, in order. Present only once the Session has ended with at least one accepted answer, its closing receipt is signed and the receipts listed above are exactly the ones it commits to; absent otherwise.",
+            "type": "object",
+            "required": [
+              "typ",
+              "closure_id",
+              "cause",
+              "terminal_event_id",
+              "accepted_rounds",
+              "receipt"
+            ],
+            "properties": {
+              "typ": {
+                "description": "What `receipt` is: a closing receipt, version 1. Never a receipt for one answer, so never verify it as one.",
+                "const": "sess-closing-receipt+jwt",
+                "type": "string"
+              },
+              "closure_id": {
+                "pattern": "^cls_[0-9A-HJKMNP-TV-Z]{26}$",
+                "description": "The closing receipt’s ID, the `jti` it signs.",
+                "type": "string"
+              },
+              "cause": {
+                "description": "How the Session ended, as the closing receipt signs it: `completed_by_owner` when your agent completed it, `completed_by_ask_rule` when its Ask completed it on the answer, `final_expiry` when its Sess link expired for good. `revoked` ends a Session with no accepted answer, which has no closing receipt.",
+                "anyOf": [
+                  {
+                    "const": "completed_by_owner",
+                    "type": "string"
+                  },
+                  {
+                    "const": "completed_by_ask_rule",
+                    "type": "string"
+                  },
+                  {
+                    "const": "final_expiry",
+                    "type": "string"
+                  },
+                  {
+                    "const": "revoked",
+                    "type": "string"
+                  }
+                ]
+              },
+              "terminal_event_id": {
+                "description": "The Event that ended the Session, as the closing receipt signs it: its `session.completed`, or for `final_expiry` the expiry Event Sess recorded, which this list does not include. null only for `revoked`.",
+                "anyOf": [
+                  {
+                    "pattern": "^evt_[0-9A-HJKMNP-TV-Z]{26}$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "accepted_rounds": {
+                "minimum": 1,
+                "description": "How many answers were accepted in the Session, at least 1: the count the closing receipt signs. Each is a `response.accepted` Event above.",
+                "type": "integer"
+              },
+              "receipt": {
+                "maxLength": 8192,
+                "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+                "description": "The closing receipt exactly as signed: a compact JWS (EdDSA/Ed25519, typ sess-closing-receipt+jwt, no exp) that commits, in order, to the exact bytes of every accepted answer’s receipt. Verify it with GET /.well-known/sess-receipt-keys.json; it is signed once and never re-signed.",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "SessionClosing": {
+        "additionalProperties": false,
+        "description": "The Session’s closing receipt: a signed record of how it ended and of every accepted answer’s receipt, in order. Present only once the Session has ended with at least one accepted answer, its closing receipt is signed and the receipts listed above are exactly the ones it commits to; absent otherwise.",
+        "type": "object",
+        "required": [
+          "typ",
+          "closure_id",
+          "cause",
+          "terminal_event_id",
+          "accepted_rounds",
+          "receipt"
+        ],
+        "properties": {
+          "typ": {
+            "description": "What `receipt` is: a closing receipt, version 1. Never a receipt for one answer, so never verify it as one.",
+            "const": "sess-closing-receipt+jwt",
+            "type": "string"
+          },
+          "closure_id": {
+            "pattern": "^cls_[0-9A-HJKMNP-TV-Z]{26}$",
+            "description": "The closing receipt’s ID, the `jti` it signs.",
+            "type": "string"
+          },
+          "cause": {
+            "description": "How the Session ended, as the closing receipt signs it: `completed_by_owner` when your agent completed it, `completed_by_ask_rule` when its Ask completed it on the answer, `final_expiry` when its Sess link expired for good. `revoked` ends a Session with no accepted answer, which has no closing receipt.",
+            "anyOf": [
+              {
+                "const": "completed_by_owner",
+                "type": "string"
+              },
+              {
+                "const": "completed_by_ask_rule",
+                "type": "string"
+              },
+              {
+                "const": "final_expiry",
+                "type": "string"
+              },
+              {
+                "const": "revoked",
+                "type": "string"
+              }
+            ]
+          },
+          "terminal_event_id": {
+            "description": "The Event that ended the Session, as the closing receipt signs it: its `session.completed`, or for `final_expiry` the expiry Event Sess recorded, which this list does not include. null only for `revoked`.",
+            "anyOf": [
+              {
+                "pattern": "^evt_[0-9A-HJKMNP-TV-Z]{26}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "accepted_rounds": {
+            "minimum": 1,
+            "description": "How many answers were accepted in the Session, at least 1: the count the closing receipt signs. Each is a `response.accepted` Event above.",
+            "type": "integer"
+          },
+          "receipt": {
+            "maxLength": 8192,
+            "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+            "description": "The closing receipt exactly as signed: a compact JWS (EdDSA/Ed25519, typ sess-closing-receipt+jwt, no exp) that commits, in order, to the exact bytes of every accepted answer’s receipt. Verify it with GET /.well-known/sess-receipt-keys.json; it is signed once and never re-signed.",
+            "type": "string"
           }
         }
       },
@@ -3899,6 +4037,228 @@
           }
         }
       },
+      "ClosingVerifyRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["closing_receipt", "rounds"],
+        "properties": {
+          "closing_receipt": {
+            "minLength": 1,
+            "maxLength": 8192,
+            "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+            "description": "The kept file’s closing receipt, its exact compact JWS.",
+            "type": "string"
+          },
+          "rounds": {
+            "minItems": 1,
+            "maxItems": 64,
+            "description": "The file’s round receipts, in the order the file carries them.",
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": ["receipt"],
+              "properties": {
+                "receipt": {
+                  "minLength": 1,
+                  "maxLength": 32768,
+                  "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+                  "type": "string"
+                },
+                "revision_envelope": {
+                  "description": "A receipt v2’s revision envelope, as the file carries it.",
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
+                      "type": "object",
+                      "properties": {}
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "ClosingVerifyResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["completeness", "closing", "set_match", "independent_time", "presentation"],
+        "properties": {
+          "completeness": {
+            "description": "closing-receipt-v1 §6.1: derived from authenticity and set match alone.",
+            "anyOf": [
+              {
+                "const": "complete",
+                "type": "string"
+              },
+              {
+                "const": "failed",
+                "type": "string"
+              },
+              {
+                "const": "unsupported",
+                "type": "string"
+              },
+              {
+                "const": "none",
+                "type": "string"
+              }
+            ]
+          },
+          "closing": {
+            "additionalProperties": false,
+            "description": "The closing receipt’s own authenticity.",
+            "type": "object",
+            "required": ["status", "reason"],
+            "properties": {
+              "status": {
+                "anyOf": [
+                  {
+                    "const": "valid",
+                    "type": "string"
+                  },
+                  {
+                    "const": "invalid",
+                    "type": "string"
+                  },
+                  {
+                    "const": "missing",
+                    "type": "string"
+                  },
+                  {
+                    "const": "unsupported",
+                    "type": "string"
+                  },
+                  {
+                    "const": "unverifiable",
+                    "type": "string"
+                  }
+                ]
+              },
+              "reason": {
+                "maxLength": 64,
+                "type": "string"
+              }
+            }
+          },
+          "set_match": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["status", "reason", "present", "signed_count"],
+            "properties": {
+              "status": {
+                "anyOf": [
+                  {
+                    "const": "valid",
+                    "type": "string"
+                  },
+                  {
+                    "const": "invalid",
+                    "type": "string"
+                  },
+                  {
+                    "const": "missing",
+                    "type": "string"
+                  },
+                  {
+                    "const": "unsupported",
+                    "type": "string"
+                  },
+                  {
+                    "const": "unverifiable",
+                    "type": "string"
+                  }
+                ]
+              },
+              "reason": {
+                "maxLength": 64,
+                "type": "string"
+              },
+              "present": {
+                "minimum": 0,
+                "maximum": 64,
+                "type": "integer"
+              },
+              "signed_count": {
+                "anyOf": [
+                  {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "independent_time": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["status", "reason"],
+            "properties": {
+              "status": {
+                "const": "missing",
+                "type": "string"
+              },
+              "reason": {
+                "const": "no_timestamp_evidence",
+                "type": "string"
+              }
+            }
+          },
+          "presentation": {
+            "additionalProperties": false,
+            "description": "What a person’s page shows: complete (the set-match row, with the signed count), failed (the shared failed-evidence result) or none (no row and no line).",
+            "type": "object",
+            "required": ["state", "count", "anchored_at"],
+            "properties": {
+              "state": {
+                "anyOf": [
+                  {
+                    "const": "complete",
+                    "type": "string"
+                  },
+                  {
+                    "const": "failed",
+                    "type": "string"
+                  },
+                  {
+                    "const": "none",
+                    "type": "string"
+                  }
+                ]
+              },
+              "count": {
+                "anyOf": [
+                  {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "anchored_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
       "KeepChallengeRequest": {
         "additionalProperties": false,
         "type": "object",
@@ -4128,7 +4488,7 @@
             "type": "string"
           },
           "version": {
-            "description": "2 (keep-v2: a round also carries revision_envelope) exactly when the file holds a receipt v2 round; else 1 (keep-v1, as written before receipt v2); 3 (keep-v3, archival-person-projection §3: person envelopes and holder proofs v2) for every file once keep-v3 writing is on. Readers take all three.",
+            "description": "2 (keep-v2: a round also carries revision_envelope) exactly when the file holds a receipt v2 round; else 1 (keep-v1, as written before receipt v2); 3 (keep-v3, archival-person-projection §3: person envelopes and holder proofs v2) for every file once keep-v3 writing is on; 4 (keep-v4, Decision 0016: keep-v3 with closing_receipt) for every file once keep-v4 writing is on. Readers take all four.",
             "anyOf": [
               {
                 "const": 1,
@@ -4140,6 +4500,10 @@
               },
               {
                 "const": 3,
+                "type": "number"
+              },
+              {
+                "const": 4,
                 "type": "number"
               }
             ]
@@ -4931,6 +5295,18 @@
                 }
               }
             }
+          },
+          "closing_receipt": {
+            "description": "keep-v4 only (Decision 0016): the Session’s closing receipt (closing-receipt-v1), its exact compact JWS as sealed, present only when the file holds exactly the accepted rounds it commits to; else null. Never a count or list of rounds the file lacks.",
+            "anyOf": [
+              {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -6677,6 +7053,10 @@
                     "type": "string"
                   },
                   {
+                    "const": "SESSION_ENDED",
+                    "type": "string"
+                  },
+                  {
                     "const": "ACTION_NOT_ALLOWED",
                     "type": "string"
                   },
@@ -6776,7 +7156,7 @@
               },
               "reason": {
                 "pattern": "^[a-z_]{1,40}$",
-                "description": "A stable machine-readable refinement of some codes (P1 A4 webhook errors; P2 target, admission and limit errors).",
+                "description": "A stable machine-readable refinement of some codes (P1 A4 webhook errors; P2 target, admission and limit errors; SESSION_ENDED: the terminal cause, `final_expiry` or `revoked`).",
                 "type": "string"
               },
               "field": {
@@ -9198,6 +9578,31 @@
                     }
                   }
                 }
+              }
+            }
+          },
+          "closing": {
+            "additionalProperties": false,
+            "description": "Decision 0016: the Session’s closing receipt, checked on the server (closing-receipt-v1 §6.1) against the copy as served now. Absent when the copy carries none, or when it can’t be decided here.",
+            "type": "object",
+            "required": ["verified", "count"],
+            "properties": {
+              "verified": {
+                "description": "true: the copy’s rounds are exactly the set the closing receipt signs; false: the closing receipt it carries does not verify or does not match (the copy is then unverified).",
+                "type": "boolean"
+              },
+              "count": {
+                "description": "The signed count of answers recorded, when verified; else null.",
+                "anyOf": [
+                  {
+                    "minimum": 1,
+                    "maximum": 64,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             }
           }
@@ -16602,7 +17007,7 @@
     "/app/evidence": {
       "get": {
         "operationId": "evidencePage",
-        "description": "Lists the workspace’s receipts in the console, as details only.\n\nEach row shows the receipt and Session IDs, the workspace’s sequence number, when the answer was accepted, the witness status and whether the answers are still kept; receipts held unverified have their own view. A receipt or an answer is never shown on this page. The page shows 25 at a time, counted under the same filters, with Previous and Next. Someone who is not signed in is sent to the sign-in page.\n\nAdvanced: The query takes `custody` (`exception`), `from` and `to` (UTC dates, `to` included), `target` (a target ID), `q` (a part of the Session title, matched as plain text) and `cursor`, an opaque page position, forward or back; one that is not of this view gives the first page. The page is labelled \"issued records in this defined scope/range\".",
+        "description": "Lists the workspace’s receipts in the console, as details only.\n\nEach row shows the receipt and Session IDs, the workspace’s sequence number, when the answer was accepted and whether the answers are still kept; receipts held unverified have their own view. A receipt or an answer is never shown on this page. The page shows 25 at a time, counted under the same filters, with Previous and Next. Someone who is not signed in is sent to the sign-in page.\n\nAdvanced: The query takes `custody` (`exception`), `from` and `to` (UTC dates, `to` included), `target` (a target ID), `q` (a part of the Session title, matched as plain text) and `cursor`, an opaque page position, forward or back; one that is not of this view gives the first page. The page is labelled \"issued records in this defined scope/range\".",
         "responses": {
           "200": {
             "description": "The receipts page.",
@@ -16732,7 +17137,7 @@
     "/app/evidence/{event_id}": {
       "get": {
         "operationId": "evidenceReceiptPage",
-        "description": "Shows one receipt of the workspace in the console.\n\nYou see its receipt number, its event and Session IDs, when the answer was accepted, the witness status and whether the answers are still kept, with Verify and the receipt download when the receipt has a signed archival core. A receipt, an answer or a Sess link is never shown on the page. Another workspace’s receipt, an unknown one and a malformed ID get the same answer; someone who is not signed in is sent to the sign-in page.",
+        "description": "Shows one receipt of the workspace in the console.\n\nYou see its receipt number, its event and Session IDs, when the answer was accepted and whether the answers are still kept, with Verify and the receipt download when the receipt has a signed archival core. A receipt, an answer or a Sess link is never shown on the page. Another workspace’s receipt, an unknown one and a malformed ID get the same answer; someone who is not signed in is sent to the sign-in page.",
         "parameters": [
           {
             "name": "event_id",
@@ -18169,7 +18574,7 @@
             }
           },
           "409": {
-            "description": "The Session is already completed, is a display Session, or the idempotency key was used for a different request (`SESSION_COMPLETED`, `ACTION_NOT_ALLOWED` or `IDEMPOTENCY_CONFLICT`).",
+            "description": "The Session is already completed (`SESSION_COMPLETED`); has already ended (`SESSION_ENDED`, with its terminal cause in `reason`: `final_expiry` when its link expired for good, `revoked` when the close of its Ask ended it); or is a display Session (`ACTION_NOT_ALLOWED`). The idempotency key was used for a different request (`IDEMPOTENCY_CONFLICT`).",
             "content": {
               "application/json": {
                 "schema": {
@@ -18219,7 +18624,7 @@
             "ownerKey": []
           }
         ],
-        "description": "Lists everything that happened in a Session, in order.\n\n- Each accepted answer, with the revision it was given on, the action chosen and the typed data.\n- Each published revision, and the completion.\n- Events never change, and every accepted answer stays listed after later revisions and completion.\n- Where link extensions are on, every accepted extension of the Sess link is listed beside the events, never with an answer value.\n- A display Session has no events.\n\nAdvanced: Answers are `response.accepted` by `link_holder`, with the revision, `action_id` and the data; `revision.published` and `session.completed` are by `owner`. Event IDs and sequence numbers never change. The list is not paginated: a Session has a few Events per round. `link_extensions` lists each extension’s old and new deadline, whether it was asked for after the deadline, and when. Responses are sent with `Cache-Control: no-store, no-transform`.",
+        "description": "Lists everything that happened in a Session, in order.\n\n- Each accepted answer, with the revision it was given on, the action chosen and the typed data.\n- Each published revision, and the completion.\n- Events never change, and every accepted answer stays listed after later revisions and completion.\n- Where link extensions are on, every accepted extension of the Sess link is listed beside the events, never with an answer value.\n- Once the Session has ended with at least one accepted answer, its closing receipt comes with the events.\n- A display Session has no events.\n\nAdvanced: Answers are `response.accepted` by `link_holder`, with the revision, `action_id` and the data; `revision.published` and `session.completed` are by `owner`. Event IDs and sequence numbers never change. The list is not paginated: a Session has a few Events per round. `link_extensions` lists each extension’s old and new deadline, whether it was asked for after the deadline, and when. `closing` is the closing receipt (`typ` `sess-closing-receipt+jwt`) with the cause and count it signs: never an Event and never a receipt for one answer, and webhooks do not carry it. Responses are sent with `Cache-Control: no-store, no-transform`.",
         "parameters": [
           {
             "name": "id",
@@ -18237,6 +18642,59 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SessionEventsResponse"
+                },
+                "examples": {
+                  "closed": {
+                    "value": {
+                      "id": "ses_01JABCDEFGHJKMNPQRSTVWXYZ0",
+                      "events": [
+                        {
+                          "event_id": "evt_01JABCDEFGHJKMNPQRSTVWXYZ0",
+                          "sequence": 1,
+                          "type": "revision.published",
+                          "revision": 1,
+                          "actor": {
+                            "assurance": "owner"
+                          },
+                          "created_at": "2026-01-01T00:00:00.000Z"
+                        },
+                        {
+                          "event_id": "evt_01JABCDEFGHJKMNPQRSTVWXYZ1",
+                          "sequence": 2,
+                          "type": "response.accepted",
+                          "revision": 1,
+                          "actor": {
+                            "assurance": "link_holder"
+                          },
+                          "action_id": "submit",
+                          "data": {
+                            "inv_3_amount": 909,
+                            "approved": ["INV-1", "INV-3"]
+                          },
+                          "created_at": "2026-01-01T00:05:00.000Z",
+                          "receipt": "synthetic-protected-header.synthetic-claims.synthetic-signature"
+                        },
+                        {
+                          "event_id": "evt_01JABCDEFGHJKMNPQRSTVWXYZ2",
+                          "sequence": 3,
+                          "type": "session.completed",
+                          "revision": 1,
+                          "actor": {
+                            "assurance": "owner"
+                          },
+                          "created_at": "2026-01-01T00:06:00.000Z"
+                        }
+                      ],
+                      "closing": {
+                        "typ": "sess-closing-receipt+jwt",
+                        "closure_id": "cls_01JABCDEFGHJKMNPQRSTVWXYZ3",
+                        "cause": "completed_by_owner",
+                        "terminal_event_id": "evt_01JABCDEFGHJKMNPQRSTVWXYZ2",
+                        "accepted_rounds": 1,
+                        "receipt": "synthetic-closing-header.synthetic-closing-claims.synthetic-closing-signature"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -19749,6 +20207,74 @@
           },
           "400": {
             "description": "The body is not JSON (`INVALID_SCHEMA`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large (`PAYLOAD_TOO_LARGE`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many checks; try again after `Retry-After` (`RATE_LIMITED`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Receipts are not set up here, or the 2-second deadline passed and the connection is closed (`SERVICE_UNAVAILABLE`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/receipts/verify-closing": {
+      "post": {
+        "operationId": "verifyClosingReceipt",
+        "description": "Checks a kept file’s closing receipt and its round receipts with this server’s own receipt keys. No credential needed.\n\n- Nothing in the request is trusted.\n- It reports the closing receipt’s own check, whether the receipts sent are exactly the set it signs, and what a person’s page shows.\n- It looks nothing up and stores nothing, and evidence that fails is still a 200 result.\n\nAdvanced: The formats are in DOCS/spec/closing-receipt-v1.md §6.1 and DOCS/spec/keep-v4.md §3. Send the round receipts in the order the file carries them, at most 64. The body is JSON, at most 2097152 bytes. It shares the bundle check’s rate limits per client and in total, and its absolute 2-second deadline from arrival, after which the connection is closed with `Connection: close`. Responses are sent with `Cache-Control: no-store, no-transform` and `Referrer-Policy: no-referrer`, with CORS only for the product site’s origins. Never put a receipt in an address.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClosingVerifyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The result of the closing check and how to present it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosingVerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body is not a closing check (`INVALID_SCHEMA`).",
             "content": {
               "application/json": {
                 "schema": {

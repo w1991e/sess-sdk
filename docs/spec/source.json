@@ -1,8 +1,18 @@
 {
-  "$comment": "Verbatim public copies of the Sess receipt-v1, receipt-v2, bundle-v1 and bundle-v2 specifications and the shared bundle-v1 and bundle-v2 conformance corpora. scripts/check-spec.mjs fails if a copy's SHA-256 differs from the Sess copy recorded here. Update only by copying the files again from the recorded Sess commit and recording the new commit and digests.",
+  "$comment": "Verbatim public copies of the Sess receipt-v1, receipt-v2, bundle-v1, bundle-v2 and closing-receipt-v1 specifications and the shared bundle-v1, bundle-v2 and closing-receipt-v1 conformance corpora. scripts/check-spec.mjs fails if a copy's SHA-256 differs from the Sess copy recorded here. Update only by copying the files again from the recorded Sess commit and recording the new commit and digests.",
   "repository": "Sess runtime",
-  "commit": "33cfc41500b2dfb212c5e59adfd1351cc210947c",
+  "commit": "7be0bf3a02d199ae595811f33ed7116998d75312",
   "files": [
+    {
+      "path": "docs/spec/closing-receipt-v1.md",
+      "source": "DOCS/spec/closing-receipt-v1.md",
+      "sha256": "4da502c354a76268c17a50ca606ff6808d37cb90dc38d1ed71382fdc7dcffce0"
+    },
+    {
+      "path": "tests/fixtures/bundle/closing-receipt-v1-corpus.json",
+      "source": "packages/security/test/fixtures/closing-receipt-v1-corpus.json",
+      "sha256": "0a1b723c71c699a24d0ba2d14f4288c0b3e6143c710d41b4bc6b56c9af99a748"
+    },
     {
       "path": "docs/spec/receipt-v1.md",
       "source": "DOCS/spec/receipt-v1.md",

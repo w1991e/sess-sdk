@@ -323,7 +323,24 @@ export function decodeEvents(value: unknown, expectedId: string): SessionEvents 
   // Decision 0009 Amendment 10: the link's extensions are listed beside the Events (never as an
   // Event type), only where the deployment enables them.
   if (v.link_extensions !== undefined) linkExtensions(v.link_extensions);
+  // Decision 0016: the closing receipt is its own typed member beside the Events, never an Event
+  // and never a round's receipt. Only its shape is checked here; verifying it is verifyClosing's.
+  if (v.closing !== undefined) closing(v.closing, v.events as Record<string, unknown>[]);
   return value as SessionEvents;
+}
+const closingPattern = new RegExp(`^cls_${ulid}$`);
+const closingKeys = ['typ', 'closure_id', 'cause', 'terminal_event_id', 'accepted_rounds', 'receipt'];
+function closing(value: unknown, events: Record<string, unknown>[]): void {
+  const v = object(value);
+  if (Object.keys(v).length !== closingKeys.length || !closingKeys.every((k) => Object.hasOwn(v, k)))
+    protocol();
+  if (v.typ !== 'sess-closing-receipt+jwt') protocol();
+  string(v.closure_id, closingPattern);
+  oneOf(v.cause, ['completed_by_owner', 'completed_by_ask_rule', 'final_expiry', 'revoked']);
+  if (v.terminal_event_id !== null) string(v.terminal_event_id, eventPattern);
+  // Present only beside exactly the rounds it signs: its count is the Events' accepted answers.
+  if (integer(v.accepted_rounds) !== events.filter((e) => e.type === 'response.accepted').length) protocol();
+  string(v.receipt, receiptPattern, 8192);
 }
 function endpoint(value: unknown): void {
   const v = object(value);

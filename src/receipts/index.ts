@@ -34,7 +34,16 @@ export type {
 } from './bundle.js';
 export type {
   ReceiptResource,
+  VerifyClosingInput,
+  VerifiedClosing,
   VerifyResponseInput,
   VerifiedResponse,
   VerificationRequestOptions,
 } from './resource.js';
+export { verifyClosingReceipt } from './closing.js';
+export type {
+  ClosingCause,
+  ClosingReceiptClaims,
+  VerifyClosingReceiptInput,
+  VerifyClosingReceiptOptions,
+} from './closing.js';

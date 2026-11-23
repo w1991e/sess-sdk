@@ -17,6 +17,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { assertPackedHygiene } from '../../../scripts/check-packed-hygiene.mjs';
 import { installPacked } from './lib/install-packed.mjs';
 import { connectStdio } from './lib/mcp-client.mjs';
+import { releaseStatus } from './release-guard.mjs';
 
 const adapter = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const run = (command, args, cwd) =>
@@ -318,6 +319,9 @@ process.stdout.write(JSON.stringify({
     version: manifest.version,
     status: install.sdkMode === 'registry' ? 'registry SDK dependency' : 'candidate',
     sdkMode: install.sdkMode,
+    // Not releasable while the records do not resolve the SDK this version ships on
+    // (release-guard checkSdkRequirement); the release workflow's artifact guard refuses it.
+    ...releaseStatus({ manifest, lock, compatibility, sdkMode: install.sdkMode }),
     sourceCommit: git(['rev-parse', 'HEAD']),
     sourceTreeDirty: porcelain === null ? null : porcelain.length !== 0,
     filename: packed.filename,

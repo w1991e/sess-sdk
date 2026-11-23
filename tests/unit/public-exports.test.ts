@@ -143,6 +143,8 @@ const ADDED = {
     'EnvelopeTitles',
     'RevisionEnvelopeCompact',
     'RevisionEnvelopeFull',
+    // Decision 0016 (unreleased): the closing receipt beside a Session's Events, a type only.
+    'SessionClosing',
     'invoice',
     'items',
     'lintText',
@@ -172,6 +174,14 @@ const ADDED = {
     'EnvelopeTitles',
     'RevisionEnvelopeCompact',
     'RevisionEnvelopeFull',
+    // Decision 0016 (unreleased): the closing receipt verifier, its one runtime export, and types.
+    'ClosingCause',
+    'ClosingReceiptClaims',
+    'VerifiedClosing',
+    'VerifyClosingInput',
+    'VerifyClosingReceiptInput',
+    'VerifyClosingReceiptOptions',
+    'verifyClosingReceipt',
   ],
   './webhooks': [],
   // S-07: the new optional QR entry point.
@@ -255,6 +265,8 @@ describe('public exports', () => {
       'BUNDLED_RENDERER_LIST',
       'BUNDLE_LIMITS',
       'newerRendererList',
+      // Decision 0016 (unreleased): the closing receipt verifier.
+      'verifyClosingReceipt',
       'verifyDecisionBundle',
       'verifyDecisionReceipt',
       'verifyRendererIdentities',
@@ -288,6 +300,7 @@ describe('public exports', () => {
       'retrieveSurface',
       'waitForResponse',
     ]);
-    expect(Object.keys(sess.receipts)).toEqual(['verifyResponse']);
+    // Decision 0016 (unreleased): verifyClosing beside verifyResponse.
+    expect(Object.keys(sess.receipts)).toEqual(['verifyResponse', 'verifyClosing']);
   });
 });
