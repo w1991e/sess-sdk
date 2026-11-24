@@ -239,24 +239,31 @@ The [quickstart function](examples/quickstart.ts) includes a private delivery ca
 answer is still the current expected business step before publishing or completing. Its store
 and worker lease are application-owned. See [Integration](docs/integration.md).
 
-## Check a decision bundle
+## Check a receipt
 
-A decision bundle is one accepted decision that its owner chose to share: the signed receipt, the
-exact Surface and input, and the issuer's public keys. Check it on your own computer, with keys you
-trust (never the keys inside the bundle):
+The `sess` command in this package checks a receipt on your own computer: a decision bundle (one
+answer and its content), a closing receipt, or a kept file (`.json`). Keys inside the file are
+never trusted.
 
 ```sh
-npx -p @sess.si/sdk@0.6.0 sess verify bundle.json --issuer https://api.sess.si --keys sess-receipt-keys.json
+sess verify kept-conversation.json
+sess verify bundle.json --keys sess-receipt-keys.json
 ```
 
-The `sess` command first ships in `0.1.0-rc.5`; any later version, `0.6.0` included, has it.
+Without `--keys`, it fetches the issuer's published keys once
+(`https://api.sess.si/.well-known/sess-receipt-keys.json`, or `--issuer`'s) and sends nothing
+else. With `--keys`, nothing is fetched.
 
-You'll see `Valid decision bundle.` and what was accepted, when, on which revision; or `Invalid`
-and the first reason; or `This bundle is newer than @sess.si/sdk {version}. Update @sess.si/sdk to
-check it.` when the bundle is newer than your version can check. Exit status is 0 valid, 1 invalid, 2 usage error, 3 newer; add `--json` for the full
-result. Nothing is sent anywhere. In code, use `verifyDecisionBundle` from `@sess.si/sdk/receipts`
-([Security](docs/security.md#decision-bundles)). Formats: [receipt-v1](docs/spec/receipt-v1.md) and
-[bundle-v1](docs/spec/bundle-v1.md).
+You'll see `Verified` and what was checked; or `Unverified` and the first reason; or that the file
+is newer than your version can check. Each answer is checked at the time Sess says it signed it,
+and a receipt dated after your computer's time is refused; `--now <time>` checks at another time. It does not read PDFs or receipt codes from a QR code, and
+in a kept file it checks the receipts, not the archival records, holder keys or witness evidence.
+Exit status is 0 verified, 1 unverified, 2 usage error, 3 newer, 4 the published keys could not be
+fetched, 5 not everything in the file could be checked (an answer the file holds no content for);
+add `--json` for the full result. In code, use `verifyDecisionBundle` and `verifyClosingReceipt`
+from `@sess.si/sdk/receipts` ([Security](docs/security.md#decision-bundles)). Formats:
+[receipt-v1](docs/spec/receipt-v1.md), [bundle-v1](docs/spec/bundle-v1.md) and
+[closing-receipt-v1](docs/spec/closing-receipt-v1.md).
 
 ## Show the link as a QR code
 

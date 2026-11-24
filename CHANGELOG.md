@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.0 — unreleased
+
+- `sess verify <file>` also checks a closing receipt and a kept file (keep-v1 to keep-v4), with
+  `verifyDecisionBundle` for each answer and `verifyClosingReceipt` for the closing receipt and
+  its set. Without `--keys` it fetches the issuer's published key set once (`--issuer` defaults to
+  `https://api.sess.si`); `--keys` and `--issuer` are no longer required.
+- Each answer is now judged at the time Sess says it signed it unless `--now` is given, so an
+  answer past its `exp` still verifies. The signing time is still checked against this
+  computer's clock: an answer or closing receipt dated more than 60 seconds after it is refused
+  (`not_yet_valid`).
+- The summary's words changed: `Verified: …` and `Unverified. …` with a `Reason` row replace
+  `Valid decision bundle.` and `Invalid decision bundle: …`; a `Keys` row says where the keys came
+  from. The `--json` result of a bundle keeps its shape; its `checked_at` is the time the answer
+  was judged at.
+- New exit codes: 4, the published keys could not be fetched or used; 5, not everything in the
+  file could be checked. PDFs, QR receipt codes and a lone round receipt are refused (exit 2).
+- `verifyDecisionBundle`, `verifyClosingReceipt` and every library export are unchanged.
+
 ## 0.6.0 — 2026-11-22
 
 - The closing receipt: when a Session ends with at least one accepted answer, Sess signs how it

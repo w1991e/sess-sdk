@@ -54,7 +54,7 @@ export const BUNDLE_LIMITS = Object.freeze({
 });
 
 /** How far in the future a receipt's `iat` may be before it is `not_yet_valid`, in seconds. */
-const CLOCK_TOLERANCE_S = 60;
+export const CLOCK_TOLERANCE_S = 60;
 
 /** One public Ed25519 JWK as disclosed in a bundle. */
 export interface BundleJwk {
