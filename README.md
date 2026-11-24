@@ -255,8 +255,8 @@ Without `--keys`, it fetches the issuer's published keys once
 else. With `--keys`, nothing is fetched.
 
 You'll see `Verified` and what was checked; or `Unverified` and the first reason; or that the file
-is newer than your version can check. Each answer is checked at the time Sess says it signed it;
-`--now <time>` checks at another time. It does not read PDFs or receipt codes from a QR code, and
+is newer than your version can check. Each answer is checked at the time Sess says it signed it,
+and a receipt dated after your computer's time is refused; `--now <time>` checks at another time. It does not read PDFs or receipt codes from a QR code, and
 in a kept file it checks the receipts, not the archival records, holder keys or witness evidence.
 Exit status is 0 verified, 1 unverified, 2 usage error, 3 newer, 4 the published keys could not be
 fetched, 5 not everything in the file could be checked (an answer the file holds no content for);

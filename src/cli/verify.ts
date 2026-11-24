@@ -11,6 +11,7 @@ import { open } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { SessError } from '../errors.js';
 import {
+  CLOCK_TOLERANCE_S,
   verifyDecisionBundle,
   type DecisionBundleVerification,
   type ExpectedBundleContext,
@@ -53,6 +54,8 @@ export interface CliIo {
   stderr: (text: string) => void;
   /** The fetch used for the published keys (tests); defaults to the global fetch. */
   fetch?: FetchKeys;
+  /** The current time in milliseconds (tests); defaults to Date.now. */
+  clock?: () => number;
 }
 
 export const USAGE = `Usage: sess verify <file> [options]
@@ -82,7 +85,8 @@ Renderer identity (optional):
 
 Other:
   --now <time>        check at this RFC 3339 time; without it, each answer is checked at the
-                      time Sess says it signed it
+                      time Sess says it signed it, and a receipt dated after this computer's
+                      time is refused
   --json              print the full result as JSON
   -h, --help          show this help
 
@@ -213,14 +217,26 @@ function peek(jws: unknown): { typ?: unknown; kid?: unknown; iat?: unknown; aud?
 }
 
 /**
- * The time an answer is judged at: --now, else the time Sess says it signed the receipt (its
- * `iat`, which the signature covers), as Sess's own set check does (closing-receipt-v1 §6.1). An
- * unreadable `iat` gives the epoch, and the verifier then refuses the receipt on its own terms.
+ * The time an answer is judged at, and whether that is its signing time. With --now, --now.
+ * Otherwise the time Sess says it signed the receipt (its `iat`, which the signature covers), as
+ * Sess's own set check does (closing-receipt-v1 §6.1), so an answer past its `exp` still checks;
+ * but never later than this computer's clock: a receipt dated in the future is judged now, and the
+ * verifier refuses it as `not_yet_valid` beyond its clock-skew allowance. An unreadable `iat`
+ * gives the epoch, and the verifier then refuses the receipt on its own terms.
  */
-function judgedAt(receipt: unknown, now: Date | undefined): Date {
-  if (now) return now;
+function judgedAt(receipt: unknown, parsed: Parsed): { at: Date; atSigning: boolean } {
+  if (parsed.now) return { at: parsed.now, atSigning: false };
   const iat = peek(receipt).iat;
-  return Number.isSafeInteger(iat) ? new Date((iat as number) * 1000) : new Date(0);
+  const signed = Number.isSafeInteger(iat) ? (iat as number) * 1000 : 0;
+  return signed <= parsed.clockMs
+    ? { at: new Date(signed), atSigning: true }
+    : { at: new Date(parsed.clockMs), atSigning: false };
+}
+
+/** Whether a verified signing time (`iat`, seconds) is later than the clock plus the allowance. */
+function datedInFuture(iat: number, parsed: Parsed): boolean {
+  const at = parsed.now ? parsed.now.getTime() : parsed.clockMs;
+  return iat > Math.floor(at / 1000) + CLOCK_TOLERANCE_S;
 }
 
 interface Parsed {
@@ -230,10 +246,12 @@ interface Parsed {
   renderersPath: string | undefined;
   context: ExpectedBundleContext | undefined;
   now: Date | undefined;
+  /** This computer's clock, read once when the command starts (milliseconds). */
+  clockMs: number;
   json: boolean;
 }
 
-function parse(argv: readonly string[]): Parsed | 'help' {
+function parse(argv: readonly string[], clockMs: number): Parsed | 'help' {
   let parsed: ReturnType<typeof parseArgs>;
   try {
     parsed = parseArgs({
@@ -308,6 +326,7 @@ function parse(argv: readonly string[]): Parsed | 'help' {
     renderersPath: str('renderers'),
     context: Object.keys(context).length > 0 ? context : undefined,
     now,
+    clockMs,
     json: values.json === true,
   };
 }
@@ -402,6 +421,8 @@ interface RendererCheck {
 interface BundleOutcome {
   result: DecisionBundleVerification;
   renderer: RendererCheck | undefined;
+  /** Whether it was judged at its own signing time (no --now, not dated in the future). */
+  atSigning: boolean;
 }
 
 async function checkBundle(
@@ -412,14 +433,17 @@ async function checkBundle(
   context: ExpectedBundleContext | undefined,
 ): Promise<BundleOutcome> {
   const receipt = (bundle as { receipt?: unknown } | null | undefined)?.receipt;
+  const { at, atSigning } = judgedAt(receipt, parsed);
   let result: DecisionBundleVerification;
   try {
-    // A file that is not JSON is not a bundle: the same facade reports it as malformed.
+    // A file that is not JSON is not a bundle: the same facade reports it as malformed. A receipt
+    // dated in the future is judged at this computer's time, where the facade itself refuses it
+    // as `not_yet_valid` beyond its clock-skew allowance.
     result = await verifyDecisionBundle(bundle, {
       issuer: parsed.issuer,
       trustedKeys: keys,
       ...(context ? { expectedContext: context } : {}),
-      now: judgedAt(receipt, parsed.now),
+      now: at,
     });
   } catch {
     throw new UsageError('invalid verification options');
@@ -440,10 +464,10 @@ async function checkBundle(
     if (renderer.status === 'unlisted')
       result = { ...result, valid: false, reason: 'renderer' as DecisionBundleVerification['reason'] };
   }
-  return { result, renderer };
+  return { result, renderer, atSigning };
 }
 
-function bundleSummary({ result: r, renderer }: BundleOutcome, parsed: Parsed, source: KeysSource): string {
+function bundleSummary({ result: r, renderer, atSigning }: BundleOutcome, source: KeysSource): string {
   const lines: string[] = [];
   const row = rowWriter(lines);
   if (r.valid && r.receipt) {
@@ -468,7 +492,7 @@ function bundleSummary({ result: r, renderer }: BundleOutcome, parsed: Parsed, s
     row('Context', contextText(r.context));
     if (renderer?.identity) row('Renderer', `${safe(renderer.identity)} (${renderer.status})`);
   }
-  row('Checked at', parsed.now ? r.checked_at : `${r.checked_at} ${AT_SIGNING}`);
+  row('Checked at', atSigning ? `${r.checked_at} ${AT_SIGNING}` : r.checked_at);
   row('Keys', keysRow(source));
   return `${lines.join('\n')}\n`;
 }
@@ -494,6 +518,7 @@ type ClosingReason =
   | 'context_mismatch'
   | 'rounds'
   | 'round_context'
+  | 'not_yet_valid'
   | 'newer';
 
 /** verifyClosingReceipt's codes, as this command reports them. */
@@ -568,6 +593,9 @@ async function checkClosing(
   }
   // --audience and --workspace both name the workspace: both must match.
   if (c.workspaceId !== undefined && claims.workspace_id !== c.workspaceId) return fail('context_mismatch');
+  // A closing receipt has no `exp`, but its signed time is still checked against the clock (or
+  // --now): one dated in the future, beyond the same allowance as an answer, is refused.
+  if (datedInFuture(claims.iat, parsed)) return fail('not_yet_valid');
   const kid = peek(receipt).kid;
   return {
     valid: true,
@@ -842,7 +870,7 @@ async function trustedKeysFrom(parsed: Parsed, io: CliIo): Promise<Trusted> {
 /** Runs `sess <argv>`; resolves to the exit code. Never throws. */
 export async function runCli(argv: readonly string[], io: CliIo): Promise<number> {
   try {
-    const parsed = parse(argv);
+    const parsed = parse(argv, (io.clock ?? Date.now)());
     if (parsed === 'help') {
       io.stdout(USAGE);
       return EXIT.valid;
@@ -907,7 +935,7 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
       }
     }
 
-    const checkedAt = (parsed.now ?? new Date()).toISOString();
+    const checkedAt = (parsed.now ?? new Date(parsed.clockMs)).toISOString();
     if (file.kind === 'closing') {
       const r = await checkClosing(file.receipt, parsed, keys, undefined);
       io.stdout(
@@ -932,7 +960,7 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
     io.stdout(
       parsed.json
         ? safeJson(outcome.renderer ? { ...outcome.result, renderer: outcome.renderer } : outcome.result)
-        : bundleSummary(outcome, parsed, source),
+        : bundleSummary(outcome, source),
     );
     return bundleExit(outcome.result);
   } catch (e) {

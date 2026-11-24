@@ -221,7 +221,10 @@ its compact JWS) or a kept file (keep-v1 to keep-v4). It adds no verification of
   (exit 4).
 - **Time.** Each answer is judged at the time Sess says it signed its receipt (its signed `iat`),
   as Sess's own closing set check does, unless `--now` is given. So an answer past its `exp`
-  still verifies; its `exp` is shown, not judged. A closing receipt has no `exp`.
+  still verifies; its `exp` is shown, not judged. The signing time is still checked against this
+  computer's clock: an answer or closing receipt dated more than 60 seconds after it (the
+  verifier's clock-skew allowance) is refused as `not_yet_valid`. With `--now`, everything is
+  judged at that time. A closing receipt has no `exp`.
 - **Workspace.** Without `--audience` or `--workspace`, a closing receipt is checked against its
   own signed `aud` and the context is reported unchecked, as for a bundle.
 - **Key changes.** An answer signed under an older key verifies only while that key is in the

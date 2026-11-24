@@ -41,6 +41,7 @@ const jsonResponse = (body: unknown, status = 200) =>
 async function sess(
   args: string[],
   respond?: (url: string) => Response | Promise<Response>,
+  clockMs?: number,
 ): Promise<Result> {
   let stdout = '';
   let stderr = '';
@@ -53,6 +54,7 @@ async function sess(
       if (!respond) throw new Error('no network in this test');
       return respond(url);
     },
+    ...(clockMs !== undefined ? { clock: () => clockMs } : {}),
   });
   return { code, stdout, stderr, calls };
 }
@@ -295,6 +297,82 @@ describe('sess verify: a closing receipt on its own', () => {
       EXIT.invalid,
       'Unverified. This receipt names a key that is not among the keys used for this check.',
     ]);
+  });
+});
+
+describe('sess verify: a receipt dated in the future', () => {
+  const NOT_YET = 'Unverified. The receipt is dated after the time it was checked.';
+  const clock = CORPUS_NOW.getTime();
+  const at = (seconds: number) => new Date(clock + seconds * 1000);
+
+  it('refuses an answer signed after this computer’s time, while one past its exp still checks', async () => {
+    // The corpus `future` vector's dates: signed 2100-01-01, exp 2100-02-01.
+    const future = await write(
+      'future.json',
+      bundleOf(
+        await roundReceipt(1, {
+          acceptedAt: new Date('2100-01-01T00:00:00.000Z'),
+          expiresAt: new Date('2100-02-01T00:00:00.000Z'),
+        }),
+      ),
+    );
+    const r = await sess(withKeys(future));
+    expect([r.code, firstLine(r)]).toEqual([EXIT.invalid, NOT_YET]);
+    expect(r.stdout).toContain('Reason      not_yet_valid');
+    expect(r.stdout).not.toContain('(when Sess says it was signed)');
+    // The corpus `expired` vector's dates: signed 2026-01-01, exp 2026-02-01.
+    const expired = await write(
+      'expired.json',
+      bundleOf(
+        await roundReceipt(1, {
+          acceptedAt: new Date('2026-01-01T00:00:00.000Z'),
+          expiresAt: new Date('2026-02-01T00:00:00.000Z'),
+        }),
+      ),
+    );
+    expect((await sess(withKeys(expired))).code).toBe(EXIT.valid);
+    // With --now, everything is judged at --now, as before.
+    const atNow = await sess(withKeys(future, ['--now', '2100-01-01T00:00:30Z']));
+    expect(atNow.code).toBe(EXIT.valid);
+  });
+
+  it('allows the clock-skew allowance (60 s) and no more', async () => {
+    const inside = await write('skew-59.json', bundleOf(await roundReceipt(1, { acceptedAt: at(59) })));
+    const edge = await write('skew-60.json', bundleOf(await roundReceipt(1, { acceptedAt: at(60) })));
+    const outside = await write('skew-61.json', bundleOf(await roundReceipt(1, { acceptedAt: at(61) })));
+    expect((await sess(withKeys(inside), undefined, clock)).code).toBe(EXIT.valid);
+    expect((await sess(withKeys(edge), undefined, clock)).code).toBe(EXIT.valid);
+    const r = await sess(withKeys(outside), undefined, clock);
+    expect([r.code, firstLine(r)]).toEqual([EXIT.invalid, NOT_YET]);
+  });
+
+  it('does not verify a kept file with one answer dated in the future', async () => {
+    const rounds = [await roundReceipt(1), await roundReceipt(2, { acceptedAt: at(3600) })];
+    const file = await write(
+      'kept-future.json',
+      keptFile(4, [{ receipt: rounds[0]! }, { receipt: rounds[1]! }], null),
+    );
+    const r = await sess(withKeys(file), undefined, clock);
+    expect([r.code, firstLine(r)]).toEqual([
+      EXIT.invalid,
+      'Unverified. Answer 2 of 2: The receipt is dated after the time it was checked.',
+    ]);
+    expect(r.stdout).toContain('Answer 1    verified');
+    expect(r.stdout).toContain('Answer 2    unverified: not_yet_valid');
+  });
+
+  it('refuses a closing receipt dated in the future, alone or in a kept file', async () => {
+    const rounds = [await roundReceipt(1)];
+    const closing = await closingReceipt(rounds); // signed 2026-10-09T12:20:01Z
+    const issued = Date.parse('2026-10-09T12:20:01Z');
+    const file = await write('closing-future.jws', closing);
+    expect((await sess(withKeys(file), undefined, issued - 59_000)).code).toBe(EXIT.valid);
+    const r = await sess(withKeys(file), undefined, issued - 61_000);
+    expect([r.code, firstLine(r)]).toEqual([EXIT.invalid, NOT_YET]);
+    const kept = await write('kept-closing-future.json', keptFile(4, [{ receipt: rounds[0]! }], closing));
+    const k = await sess(withKeys(kept), undefined, issued - 61_000);
+    expect([k.code, firstLine(k)]).toEqual([EXIT.invalid, NOT_YET]);
+    expect(k.stdout).toContain('Closing     unverified: not_yet_valid');
   });
 });
 

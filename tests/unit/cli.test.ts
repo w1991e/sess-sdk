@@ -139,24 +139,26 @@ function signingTime(bundle: unknown): Date {
 }
 
 /**
- * Vectors whose public result changes when an answer is judged at its own signing time instead of
- * the current time (Sess L-151, ruling B, as Sess's own set check does): `expired` (signed
- * 2026-01-01, exp 2026-02-01) and `future` (signed 2100-01-01) both verify at their signing time.
- * The trusted face, at the fixed corpus time, still reaches the frozen `expired` and
- * `not_yet_valid`.
+ * The one vector whose public result changes when an answer is judged at its own signing time
+ * instead of the current time (Sess L-151, ruling B, as Sess's own set check does): `expired`
+ * (signed 2026-01-01, exp 2026-02-01) verifies at its signing time. `future` (signed 2100-01-01)
+ * keeps its frozen `not_yet_valid`: a signing time later than the clock is judged at the clock.
+ * The trusted face, at the fixed corpus time, still reaches the frozen `expired`.
  */
-const VERIFIED_PUBLIC: FrozenOutcome = {
-  valid: true,
-  reason: null,
-  content: 'verified',
-  context: 'unchecked',
-  mismatches: [],
-  application_purpose: 'unchecked',
-};
 const JUDGED_AT_SIGNING: Record<string, FrozenOutcome> = {
-  expired: VERIFIED_PUBLIC,
-  future: VERIFIED_PUBLIC,
+  expired: {
+    valid: true,
+    reason: null,
+    content: 'verified',
+    context: 'unchecked',
+    mismatches: [],
+    application_purpose: 'unchecked',
+  },
 };
+
+/** When the public face judges a receipt: its signing time, unless that is later than now. */
+const publicJudgement = (bundle: unknown): Date | undefined =>
+  signingTime(bundle).getTime() <= Date.now() ? signingTime(bundle) : undefined;
 
 /** Strings that must never appear in CLI output for a vector. */
 function secretsOf(v: CorpusVector): string[] {
@@ -258,13 +260,20 @@ describe('sess verify <file>', () => {
         now: CORPUS_NOW,
       });
       expect(t, `${v.id} trusted result`).toEqual(library);
-      // Without --now, each answer is judged at the time Sess says it signed it.
+      // Without --now, each answer is judged at the time Sess says it signed it, or at the clock
+      // when that is later (whose instant differs between the two processes).
+      const at = publicJudgement(v.bundle);
       const libraryPublic = await verifyDecisionBundle(v.bundle, {
         issuer: CORPUS_ISSUER,
         trustedKeys: corpusTrustedKeys(),
-        now: signingTime(v.bundle),
+        ...(at ? { now: at } : {}),
       });
-      expect(p, `${v.id} public result`).toEqual(libraryPublic);
+      if (at) expect(p, `${v.id} public result`).toEqual(libraryPublic);
+      else
+        expect({ ...p, checked_at: '' }, `${v.id} public result`).toEqual({
+          ...libraryPublic,
+          checked_at: '',
+        });
       // The summary names the outcome and reason in a few lines.
       expect(headFor(frozen.expected.trusted, human.stdout.split('\n')), `${v.id} head`).toBe(true);
       expect(human.stdout.split('\n').length).toBeLessThanOrEqual(12);
