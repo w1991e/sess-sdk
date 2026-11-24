@@ -1,6 +1,6 @@
 # Compatibility and evidence
 
-SDK version: **0.6.0**, published on npm under the `latest` dist-tag with provenance and pinned in release/sdk-candidate.json: reading a Session's Events returns its closing receipt, and `receipts.verifyClosing()` verifies it. **0.5.0** remains published and checks Sess's tighter text limits; it neither types nor verifies the closing receipt, and refuses one offered as a round's receipt as newer. **0.4.0** remains published and verifies every receipt as before, but Sess refuses its longer texts: an agent on 0.4.0 that sends a title over 60 characters gets Sess's refusal instead of the SDK's.
+SDK version: 0.6.0, published on npm as `latest` with provenance, and pinned in release/sdk-candidate.json. Reading a Session's Events returns its closing receipt, and `receipts.verifyClosing()` verifies it. 0.5.0 stays published. It checks Sess's tighter text limits, but it does not read or verify a closing receipt; handed one in place of an answer's receipt, it refuses it as a newer format. 0.4.0 stays published and verifies every receipt as before, but it allows longer texts than Sess now accepts: an agent on 0.4.0 that sends a title over 60 characters gets Sess's refusal instead of the SDK's.
 **0.3.0** remains published: receipt v2 and bundle-v2 verification, with receipt
 v1 and bundle-v1 verified as before; it cannot read an issued receipt v2.
 **0.2.0** remains published: the rating field and respondents (the
