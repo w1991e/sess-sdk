@@ -4,7 +4,7 @@
 
 Tool schemas stay `sess-mcp-tools/6`; the five tool names are unchanged.
 
-- This release depends on @sess.si/sdk 0.6.0, up from 0.5.0, installed from the npm registry. The SDK package's SHA-256 is ffe29ee2c3ec028ce9a00d9cf6c72467c3fab99dc3f0988ab88bb3734a521fbb. The adapter uses the SDK to verify the receipts Sess issues.
+- This release depends on `@sess.si/sdk` 0.6.0, up from 0.5.0, installed from the npm registry. The SDK package's SHA-256 is `ffe29ee2c3ec028ce9a00d9cf6c72467c3fab99dc3f0988ab88bb3734a521fbb`. The adapter uses the SDK to verify the receipts Sess issues.
 - The README's OpenClaw section installs `@sess.si/openclaw@0.3.0`, the current OpenClaw release
   (was 0.1.0).
 
