@@ -20,14 +20,13 @@ the last release candidate, `0.1.0-rc.4`. The MCP Registry submission of `server
 owner's and has not happened yet: the Registry's latest `si.sess/sess` is still 0.3.0 (read
 2026-11-22).
 
-`0.6.0` is prepared, not published (tag `mcp-v0.6.0`, tool schemas `sess-mcp-tools/6`). Its
-contents are the `0.6.0` entry in [CHANGELOG.md](CHANGELOG.md). It ships only on `@sess.si/sdk`
-0.6.0: its packet, `release/v0.6.0-packet.md`, is written in the SDK's registry transition PR,
-once `@sess.si/sdk` 0.6.0 is published and the tarball can be computed. `0.5.0` stays on `latest`
-until it is published. `@sess.si/mcp` 0.6.0 must never ship on `@sess.si/sdk` 0.5.0, and the release
-guard refuses it: `compatibility.json` names 0.6.0 as the SDK it ships on (`release.prepared.sessSdkVersion`),
-so the tag `mcp-v0.6.0` is refused until the registry transition moves the dependency, the lock
-and `sessSdk` to the published 0.6.0.
+`0.6.0` is prepared, not published (tag `mcp-v0.6.0`, on `@sess.si/sdk` 0.6.0, tool schemas
+`sess-mcp-tools/6`). Its contents are the `0.6.0` entry in [CHANGELOG.md](CHANGELOG.md);
+[release/v0.6.0-packet.md](release/v0.6.0-packet.md) is the maintainer's order. `0.5.0` stays on
+`latest` until it is published. `@sess.si/mcp` 0.6.0 must never ship on `@sess.si/sdk` 0.5.0, and
+the release guard refuses it: `compatibility.json` names 0.6.0 as the SDK it ships on
+(`release.prepared.sessSdkVersion`). The SDK's registry transition moved the dependency, the lock
+and `sessSdk` to the published 0.6.0, so that hold is lifted.
 
 The last published candidate is `0.1.0-rc.4` (npm `next`, 2026-10-27; integrity and SHA-256 as
 recorded in [release/rc4-packet.md](release/rc4-packet.md) and `compatibility.json`). `0.1.0-rc.3` ([release/rc3-packet.md](release/rc3-packet.md)), `0.1.0-rc.2`
@@ -43,7 +42,7 @@ maintainer steps are historical: they were executed and are not re-run.
 > automatically, without protection rules, and the publish job would then run without maintainer
 > approval.
 
-1. **SDK published — done.** The pinned `@sess.si/sdk@0.5.0` (`release/sdk-candidate.json`) is
+1. **SDK published — done.** The pinned `@sess.si/sdk@0.6.0` (`release/sdk-candidate.json`) is
    on npm under the dist-tag `latest`, with provenance, and its registry tarball has exactly the
    pinned SHA-256 and integrity. `package-lock.json` resolves it from the registry (switched with
    `npm run sdk:switch-to-registry -- --apply`). `npm run setup`, `npm run check`, CI and the

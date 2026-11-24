@@ -40,7 +40,7 @@ registry tarball equal it). The `0.2.0` tarball is recorded in its packet.
 1. **SDK publication.** `@sess.si/sdk` at the exact version in `package.json` (the repository pin
    `release/sdk-candidate.json`) must be published on the public npm registry with the same bytes
    the lockfile pins (`package-lock.json` integrity); the release guard refuses otherwise.
-   `@sess.si/sdk@0.5.0` is published under the `latest` dist-tag with those bytes. CI and
+   `@sess.si/sdk@0.6.0` is published under the `latest` dist-tag with those bytes. CI and
    `npm run check` install it from the registry and verify it against the pin
    (`scripts/registry-sdk.mjs`). A future SDK pin must be published before the adapter adopts it.
 2. **GitHub environment `npm-openclaw-release` — exists.** It has a required reviewer (the

@@ -7,9 +7,9 @@ version.
 
 ## This release
 
-- `@sess.si/mcp@0.6.0`, tool schema `sess-mcp-tools/6`, is prepared and not yet published. It
-  ships only on `@sess.si/sdk@0.6.0`, itself prepared and not yet published; until the SDK's
-  registry transition its dependency stays `0.5.0`. Until it is published, npm `latest` is `0.5.0`.
+- `@sess.si/mcp@0.6.0`, tool schema `sess-mcp-tools/6`, on `@sess.si/sdk@0.6.0`, is prepared and
+  not yet published. It ships only on `@sess.si/sdk@0.6.0`. Until it is published, npm `latest` is
+  `0.5.0`.
 - `@sess.si/mcp@0.5.0`, tool schema `sess-mcp-tools/6`, on `@sess.si/sdk@0.5.0`, is on npm
   `latest` since 2026-11-22 (release run 44971198424, read back from the registry). It replaced
   `0.4.0` (tool schema `sess-mcp-tools/5`, on `@sess.si/sdk@0.4.0`, `latest` since
@@ -23,7 +23,7 @@ version.
   in the 0.5.0 tarball is the snapshot dated at the artifact's preparation (2026-11-22), which
   records 0.5.0 as prepared and not yet published; it stays true of that moment. It now records
   0.6.0 as prepared and not yet published (`release.prepared`), as a snapshot dated at the
-  artifact's preparation (2026-11-22).
+  artifact's preparation (2026-11-23).
 - The README names `@sess.si/mcp@0.6.0` in every install line; the line is bumped on each release.
   Until 0.6.0 is published, that line does not install.
 
