@@ -166,10 +166,9 @@ that envelope, with another, or with its compact form (a QR code's, never a file
 with reason `revision`. A later bundle version, receipt type or envelope `sess_revision` is
 `unsupported_version`: newer, never a damaged file, and nothing in it is released (`sess verify`
 says so and exits 3). `verifyDecisionBundle` from
-`@sess.si/sdk/receipts` (and the `sess verify <file>` command) verifies both versions offline with
-the same checks, order, bounds, reasons and result object as every other Sess verification face,
-proven against the shared bundle-v1 and bundle-v2 conformance corpora. It is separate from
-`verifyDecisionReceipt`.
+`@sess.si/sdk/receipts` verifies both versions offline with the same checks, order, bounds,
+reasons and result object as every other Sess verification face, proven against the shared
+bundle-v1 and bundle-v2 conformance corpora. It is separate from `verifyDecisionReceipt`.
 
 ```ts
 import { verifyDecisionBundle, type ReceiptKeySet } from '@sess.si/sdk/receipts';
@@ -199,6 +198,36 @@ if (result.valid && result.application_purpose === 'matched_caller_context') {
 - **Results, not exceptions.** Every outcome about the bundle is a result with one `reason`;
   only invalid options throw a `TypeError`. A valid result shows link-holder assurance only. It
   does not name or verify a person and is not evidence that anything was authorized or executed.
+
+### The `sess verify` command
+
+`sess verify <file>` runs these verifiers on a decision bundle, a closing receipt (a file holding
+its compact JWS) or a kept file (keep-v1 to keep-v4). It adds no verification of its own:
+
+- **A kept file** is read structurally: its own members, each round's receipt, the round's
+  bundle when the file holds its content (it must carry that round's receipt byte for byte, and
+  for a receipt v2 the same revision envelope), and keep-v4's `closing_receipt`. Each bundle is
+  checked with `verifyDecisionBundle`; the closing receipt with `verifyClosingReceipt`, given the
+  file's round receipts in file order, so the signed count and commitment must be exactly those
+  receipts; and every answer checked must name the closing receipt's issuer, workspace and
+  Session. An answer the file holds no content for is reported `not_checked` and the file is
+  never reported verified (exit 5). The inventory, snapshot, archival or person envelopes, holder
+  proofs and witness evidence are not checked. Kept files are read up to 80 MiB.
+- **Keys.** With `--keys <file>`, nothing is fetched. Without it, the command makes one `GET` of
+  `<issuer>/.well-known/sess-receipt-keys.json` (the issuer defaults to `https://api.sess.si` and
+  is never read from the file; it must be an `https` origin): no credential, cookie or referrer,
+  no redirect, a 5-second deadline and the 256 KiB key-set bound, then `validateKeySet`. Nothing
+  else is sent. If the keys cannot be fetched or are not a valid key set, nothing is checked
+  (exit 4).
+- **Time.** Each answer is judged at the time Sess says it signed its receipt (its signed `iat`),
+  as Sess's own closing set check does, unless `--now` is given. So an answer past its `exp`
+  still verifies; its `exp` is shown, not judged. A closing receipt has no `exp`.
+- **Workspace.** Without `--audience` or `--workspace`, a closing receipt is checked against its
+  own signed `aud` and the context is reported unchecked, as for a bundle.
+- **Key changes.** An answer signed under an older key verifies only while that key is in the
+  key set used; otherwise it is `unknown_kid`. The published set carries no key dates.
+- **Not read.** PDFs, QR receipt codes and a round receipt on its own (without its content) are
+  refused with exit 2.
 
 ## Keys, rotation, and resource limits
 

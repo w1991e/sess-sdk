@@ -35,7 +35,7 @@ if (
   JSON.stringify(['.', './qr', './receipts', './webhooks'])
 )
   throw new Error('Unexpected public export.');
-// One executable: the offline `sess verify <file>` command.
+// One executable: the `sess verify <file>` command.
 if (JSON.stringify(manifest.bin) !== JSON.stringify({ sess: './dist/cli/main.js' }))
   throw new Error('Unexpected package executable.');
 for (const hook of [
@@ -212,7 +212,7 @@ assert.deepEqual([runtime.counts.create, runtime.counts.complete, runtime.sessio
   const binLink = join(consumer, 'node_modules', '.bin', process.platform === 'win32' ? 'sess.cmd' : 'sess');
   if (!existsSync(binLink)) throw new Error('npm did not link the sess executable.');
   const cliPath = join(installed, 'dist', 'cli', 'main.js');
-  if (!run(process.execPath, [cliPath, '--help'], consumer).startsWith('Usage: sess verify <bundle.json>'))
+  if (!run(process.execPath, [cliPath, '--help'], consumer).startsWith('Usage: sess verify <file>'))
     throw new Error('The sess executable does not print its usage.');
   const usage = spawnSync(process.execPath, [cliPath, 'verify', 'absent.json'], {
     cwd: consumer,

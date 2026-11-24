@@ -1,8 +1,10 @@
 // `sess verify <file>`, the CLI face of bundle-v1 verification. The CLI source is bundled once and
 // run as a real Node process with every network entry point replaced by a hard failure. Every
-// corpus vector must reach the same outcome and reason as the frozen corpus (and the library
-// face) for a trusting caller and for a public verifier, with the documented exit codes, and the
-// output must never contain the receipt, the disclosed content or key material.
+// corpus vector must reach the same outcome and reason as the library face for a trusting caller
+// (at the corpus time) and for a public verifier (at the receipt's own signing time, Sess L-151),
+// with the documented exit codes, and the output must never contain the receipt, the disclosed
+// content or key material. With --keys nothing is fetched; without it, the one network use is the
+// fetch of the published keys (cli-receipts.test.ts checks what that fetch sends).
 import { execFile } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -114,13 +116,47 @@ const outcome = (r: DecisionBundleVerification): FrozenOutcome => ({
 /** The documented exit status: 0 valid, 3 newer than this release checks, 1 any other invalid. */
 const exitFor = (o: FrozenOutcome) => (o.valid ? 0 : o.reason === 'unsupported_version' ? 3 : 1);
 
-/** The summary's first line: valid, newer (never reported as a failure), or invalid and its reason. */
-const firstLineFor = (o: FrozenOutcome) =>
+/**
+ * The summary's first two lines: valid, newer (never reported as a failure), or unverified with
+ * its sentence, then its reason code.
+ */
+const headFor = (o: FrozenOutcome, lines: string[]) =>
   o.valid
-    ? 'Valid decision bundle.'
+    ? lines[0] === 'Verified: one answer and its content.'
     : o.reason === 'unsupported_version'
-      ? `This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`
-      : `Invalid decision bundle: ${o.reason}`;
+      ? lines[0] === `This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`
+      : /^Unverified\. \S/.test(lines[0] ?? '') && lines[1] === `  ${'Reason'.padEnd(11)} ${o.reason}`;
+
+/** The time Sess says it signed the bundle's receipt (its `iat`), unverified; the epoch if none. */
+function signingTime(bundle: unknown): Date {
+  try {
+    const receipt = (bundle as { receipt: string }).receipt;
+    const iat = JSON.parse(Buffer.from(receipt.split('.')[1] as string, 'base64url').toString('utf8')).iat;
+    return Number.isSafeInteger(iat) ? new Date(iat * 1000) : new Date(0);
+  } catch {
+    return new Date(0);
+  }
+}
+
+/**
+ * Vectors whose public result changes when an answer is judged at its own signing time instead of
+ * the current time (Sess L-151, ruling B, as Sess's own set check does): `expired` (signed
+ * 2026-01-01, exp 2026-02-01) and `future` (signed 2100-01-01) both verify at their signing time.
+ * The trusted face, at the fixed corpus time, still reaches the frozen `expired` and
+ * `not_yet_valid`.
+ */
+const VERIFIED_PUBLIC: FrozenOutcome = {
+  valid: true,
+  reason: null,
+  content: 'verified',
+  context: 'unchecked',
+  mismatches: [],
+  application_purpose: 'unchecked',
+};
+const JUDGED_AT_SIGNING: Record<string, FrozenOutcome> = {
+  expired: VERIFIED_PUBLIC,
+  future: VERIFIED_PUBLIC,
+};
 
 /** Strings that must never appear in CLI output for a vector. */
 function secretsOf(v: CorpusVector): string[] {
@@ -208,10 +244,11 @@ describe('sess verify <file>', () => {
       }
       const t = JSON.parse(trusted.stdout) as DecisionBundleVerification;
       const p = JSON.parse(pub.stdout) as DecisionBundleVerification;
+      const expectedPublic = JUDGED_AT_SIGNING[v.id] ?? frozen.expected.public;
       expect(outcome(t), `${v.id} trusted`).toEqual(frozen.expected.trusted);
-      expect(outcome(p), `${v.id} public`).toEqual(frozen.expected.public);
+      expect(outcome(p), `${v.id} public`).toEqual(expectedPublic);
       expect(trusted.code, `${v.id} trusted exit`).toBe(exitFor(frozen.expected.trusted));
-      expect(pub.code, `${v.id} public exit`).toBe(exitFor(frozen.expected.public));
+      expect(pub.code, `${v.id} public exit`).toBe(exitFor(expectedPublic));
       expect(human.code, `${v.id} human exit`).toBe(exitFor(frozen.expected.trusted));
       // The CLI reports the library's result object exactly (the public face's time differs).
       const library = await verifyDecisionBundle(v.bundle, {
@@ -221,13 +258,15 @@ describe('sess verify <file>', () => {
         now: CORPUS_NOW,
       });
       expect(t, `${v.id} trusted result`).toEqual(library);
+      // Without --now, each answer is judged at the time Sess says it signed it.
       const libraryPublic = await verifyDecisionBundle(v.bundle, {
         issuer: CORPUS_ISSUER,
         trustedKeys: corpusTrustedKeys(),
+        now: signingTime(v.bundle),
       });
-      expect({ ...p, checked_at: '' }, `${v.id} public result`).toEqual({ ...libraryPublic, checked_at: '' });
+      expect(p, `${v.id} public result`).toEqual(libraryPublic);
       // The summary names the outcome and reason in a few lines.
-      expect(human.stdout.split('\n')[0]).toBe(firstLineFor(frozen.expected.trusted));
+      expect(headFor(frozen.expected.trusted, human.stdout.split('\n')), `${v.id} head`).toBe(true);
       expect(human.stdout.split('\n').length).toBeLessThanOrEqual(12);
       for (const secret of secretsOf(v))
         for (const run of [trusted, pub, human])
@@ -299,8 +338,11 @@ describe('sess verify <file>', () => {
       ['unknown command', ['check', bundle, '--issuer', CORPUS_ISSUER, '--keys', keysFile]],
       ['no file', ['verify', '--issuer', CORPUS_ISSUER, '--keys', keysFile]],
       ['two files', ['verify', bundle, bundle, '--issuer', CORPUS_ISSUER, '--keys', keysFile]],
-      ['no keys', ['verify', bundle, '--issuer', CORPUS_ISSUER]],
-      ['no issuer', ['verify', bundle, '--keys', keysFile]],
+      [
+        'no keys, an issuer that is not an https origin',
+        ['verify', bundle, '--issuer', 'http://issuer.test'],
+      ],
+      ['no keys, an issuer with a path', ['verify', bundle, '--issuer', `${CORPUS_ISSUER}/x`]],
       ['unknown option', ['verify', bundle, '--issuer', CORPUS_ISSUER, '--keys', keysFile, '--trust-bundle']],
       ['repeated issuer', ['verify', bundle, '--issuer', CORPUS_ISSUER, '--issuer', 'x', '--keys', keysFile]],
       [
@@ -333,8 +375,26 @@ describe('sess verify <file>', () => {
     }
     const help = await sess(['--help']);
     expect(help.code).toBe(0);
-    expect(help.stdout).toContain('Usage: sess verify <bundle.json> --issuer <url> --keys <jwks.json>');
+    expect(help.stdout.startsWith('Usage: sess verify <file> [options]\n')).toBe(true);
+    expect(help.stdout).not.toMatch(/without Sess/i);
+    // No --issuer: the default issuer, never the file's; the corpus receipt names another one.
+    const noIssuer = await sess(['verify', bundle, '--keys', keysFile]);
+    expect([noIssuer.code, noIssuer.stderr, noIssuer.stdout.split('\n')[0]]).toEqual([
+      1,
+      '',
+      'Unverified. This receipt names another issuer.',
+    ]);
   }, 60_000);
+
+  it('without --keys, makes its one network call, the fetch of the published keys, only after reading the file', async () => {
+    const r = await sess(['verify', join(dir, 'valid-no-context.json'), '--issuer', CORPUS_ISSUER]);
+    expect(r.code).toBe(97);
+    expect(r.stderr.trim()).toBe('NETWORK-ATTEMPT:fetch');
+    // A file it cannot read is refused before any network use.
+    const absent = await sess(['verify', join(dir, 'absent.json'), '--issuer', CORPUS_ISSUER]);
+    expect(absent.code).toBe(2);
+    expect(absent.stderr).not.toContain('NETWORK-ATTEMPT');
+  });
 
   it('escapes terminal control and bidi characters from verified claims in the summary and JSON', async () => {
     // Claims are signed by the trusted issuer but are still untrusted text for a terminal.
@@ -409,7 +469,10 @@ describe('sess verify --renderers <file>', () => {
     const short = await write('short.json', await corpusRendererList(BUNDLED));
     const missing = await sess(args(future, ['--renderers', short]));
     expect(missing.code).toBe(1);
-    expect(missing.stdout).toContain('Invalid decision bundle: renderer');
+    expect(missing.stdout).toContain(
+      'Unverified. The receipt names a renderer identity that is neither known nor on the signed list.',
+    );
+    expect(missing.stdout).toContain('Reason      renderer');
     // Without --renderers, bundle-v1 verification is unchanged.
     expect((await sess(args(future))).code).toBe(0);
   });
