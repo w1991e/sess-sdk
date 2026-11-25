@@ -36,7 +36,7 @@ type KeyName = keyof typeof CORPUS_KEYS;
 
 const PKCS8_ED25519_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
 
-function corpusPrivateKey(name: KeyName): KeyObject {
+export function corpusPrivateKey(name: KeyName): KeyObject {
   const seed = createHash('sha256').update(CORPUS_KEYS[name].label, 'utf8').digest();
   return createPrivateKey({
     key: Buffer.concat([PKCS8_ED25519_PREFIX, seed]),
@@ -73,7 +73,7 @@ export const canonicalJson = (value: unknown): string => {
   if (text === undefined) throw new TypeError('value has no canonical JSON form');
   return text;
 };
-const jcsDigest = (value: unknown) =>
+export const jcsDigest = (value: unknown) =>
   `sha256:${createHash('sha256').update(canonicalJson(value), 'utf8').digest('hex')}`;
 
 /** A synthetic accepted interactive Surface (the normalized stored form). */
@@ -113,7 +113,7 @@ const IDS = {
   event: 'evt_corpus_event_1',
 };
 
-interface ReceiptInput {
+export interface ReceiptInput {
   issuer: string;
   input: unknown;
   acceptedAt: Date;
@@ -121,7 +121,7 @@ interface ReceiptInput {
 }
 
 /** The claims the core's buildReceipt produces for the corpus receipt input. */
-function claimsOf(over: Partial<ReceiptInput> = {}): Record<string, unknown> {
+export function claimsOf(over: Partial<ReceiptInput> = {}): Record<string, unknown> {
   const r: ReceiptInput = {
     issuer: CORPUS_ISSUER,
     input: CORPUS_INPUT,
@@ -379,7 +379,8 @@ export async function buildCorpusVectors(): Promise<CorpusVector[]> {
     v('malformed-missing-content', bundleOf(base, { content: undefined }), FULL_CONTEXT),
     v('malformed-private-key-material', bundleOf(base, { keys: { keys: [privateJwk] } }), FULL_CONTEXT),
     v('malformed-receipt-not-a-jws', bundleOf('not-a-receipt'), FULL_CONTEXT),
-    v('unsupported-version', bundleOf(base, { version: 2 }), FULL_CONTEXT),
+    // Version 3: bundle-v2 exists (the Sess corpus moved this vector at the recorded commit).
+    v('unsupported-version', bundleOf(base, { version: 3 }), FULL_CONTEXT),
     v(
       'oversized-bytes',
       bundleOf(await sign('current', { input: bigInput }), {

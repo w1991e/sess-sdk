@@ -18,12 +18,19 @@ test('compatibility.json never calls the unpublished package version published',
     status,
     publication: { ...compatibility.publication, version: publication },
   });
-  const prepared = `${candidate.version} prepared, unpublished; ${recorded} published on npm dist-tag next`;
+  const prepared = `At this artifact's preparation (2026-11-18), ${candidate.version} was prepared, not yet published; ${recorded} was then on npm dist-tag next`;
   checkCompatibilityStatus({ manifest: candidate, compatibility: record(prepared) });
+  // The present-tense form, which the packed tarball would carry as false after publication, is
+  // refused, as are an undated snapshot, another version's snapshot and a missing status.
   for (const status of [
     'published (next)',
     `${recorded} published on npm dist-tag next`,
     `published (next); ${candidate.version} prepared, unpublished`,
+    `${candidate.version} prepared, unpublished; latest is ${recorded} until ${candidate.version} is published`,
+    `At this artifact's preparation, ${candidate.version} was prepared, not yet published`,
+    `At this artifact's preparation (2026-11-18), 9.9.9 was prepared, not yet published`,
+    `At this artifact's preparation (2026-11-18), ${candidate.version} was prepared and published`,
+    `Published. At this artifact's preparation (2026-11-18), ${candidate.version} was prepared, not yet published`,
     undefined,
   ])
     assert.throws(

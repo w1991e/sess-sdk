@@ -1,8 +1,11 @@
 // Sess founder 2026-11-07 01:30Z (one source, everywhere): every Surface text limit the SDK, its
 // adapters and their documents state equals the reviewed contract snapshot (contract/openapi.json;
-// scripts/surface-limits.mjs reads it). Code takes the numbers from the generated limits modules
-// (npm run check:contract verifies them); prose and doc comments cannot, so each mention is listed
-// below and checked here, and any other "at most N" in these files fails until it is listed.
+// scripts/surface-limits.mjs reads it). npm run check:contract runs this check. Each limit
+// constant in the code (CONSTANTS) must equal the contract, key by key, and a key that is neither
+// mapped nor named as not a Surface text limit fails. Prose and doc comments are listed mention
+// by mention (FILES), and any other "at most N" in those files fails until it is listed. Adapter
+// tool-schema descriptions must read their constant, never a written number (SOURCES). The check
+// reads source text only and changes no packed file.
 import { readFile } from 'node:fs/promises';
 import { deriveLimits } from './surface-limits.mjs';
 
@@ -19,9 +22,8 @@ const FILES = {
     rules: [
       [S`\| Title \(\`question\`\)\s*\| A question or a task, about (\d+) \| (\d+)`, ['titleGuide', 'title']],
       [S`\| Button \(\`submit_label\`\)\s*\| A verb, 1–3 words\s*\| (\d+)`, ['actionLabel']],
-      [S`\| Field label\s*\| Short, about (\d+)\s*\| (\d+)`, ['fieldLabelGuide', 'fieldLabel']],
+      [S`\| Field label\s*\| Short\s*\| (\d+)`, ['fieldLabel']],
       [S`\| Option\s*\| Short\s*\| (\d+)`, ['optionLabel']],
-      [S`\| Rating end label\s*\| A word or two\s*\| (\d+)`, ['ratingLabel']],
       [S`\| Help \(field \`description\`\)\s*\| One hint\s*\| (\d+)`, ['fieldDescription']],
       [S`\| Description under the title \| One or two sentences\s*\| (\d+)`, ['description']],
       [S`\| Heading\s*\| Short\s*\| (\d+)`, ['heading']],
@@ -50,7 +52,7 @@ const FILES = {
       [S`\| \`title\`\s*\| A question or a task, about (\d+) \| (\d+)`, ['titleGuide', 'title']],
       [S`\| \`description\` \(under the title\)\s*\| One or two sentences\s*\| (\d+)`, ['description']],
       [S`\| \`heading\` component \`text\`\s*\| Short\s*\| (\d+)`, ['heading']],
-      [S`\| Field \`label\`\s*\| Short, about (\d+)\s*\| (\d+)`, ['fieldLabelGuide', 'fieldLabel']],
+      [S`\| Field \`label\`\s*\| Short\s*\| (\d+)`, ['fieldLabel']],
       [S`\| \`option_labels\` value, \`ask\` option\s*\| Short\s*\| (\d+)`, ['optionLabel']],
       [S`\| Field \`description\` \(help\)\s*\| One hint\s*\| (\d+)`, ['fieldDescription']],
       [
@@ -95,7 +97,7 @@ const FILES = {
         S`\| Button \(action \`label\`, \`submit_label\`\)\s*\| A verb, 1–3 words\s*\| (\d+)`,
         ['actionLabel'],
       ],
-      [S`\| Field label\s*\| Short, about (\d+)\s*\| (\d+)`, ['fieldLabelGuide', 'fieldLabel']],
+      [S`\| Field label\s*\| Short\s*\| (\d+)`, ['fieldLabel']],
       [S`\| Option label, \`sess_ask\` option\s*\| Short\s*\| (\d+)`, ['optionLabel']],
       [S`\| Help \(field \`description\`\)\s*\| One hint\s*\| (\d+)`, ['fieldDescription']],
       [S`\| \`description\` under the title\s*\| One or two sentences\s*\| (\d+)`, ['description']],
@@ -109,14 +111,14 @@ const FILES = {
         ['title', 'titleGuide'],
       ],
       [S`the limit is (\d+)\. Shorten it to at most (\d+) characters\.",`, ['fieldLabel', 'fieldLabel']],
-      [S`"limit": (\d+),\s+"length": 72`, ['fieldLabel']],
+      [S`"limit": (\d+),\s+"length": 52`, ['fieldLabel']],
     ],
     other: [S`at most 45 seconds`, S`at most once per`],
   },
   'adapters/openclaw/README.md': {
     rules: [
       [
-        S`title (\d+) \(about (\d+) is the\s+style\), description (\d+), heading (\d+), field label (\d+), option label (\d+), field description (\d+),\s+action label (\d+), record caption (\d+), record key (\d+) and string value (\d+), text ([\d,]+)`,
+        S`title (\d+) \(about (\d+) is the\s+style\), description (\d+), heading (\d+), field labels (\d+), option labels (\d+), field description (\d+),\s+action label (\d+), record caption (\d+), record key (\d+) and string value (\d+), text ([\d,]+)`,
         [
           'title',
           'titleGuide',
@@ -143,8 +145,8 @@ const FILES = {
   'adapters/openclaw/skills/sess/SKILL.md': {
     rules: [
       [
-        S`a title of about (\d+) characters \(at most (\d+)\), a question or\s+a task; button labels a verb of 1-3 words \(at most (\d+)\); field labels at most (\d+); choices at\s+most (\d+); help one hint \(at most (\d+)\)`,
-        ['titleGuide', 'title', 'actionLabel', 'fieldLabel', 'optionLabel', 'fieldDescription'],
+        S`a title of about (\d+) characters \(at most (\d+)\), a question or\s+a task; button labels a verb of 1-3 words \(at most (\d+)\); field labels at most (\d+); help one hint\s+\(at most (\d+)\)`,
+        ['titleGuide', 'title', 'actionLabel', 'fieldLabel', 'fieldDescription'],
       ],
     ],
     other: [],
@@ -152,7 +154,7 @@ const FILES = {
   'create-agent/template/README.md': {
     rules: [
       [
-        S`about (\d+) characters \(at most (\d+)\);\n- the button: a verb, 1–3 words \(at most (\d+)\);\n- field labels: short \(at most (\d+)\); choices: shorter \(at most (\d+)\);\n- help under a field: one hint \(at most (\d+)\)`,
+        S`about (\d+) characters \(at most (\d+)\);\n- the button: a verb, 1–3 words \(at most (\d+)\);\n- field labels: short \(at most (\d+)\);\n- choices: short \(at most (\d+)\);\n- help under a field: one hint \(at most (\d+)\)`,
         ['titleGuide', 'title', 'actionLabel', 'fieldLabel', 'optionLabel', 'fieldDescription'],
       ],
     ],
@@ -234,7 +236,7 @@ const FILES = {
   'src/commerce/items.ts': {
     rules: [
       [
-        S`a row name ≤ (\d+), a detail ≤ (\d+), a\s+\* totals label ≤ (\d+), a caption ≤ (\d+), a quantity unit ≤ (\d+),`,
+        S`a row\s+\* name ≤ (\d+), a detail ≤ (\d+), a totals label ≤ (\d+), a caption ≤ (\d+), a quantity unit ≤ (\d+),`,
         ['itemName', 'itemDetail', 'totalLabel', 'itemsLabel', 'quantityUnit'],
       ],
       [S`What the line is, shown verbatim; at most (\d+)\.`, ['itemName']],
@@ -247,8 +249,112 @@ const FILES = {
   },
 };
 
+/**
+ * Limit constants in code: each file's `Object.freeze({...})` constant, every key mapped to its
+ * contract limit, or listed in `not` (counts, depths, IDs and texts nobody reads as written).
+ */
+const CONSTANTS = {
+  'src/ask.ts': {
+    name: 'LIMITS',
+    map: {
+      question: 'title',
+      details: 'text',
+      submitLabel: 'actionLabel',
+      label: 'fieldLabel',
+      option: 'optionLabel',
+      ratingLabel: 'ratingLabel',
+    },
+    // textMax bounds the person's text answer, not a text they read.
+    not: ['fields', 'options', 'depth', 'textMax'],
+  },
+  'src/commerce/builders.ts': {
+    name: 'LIMITS',
+    map: {
+      title: 'title',
+      description: 'description',
+      recordKey: 'recordKey',
+      recordValue: 'recordValue',
+      actionLabel: 'actionLabel',
+    },
+    not: ['recordFields', 'actions'],
+  },
+  'src/commerce/items.ts': {
+    name: 'ITEMS_LIMITS',
+    map: {
+      name: 'itemName',
+      detail: 'itemDetail',
+      totalLabel: 'totalLabel',
+      label: 'itemsLabel',
+      quantityUnit: 'quantityUnit',
+    },
+    not: ['rows', 'totals', 'amount', 'quantity'],
+  },
+  'adapters/mcp/src/validate.ts': {
+    name: 'TEXT_LIMITS',
+    map: {
+      title: 'title',
+      description: 'description',
+      heading: 'heading',
+      text: 'text',
+      label: 'fieldLabel',
+      optionLabel: 'optionLabel',
+      help: 'fieldDescription',
+      actionLabel: 'actionLabel',
+      recordLabel: 'recordLabel',
+      recordKey: 'recordKey',
+      recordValue: 'recordValue',
+      ratingLabel: 'ratingLabel',
+    },
+    not: ['enumValue', 'schemaTitle', 'schemaDescription'],
+  },
+  'adapters/openclaw/src/schemas.ts': {
+    name: 'TEXT_LIMITS',
+    map: {
+      title: 'title',
+      description: 'description',
+      heading: 'heading',
+      text: 'text',
+      label: 'fieldLabel',
+      optionLabel: 'optionLabel',
+      help: 'fieldDescription',
+      actionLabel: 'actionLabel',
+      recordLabel: 'recordLabel',
+      recordKey: 'recordKey',
+      recordValue: 'recordValue',
+    },
+    not: ['schemaTitle', 'schemaDescription', 'enumValue'],
+  },
+};
+
 const problems = [];
 let checked = 0;
+for (const [file, { name, map, not }] of Object.entries(CONSTANTS)) {
+  const text = await readFile(file, 'utf8');
+  const start = new RegExp(S`\bconst ${name} = Object\.freeze\(\{`).exec(text);
+  if (!start) {
+    problems.push(`${file}: no "const ${name} = Object.freeze({"`);
+    continue;
+  }
+  const from = start.index + start[0].length;
+  const body = text.slice(from, text.indexOf('});', from));
+  const line = (at) => text.slice(0, from + at).split('\n').length;
+  const seen = new Set();
+  for (const m of body.matchAll(/^\s*(\w+):\s*([^,\n]+),/gm)) {
+    const [, key, value] = m;
+    seen.add(key);
+    if (not.includes(key)) continue;
+    if (!(key in map)) {
+      problems.push(`${file}:${line(m.index)}: ${name}.${key} is not mapped to a contract limit`);
+      continue;
+    }
+    checked++;
+    const said = Number(value.replace(/_/g, ''));
+    if (said !== L[map[key]])
+      problems.push(`${file}:${line(m.index)}: ${name}.${key} is ${value}, the contract says ${L[map[key]]}`);
+  }
+  for (const key of Object.keys(map)) if (!seen.has(key)) problems.push(`${file}: ${name}.${key} not found`);
+}
+
 for (const [file, { rules, other }] of Object.entries(FILES)) {
   const text = await readFile(file, 'utf8');
   const covered = new Set();
@@ -278,7 +384,7 @@ for (const [file, { rules, other }] of Object.entries(FILES)) {
 
 /**
  * Adapter tool schemas an agent reads: each description that states a limit must take it from the
- * generated limits module (the expression named here), never a written number.
+ * adapter's TEXT_LIMITS (the expression named here), never a written number.
  */
 const SOURCES = {
   'adapters/mcp/src/tools.ts': [
@@ -298,7 +404,7 @@ for (const [file, rules] of Object.entries(SOURCES)) {
       const line = text.slice(0, m.index).split('\n').length;
       if (m[1] !== undefined)
         problems.push(
-          `${file}:${line}: writes ${m[1]}; take it from \${${expression}} (the generated limits)`,
+          `${file}:${line}: writes ${m[1]}; take it from \${${expression}} (the checked TEXT_LIMITS)`,
         );
       else if (m[2].trim() !== expression)
         problems.push(`${file}:${line}: reads \${${m[2]}}, expected \${${expression}}`);
@@ -311,5 +417,5 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(
-  `Limits verified: ${checked} mentions in ${Object.keys(FILES).length + Object.keys(SOURCES).length} files equal the contract (title ${L.title}, description ${L.description}, field label ${L.fieldLabel}, option ${L.optionLabel}, button ${L.actionLabel}).`,
+  `Limits verified: ${checked} constants and mentions in ${new Set([...Object.keys(CONSTANTS), ...Object.keys(FILES), ...Object.keys(SOURCES)]).size} files equal the contract (title ${L.title}, description ${L.description}, field label ${L.fieldLabel}, option ${L.optionLabel}, button ${L.actionLabel}).`,
 );

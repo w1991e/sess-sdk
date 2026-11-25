@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { stderrDiagnostics } from '../src/errors.js';
 import { createSessMcpServer } from '../src/server.js';
 import { TOOLS, TOOL_SCHEMA_VERSION } from '../src/tools.js';
+import { ASK_LIMITS } from '../src/validate.js';
 import { ANSWER_1, FakeSess, ROUND_1, acceptingVerifier, clientFor, env, tempDir } from './helpers.js';
 
 let dir: ReturnType<typeof tempDir>;
@@ -47,7 +48,7 @@ describe('MCP server', () => {
     ]);
     for (const tool of tools) {
       expect(tool.inputSchema.additionalProperties).toBe(false);
-      expect(tool._meta?.['si.sess/toolSchema']).toBe('sess-mcp-tools/5');
+      expect(tool._meta?.['si.sess/toolSchema']).toBe('sess-mcp-tools/6');
       expect(tool.outputSchema).toBeDefined();
       expect(Object.keys(tool.inputSchema.properties ?? {})).not.toEqual(
         expect.arrayContaining(['api_key', 'origin', 'session_id', 'workspace_id']),
@@ -88,9 +89,38 @@ describe('MCP server', () => {
         'Not for clarifying what they just asked, or for anything you can work out yourself. ' +
         'Anyone who has the link can answer. A receipt records what was shown and chosen, not who answered.',
     );
+    // 0.3.0: the signed choice sentence (founder 2026-11-10 05:04Z item 2) now opens the
+    // mechanics line, before the unchanged "Shortcut for sess_request" sentence.
     expect(rest.join('\n')).toMatch(
-      /^Shortcut for sess_request: give a question and up to 12 simple fields;/,
+      new RegExp(
+        '^' +
+          (SIGNED_ASK_CHOICE + ' ').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+          'Shortcut for sess_request: give a question and up to 12 simple fields;',
+      ),
     );
+  });
+
+  // Signed verbatim (founder 2026-11-10 05:04Z item 2): one sentence in each description tells
+  // the host which of sess_ask and sess_request to use.
+  const SIGNED_ASK_CHOICE =
+    'Use sess_ask for one question with up to 12 simple fields and one button, or to ask many people through one link; use sess_request when the person must see records or choose between buttons such as Approve and Reject.';
+  const SIGNED_REQUEST_CHOICE =
+    'Use sess_request when the person must see records shown as they are or choose between buttons such as Approve and Reject; for one question with simple fields, or many people on one link, use sess_ask.';
+  it('carries the signed sess_ask / sess_request choice sentence in each description, once and verbatim', async () => {
+    const { client } = await connect(new FakeSess());
+    const { tools } = await client.listTools();
+    const ask = tools.find((t) => t.name === 'sess_ask')!.description!;
+    const request = tools.find((t) => t.name === 'sess_request')!.description!;
+    expect(ask.split(SIGNED_ASK_CHOICE)).toHaveLength(2);
+    expect(request.split(SIGNED_REQUEST_CHOICE)).toHaveLength(2);
+    expect(ask).not.toContain(SIGNED_REQUEST_CHOICE);
+    expect(request).not.toContain(SIGNED_ASK_CHOICE);
+    // The "12" in the signed words is the sess_ask field cap.
+    expect(ASK_LIMITS.fields).toBe(12);
+    const askTool = TOOLS.find((t) => t.name === 'sess_ask')!;
+    expect((askTool.inputSchema.properties as any).fields.maxItems).toBe(12);
+    // The sentence it replaced in sess_request is gone.
+    expect(request).not.toContain('sess_ask is shorter for a plain question');
   });
 
   it('routes an approval, a decision or details only a person can give to sess_request, with its limits (F-LT-1)', async () => {
@@ -101,7 +131,9 @@ describe('MCP server', () => {
       new RegExp(
         "^Use it when you need the person's approval, a decision or details only they can give before you go on, even if they only say 'ask me' or 'check with me' and name no tool or device\\. " +
           'Not for clarifying what they just asked, or for anything you can work out yourself\\. ' +
-          'It is the full form, with approve and reject buttons if you need them; sess_ask is shorter for a plain question\\. ' +
+          // 0.3.0: the signed choice sentence replaces "It is the full form, with approve and
+          // reject buttons if you need them; sess_ask is shorter for a plain question."
+          'Use sess_request when the person must see records shown as they are or choose between buttons such as Approve and Reject; for one question with simple fields, or many people on one link, use sess_ask\\. ' +
           'Create a hosted Sess form for a person and return immediately',
       ),
     );
@@ -200,11 +232,9 @@ describe('MCP server', () => {
     // sess_response return `interaction.ask` and the state `closed`. sess_request, sess_publish and
     // sess_complete are unchanged. Renewed again within the unreleased sess-mcp-tools/5: the
     // field's `rating` description in sess_request and sess_publish is Sess's signed RT-08 text.
-    // Renewed again within the unreleased sess-mcp-tools/5 for Sess's 2026-11-07 text limits
-    // (founder 01:30Z): the shown strings' maxLength and lines in sess_request, sess_publish and
-    // sess_ask; sess_response and sess_complete are unchanged. Renewed again (ASTRA F1 on #52):
-    // option_labels' description in sess_request and sess_publish states the generated option
-    // limit (30), not the old 60.
+    // Renewed for sess-mcp-tools/6: Sess's tighter text limits (maxLength and the limit prose) in
+    // sess_request, sess_publish and sess_ask; sess_response and sess_complete change only by the
+    // version their meta names (with /5 in its place they hash to their /5 pins).
     const contract = Object.fromEntries(
       TOOLS.map(({ name, description: _, ...rest }) => [
         name,
@@ -213,13 +243,13 @@ describe('MCP server', () => {
           .digest('hex'),
       ]),
     );
-    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/5');
+    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/6');
     expect(contract).toEqual({
-      sess_request: '8091811e1416db0bb276e4bed213bc188a44d8cb3bc137156141914aed2c41ab',
-      sess_response: '3fdcb3e97f04658f55b79d2150937d0a88aa85789d65289a5d0d783793fd6d25',
-      sess_publish: '0710e002bff5b2dd6bf081f258f7d6fc2c36f093e536d050b39756a577f6869e',
-      sess_complete: 'd8a0e150608bbb93f973aef20a521feef41efd84c6e3138b02678aef261b0540',
-      sess_ask: '38a2df48bcc7be0157a60a5714565a5e173333913810e5386415c0b08929ef7e',
+      sess_request: '37ce75bd52c791cb4b56b56547d0929d48ca755941d98bd74511dc1c0c26c35b',
+      sess_response: 'cbacd482846d0d5dc1ba90c218265b76c0482d5e1d972c29e67254ad1181932b',
+      sess_publish: '03f2a208eb7e2c79c1dc2f686bf5a77c3920134c49d68ca56a010be622492044',
+      sess_complete: '06442ad25cd67664b9280d88776221d958622e998cac86ffe97263fc00d5ade5',
+      sess_ask: '8e317f9b946f06e71c227e958b20c6cd12a015c02e395c1d721abe70c7a4adaf',
     });
     expect(TOOLS.find((t) => t.name === 'sess_response')!.annotations).toEqual({
       title: 'Read the person’s Sess answer',

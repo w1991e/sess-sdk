@@ -1,6 +1,5 @@
 import { inspect } from 'node:util';
 import type { CreateSessionResponse } from './types.js';
-import { SURFACE_TEXT_LIMITS } from './generated/limits.js';
 
 export type SessErrorKind =
   | 'configuration'
@@ -11,6 +10,12 @@ export type SessErrorKind =
   | 'protocol'
   | 'unknown_outcome'
   | 'receipt_verification'
+  /**
+   * The receipt is newer than this release can check (code `RECEIPT_NEWER`): a later receipt type
+   * or a later revision envelope. Nothing was verified and no answer data is returned. It is not a
+   * verification failure: update @sess.si/sdk to check it.
+   */
+  | 'receipt_newer'
   | 'wait_ended';
 export type WriteOutcome = 'not_sent' | 'rejected' | 'unknown';
 export interface SessErrorDetails {
@@ -58,7 +63,7 @@ export class SessError extends Error {
    * the value to at most `limit` characters and send again.
    */
   declare readonly field?: string;
-  /** With `field`: the most the value may have, in Unicode code points (e.g. title 80). */
+  /** With `field`: the most the value may have, in Unicode code points (e.g. title 60). */
   declare readonly limit?: number;
   /** With `field`: the value's actual length, in Unicode code points. */
   declare readonly length?: number;
@@ -125,7 +130,7 @@ export function lengthMessage(field: string, limit: number, length: number): str
   // The same sentences as Sess's 400 INVALID_SCHEMA (`field` is a JSON pointer); the title (the
   // `sess.ask()` question) has its own.
   if (field === '/interaction/title' || field === '/question')
-    return `The title can be at most ${limit} characters. Keep it to a short heading, about ${SURFACE_TEXT_LIMITS.titleGuide}.`;
+    return `The title can be at most ${limit} characters. Keep it to a short heading, about 40.`;
   // Commerce: an items component's rows and totals lines are counted, never truncated.
   if (/\/rows$/.test(field))
     return `${field} has ${length} rows; the limit is ${limit}. Send at most ${limit}, in more than one items component if you need more.`;

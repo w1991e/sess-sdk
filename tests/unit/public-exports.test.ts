@@ -84,6 +84,7 @@ const BEFORE = {
     'verifyDecisionReceipt',
   ],
   './webhooks': [
+    'AskClosed',
     'VerifiedWebhook',
     'VerifyWebhookOptions',
     'WebhookChallenge',
@@ -135,6 +136,15 @@ const ADDED = {
     'Asks',
     'CreateAskRequest',
     'CreateAskResponse',
+    // Receipt v2 (0.3.0): the revision envelope beside a receipt v2.
+    'RevisionEnvelope',
+    // The frozen receipt v2 envelope (0.4.0): its two forms and nested members, types only.
+    'EnvelopeAgentTarget',
+    'EnvelopeTitles',
+    'RevisionEnvelopeCompact',
+    'RevisionEnvelopeFull',
+    // Decision 0016 (unreleased): the closing receipt beside a Session's Events, a type only.
+    'SessionClosing',
     'invoice',
     'items',
     'lintText',
@@ -153,6 +163,25 @@ const ADDED = {
     'RendererList',
     'newerRendererList',
     'verifyRendererIdentities',
+    // Receipt v2 and bundle-v2 (0.3.0): types only; no new runtime export.
+    'DecisionBundleV1',
+    'DecisionBundleV2',
+    'ReceiptClaimsV1',
+    'ReceiptClaimsV2',
+    'RevisionEnvelope',
+    // The frozen receipt v2 envelope (0.4.0): types only; no new runtime export.
+    'EnvelopeAgentTarget',
+    'EnvelopeTitles',
+    'RevisionEnvelopeCompact',
+    'RevisionEnvelopeFull',
+    // Decision 0016 (unreleased): the closing receipt verifier, its one runtime export, and types.
+    'ClosingCause',
+    'ClosingReceiptClaims',
+    'VerifiedClosing',
+    'VerifyClosingInput',
+    'VerifyClosingReceiptInput',
+    'VerifyClosingReceiptOptions',
+    'verifyClosingReceipt',
   ],
   './webhooks': [],
   // S-07: the new optional QR entry point.
@@ -236,6 +265,8 @@ describe('public exports', () => {
       'BUNDLED_RENDERER_LIST',
       'BUNDLE_LIMITS',
       'newerRendererList',
+      // Decision 0016 (unreleased): the closing receipt verifier.
+      'verifyClosingReceipt',
       'verifyDecisionBundle',
       'verifyDecisionReceipt',
       'verifyRendererIdentities',
@@ -269,6 +300,7 @@ describe('public exports', () => {
       'retrieveSurface',
       'waitForResponse',
     ]);
-    expect(Object.keys(sess.receipts)).toEqual(['verifyResponse']);
+    // Decision 0016 (unreleased): verifyClosing beside verifyResponse.
+    expect(Object.keys(sess.receipts)).toEqual(['verifyResponse', 'verifyClosing']);
   });
 });

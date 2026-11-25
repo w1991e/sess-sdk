@@ -6,22 +6,20 @@
 import { SessError, lengthMessage } from '../errors.js';
 import type { ItemsComponent } from '../types.js';
 import { minorUnits } from './currency.js';
-import { SURFACE_TEXT_LIMITS } from '../generated/limits.js';
 
 /**
- * The runtime's items limits (Unicode code points for text, read from the contract in
- * ../generated/limits.ts): rows 1–100, totals lines ≤ 8, a row name ≤ 30, a detail ≤ 160, a
- * totals label ≤ 40, a caption ≤ 200, a quantity unit ≤ 16, every amount within ±10^15 minor
- * units, a quantity within 0–1,000,000.
+ * The runtime's items limits (Unicode code points for text): rows 1–100, totals lines ≤ 8, a row
+ * name ≤ 30, a detail ≤ 160, a totals label ≤ 40, a caption ≤ 200, a quantity unit ≤ 16, every
+ * amount within ±10^15 minor units, a quantity within 0–1,000,000.
  */
 export const ITEMS_LIMITS = Object.freeze({
   rows: 100,
   totals: 8,
-  name: SURFACE_TEXT_LIMITS.itemName,
-  detail: SURFACE_TEXT_LIMITS.itemDetail,
-  totalLabel: SURFACE_TEXT_LIMITS.totalLabel,
-  label: SURFACE_TEXT_LIMITS.itemsLabel,
-  quantityUnit: SURFACE_TEXT_LIMITS.quantityUnit,
+  name: 30,
+  detail: 160,
+  totalLabel: 40,
+  label: 200,
+  quantityUnit: 16,
   amount: 1_000_000_000_000_000,
   quantity: 1_000_000,
 });

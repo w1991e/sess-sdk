@@ -12,8 +12,13 @@ version with npm 2FA. Release candidates (`-rc.N`) go to `next`, never to `lates
 makes GitHub create it automatically, without protection rules, and the publish job would then run
 without maintainer approval.
 
-`0.1.0` is prepared for `latest` ([release/v0.1.0-packet.md](release/v0.1.0-packet.md)) and not yet
-published. The current published candidate is `0.1.0-rc.6` (npm `next`, 2026-10-27; release run
+The current release is `0.3.0` (npm `latest`, 2026-11-22; release run 44971923768; its template
+pins `@sess.si/sdk` 0.5.0; [release/v0.3.0-packet.md](release/v0.3.0-packet.md), integrity equal to
+the registry tarball). It replaced `0.2.0` (npm `latest` from 2026-11-19; release run 44622425673;
+[release/v0.2.0-packet.md](release/v0.2.0-packet.md), integrity equal to the registry tarball), which
+replaced `0.1.0` (npm `latest` from 2026-11-01; [release/v0.1.0-packet.md](release/v0.1.0-packet.md),
+integrity equal to the registry tarball). The
+last published candidate is `0.1.0-rc.6` (npm `next`, 2026-10-27; release run
 40469398018; SHA-256 and integrity as recorded in [release/rc6-packet.md](release/rc6-packet.md),
 equal to the registry tarball). `0.1.0-rc.5` ([release/rc5-packet.md](release/rc5-packet.md)),
 `0.1.0-rc.4` ([release/rc4-packet.md](release/rc4-packet.md)) and `0.1.0-rc.3`

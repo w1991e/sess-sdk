@@ -36,9 +36,29 @@ The helper reads the authorized Session, checks that the supplied accepted respo
 matches a retained event, retrieves the exact immutable Surface revision, and obtains
 public verification keys through the same configured transport. It verifies:
 
-- Receipt format `sess_receipt: 1`; protected type `sess-receipt+jwt`, algorithm
-  `EdDSA`, and an explicitly named trusted Ed25519 key. Other protected header fields,
-  private JWK material, incompatible key uses, and ambiguous duplicate key IDs fail.
+- Receipt format `sess_receipt: 1` with protected type `sess-receipt+jwt`
+  ([receipt-v1](spec/receipt-v1.md)), or `sess_receipt: 2` with `sess-receipt-2+jwt`
+  ([receipt-v2](spec/receipt-v2.md)); algorithm `EdDSA`, and an explicitly named trusted Ed25519
+  key. Other protected header fields, a type that does not match its format version, private JWK
+  material, incompatible key uses, and ambiguous duplicate key IDs fail.
+- Receipt v2 only: the revision envelope it commits to. `verifyResponse()` uses the response's
+  own `revision_envelope`; `verifyDecisionReceipt` takes it as `revisionEnvelope`. It must be the
+  `sess_revision: 2` envelope exactly: its ten common members, then exactly one of `titles` (the
+  full form) or `titles_digest` (the compact form), with a canonical `published_at`, each ID of
+  its own kind, and each title one line of plain text of 1 to 60 code points under the shared
+  title rule. `surface.revision_hash` is the RFC 8785 SHA-256 of the compact form (a full form's
+  `titles` replaced by their digest), and the envelope's Session, revision, Surface hash and
+  renderer identity must be the receipt's. Otherwise, or when it is missing, verification fails
+  with `REVISION_ENVELOPE_MISMATCH`; the never-issued nine-member `sess_revision: 1` envelope is
+  refused the same way. There is no signature-only path for a receipt v2. A receipt v1 has no
+  envelope and none is read for it. The titles and `agent_target.name` are words the asker chose,
+  signed as published, never a verified identity; the envelope carries no key label.
+- Receipt v2 only: an `action.label` of at most 24 code points (`INVALID_CLAIMS` beyond).
+- A receipt newer than this release, a later Sess receipt type (`sess-<name>+jwt`, checked before
+  anything else in the receipt) or an envelope of a later `sess_revision`, is refused with kind
+  `receipt_newer` and code `RECEIPT_NEWER`: never a verification failure, and nothing is
+  returned. Update the SDK to check it. Unsigned members this release does not know, beside a
+  receipt in an API response, are ignored.
 - Expected issuer and resource workspace; `aud`, `workspace_id`, and the return
   recipient must all match that trusted workspace.
 - Exact Session, event/JTI, `rev_<revision>` step, revision, accepted time, and actor
@@ -103,14 +123,52 @@ checks it against the authorized Session's retained response. Application busine
 data still needs application validation before use. Verification does not infer your
 domain schema or coerce a string into a number.
 
+<!-- Proposed wording for this section, not yet signed. -->
+
+## Closing receipt
+
+When a Session ends with at least one accepted answer, Sess signs one closing receipt
+([closing-receipt-v1](spec/closing-receipt-v1.md)): how the Session ended and every accepted
+answer's receipt, in order. It is not a receipt for any one answer. `sess.sessions.listEvents(id)`
+returns it as `closing`, beside `events`: `{ typ, closure_id, cause, terminal_event_id,
+accepted_rounds, receipt }`. It is never an Event. It is absent while the Session is open, when it
+ended with no accepted answer, and until its receipt is signed. Webhooks do not carry it.
+
+`sess.receipts.verifyClosing({ sessionId, closing, expectedWorkspaceId? })` returns deeply
+readonly `{ claims, closing }`. It reads the Session's Event log again and requires the supplied
+`closing` to be the one served. It verifies the receipt with the published keys
+(`/.well-known/sess-receipt-keys.json`). It requires the cause, terminal Event, closure and count to
+be the ones signed, and the commitment to match exactly the served answers' receipts, in order.
+Each answer's own receipt is still verified with `verifyResponse`. Offline, `verifyClosingReceipt`
+from `@sess.si/sdk/receipts` takes the receipt, the trusted issuer and workspace, exactly one of
+`keys` or `keyResolver`, and optionally `expected: { sessionId, closureId }` and the round
+receipts as `rounds`.
+
+It checks, in order: `alg` `EdDSA` (`UNSUPPORTED_ALGORITHM`); a trusted `kid`
+(`UNKNOWN_KEY_ID`); `typ` exactly `sess-closing-receipt+jwt` (`UNSUPPORTED_TYPE`, so a round
+receipt is refused here); a header of exactly `alg`, `kid` and `typ`; the signature
+(`INVALID_SIGNATURE`); issuer and workspace (`ISSUER_MISMATCH`, `AUDIENCE_MISMATCH`); format
+version 1 (`UNSUPPORTED_RECEIPT_VERSION`); the strict claims, with no `exp` (`INVALID_CLAIMS`);
+RFC 8785 canonical JSON (`NON_CANONICAL_PAYLOAD`); then the Session and closure
+(`RECORD_BINDING_MISMATCH`) and the round set (`CLOSING_ROUNDS_MISMATCH`). A higher format version,
+or a commitment scope this release does not know, is newer: kind `receipt_newer`, code
+`RECEIPT_NEWER`, and nothing is returned. `verifyDecisionReceipt` and `verifyResponse()` refuse a
+closing receipt the same way. The SDK reaches the same result as Sess on every vector of the
+shared closing-receipt-v1 conformance corpus.
+
 ## Decision bundles
 
 A [bundle-v1](spec/bundle-v1.md) decision bundle is a deliberate disclosure of one accepted
 decision: the [receipt-v1](spec/receipt-v1.md) receipt, the complete accepted Surface and input,
-and the issuer's public keys. `verifyDecisionBundle` from `@sess.si/sdk/receipts` (and the
-`sess verify <file>` command) verifies it offline with the same checks, order, bounds, reasons
-and result object as every other Sess verification face, proven against one shared conformance
-corpus. It is separate from `verifyDecisionReceipt`, which is unchanged.
+and the issuer's public keys. A [bundle-v2](spec/bundle-v2.md) bundle carries a
+[receipt-v2](spec/receipt-v2.md) receipt and the revision envelope it commits to as well; without
+that envelope, with another, or with its compact form (a QR code's, never a file's), it is invalid
+with reason `revision`. A later bundle version, receipt type or envelope `sess_revision` is
+`unsupported_version`: newer, never a damaged file, and nothing in it is released (`sess verify`
+says so and exits 3). `verifyDecisionBundle` from
+`@sess.si/sdk/receipts` verifies both versions offline with the same checks, order, bounds,
+reasons and result object as every other Sess verification face, proven against the shared
+bundle-v1 and bundle-v2 conformance corpora. It is separate from `verifyDecisionReceipt`.
 
 ```ts
 import { verifyDecisionBundle, type ReceiptKeySet } from '@sess.si/sdk/receipts';
@@ -140,6 +198,39 @@ if (result.valid && result.application_purpose === 'matched_caller_context') {
 - **Results, not exceptions.** Every outcome about the bundle is a result with one `reason`;
   only invalid options throw a `TypeError`. A valid result shows link-holder assurance only. It
   does not name or verify a person and is not evidence that anything was authorized or executed.
+
+### The `sess verify` command
+
+`sess verify <file>` runs these verifiers on a decision bundle, a closing receipt (a file holding
+its compact JWS) or a kept file (keep-v1 to keep-v4). It adds no verification of its own:
+
+- **A kept file** is read structurally: its own members, each round's receipt, the round's
+  bundle when the file holds its content (it must carry that round's receipt byte for byte, and
+  for a receipt v2 the same revision envelope), and keep-v4's `closing_receipt`. Each bundle is
+  checked with `verifyDecisionBundle`; the closing receipt with `verifyClosingReceipt`, given the
+  file's round receipts in file order, so the signed count and commitment must be exactly those
+  receipts; and every answer checked must name the closing receipt's issuer, workspace and
+  Session. An answer the file holds no content for is reported `not_checked` and the file is
+  never reported verified (exit 5). The inventory, snapshot, archival or person envelopes, holder
+  proofs and witness evidence are not checked. Kept files are read up to 80 MiB.
+- **Keys.** With `--keys <file>`, nothing is fetched. Without it, the command makes one `GET` of
+  `<issuer>/.well-known/sess-receipt-keys.json` (the issuer defaults to `https://api.sess.si` and
+  is never read from the file; it must be an `https` origin): no credential, cookie or referrer,
+  no redirect, a 5-second deadline and the 256 KiB key-set bound, then `validateKeySet`. Nothing
+  else is sent. If the keys cannot be fetched or are not a valid key set, nothing is checked
+  (exit 4).
+- **Time.** Each answer is judged at the time Sess says it signed its receipt (its signed `iat`),
+  as Sess's own closing set check does, unless `--now` is given. So an answer past its `exp`
+  still verifies; its `exp` is shown, not judged. The signing time is still checked against this
+  computer's clock: an answer or closing receipt dated more than 60 seconds after it (the
+  verifier's clock-skew allowance) is refused as `not_yet_valid`. With `--now`, everything is
+  judged at that time. A closing receipt has no `exp`.
+- **Workspace.** Without `--audience` or `--workspace`, a closing receipt is checked against its
+  own signed `aud` and the context is reported unchecked, as for a bundle.
+- **Key changes.** An answer signed under an older key verifies only while that key is in the
+  key set used; otherwise it is `unknown_kid`. The published set carries no key dates.
+- **Not read.** PDFs, QR receipt codes and a round receipt on its own (without its content) are
+  refused with exit 2.
 
 ## Keys, rotation, and resource limits
 

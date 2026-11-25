@@ -21,7 +21,6 @@ import type {
   VersionedResult,
 } from './types.js';
 import { withSignal } from './internal/time.js';
-import { SURFACE_TEXT_LIMITS } from './generated/limits.js';
 
 interface AskFieldBase {
   /** Key of this field in the answer: `^[a-z][a-z0-9_]{0,63}$`. */
@@ -272,21 +271,21 @@ export interface AskHandle<T> {
 const SURFACE_LIMIT_BYTES = 131_072;
 /**
  * Sess's limits, in Unicode code points (the runtime checks the same numbers; nothing is ever
- * truncated), read from the contract (./generated/limits.ts): the question is the title, details
- * a text component, the submit button an action label.
+ * truncated): the question (title) 60, details (a text component) 4,000, the submit button 16,
+ * field labels 40, options 30.
  */
 const LIMITS = Object.freeze({
   fields: 12,
   options: 100,
   depth: 8,
   textMax: 4000,
-  question: SURFACE_TEXT_LIMITS.title,
-  details: SURFACE_TEXT_LIMITS.text,
-  submitLabel: SURFACE_TEXT_LIMITS.actionLabel,
-  label: SURFACE_TEXT_LIMITS.fieldLabel,
-  option: SURFACE_TEXT_LIMITS.optionLabel,
+  question: 60,
+  details: 4000,
+  submitLabel: 16,
+  label: 40,
+  option: 30,
   /** A rating's end label (`low`, `high`). */
-  ratingLabel: SURFACE_TEXT_LIMITS.ratingLabel,
+  ratingLabel: 24,
 });
 /** A rating's largest choice: 2–10, default 5 (stars up to 5, numbered above). */
 const RATING = Object.freeze({ min: 2, max: 10, default: 5 });

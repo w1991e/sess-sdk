@@ -1,0 +1,1142 @@
+{
+  "$comment": "bundle-v2 conformance corpus (DOCS/spec/bundle-v2.md §7), beside the bundle-v1 corpus. Vectors are rebuilt by bundle-v2-corpus-vectors.ts from the same labelled public test seeds; this file freezes each by the SHA-256 and UTF-8 byte length of its RFC 8785 canonical bundle and of its receipt string, and states the expected result for a trusted caller (with expected_context, at now) and for a public verifier (no expected context, current time). Test-only keys: never trust them outside tests.",
+  "format": "sess.bundle-v2-corpus",
+  "version": 1,
+  "issuer": "https://receipts.corpus.sess.test",
+  "now": "2026-10-09T12:05:00.000Z",
+  "vectors": [
+    {
+      "id": "v2-valid-full-context",
+      "description": "A valid bundle-v2 with the full trusted context.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "76615edb46df48cf6834f6dcb537ce786ffb3d53a5b10cc6379f02bec47702dd",
+        "bytes": 2782
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "verified",
+          "mismatches": [],
+          "application_purpose": "matched_caller_context"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-valid-no-context",
+      "description": "A valid bundle-v2 with no context: context and application purpose unchecked.",
+      "expected_context": null,
+      "bundle": {
+        "sha256": "76615edb46df48cf6834f6dcb537ce786ffb3d53a5b10cc6379f02bec47702dd",
+        "bytes": 2782
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-valid-no-key",
+      "description": "A valid bundle-v2 whose revision was not published by an API key (key_id null).",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "37928a628a830d764e10982eaa8e939493846e9d59e9b0f433cb68d8bf28fb87",
+        "bytes": 2772
+      },
+      "receipt": {
+        "sha256": "c59b9741a2932077230e781239b5cd63d5d82b65671baab616e3bf8666590f09",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "verified",
+          "mismatches": [],
+          "application_purpose": "matched_caller_context"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-missing-envelope",
+      "description": "A bundle-v2 without revision_envelope: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "86c41364738066e53894e7273240ac650dc30410d225e4581197b6cfb392b087",
+        "bytes": 2289
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-null-envelope",
+      "description": "A bundle-v2 whose revision_envelope is null: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "1cea9bb11e30b6b023609dd8fb17f0c813082f734e3b8a13d9d2557ed443ea6e",
+        "bytes": 2314
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-other-key",
+      "description": "The envelope names another key: its digest differs from surface.revision_hash: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "92f6585926a26f1e68075b1626bdb2ffa7a038f54fc600ec0fad63fa7b6c7d67",
+        "bytes": 2782
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-other-title",
+      "description": "The envelope names a later Target title under the same nonce: its titles digest differs: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "6071fded85dacfa6c8a1d1d4e58f7341810f36cdbb647b3962604207e103c0f3",
+        "bytes": 2783
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-other-nonce",
+      "description": "The envelope carries another titles nonce: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "901367f9ab76601c4907c2c5983803073aa3b5848a2aae7adacd07fae3622f1d",
+        "bytes": 2782
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-key-label",
+      "description": "The envelope carries a key label, which no portable artefact holds (frozen spec §0.1): revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "d4d596bbd207655d93b2dc207ba7ac025d81d22d97e3cc18d5237cb59e900151",
+        "bytes": 2809
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-compact-form",
+      "description": "The compact form (titles_digest), whose digest matches: a file a person keeps carries the full form only: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "80e3698ab3d2a9c9fb786758119438aed9efcb7ac22a52e3ac707b32526e653d",
+        "bytes": 2733
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-both-forms",
+      "description": "The envelope carries both titles and titles_digest: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "663b74b433242e679ecf1801c165eba6a6c6a972a9e42f1796ef9292efa6a2ec",
+        "bytes": 2844
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-neither-form",
+      "description": "The envelope carries neither titles nor titles_digest: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "1c00a501e651e34f547d9801da63f5cf65b90ab25fa75b470cf17b78847d1186",
+        "bytes": 2671
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-withdrawn-nine-member",
+      "description": "The never-issued nine-member sess_revision 1 shape, with a key label: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "27ca8ca36d9c5168059f9fc3d58c6a3c8ad18a3cc871c3406dafebe76b582af3",
+        "bytes": 2613
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-withdrawn-twelve-member",
+      "description": "The withdrawn twelve-member shape (titles at the top level and in agent_target): revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "324561d7c87d182369cdc3e754030d3ad2c1705da82e3d84ed66e0e608e0c2d8",
+        "bytes": 2731
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-newer",
+      "description": "An envelope of a later sess_revision (3) with an extra constraining member: newer, reported as unsupported_version; nothing is released.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "20fc2475d7fcd993178aa33bfbd88e7bb1918f4833eb6487e2f4aaf056b28fb0",
+        "bytes": 2806
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "unsupported_version",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "unsupported_version",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-receipt-newer-typ",
+      "description": "A later receipt type (sess-receipt-3+jwt) over the same claims: newer, reported as unsupported_version; nothing is released.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "7b640a419f2b6a90171decc5fdeb429bcaa0c0f7a9c68572d4adc304d8824c7a",
+        "bytes": 2782
+      },
+      "receipt": {
+        "sha256": "0f0c619715d59193f18db515a13c05fd6ddde6f9be348a257b3fe3e5b1ed7d08",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "unsupported_version",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "unsupported_version",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-without-key",
+      "description": "The envelope drops the key (key_id null): revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "c558e543f67e9a66754ee5ade902f977d4593a79191ce86b500f0f7f40191a8b",
+        "bytes": 2772
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-other-time",
+      "description": "The envelope is published one millisecond later: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "363025cf67c80e232710fd45176159eee24e8884119f68b77d4e2ac4ddfd5d28",
+        "bytes": 2782
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-named-grant",
+      "description": "The envelope names a Session grant and its title the receipt never committed to: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "66987dac483dff79cda827093e8ad65de2558318026e8b86c031c9b7d7d64512",
+        "bytes": 2802
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-extra-member",
+      "description": "The envelope carries a member outside the record: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "d6ba095d38bf736c544e12e500687470f867fb49a442ccebeaf3425452842b6b",
+        "bytes": 2804
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-envelope-non-canonical-time",
+      "description": "published_at with microseconds, not the canonical form: revision.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "1f550e02b40e3e97aada7d469018d65f82a9186a7bf34bb7a9e13eb049146792",
+        "bytes": 2785
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "revision",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-receipt-v1-in-bundle-v2",
+      "description": "A receipt v1 inside a bundle-v2: type.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "58f6c79c0dc8a9371acf2fb8abce9feafe9b9fe6e8c0feaf71251adb2c1e7e8d",
+        "bytes": 2659
+      },
+      "receipt": {
+        "sha256": "b6cca6b8ac9191d1cc6e2c35d3ff433cae6cdee16359019d2d23af27f3e27f35",
+        "bytes": 1171
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "type",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "type",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-receipt-v2-typed-as-v1",
+      "description": "A receipt v2 re-signed under the v1 typ inside a bundle-v2: type.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "61018c7ac6bace55fa3b71f345f17ef2b30d9b6424ab89c63e8a74eac17fecd8",
+        "bytes": 2779
+      },
+      "receipt": {
+        "sha256": "f4f1b33b4df260736a63befa54374823e5b3b9715e2c91604276ee82e69a2957",
+        "bytes": 1291
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "type",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "type",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-receipt-v2-in-bundle-v1",
+      "description": "A receipt v2 inside a bundle-v1 (no envelope): type.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "8c01218691a59d88122f668e942312c6c8611babe3e450e7d4f3628849dab638",
+        "bytes": 2289
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "type",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "type",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-tampered-claims",
+      "description": "The receipt v2 payload altered: signature.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "beede57d160721a6d2c06162f46f9a898d3d0bfb5bf4357b77bf1e99af90ab44",
+        "bytes": 2781
+      },
+      "receipt": {
+        "sha256": "c8e60b890a56e9f172b016ab461ec7c8fe9df0f9b6f7d89b73aede8892c90db2",
+        "bytes": 1293
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "signature",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "signature",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-altered-input",
+      "description": "The disclosed input altered: input_mismatch.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "6ab55948348846d2c1044af523f2624285d61bdb2afb0734b51520ed6f43b12c",
+        "bytes": 2783
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "input_mismatch",
+          "content": "mismatch",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "input_mismatch",
+          "content": "mismatch",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-altered-surface",
+      "description": "The disclosed Surface altered: surface_mismatch.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "2ca52cc4a4c5586e6d3c79fe0d4690073016c1baaea2e572dea84402be0546f3",
+        "bytes": 2760
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "surface_mismatch",
+          "content": "mismatch",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "surface_mismatch",
+          "content": "mismatch",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-wrong-audience",
+      "description": "The trusted context expects another audience: audience.",
+      "expected_context": {
+        "audience": "wks_other",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "76615edb46df48cf6834f6dcb537ce786ffb3d53a5b10cc6379f02bec47702dd",
+        "bytes": 2782
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "audience",
+          "content": "not_checked",
+          "context": "mismatch",
+          "mismatches": ["audience"],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": true,
+          "reason": null,
+          "content": "verified",
+          "context": "unchecked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-expired",
+      "description": "An expired receipt v2: expired.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "844a6803a879e7cd3f8269e4f3c772a3934d4c4f9b8ffd2eb1beeb0cb57713a6",
+        "bytes": 2782
+      },
+      "receipt": {
+        "sha256": "c4361416bfbfa507cb7dc2639fd9c442cdce0150f767806a0bc6b1d09c37cd95",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "expired",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "expired",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    },
+    {
+      "id": "v2-unsupported-version",
+      "description": "A later bundle version (3): unsupported_version.",
+      "expected_context": {
+        "audience": "wks_corpus",
+        "workspaceId": "wks_corpus",
+        "sessionId": "ses_corpus_session_1",
+        "eventId": "evt_corpus_event_1",
+        "revision": 1,
+        "actionId": "approve"
+      },
+      "bundle": {
+        "sha256": "9cbb1cec1191c6cd7e2be465c03cdbc54b23e696f0dfb7b4d970035875fdfbd2",
+        "bytes": 2782
+      },
+      "receipt": {
+        "sha256": "4aedd622c47dc2e958c0bce919269f82d397be02a65545aa8d840f2b6b7d45b4",
+        "bytes": 1294
+      },
+      "expected": {
+        "trusted": {
+          "valid": false,
+          "reason": "unsupported_version",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        },
+        "public": {
+          "valid": false,
+          "reason": "unsupported_version",
+          "content": "not_checked",
+          "context": "not_checked",
+          "mismatches": [],
+          "application_purpose": "unchecked"
+        }
+      }
+    }
+  ]
+}

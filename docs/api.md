@@ -78,6 +78,14 @@ behavior. `receipts.verifyResponse({sessionId, response, expectedWorkspaceId?}, 
 returns deeply readonly, runtime-protected `{claims, response, surface}` after full verification.
 See [Security](security.md) for offline verifier inputs and trust requirements.
 
+<!-- Proposed wording for this paragraph, not yet signed. -->
+
+Once a Session has ended with at least one accepted answer, `sessions.listEvents()` also returns its
+closing receipt as `closing`, beside `events` (never one of them).
+`receipts.verifyClosing({sessionId, closing, expectedWorkspaceId?}, options?)` returns deeply
+readonly `{claims, closing}` after full verification; see
+[Security](security.md#closing-receipt).
+
 ## Ask one question
 
 `sess.ask({ question, fields, details?, submit_label? }, options?)` takes the question-plus-fields
@@ -237,7 +245,7 @@ Surface:
 | `title`                                        | A question or a task, about 40 | 60       |
 | `description` (under the title)                | One or two sentences           | 200      |
 | `heading` component `text`                     | Short                          | 40       |
-| Field `label`                                  | Short, about 20                | 40       |
+| Field `label`                                  | Short                          | 40       |
 | `option_labels` value, `ask` option            | Short                          | 30       |
 | Field `description` (help)                     | One hint                       | 120      |
 | Action `label` (`ask`: `submit_label`)         | A verb, 1–3 words              | 16       |

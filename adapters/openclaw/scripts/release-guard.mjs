@@ -48,10 +48,24 @@ export function checkRelease(facts) {
   return { version: manifest.version, distTag: manifest.version.includes('-rc.') ? 'next' : 'latest' };
 }
 
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/**
+ * compatibility.json is packed and stays in the tarball after publication, so the status of a
+ * version not yet published is a dated snapshot that remains true afterwards (ASTRA-75-R2): it
+ * opens "At this artifact's preparation (YYYY-MM-DD), <version> was prepared" and says the
+ * version was "not yet published".
+ * @param {string} version
+ */
+export const preparedSnapshot = (version) =>
+  new RegExp(
+    `^At this artifact's preparation \\(\\d{4}-\\d{2}-\\d{2}\\), ${escapeRegExp(version)} was prepared\\b`,
+  );
+
 /**
  * compatibility.json describes this package version truthfully: a version that is not the
- * recorded publication (`publication`) has a status saying "<version> prepared ... unpublished"
- * that does not open with a publication claim; the recorded publication is never called prepared.
+ * recorded publication (`publication`) has the dated preparation snapshot (preparedSnapshot,
+ * "not yet published"), so it does not open with a publication claim; the recorded publication
+ * is never called prepared.
  * @param {{ manifest: any, compatibility: any }} input
  */
 export function checkCompatibilityStatus({ manifest, compatibility }) {
@@ -61,14 +75,12 @@ export function checkCompatibilityStatus({ manifest, compatibility }) {
   if (compatibility?.version !== version) failures.push('compatibility version');
   if (typeof status !== 'string') failures.push('compatibility status');
   else if (compatibility?.publication?.version === version) {
-    if (status.includes(`${version} prepared`))
+    if (status.includes(`${version} prepared`) || status.includes(`${version} was prepared`))
       failures.push('compatibility status (published version called prepared)');
-  } else if (
-    !status.includes(`${version} prepared`) ||
-    !status.includes('unpublished') ||
-    /^published\b/.test(status)
-  )
-    failures.push(`compatibility status (${version} must be prepared and unpublished)`);
+  } else if (!preparedSnapshot(version).test(status) || !status.includes('not yet published'))
+    failures.push(
+      `compatibility status (${version} must open "At this artifact's preparation (YYYY-MM-DD), ${version} was prepared" and say it was not yet published)`,
+    );
   if (failures.length) throw new Error(`Release guard failed: ${failures.join(', ')}.`);
 }
 

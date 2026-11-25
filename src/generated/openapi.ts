@@ -687,6 +687,162 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/v1/asks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * @description Creates an Ask: one link that many people can answer, each on their own page.
+     *
+     *     - Share the link with everyone who should answer. Each person gets their own page.
+     *     - Each person who starts gets an ordinary Session; read them all with GET /v1/asks/{id}, or each with GET /v1/sessions/{id}.
+     *     - `respondents.max` is exact: it is checked when a person starts, so it cannot be overshot.
+     *     - A respondent is a browser, not a person.
+     *     - Creating an Ask reserves nothing and counts nothing; each Start is admitted against your plan then, like a new Session.
+     *
+     *     Advanced: The body takes the same interactive `interaction` as POST /v1/sessions. `expires_in` is the one deadline; each respondent’s link ends by it. A Start is refused after the deadline, with less than a minute left, above 30 Starts a minute on one Ask, and while your plan admits nothing new (the person sees that it is paused; the Ask stays open). An Ask is immutable: PATCH is refused. An `Idempotency-Key` header is refused, because the link cannot be sent again: if the outcome is uncertain, create again (an unused Ask costs nothing).
+     */
+    post: operations['createAsk'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/asks/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * @description Reads an Ask: whether it is open, how many started, answered and completed, and each respondent with their accepted answers.
+     *
+     *     - Respondents are in the order they started.
+     *     - Counts include Starts refused, by reason.
+     *     - An Ask is `closed` once its last place was started, you closed it, or its deadline passed; `closed_by` says which.
+     *     - A respondent whose content was deleted after its retention is listed with its times only.
+     *
+     *     Advanced: Returning a respondent’s answer here is its retrieval, exactly as GET /v1/sessions/{id} is: it counts toward your plan once, when the response was sent in full. Up to 100 respondents a page; pass `next_cursor` as `cursor` for the next.
+     */
+    get: operations['getAsk'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** @description Always refused: an Ask is immutable. Every respondent sees the round you created. To continue one respondent, set `auto_complete` false at create and use PATCH /v1/sessions/{id} on their Session. */
+    patch: operations['updateAsk'];
+    trace?: never;
+  };
+  '/v1/asks/{id}/close': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * @description Closes an Ask now: no one new can start.
+     *
+     *     - Respondents who have not answered yet have their links ended, and their places on your plan are freed.
+     *     - Respondents who answered keep their pages and receipts.
+     *     - Closing a closed Ask changes nothing.
+     *
+     *     Advanced: The answer carries no respondent answers. An `ask.closed` webhook is sent when this closes it.
+     */
+    post: operations['closeAsk'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/asks/{id}/deliveries': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Lists every webhook delivery of an Ask’s own events (`ask.closed`), with every attempt. A respondent’s answers are listed on its Session’s deliveries. */
+    get: operations['listAskDeliveries'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/asks/{id}/events/{event_id}/redeliver': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Sends an Ask’s `ask.closed` to your webhook again, to your current verified address with a fresh set of retries; the same bytes and event ID as before. */
+    post: operations['redeliverAskEvent'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/trial/asks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * @description Creates an Ask in a no-signup trial, for at most 2 people.
+     *
+     *     - Without a key, it starts a trial and returns the trial key once.
+     *     - With the trial key, it adds an Ask to that trial.
+     *     - Each respondent is a trial Session: it counts toward the trial’s 3 active and 10 Sessions, and its link lasts at most 1 hour.
+     *     - Each Start counts as one in the network’s 3 trials a day, together with new trials.
+     *
+     *     Advanced: Read it with GET /v1/trial/asks/{id} and the trial key. An `Idempotency-Key` header is refused.
+     */
+    post: operations['createTrialAsk'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/trial/asks/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Reads a trial Ask with the trial key, as GET /v1/asks/{id} reads an Ask. Another trial’s Ask, an unknown key and an owner key all get the same not-found answer. */
+    get: operations['getTrialAsk'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/v1/auth/email-link': {
     parameters: {
       query?: never;
@@ -1164,7 +1320,7 @@ export interface paths {
     /**
      * @description Lists the workspace’s receipts in the console, as details only.
      *
-     *     Each row shows the receipt and Session IDs, the workspace’s sequence number, when the answer was accepted, the witness status and whether the answers are still kept; receipts held unverified have their own view. A receipt or an answer is never shown on this page. The page shows 25 at a time, counted under the same filters, with Previous and Next. Someone who is not signed in is sent to the sign-in page.
+     *     Each row shows the receipt and Session IDs, the workspace’s sequence number, when the answer was accepted and whether the answers are still kept; receipts held unverified have their own view. A receipt or an answer is never shown on this page. The page shows 25 at a time, counted under the same filters, with Previous and Next. Someone who is not signed in is sent to the sign-in page.
      *
      *     Advanced: The query takes `custody` (`exception`), `from` and `to` (UTC dates, `to` included), `target` (a target ID), `q` (a part of the Session title, matched as plain text) and `cursor`, an opaque page position, forward or back; one that is not of this view gives the first page. The page is labelled "issued records in this defined scope/range".
      */
@@ -1254,7 +1410,7 @@ export interface paths {
     /**
      * @description Shows one receipt of the workspace in the console.
      *
-     *     You see its receipt number, its event and Session IDs, when the answer was accepted, the witness status and whether the answers are still kept, with Verify and the receipt download when the receipt has a signed archival core. A receipt, an answer or a Sess link is never shown on the page. Another workspace’s receipt, an unknown one and a malformed ID get the same answer; someone who is not signed in is sent to the sign-in page.
+     *     You see its receipt number, its event and Session IDs, when the answer was accepted and whether the answers are still kept, with Verify and the receipt download when the receipt has a signed archival core. A receipt, an answer or a Sess link is never shown on the page. Another workspace’s receipt, an unknown one and a malformed ID get the same answer; someone who is not signed in is sent to the sign-in page.
      */
     get: operations['evidenceReceiptPage'];
     put?: never;
@@ -1441,7 +1597,7 @@ export interface paths {
      *
      *     Advanced: An interactive Session returns `status`, the current revision, its `response_schema` and every accepted response bound to its revision. `action_expires_at` is the stored deadline. `link_state` is `live`, `lapsed` or `expired` at the time of the read; `action_expires_horizon` and `extensions_used` describe extensions. When the deployment enables link extensions, the person may extend an interactive link of 20 hours or less up to ten times, never past the fixed horizon.
      *
-     *     Advanced: A lapsed link accepts no answer but can still be extended: the Session is still open, so keep waiting, or revoke the link for a hard end at the deadline. `extensions` lists every accepted extension in order: the old and new deadline, whether it was lapsed, and when; never an answer value.
+     *     Advanced: `extensions` lists every accepted extension in order: the old and new deadline, whether it was lapsed, and when; never an answer value.
      *
      *     Advanced: The `ETag` is the concurrency token for owner changes (the revision and the Event sequence), not a cache validator: it does not change with link timing. A claimed trial’s Session is readable until its `result_available_until`.
      */
@@ -1495,10 +1651,11 @@ export interface paths {
      *     - Each accepted answer, with the revision it was given on, the action chosen and the typed data.
      *     - Each published revision, and the completion.
      *     - Events never change, and every accepted answer stays listed after later revisions and completion.
-     *     - Every accepted extension of the Sess link is listed beside the events, never with an answer value.
+     *     - Where link extensions are on, every accepted extension of the Sess link is listed beside the events, never with an answer value.
+     *     - Once the Session has ended with at least one accepted answer, its closing receipt comes with the events.
      *     - A display Session has no events.
      *
-     *     Advanced: Answers are `response.accepted` by `link_holder`, with the revision, `action_id` and the data; `revision.published` and `session.completed` are by `owner`. Event IDs and sequence numbers never change. The list is not paginated: a Session has a few Events per round. `link_extensions` lists each extension’s old and new deadline, whether it was asked for after the deadline, and when. Responses are sent with `Cache-Control: no-store, no-transform`.
+     *     Advanced: Answers are `response.accepted` by `link_holder`, with the revision, `action_id` and the data; `revision.published` and `session.completed` are by `owner`. Event IDs and sequence numbers never change. The list is not paginated: a Session has a few Events per round. `link_extensions` lists each extension’s old and new deadline, whether it was asked for after the deadline, and when. `closing` is the closing receipt (`typ` `sess-closing-receipt+jwt`) with the cause and count it signs: never an Event and never a receipt for one answer, and webhooks do not carry it. Responses are sent with `Cache-Control: no-store, no-transform`.
      */
     get: operations['listSessionEvents'];
     put?: never;
@@ -1571,7 +1728,7 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * @description Gives the person more time to answer, from Need more time? on the Sess link page.
+     * @description Where link extensions are on, gives the person more time to answer, from Need more time? on the Sess link page.
      *
      *     - It works on a link of 20 hours or less, when the deployment enables link extensions.
      *     - Each extension adds the link’s original lifetime, at most 1 hour, up to ten times, never past a fixed horizon.
@@ -1682,7 +1839,7 @@ export interface paths {
      *
      *     - It returns only the current revision and the state as the person sees it: no owner data, events, receipts, answers or content.
      *     - Nothing is written or used up.
-     *     - The waiting page asks about every 4 seconds and reloads the link once the revision or the state changes.
+     *     - The waiting page asks a few seconds apart at first, then less often, about once a minute after ten minutes, never while its tab is hidden, and reloads the link once the revision or the state changes.
      *     - A page with a form asks about every 25 seconds while it is visible, only to keep its connection alive, and ignores the answer.
      *     - The Sess link is the person’s key to the page; never log it.
      *
@@ -1962,18 +2119,43 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * @description Checks a receipt’s archival envelope against this server’s own keys and settings. No credential needed.
+     * @description Checks a receipt’s archival envelope, or a person’s archival envelope from a kept file, against this server’s own keys and settings. No credential needed.
      *
      *     - Nothing in the request is trusted.
      *     - It reports each part of the check on its own: signature, contents, context, witness, key trust and live expiry, with the same statuses and reasons as the SDK’s archival verifier, and how to present them.
      *     - The envelope carries no content, so contents are reported as unverifiable; to check content, verify a bundle instead.
      *     - It looks nothing up and stores nothing, and a malformed or oversized envelope is still a 200 result.
      *
-     *     Advanced: The format is in the Sess archival-core-v1 specification §3, and the dimensions are those of §5: `signature`, `contents`, `context`, `witness`, `key_trust` and `live_expiry`. It uses the successor archival verifier with this server’s published receipt keys, its receipt issuer as the expected context issuer, its published witness key set (/.well-known/sess-witness-keys.json) and, when set up, its TUF-verified witness trusted root. `contents` is `content_unavailable`, and `context` is at most incomplete (`application_context_unchecked`). Without a witness trusted root, attached evidence is indeterminate (`witness_trust_unavailable`). The SDK verifier is `@sess.si/sdk/archival`; the bundle check is POST /v1/receipts/verify and is unchanged.
+     *     Advanced: The format is in the Sess archival-core-v1 specification §3 (a person’s envelope, checked as what its `type` says: the Sess archival-person-projection specification §1.4 and §1.5, with reasons `projection_signature` and `projection_receipt_mismatch`), and the dimensions are those of §5: `signature`, `contents`, `context`, `witness`, `key_trust` and `live_expiry`. It uses the successor archival verifier with this server’s published receipt keys, its receipt issuer as the expected context issuer, its published witness key set (/.well-known/sess-witness-keys.json) and, when set up, its TUF-verified witness trusted root. `contents` is `content_unavailable`, and `context` is at most incomplete (`application_context_unchecked`). Without a witness trusted root, attached evidence is indeterminate (`witness_trust_unavailable`). The SDK verifier is `@sess.si/sdk/archival`; the bundle check is POST /v1/receipts/verify and is unchanged.
      *
      *     Advanced: The body is JSON, at most 2097152 bytes, and the envelope at most 65,536 bytes (reason `oversized`). It shares the bundle check’s rate limits per client and in total, and its absolute 2-second deadline from arrival, after which the connection is closed with `Connection: close`. Responses are sent with `Cache-Control: no-store, no-transform` and `Referrer-Policy: no-referrer`, with CORS only for the product site’s origins. Never put an envelope or a receipt in an address.
      */
     post: operations['verifyArchivalEnvelope'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/receipts/verify-closing': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * @description Checks a kept file’s closing receipt and its round receipts with this server’s own receipt keys. No credential needed.
+     *
+     *     - Nothing in the request is trusted.
+     *     - It reports the closing receipt’s own check, whether the receipts sent are exactly the set it signs, and what a person’s page shows.
+     *     - It looks nothing up and stores nothing, and evidence that fails is still a 200 result.
+     *
+     *     Advanced: The formats are in the Sess closing-receipt-v1 specification §6.1 and the Sess keep-v4 specification §3. Send the round receipts in the order the file carries them, at most 64. The body is JSON, at most 2097152 bytes. It shares the bundle check’s rate limits per client and in total, and its absolute 2-second deadline from arrival, after which the connection is closed with `Connection: close`. Responses are sent with `Cache-Control: no-store, no-transform` and `Referrer-Policy: no-referrer`, with CORS only for the product site’s origins. Never put a receipt in an address.
+     */
+    post: operations['verifyClosingReceipt'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2058,7 +2240,8 @@ export interface paths {
     /**
      * @description Chooses whether your agent has a public card that anyone can start, and what the card says.
      *
-     *     - Set its name, whether it is shared (off by default), your description, where its data comes from, and whether a finished run offers "Ask this agent again".
+     *     - Set its name, whether it is shared (off by default), its title, your description, where its data comes from, and whether a finished run offers "Ask this agent again".
+     *     - The title is the card’s heading and the run page’s; the name is only the address. Sharing needs both.
      *     - Sharing is not part of the agent’s version: the version does not change, and admitted runs carry on.
      *     - The card exists only while the agent is shared, on and verified, accepts the site among those who may start it, and takes an empty input.
      *     - Unsharing or turning the agent off removes the card at once, and starts from the card are refused while the agent is not shared.
@@ -2574,6 +2757,23 @@ export interface webhooks {
     patch?: never;
     trace?: never;
   };
+  askClosed: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Sent once when an Ask closes at its last place or by your close, while the workspace has a verified endpoint. Signed, retried and delivered at least once exactly as responseAccepted is; webhook-id = event_id. An Ask that passes its deadline sends nothing: read it with GET /v1/asks/{id}. */
+    post: operations['webhookAskClosed'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export interface components {
   schemas: {
@@ -2663,21 +2863,21 @@ export interface components {
       id: string;
       revision: number;
       human_url: string;
-      /** @description The Sess link’s current deadline for answers: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Set when the Session is created and never extended by a read; never null. For an interactive link of 20 hours or less the person may move it forward by asking for more time, never past action_expires_horizon (see link_state). A link revoked by the operator stops earlier; this field does not report revocation. */
+      /** @description The Sess link’s deadline for answers, an RFC 3339 UTC instant with milliseconds, set when the Session is created and never null. From this instant the link no longer opens and accepts no response; a read never extends it, and a link revoked by the operator stops earlier, which this field does not report. */
       action_expires_at: string;
     };
     SessionResponse: {
       id: string;
       revision: number;
-      /** @description The Sess link’s current deadline for answers: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Set when the Session is created and never extended by a read; never null. For an interactive link of 20 hours or less the person may move it forward by asking for more time, never past action_expires_horizon (see link_state). A link revoked by the operator stops earlier; this field does not report revocation. */
+      /** @description The Sess link’s deadline for answers, an RFC 3339 UTC instant with milliseconds, set when the Session is created and never null. From this instant the link no longer opens and accepts no response; a read never extends it, and a link revoked by the operator stops earlier, which this field does not report. */
       action_expires_at: string;
-      /** @description For an interactive Sess link of 20 hours or less (created with expires_in of 72000 or less, or a trial): the fixed instant after which the link can never be extended or reopened, set when the Session is created: creation + the original lifetime + 10 × min(original lifetime, 1 hour). It never moves. null for a link longer than 20 hours, a display Session, or a Session created before link extensions existed: their links end at action_expires_at. */
+      /** @description null unless link extensions were on for this deployment when the Session was created; with them on, also null for a link longer than 20 hours or a display Session. Otherwise the fixed instant after which the link can never be extended or reopened: creation + the original lifetime + 10 × min(original lifetime, 1 hour). */
       action_expires_horizon: string | null;
-      /** @description How many times the person extended the link (at most 10). Each extension moves action_expires_at forward by min(original lifetime, 1 hour), never past action_expires_horizon. Always 0 when action_expires_horizon is null. */
+      /** @description How many times the person extended the link: always 0 when action_expires_horizon is null, at most 10 otherwise. */
       extensions_used: number;
-      /** @description The Sess link’s state at the time of this read. live: it opens and accepts answers (before action_expires_at). lapsed: past action_expires_at, but the person can still ask for more time until action_expires_horizon; it accepts no answer and does not open, and the Session is still open for your agent: keep waiting. expired: it will never accept an answer (at the horizon, once the deadline passes with no extensions left, on revocation, or after the deadline of a completed Session). Revoke the link when you need a hard end at the deadline. An answer accepted while live stays the result. */
+      /** @description The Sess link’s state at the time of this read: live while it opens and accepts answers (before action_expires_at), expired once it will never accept an answer; an answer accepted while live stays the result. lapsed occurs only where link extensions were on when the Session was created (action_expires_horizon is not null): past the deadline the link accepts no answer and does not open, but can still be extended until the horizon, so the Session is still open for your agent. */
       link_state: 'live' | 'lapsed' | 'expired';
-      /** @description Every accepted extension of the Sess link, in order: at most ten, empty when none (always empty when action_expires_horizon is null). Recorded atomically with each extension; a repeated request is never recorded twice. No answer or field value is recorded. */
+      /** @description Every accepted extension of the Sess link, in order: at most ten, empty when none (always empty when action_expires_horizon is null). Each is recorded once, atomically with its extension, and never holds an answer or field value. */
       extensions: {
         /** @description Its number, 1 to 10, in order. */
         number: number;
@@ -2716,15 +2916,15 @@ export interface components {
       status: 'active' | 'responded' | 'completed';
       /** @description The current Surface revision. */
       revision: number;
-      /** @description The Sess link’s current deadline for answers: an RFC 3339 UTC instant with milliseconds. From this instant the link no longer opens and accepts no response. Set when the Session is created and never extended by a read; never null. For an interactive link of 20 hours or less the person may move it forward by asking for more time, never past action_expires_horizon (see link_state). A link revoked by the operator stops earlier; this field does not report revocation. */
+      /** @description The Sess link’s deadline for answers, an RFC 3339 UTC instant with milliseconds, set when the Session is created and never null. From this instant the link no longer opens and accepts no response; a read never extends it, and a link revoked by the operator stops earlier, which this field does not report. */
       action_expires_at: string;
-      /** @description For an interactive Sess link of 20 hours or less (created with expires_in of 72000 or less, or a trial): the fixed instant after which the link can never be extended or reopened, set when the Session is created: creation + the original lifetime + 10 × min(original lifetime, 1 hour). It never moves. null for a link longer than 20 hours, a display Session, or a Session created before link extensions existed: their links end at action_expires_at. */
+      /** @description null unless link extensions were on for this deployment when the Session was created; with them on, also null for a link longer than 20 hours or a display Session. Otherwise the fixed instant after which the link can never be extended or reopened: creation + the original lifetime + 10 × min(original lifetime, 1 hour). */
       action_expires_horizon: string | null;
-      /** @description How many times the person extended the link (at most 10). Each extension moves action_expires_at forward by min(original lifetime, 1 hour), never past action_expires_horizon. Always 0 when action_expires_horizon is null. */
+      /** @description How many times the person extended the link: always 0 when action_expires_horizon is null, at most 10 otherwise. */
       extensions_used: number;
-      /** @description The Sess link’s state at the time of this read. live: it opens and accepts answers (before action_expires_at). lapsed: past action_expires_at, but the person can still ask for more time until action_expires_horizon; it accepts no answer and does not open, and the Session is still open for your agent: keep waiting. expired: it will never accept an answer (at the horizon, once the deadline passes with no extensions left, on revocation, or after the deadline of a completed Session). Revoke the link when you need a hard end at the deadline. An answer accepted while live stays the result. */
+      /** @description The Sess link’s state at the time of this read: live while it opens and accepts answers (before action_expires_at), expired once it will never accept an answer; an answer accepted while live stays the result. lapsed occurs only where link extensions were on when the Session was created (action_expires_horizon is not null): past the deadline the link accepts no answer and does not open, but can still be extended until the horizon, so the Session is still open for your agent. */
       link_state: 'live' | 'lapsed' | 'expired';
-      /** @description Every accepted extension of the Sess link, in order: at most ten, empty when none (always empty when action_expires_horizon is null). Recorded atomically with each extension; a repeated request is never recorded twice. No answer or field value is recorded. */
+      /** @description Every accepted extension of the Sess link, in order: at most ten, empty when none (always empty when action_expires_horizon is null). Each is recorded once, atomically with its extension, and never holds an answer or field value. */
       extensions: {
         /** @description Its number, 1 to 10, in order. */
         number: number;
@@ -2881,8 +3081,43 @@ export interface components {
         };
         /** @description ISO 8601 UTC time of acceptance. */
         accepted_at: string;
-        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its Sess link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
+        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json: typ sess-receipt+jwt (receipt v1) or sess-receipt-2+jwt (receipt v2; verify it with the revision_envelope returned beside it). Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its Sess link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
         receipt: string | null;
+        /** @description Present beside a receipt v2: the revision envelope it commits to (verify the receipt with it; a receipt v2 without its envelope is refused with `revision`). Absent beside a receipt v1 (issued before receipt v2) and when there is no receipt. */
+        revision_envelope?: {
+          /**
+           * @description The envelope’s own schema version.
+           * @constant
+           */
+          sess_revision: 2;
+          revision: number;
+          session_id: string;
+          /** @description RFC 8785 SHA-256 of the revision’s normalized Surface (the receipt’s surface.hash): the page, its field schema titles and descriptions included. */
+          surface_hash: string;
+          renderer_version: string;
+          /** @description When the revision was published: RFC 3339 UTC with exactly three fractional digits (the stored time truncated to milliseconds). */
+          published_at: string;
+          /** @description The responsible owner key’s non-secret ID; null for every other publisher (the operator key, a hosted agent host, the hosted demo, an anonymous trial). No key label is carried. */
+          key_id: string | null;
+          /** @description A Session grant’s ID; null when no grant published the revision. */
+          grant_id: string | null;
+          /** @description The registered address the Session was started from, as at Start (its Target, the Target’s version and the address name); null otherwise. */
+          agent_target: {
+            id: string;
+            version: number;
+            name: string;
+          } | null;
+          /** @description The Ask a respondent’s Session belongs to; null otherwise. */
+          ask_id: string | null;
+          /** @description The owner-chosen titles as at publish, under their nonce. "Asked by" shows the most specific: grant_title, else target_title, else owner_name. */
+          titles: {
+            /** @description 16 random bytes drawn when the revision was published (base64url). */
+            nonce: string;
+            grant_title: string | null;
+            target_title: string | null;
+            owner_name: string | null;
+          };
+        };
       }[];
     };
     InteractiveSurfaceResponse: {
@@ -3063,10 +3298,47 @@ export interface components {
         };
         /** @description ISO 8601 UTC time the Event was recorded. */
         created_at: string;
-        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its Sess link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
+        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json: typ sess-receipt+jwt (receipt v1) or sess-receipt-2+jwt (receipt v2; verify it with the revision_envelope returned beside it). Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its Sess link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
         receipt?: string | null;
+        /** @description Present beside a receipt v2: the revision envelope it commits to (verify the receipt with it; a receipt v2 without its envelope is refused with `revision`). Absent beside a receipt v1 (issued before receipt v2) and when there is no receipt. */
+        revision_envelope?: {
+          /**
+           * @description The envelope’s own schema version.
+           * @constant
+           */
+          sess_revision: 2;
+          revision: number;
+          session_id: string;
+          /** @description RFC 8785 SHA-256 of the revision’s normalized Surface (the receipt’s surface.hash): the page, its field schema titles and descriptions included. */
+          surface_hash: string;
+          renderer_version: string;
+          /** @description When the revision was published: RFC 3339 UTC with exactly three fractional digits (the stored time truncated to milliseconds). */
+          published_at: string;
+          /** @description The responsible owner key’s non-secret ID; null for every other publisher (the operator key, a hosted agent host, the hosted demo, an anonymous trial). No key label is carried. */
+          key_id: string | null;
+          /** @description A Session grant’s ID; null when no grant published the revision. */
+          grant_id: string | null;
+          /** @description The registered address the Session was started from, as at Start (its Target, the Target’s version and the address name); null otherwise. */
+          agent_target: {
+            id: string;
+            version: number;
+            name: string;
+          } | null;
+          /** @description The Ask a respondent’s Session belongs to; null otherwise. */
+          ask_id: string | null;
+          /** @description The owner-chosen titles as at publish, under their nonce. "Asked by" shows the most specific: grant_title, else target_title, else owner_name. */
+          titles: {
+            /** @description 16 random bytes drawn when the revision was published (base64url). */
+            nonce: string;
+            grant_title: string | null;
+            target_title: string | null;
+            owner_name: string | null;
+          };
+        };
+        /** @description The Ask this respondent Session belongs to: on its `response.accepted` and `session.completed` only. */
+        ask_id?: string;
       }[];
-      /** @description Decision 0009 Amendment 10: every accepted extension of the Sess link, in order (the same records as the Session read’s extensions). Listed beside the Events, not as an Event type, so readers of the Event types above are unaffected. Present only where the deployment has enabled link extensions. */
+      /** @description Every accepted extension of the Sess link, in order (the same records as the Session read’s extensions), listed beside the Events rather than as an Event type, so readers of the Event types above are unaffected. Present only where the deployment has enabled link extensions. */
       link_extensions?: {
         /** @description Its number, 1 to 10, in order. */
         number: number;
@@ -3079,6 +3351,42 @@ export interface components {
         /** @description When the extension was accepted. */
         extended_at: string;
       }[];
+      /** @description The Session’s closing receipt: a signed record of how it ended and of every accepted answer’s receipt, in order. Present only once the Session has ended with at least one accepted answer, its closing receipt is signed and the receipts listed above are exactly the ones it commits to; absent otherwise. */
+      closing?: {
+        /**
+         * @description What `receipt` is: a closing receipt, version 1. Never a receipt for one answer, so never verify it as one.
+         * @constant
+         */
+        typ: 'sess-closing-receipt+jwt';
+        /** @description The closing receipt’s ID, the `jti` it signs. */
+        closure_id: string;
+        /** @description How the Session ended, as the closing receipt signs it: `completed_by_owner` when your agent completed it, `completed_by_ask_rule` when its Ask completed it on the answer, `final_expiry` when its Sess link expired for good. `revoked` ends a Session with no accepted answer, which has no closing receipt. */
+        cause: 'completed_by_owner' | 'completed_by_ask_rule' | 'final_expiry' | 'revoked';
+        /** @description The Event that ended the Session, as the closing receipt signs it: its `session.completed`, or for `final_expiry` the expiry Event Sess recorded, which this list does not include. null only for `revoked`. */
+        terminal_event_id: string | null;
+        /** @description How many answers were accepted in the Session, at least 1: the count the closing receipt signs. Each is a `response.accepted` Event above. */
+        accepted_rounds: number;
+        /** @description The closing receipt exactly as signed: a compact JWS (EdDSA/Ed25519, typ sess-closing-receipt+jwt, no exp) that commits, in order, to the exact bytes of every accepted answer’s receipt. Verify it with GET /.well-known/sess-receipt-keys.json; it is signed once and never re-signed. */
+        receipt: string;
+      };
+    };
+    /** @description The Session’s closing receipt: a signed record of how it ended and of every accepted answer’s receipt, in order. Present only once the Session has ended with at least one accepted answer, its closing receipt is signed and the receipts listed above are exactly the ones it commits to; absent otherwise. */
+    SessionClosing: {
+      /**
+       * @description What `receipt` is: a closing receipt, version 1. Never a receipt for one answer, so never verify it as one.
+       * @constant
+       */
+      typ: 'sess-closing-receipt+jwt';
+      /** @description The closing receipt’s ID, the `jti` it signs. */
+      closure_id: string;
+      /** @description How the Session ended, as the closing receipt signs it: `completed_by_owner` when your agent completed it, `completed_by_ask_rule` when its Ask completed it on the answer, `final_expiry` when its Sess link expired for good. `revoked` ends a Session with no accepted answer, which has no closing receipt. */
+      cause: 'completed_by_owner' | 'completed_by_ask_rule' | 'final_expiry' | 'revoked';
+      /** @description The Event that ended the Session, as the closing receipt signs it: its `session.completed`, or for `final_expiry` the expiry Event Sess recorded, which this list does not include. null only for `revoked`. */
+      terminal_event_id: string | null;
+      /** @description How many answers were accepted in the Session, at least 1: the count the closing receipt signs. Each is a `response.accepted` Event above. */
+      accepted_rounds: number;
+      /** @description The closing receipt exactly as signed: a compact JWS (EdDSA/Ed25519, typ sess-closing-receipt+jwt, no exp) that commits, in order, to the exact bytes of every accepted answer’s receipt. Verify it with GET /.well-known/sess-receipt-keys.json; it is signed once and never re-signed. */
+      receipt: string;
     };
     ReceiptKeysResponse: {
       /** @description The active signing key and every retained verification key (rotation overlap). A receipt verifies with the key whose kid its protected header names; there is no fallback key. */
@@ -3120,10 +3428,45 @@ export interface components {
     DecisionBundle: {
       /** @constant */
       type: 'sess.decision-bundle';
-      /** @constant */
-      version: 1;
-      /** @description The receipt-v1 compact JWS exactly as issued. */
+      /** @description 2 for a receipt v2 (bundle-v2); 1 for a receipt v1 (bundle-v1). */
+      version: 1 | 2;
+      /** @description The receipt compact JWS exactly as issued: receipt v2 in bundle-v2, receipt v1 in bundle-v1. */
       receipt: string;
+      /** @description bundle-v2 only: the revision envelope the receipt v2 commits to (missing or other: `revision`). */
+      revision_envelope?: {
+        /**
+         * @description The envelope’s own schema version.
+         * @constant
+         */
+        sess_revision: 2;
+        revision: number;
+        session_id: string;
+        /** @description RFC 8785 SHA-256 of the revision’s normalized Surface (the receipt’s surface.hash): the page, its field schema titles and descriptions included. */
+        surface_hash: string;
+        renderer_version: string;
+        /** @description When the revision was published: RFC 3339 UTC with exactly three fractional digits (the stored time truncated to milliseconds). */
+        published_at: string;
+        /** @description The responsible owner key’s non-secret ID; null for every other publisher (the operator key, a hosted agent host, the hosted demo, an anonymous trial). No key label is carried. */
+        key_id: string | null;
+        /** @description A Session grant’s ID; null when no grant published the revision. */
+        grant_id: string | null;
+        /** @description The registered address the Session was started from, as at Start (its Target, the Target’s version and the address name); null otherwise. */
+        agent_target: {
+          id: string;
+          version: number;
+          name: string;
+        } | null;
+        /** @description The Ask a respondent’s Session belongs to; null otherwise. */
+        ask_id: string | null;
+        /** @description The owner-chosen titles as at publish, under their nonce. "Asked by" shows the most specific: grant_title, else target_title, else owner_name. */
+        titles: {
+          /** @description 16 random bytes drawn when the revision was published (base64url). */
+          nonce: string;
+          grant_title: string | null;
+          target_title: string | null;
+          owner_name: string | null;
+        };
+      };
       content: {
         /** @description The complete normalized Surface document of the accepted revision (its RFC 8785 SHA-256 is the receipt surface.hash). */
         surface: {
@@ -3168,6 +3511,7 @@ export interface components {
             | 'audience'
             | 'expired'
             | 'claims'
+            | 'revision'
             | 'not_yet_valid'
             | 'surface_mismatch'
             | 'input_mismatch'
@@ -3204,6 +3548,8 @@ export interface components {
           revision: number;
           hash: string;
           renderer_version: string;
+          /** @description bundle-v2: the receipt v2 surface.revision_hash. */
+          revision_hash?: string;
         };
         action: {
           id: string;
@@ -3213,16 +3559,55 @@ export interface components {
         input_hash: string;
         accepted_at: string;
         expires_at: string;
+        /** @description bundle-v2 only: the verified revision envelope, as the receipt v2 commits to it (its full form, with the owner-chosen titles under their nonce). */
+        revision_envelope?: {
+          /**
+           * @description The envelope’s own schema version.
+           * @constant
+           */
+          sess_revision: 2;
+          revision: number;
+          session_id: string;
+          /** @description RFC 8785 SHA-256 of the revision’s normalized Surface (the receipt’s surface.hash): the page, its field schema titles and descriptions included. */
+          surface_hash: string;
+          renderer_version: string;
+          /** @description When the revision was published: RFC 3339 UTC with exactly three fractional digits (the stored time truncated to milliseconds). */
+          published_at: string;
+          /** @description The responsible owner key’s non-secret ID; null for every other publisher (the operator key, a hosted agent host, the hosted demo, an anonymous trial). No key label is carried. */
+          key_id: string | null;
+          /** @description A Session grant’s ID; null when no grant published the revision. */
+          grant_id: string | null;
+          /** @description The registered address the Session was started from, as at Start (its Target, the Target’s version and the address name); null otherwise. */
+          agent_target: {
+            id: string;
+            version: number;
+            name: string;
+          } | null;
+          /** @description The Ask a respondent’s Session belongs to; null otherwise. */
+          ask_id: string | null;
+          /** @description The owner-chosen titles as at publish, under their nonce. "Asked by" shows the most specific: grant_title, else target_title, else owner_name. */
+          titles: {
+            /** @description 16 random bytes drawn when the revision was published (base64url). */
+            nonce: string;
+            grant_title: string | null;
+            target_title: string | null;
+            owner_name: string | null;
+          };
+        };
       } | null;
     };
     /** @description An archival envelope: the original receipt, the signed archival core that binds it and its preservation evidence. Public structure only; never a private key, holder secret or recovery section. */
     ArchivalEnvelope: {
       /** @constant */
       type: 'sess.archival-envelope';
-      /** @constant */
-      version: 1;
-      /** @description The original receipt-v1 compact JWS, exactly as issued. */
+      /** @description 1 for a receipt v1; 2 for a receipt v2 (archival-core-v2). */
+      version: 1 | 2;
+      /** @description The original receipt compact JWS, exactly as issued: receipt v1 in version 1, receipt v2 in version 2. */
       receipt: string;
+      /** @description Version 2 only: the revision envelope the receipt v2 commits to (receipt-v2 §2), strictly checked by the verifier with the receipt. */
+      revision_envelope?: {
+        [key: string]: unknown;
+      };
       signed_core: {
         /** @constant */
         type: 'sess.signed-archival-core';
@@ -3245,6 +3630,40 @@ export interface components {
         [key: string]: unknown;
       }[];
     };
+    /** @description A person's archival envelope: the original receipt, the signed projection that binds it without the capability, and its preservation evidence. */
+    ArchivalPersonEnvelope: {
+      /** @constant */
+      type: 'sess.archival-person-envelope';
+      /** @description 1 for a receipt v1; 2 for a receipt v2. */
+      version: 1 | 2;
+      /** @description The original receipt compact JWS, exactly as issued. */
+      receipt: string;
+      /** @description Version 2 only: the revision envelope the receipt v2 commits to. */
+      revision_envelope?: {
+        [key: string]: unknown;
+      };
+      signed_projection: {
+        /** @constant */
+        type: 'sess.signed-archival-person-projection';
+        /** @constant */
+        version: 1;
+        /** @description The person-carried projection (archival-person-projection §1.1), strictly checked by the verifier: its bindings are exactly {target, owner}. */
+        projection: {
+          [key: string]: unknown;
+        };
+        signature: {
+          /** @constant */
+          alg: 'Ed25519';
+          kid: string;
+          /** @description base64url, 64 bytes. */
+          value: string;
+        };
+      };
+      /** @description The projection's own witness evidence version 1 entries (never the core's). Empty while the witness is pending. */
+      evidence: {
+        [key: string]: unknown;
+      }[];
+    };
     ArchivalVerifyResponse: {
       /** @description The current time the check used (UTC). */
       checked_at: string;
@@ -3262,7 +3681,10 @@ export interface components {
           | 'receipt_malformed'
           | 'receipt_signature'
           | 'core_receipt_mismatch'
-          | 'untrusted_key';
+          | 'untrusted_key'
+          | 'revision'
+          | 'projection_signature'
+          | 'projection_receipt_mismatch';
       };
       contents: {
         status: 'valid' | 'invalid' | 'unsupported' | 'unverifiable';
@@ -3316,8 +3738,12 @@ export interface components {
         reason: 'unexpired' | 'expired' | 'signature_unverified';
         expires_at: string | null;
       };
-      /** @description The validated archival core; null unless signature is valid. */
+      /** @description The validated archival core; null unless signature is valid, and always null for a person's envelope. */
       core: {
+        [key: string]: unknown;
+      } | null;
+      /** @description A person's archival envelope only: the validated person-carried projection (no capability binding); null unless signature is valid. */
+      projection?: {
         [key: string]: unknown;
       } | null;
       /** @description The verified receipt-v1 claims; null unless signature is valid. */
@@ -3341,6 +3767,45 @@ export interface components {
         expired_for_live_use: boolean | null;
       };
     };
+    ClosingVerifyRequest: {
+      /** @description The kept file’s closing receipt, its exact compact JWS. */
+      closing_receipt: string;
+      /** @description The file’s round receipts, in the order the file carries them. */
+      rounds: {
+        receipt: string;
+        /** @description A receipt v2’s revision envelope, as the file carries it. */
+        revision_envelope?: {
+          [key: string]: unknown;
+        } | null;
+      }[];
+    };
+    ClosingVerifyResponse: {
+      /** @description closing-receipt-v1 §6.1: derived from authenticity and set match alone. */
+      completeness: 'complete' | 'failed' | 'unsupported' | 'none';
+      /** @description The closing receipt’s own authenticity. */
+      closing: {
+        status: 'valid' | 'invalid' | 'missing' | 'unsupported' | 'unverifiable';
+        reason: string;
+      };
+      set_match: {
+        status: 'valid' | 'invalid' | 'missing' | 'unsupported' | 'unverifiable';
+        reason: string;
+        present: number;
+        signed_count: number | null;
+      };
+      independent_time: {
+        /** @constant */
+        status: 'missing';
+        /** @constant */
+        reason: 'no_timestamp_evidence';
+      };
+      /** @description What a person’s page shows: complete (the set-match row, with the signed count), failed (the shared failed-evidence result) or none (no row and no line). */
+      presentation: {
+        state: 'complete' | 'failed' | 'none';
+        count: number | null;
+        anchored_at: string | null;
+      };
+    };
     KeepChallengeRequest: {
       /** @description The Keep grant secrets this browser holds for this link: each the 32-byte secret whose domain-separated SHA-256 was the client_event_id of a round it submitted (`kg-` + hash). A round is authorized only by its own grant. Sent in the body only, never in a URL. */
       grants: string[];
@@ -3358,10 +3823,16 @@ export interface components {
         /** Format: date-time */
         expires_at: string;
         /** @description The exact batch, in order: every authorized round whose receipt is in custody and has no holder yet. */
-        items: {
-          event_id: string;
-          core_digest: string;
-        }[];
+        items: (
+          | {
+              event_id: string;
+              core_digest: string;
+            }
+          | {
+              event_id: string;
+              projection_digest: string;
+            }
+        )[];
       };
     };
     KeepRequest: {
@@ -3392,8 +3863,8 @@ export interface components {
     KeptConversation: {
       /** @constant */
       type: 'sess.kept-conversation';
-      /** @constant */
-      version: 1;
+      /** @description 2 (keep-v2: a round also carries revision_envelope) exactly when the file holds a receipt v2 round; else 1 (keep-v1, as written before receipt v2); 3 (keep-v3, archival-person-projection §3: person envelopes and holder proofs v2) for every file once keep-v3 writing is on; 4 (keep-v4, Decision 0016: keep-v3 with closing_receipt) for every file once keep-v4 writing is on. Readers take all four. */
+      version: 1 | 2 | 3 | 4;
       issuer: string;
       workspace_id: string;
       session_id: string;
@@ -3420,8 +3891,43 @@ export interface components {
         revision: number;
         /** Format: date-time */
         accepted_at: string;
-        /** @description The receipt-v1 compact JWS exactly as issued. */
+        /** @description The receipt compact JWS exactly as issued: receipt v1 (keep-v1 holds only receipt v1 rounds), or receipt v1 or v2 in a keep-v2 file. */
         receipt: string;
+        /** @description keep-v2 only (absent in keep-v1): the revision envelope a receipt v2 commits to; null for a receipt v1 round. */
+        revision_envelope?: {
+          /**
+           * @description The envelope’s own schema version.
+           * @constant
+           */
+          sess_revision: 2;
+          revision: number;
+          session_id: string;
+          /** @description RFC 8785 SHA-256 of the revision’s normalized Surface (the receipt’s surface.hash): the page, its field schema titles and descriptions included. */
+          surface_hash: string;
+          renderer_version: string;
+          /** @description When the revision was published: RFC 3339 UTC with exactly three fractional digits (the stored time truncated to milliseconds). */
+          published_at: string;
+          /** @description The responsible owner key’s non-secret ID; null for every other publisher (the operator key, a hosted agent host, the hosted demo, an anonymous trial). No key label is carried. */
+          key_id: string | null;
+          /** @description A Session grant’s ID; null when no grant published the revision. */
+          grant_id: string | null;
+          /** @description The registered address the Session was started from, as at Start (its Target, the Target’s version and the address name); null otherwise. */
+          agent_target: {
+            id: string;
+            version: number;
+            name: string;
+          } | null;
+          /** @description The Ask a respondent’s Session belongs to; null otherwise. */
+          ask_id: string | null;
+          /** @description The owner-chosen titles as at publish, under their nonce. "Asked by" shows the most specific: grant_title, else target_title, else owner_name. */
+          titles: {
+            /** @description 16 random bytes drawn when the revision was published (base64url). */
+            nonce: string;
+            grant_title: string | null;
+            target_title: string | null;
+            owner_name: string | null;
+          };
+        } | null;
         content:
           | {
               /** @constant */
@@ -3430,10 +3936,45 @@ export interface components {
               bundle: {
                 /** @constant */
                 type: 'sess.decision-bundle';
-                /** @constant */
-                version: 1;
-                /** @description The receipt-v1 compact JWS exactly as issued. */
+                /** @description 2 for a receipt v2 (bundle-v2); 1 for a receipt v1 (bundle-v1). */
+                version: 1 | 2;
+                /** @description The receipt compact JWS exactly as issued: receipt v2 in bundle-v2, receipt v1 in bundle-v1. */
                 receipt: string;
+                /** @description bundle-v2 only: the revision envelope the receipt v2 commits to (missing or other: `revision`). */
+                revision_envelope?: {
+                  /**
+                   * @description The envelope’s own schema version.
+                   * @constant
+                   */
+                  sess_revision: 2;
+                  revision: number;
+                  session_id: string;
+                  /** @description RFC 8785 SHA-256 of the revision’s normalized Surface (the receipt’s surface.hash): the page, its field schema titles and descriptions included. */
+                  surface_hash: string;
+                  renderer_version: string;
+                  /** @description When the revision was published: RFC 3339 UTC with exactly three fractional digits (the stored time truncated to milliseconds). */
+                  published_at: string;
+                  /** @description The responsible owner key’s non-secret ID; null for every other publisher (the operator key, a hosted agent host, the hosted demo, an anonymous trial). No key label is carried. */
+                  key_id: string | null;
+                  /** @description A Session grant’s ID; null when no grant published the revision. */
+                  grant_id: string | null;
+                  /** @description The registered address the Session was started from, as at Start (its Target, the Target’s version and the address name); null otherwise. */
+                  agent_target: {
+                    id: string;
+                    version: number;
+                    name: string;
+                  } | null;
+                  /** @description The Ask a respondent’s Session belongs to; null otherwise. */
+                  ask_id: string | null;
+                  /** @description The owner-chosen titles as at publish, under their nonce. "Asked by" shows the most specific: grant_title, else target_title, else owner_name. */
+                  titles: {
+                    /** @description 16 random bytes drawn when the revision was published (base64url). */
+                    nonce: string;
+                    grant_title: string | null;
+                    target_title: string | null;
+                    owner_name: string | null;
+                  };
+                };
                 content: {
                   /** @description The complete normalized Surface document of the accepted revision (its RFC 8785 SHA-256 is the receipt surface.hash). */
                   surface: {
@@ -3471,8 +4012,18 @@ export interface components {
               status: 'preserved';
               /** @description The witness state at snapshot time (the custody witness job: `pending` until a witness attaches, then e.g. `witnessed`); the envelope carries the evidence attached by then. */
               witness: string;
-              /** @description The archival envelope (the Sess archival-core-v1 specification). */
+              /** @description The archival envelope: version 2 (archival-core-v2) for a receipt v2, version 1 (archival-core-v1) for a receipt v1. */
               archival_envelope: {
+                [key: string]: unknown;
+              };
+            }
+          | {
+              /** @constant */
+              status: 'preserved';
+              /** @description keep-v3: the person projection's witness job state at snapshot time. */
+              witness: string;
+              /** @description keep-v3 only: the person's archival envelope (archival-person-projection §1.4), of the version of its receipt; never a core. */
+              person_envelope: {
                 [key: string]: unknown;
               };
             }
@@ -3503,9 +4054,12 @@ export interface components {
           | {
               /** @constant */
               status: 'unenrolled';
-              reason: 'not_preserved' | 'final_only' | 'not_enrolled' | 'holder_withheld';
+              reason:
+                'not_preserved' | 'final_only' | 'not_enrolled' | 'holder_withheld' | 'holder_core_bound';
             };
       }[];
+      /** @description keep-v4 only (Decision 0016): the Session’s closing receipt (closing-receipt-v1), its exact compact JWS as sealed, present only when the file holds exactly the accepted rounds it commits to; else null. Never a count or list of rounds the file lacks. */
+      closing_receipt?: string | null;
     };
     WebhookRegisterRequest: {
       /** @description Absolute https:// URL on port 443, without user info or fragment. Registering replaces the current endpoint (which stops receiving new deliveries); the new one receives nothing until verified. */
@@ -3692,6 +4246,8 @@ export interface components {
       /** @description Stable across retries and redeliveries: deduplicate on it. */
       event_id: string;
       session_id: string;
+      /** @description Present only when the Session is a respondent of an Ask (POST /v1/asks). */
+      ask_id?: string;
       sequence: number;
       revision: number;
       action_id: string;
@@ -3701,6 +4257,41 @@ export interface components {
       accepted_at: string;
       /** @description The stored signed decision receipt (identical on every delivery). */
       receipt: string | null;
+      /** @description The revision envelope the receipt v2 commits to (verify the receipt with it: a receipt v2 without its envelope is refused with `revision`); null for a receipt v1, for no receipt, or when the revision is no longer retained. */
+      revision_envelope?: {
+        /**
+         * @description The envelope’s own schema version.
+         * @constant
+         */
+        sess_revision: 2;
+        revision: number;
+        session_id: string;
+        /** @description RFC 8785 SHA-256 of the revision’s normalized Surface (the receipt’s surface.hash): the page, its field schema titles and descriptions included. */
+        surface_hash: string;
+        renderer_version: string;
+        /** @description When the revision was published: RFC 3339 UTC with exactly three fractional digits (the stored time truncated to milliseconds). */
+        published_at: string;
+        /** @description The responsible owner key’s non-secret ID; null for every other publisher (the operator key, a hosted agent host, the hosted demo, an anonymous trial). No key label is carried. */
+        key_id: string | null;
+        /** @description A Session grant’s ID; null when no grant published the revision. */
+        grant_id: string | null;
+        /** @description The registered address the Session was started from, as at Start (its Target, the Target’s version and the address name); null otherwise. */
+        agent_target: {
+          id: string;
+          version: number;
+          name: string;
+        } | null;
+        /** @description The Ask a respondent’s Session belongs to; null otherwise. */
+        ask_id: string | null;
+        /** @description The owner-chosen titles as at publish, under their nonce. "Asked by" shows the most specific: grant_title, else target_title, else owner_name. */
+        titles: {
+          /** @description 16 random bytes drawn when the revision was published (base64url). */
+          nonce: string;
+          grant_title: string | null;
+          target_title: string | null;
+          owner_name: string | null;
+        };
+      } | null;
     };
     WebhookVerification: {
       /** @constant */
@@ -3931,6 +4522,7 @@ export interface components {
           | 'IDEMPOTENCY_CONFLICT'
           | 'PRECONDITION_REQUIRED'
           | 'SESSION_COMPLETED'
+          | 'SESSION_ENDED'
           | 'ACTION_NOT_ALLOWED'
           | 'ACTION_NOT_FOUND'
           | 'VALIDATION_FAILED'
@@ -3956,11 +4548,11 @@ export interface components {
         /** @description Plain words for people; clients read code, field, limit, length and expected, never this text. For a value over its length limit it names the value, its length and the limit, and says how to fix it: "Shorten it to at most <limit> characters." A 401 for a create sent with no Authorization header also names the no-signup trial, POST /v1/trial/sessions. */
         message: string;
         request_id: string;
-        /** @description A stable machine-readable refinement of some codes (P1 A4 webhook errors; P2 target, admission and limit errors). */
+        /** @description A stable machine-readable refinement of some codes (P1 A4 webhook errors; P2 target, admission and limit errors; SESSION_ENDED: the terminal cause, `final_expiry` or `revoked`). */
         reason?: string;
-        /** @description INVALID_SCHEMA for a value over its length limit (Decision 0009 Amendment 12), and for an items component (Commerce): a JSON pointer to the value in the request body, for example /interaction/title (for a record key, the pointer names that key) or /interaction/source/components/2/currency. A request body that does not match the schema carries field, the pointer to its first failing value, with expected: for a missing property the pointer names it; for an unknown property it is the object that holds it (the unknown name is never repeated); a pointer never passes through a key you chose (it stops at the object holding that key). Other schema errors (malformed JSON, path and query values) carry no field, limit, length, expected or actual. */
+        /** @description INVALID_SCHEMA for a value over its length limit, and for an items component (Commerce): a JSON pointer to the value in the request body, for example /interaction/title (for a record key, the pointer names that key) or /interaction/source/components/2/currency; and VALIDATION_FAILED for an agent’s sharing title (reason title_invalid or title_required): /title. A request body that does not match the schema carries field, the pointer to its first failing value, with expected: for a missing property the pointer names it; for an unknown property it is the object that holds it (the unknown name is never repeated); a pointer never passes through a key you chose (it stops at the object holding that key). Other schema errors (malformed JSON, path and query values) carry no field, limit, length, expected or actual. */
         field?: string;
-        /** @description With field: the most the value may have, in Unicode code points. Interactive Surface: title 80, description 280, heading 60, text 4,000, record caption 200, record key 40, record string value 200, field label 60, field description 160, option label 60, action label 24, items caption 200, item name 120, item detail 160, totals label 40, quantity unit 16. Display Session: title 80, description 4,000. For an items component’s rows or totals (field ending /rows or /totals) it is a count: rows 100, totals 8. */
+        /** @description With field: the most the value may have, in Unicode code points. Interactive Surface: title 60, description 200, heading 40, text 4,000, record caption 200, record key 24, record string value 200, field label 40, field description 120, option label 30, rating end label 24, action label 16, items caption 200, item name 30, item detail 160, totals label 40, quantity unit 16. Display Session: title 60, description 4,000. For an items component’s rows or totals (field ending /rows or /totals) it is a count: rows 100, totals 8. */
         limit?: number;
         /** @description With field: the value’s length in Unicode code points (for rows or totals, how many were sent). */
         length?: number;
@@ -4078,13 +4670,13 @@ export interface components {
       status: 'active' | 'responded' | 'completed';
       /** @description The current Surface revision. */
       revision: number;
-      /** @description For an interactive Sess link of 20 hours or less (created with expires_in of 72000 or less, or a trial): the fixed instant after which the link can never be extended or reopened, set when the Session is created: creation + the original lifetime + 10 × min(original lifetime, 1 hour). It never moves. null for a link longer than 20 hours, a display Session, or a Session created before link extensions existed: their links end at action_expires_at. */
+      /** @description null unless link extensions were on for this deployment when the Session was created; with them on, also null for a link longer than 20 hours or a display Session. Otherwise the fixed instant after which the link can never be extended or reopened: creation + the original lifetime + 10 × min(original lifetime, 1 hour). */
       action_expires_horizon: string | null;
-      /** @description How many times the person extended the link (at most 10). Each extension moves action_expires_at forward by min(original lifetime, 1 hour), never past action_expires_horizon. Always 0 when action_expires_horizon is null. */
+      /** @description How many times the person extended the link: always 0 when action_expires_horizon is null, at most 10 otherwise. */
       extensions_used: number;
-      /** @description The Sess link’s state at the time of this read. live: it opens and accepts answers (before action_expires_at). lapsed: past action_expires_at, but the person can still ask for more time until action_expires_horizon; it accepts no answer and does not open, and the Session is still open for your agent: keep waiting. expired: it will never accept an answer (at the horizon, once the deadline passes with no extensions left, on revocation, or after the deadline of a completed Session). Revoke the link when you need a hard end at the deadline. An answer accepted while live stays the result. */
+      /** @description The Sess link’s state at the time of this read: live while it opens and accepts answers (before action_expires_at), expired once it will never accept an answer; an answer accepted while live stays the result. lapsed occurs only where link extensions were on when the Session was created (action_expires_horizon is not null): past the deadline the link accepts no answer and does not open, but can still be extended until the horizon, so the Session is still open for your agent. */
       link_state: 'live' | 'lapsed' | 'expired';
-      /** @description Every accepted extension of the Sess link, in order: at most ten, empty when none (always empty when action_expires_horizon is null). Recorded atomically with each extension; a repeated request is never recorded twice. No answer or field value is recorded. */
+      /** @description Every accepted extension of the Sess link, in order: at most ten, empty when none (always empty when action_expires_horizon is null). Each is recorded once, atomically with its extension, and never holds an answer or field value. */
       extensions: {
         /** @description Its number, 1 to 10, in order. */
         number: number;
@@ -4241,8 +4833,43 @@ export interface components {
         };
         /** @description ISO 8601 UTC time of acceptance. */
         accepted_at: string;
-        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, typ sess-receipt+jwt, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json. Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its Sess link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
+        /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json: typ sess-receipt+jwt (receipt v1) or sess-receipt-2+jwt (receipt v2; verify it with the revision_envelope returned beside it). Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its Sess link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
         receipt: string | null;
+        /** @description Present beside a receipt v2: the revision envelope it commits to (verify the receipt with it; a receipt v2 without its envelope is refused with `revision`). Absent beside a receipt v1 (issued before receipt v2) and when there is no receipt. */
+        revision_envelope?: {
+          /**
+           * @description The envelope’s own schema version.
+           * @constant
+           */
+          sess_revision: 2;
+          revision: number;
+          session_id: string;
+          /** @description RFC 8785 SHA-256 of the revision’s normalized Surface (the receipt’s surface.hash): the page, its field schema titles and descriptions included. */
+          surface_hash: string;
+          renderer_version: string;
+          /** @description When the revision was published: RFC 3339 UTC with exactly three fractional digits (the stored time truncated to milliseconds). */
+          published_at: string;
+          /** @description The responsible owner key’s non-secret ID; null for every other publisher (the operator key, a hosted agent host, the hosted demo, an anonymous trial). No key label is carried. */
+          key_id: string | null;
+          /** @description A Session grant’s ID; null when no grant published the revision. */
+          grant_id: string | null;
+          /** @description The registered address the Session was started from, as at Start (its Target, the Target’s version and the address name); null otherwise. */
+          agent_target: {
+            id: string;
+            version: number;
+            name: string;
+          } | null;
+          /** @description The Ask a respondent’s Session belongs to; null otherwise. */
+          ask_id: string | null;
+          /** @description The owner-chosen titles as at publish, under their nonce. "Asked by" shows the most specific: grant_title, else target_title, else owner_name. */
+          titles: {
+            /** @description 16 random bytes drawn when the revision was published (base64url). */
+            nonce: string;
+            grant_title: string | null;
+            target_title: string | null;
+            owner_name: string | null;
+          };
+        };
       }[];
       trial: {
         workspace_id: string;
@@ -4305,6 +4932,8 @@ export interface components {
       last_saved: string | null;
       /** @description Where Save lands: `last_saved` was saved within the last ten minutes on the server’s clock, so Your receipts marks it "Saved just now". False when there is none. */
       last_saved_just_now: boolean;
+      /** @description This session’s own verified address also has a developer account (a workspace), so Your receipts’ account menu links to the console, whose own sign-in still applies. False when it has none or the lookup failed. */
+      has_workspace: boolean;
     };
     PersonalDone: {
       status: 'signed_out' | 'closed';
@@ -4360,6 +4989,11 @@ export interface components {
        * @description When the saved copy was written. The identical request again answers the same time: nothing is written twice.
        */
       saved_at: string;
+      /**
+       * @description Present when this account already held the same copy before this request: nothing was written, and the saved copy is that existing one.
+       * @constant
+       */
+      existing?: true;
     };
     PersonalCopyRequest: {
       /** @description A saved copy of this personal account, as GET /personal/copies lists it. */
@@ -4418,14 +5052,18 @@ export interface components {
         saved_at: string;
         /** @description When the last round the copy serves now was answered (its `accepted_at`, as opening the copy shows it): the date the list shows and sorts by. null when the copy serves no round or gives no readable time (the list then shows and sorts by `saved_at`). */
         answered_at: string | null;
+        /** @description The date the list row and the opened receipt’s header show, as text, written by the server when it answers (one smart date for every list row, rendered when the page is served, no script): the last answer’s time the copy serves, else `saved_at`, against the server’s clock in UTC: “now” under a minute, “5m” under an hour, “3h” under 24 hours, “Yesterday” on the UTC day before, else “6 Nov”, with the year (“6 Nov 2025”) only in another year. Display text, never parsed; the exact times stay in `saved_at`, `answered_at` and each round’s `accepted_at`. */
+        date_text: string;
         /** @description `partly_unavailable` or `unavailable` when an operator restriction or deletion whose scope reaches personal copies withholds rounds or holder proofs of it: that content is never served, and the status never says why. */
         status: 'available' | 'partly_unavailable' | 'unavailable';
         /** @description The Surface title of the first round the copy serves now that has one, from the copy itself; a withheld round’s title is never used. */
         title: string | null;
         /** @description The person’s own name for the copy (Rename, D7): the page’s navigation title only. It is never in the file, a receipt, a PDF or an export, and never presented as the author’s. null when there is none, or when nothing of the copy is served now. */
         label: string | null;
-        /** @description The name the agent was published under for this conversation when it was saved (a shared card’s name, or the Sess demo), kept as it was then: a historical display name, never a verified identity. null when there was none, or when nothing of the copy is served now. */
+        /** @description The name the agent was published under for this conversation when it was saved (a shared card’s display title, or its name when it had none; or the Sess demo), kept as it was then and given as a person reads it (a title exactly as written; a card name with its hyphens as spaces and a capital first letter, so weekend-planner is Weekend planner): a historical display name, never a verified identity. null when there was none, or when nothing of the copy is served now. */
         agent: string | null;
+        /** @description Whether the copy is available and every round it serves was checked and verified at this read, its signature and its questions and answers both (each round’s `signature` and `contents` `verified`, as POST /personal/copies/open gives them): the list row says no state then, else “Unverified”, unless `status` makes it “Partial” or “Unavailable”. false unless `status` is `available`, even when every round a partly unavailable copy still serves verifies; false when the copy serves no round. */
+        verified: boolean;
       }[];
       /** @description Every saved copy that matches. */
       total: number;
@@ -4444,12 +5082,14 @@ export interface components {
       item: string;
       /** Format: date-time */
       saved_at: string;
+      /** @description The date the list row and the opened receipt’s header show, as text, written by the server when it answers (one smart date for every list row, rendered when the page is served, no script): the last answer’s time the copy serves, else `saved_at`, against the server’s clock in UTC: “now” under a minute, “5m” under an hour, “3h” under 24 hours, “Yesterday” on the UTC day before, else “6 Nov”, with the year (“6 Nov 2025”) only in another year. Display text, never parsed; the exact times stay in `saved_at`, `answered_at` and each round’s `accepted_at`. */
+      date_text: string;
       /** @description `partly_unavailable` or `unavailable` when an operator restriction or deletion whose scope reaches personal copies withholds rounds or holder proofs of it: that content is never served, and the status never says why. */
       status: 'available' | 'partly_unavailable' | 'unavailable';
       title: string | null;
       /** @description The person’s own name for the copy (Rename, D7): the page’s navigation title only. It is never in the file, a receipt, a PDF or an export, and never presented as the author’s. null when there is none, or when nothing of the copy is served now. */
       label: string | null;
-      /** @description The name the agent was published under for this conversation when it was saved (a shared card’s name, or the Sess demo), kept as it was then: a historical display name, never a verified identity. null when there was none, or when nothing of the copy is served now. */
+      /** @description The name the agent was published under for this conversation when it was saved (a shared card’s display title, or its name when it had none; or the Sess demo), kept as it was then and given as a person reads it (a title exactly as written; a card name with its hyphens as spaces and a capital first letter, so weekend-planner is Weekend planner): a historical display name, never a verified identity. null when there was none, or when nothing of the copy is served now. */
       agent: string | null;
       rounds: {
         /** Format: date-time */
@@ -4510,6 +5150,11 @@ export interface components {
               label: string;
               /** @description The accepted answer: text as typed, a number as written, a choice as its option label, several choices joined with ", "; true or false for a yes/no field; null when it was left empty. */
               answer: string | boolean | null;
+              /** @description For a rating field, its chosen value and its scale’s maximum (the answer reads "{value} of {max}"); absent for every other field. */
+              rating?: {
+                value: number;
+                max: number;
+              };
             }
         )[];
         /** @description The archival verifier’s signature outcome for this round’s kept record with the service’s receipt keys: `not_checked` when the round was not preserved or its key is not trusted here. */
@@ -4518,7 +5163,27 @@ export interface components {
         contents: 'verified' | 'not_valid' | 'unavailable' | 'not_checked';
         /** @description The holder status as recorded at Save; `withheld` when its signed batch names a round an operator order now withholds. */
         holder: 'enrolled' | 'revoked' | 'not_enrolled' | 'withheld';
+        /** @description RV2-06: who asked and when, only from a receipt v2 whose revision envelope verified with it; absent for a receipt v1 or an unverified round, as revision_envelope is absent beside a receipt v1 on the /v1 faces. Never a live name and never a key label. */
+        provenance?: {
+          /** @description The most specific owner-chosen title committed in the verified revision envelope (its grant title, else its Target title, else its owner name); null when it has none. */
+          asked_by: string | null;
+          /** @description When the round was published (UTC). */
+          published_at: string;
+          /** @description The registered address the Session was started from (agent_target.name in the verified envelope), drawn as the receipt summary’s address line; null when none. */
+          address: string | null;
+          /** @description An inbox child (the verified envelope names both agent_target and ask_id): the summary says "Sent to" its Target’s title and no "Asked by". */
+          inbox: boolean;
+          /** @description On an inbox child, the committed Target title (titles.target_title); null otherwise or when it has none. */
+          sent_to: string | null;
+        };
       }[];
+      /** @description Decision 0016: the Session’s closing receipt, checked on the server (closing-receipt-v1 §6.1) against the copy as served now. Absent when the copy carries none, or when it can’t be decided here. */
+      closing?: {
+        /** @description true: the copy’s rounds are exactly the set the closing receipt signs; false: the closing receipt it carries does not verify or does not match (the copy is then unverified). */
+        verified: boolean;
+        /** @description The signed count of answers recorded, when verified; else null. */
+        count: number | null;
+      };
     };
     PersonalCopyLabelRequest: {
       item: string;
@@ -4664,7 +5329,9 @@ export interface components {
     };
     TargetSharingRequest: {
       name?: string | null;
+      /** @description Turning sharing on needs a name and a title, in this request or already set. Any change while shared needs the title too. */
       shared?: boolean;
+      title?: string | null;
       description?: string | null;
       attribution?: string | null;
       ask_again?: boolean;
@@ -4712,6 +5379,7 @@ export interface components {
         name: string | null;
         /** @description Off by default. While false, /a/{name} answers 404 and its starts stop. */
         shared: boolean;
+        title: string | null;
         description: string | null;
         attribution: string | null;
         /** @description Off by default. When on, the completion page of a run started from the card offers “Ask this agent again”: a new start (a new Invocation and a new Session) that carries nothing from the finished one. */
@@ -4765,6 +5433,7 @@ export interface components {
           name: string | null;
           /** @description Off by default. While false, /a/{name} answers 404 and its starts stop. */
           shared: boolean;
+          title: string | null;
           description: string | null;
           attribution: string | null;
           /** @description Off by default. When on, the completion page of a run started from the card offers “Ask this agent again”: a new start (a new Invocation and a new Session) that carries nothing from the finished one. */
@@ -4901,7 +5570,7 @@ export interface components {
       };
       limits: {
         accepted_rounds: number;
-        /** @description Decision 0009 Amendment 7: the target’s default_expires_in when this run was admitted (absent when it had none). Advisory: the agent passes it as expires_in on POST /v1/sessions for the Sessions of this run unless it sets its own; that create checks it against the agent key’s plan. */
+        /** @description The target’s default_expires_in when this run was admitted (absent when it had none). Advisory: the agent passes it as expires_in on POST /v1/sessions for the Sessions of this run unless it sets its own; that create checks it against the agent key’s plan. */
         expires_in?: number;
       };
       expires_at: string;
@@ -5160,6 +5829,245 @@ export interface components {
         /** @description When the record was deleted (UTC). */
         deleted_at: string;
       };
+    };
+    CreateAskRequest: {
+      interaction: {
+        /** @constant */
+        mode: 'interactive';
+        /**
+         * @description The page's heading: a question or a task, about 40 characters; at most 60. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+         * @example Approve the refund?
+         * @example Pick a delivery date
+         */
+        title: string;
+        /**
+         * @description Optional context under the title: what the person decides and why, in one or two plain sentences; at most 200. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+         * @example The customer was charged twice for order 1042.
+         */
+        description?: string;
+        /**
+         * @description Advanced. Optional BCP 47 locale for formatting the amounts on this page, one per Surface (default: the page’s language, en). It does not translate the page.
+         * @example en-CA
+         */
+        locale?: string;
+        /** @description Advanced. Optional position in a sequence of questions: integers with 1 ≤ step ≤ total ≤ 20. The person sees it as a small counter ("1/2"). Anything else fails with 400 INVALID_SCHEMA. */
+        progress?: {
+          step: number;
+          total: number;
+        };
+        source: {
+          /** @constant */
+          kind: 'sess_surface';
+          /** @description The page's content, in order. How the page lays it out: Fields keep the order you send them in. Consecutive fields share one group; a heading or a text starts a new one. Each label sits beside its answer, or above it when the two do not fit, so keep it to a word or two (about 20 characters). A field's help shows under that field; give it only when it is needed. Keep choice labels short, and put any detail the decision needs in a text or record on the page: a phone's picker may cut a long choice short. Nothing is truncated: rows grow to fit their text. */
+          components: ({
+            type: string;
+          } & {
+            [key: string]: unknown;
+          })[];
+        };
+        actions: {
+          id: string;
+          /**
+           * @description A button: a verb, 1–3 words; at most 16. Longer fails with 400 INVALID_SCHEMA naming it; never truncated.
+           * @example Approve
+           * @example Send refund
+           */
+          label: string;
+          intent?: 'submit' | 'continue' | 'approve' | 'reject' | 'request_change';
+        }[];
+        /**
+         * @description One accepted response per revision (the only P1 policy; the default).
+         * @constant
+         */
+        response_policy?: 'first';
+      };
+      respondents: {
+        /** @description How many people may start. At least 2 and at most the plan’s active-Session limit (Free 25, Starter 50, Pro 100); a trial Ask at most 2. Out of range → 400 INVALID_SCHEMA, whose message names both bounds. The cap is exact: it is checked when a person starts, so it cannot be overshot. */
+        max: number;
+        /** @description Advanced. Adds one required “Your name” text field, named `name`, before the page’s first field. Typed data for your agent to compare; never verified. Default false. */
+        name?: boolean;
+      };
+      /** @description Advanced. The one deadline, in seconds from creation: after it no one new may start, and every respondent’s link has ended. At least 30 and at most the plan’s live-link lifetime. Absent: the plan’s lifetime. */
+      expires_in?: number;
+      /** @description Advanced. Each respondent’s link life from their Start, in seconds: at least 30, and clamped at Start to the plan’s limit and to what remains of the Ask. Absent: what remains of the Ask. */
+      respondent_expires_in?: number;
+      /** @description Advanced. True (the default): a respondent’s Session completes when its answer is accepted. False: your agent continues each respondent by PATCH /v1/sessions/{id} and completes it. */
+      auto_complete?: boolean;
+    };
+    CreateAskResponse: {
+      id: string;
+      /** @description Round one. */
+      revision: number;
+      /** @description The link to share with everyone who should answer. Each person gets their own page. */
+      human_url: string;
+      /** @description The Ask’s deadline: an RFC 3339 UTC instant with milliseconds. From it no one new may start. */
+      action_expires_at: string;
+      max: number;
+    };
+    AskResponse: {
+      id: string;
+      status: 'open' | 'closed';
+      /** @description Which closed it: `max` (the last place was started), `owner` (you closed it) or `deadline`. Null while open. */
+      closed_by: 'max' | 'owner' | 'deadline' | null;
+      closed_at: string | null;
+      max: number;
+      /** @description The Ask’s deadline: an RFC 3339 UTC instant with milliseconds. From it no one new may start. */
+      action_expires_at: string;
+      auto_complete: boolean;
+      counts: {
+        /** @description Starts admitted: each made one respondent Session. */
+        started: number;
+        /** @description Respondents with at least one accepted answer. */
+        answered: number;
+        /** @description Respondents whose Session is completed. */
+        completed: number;
+        refused: {
+          /** @description Starts refused because every place was taken. */
+          full: number;
+          /** @description Starts refused after you closed the Ask. */
+          closed: number;
+          /** @description Starts refused after the deadline. */
+          deadline: number;
+          /** @description Starts refused because less than a minute was left. */
+          minimum_time: number;
+          /** @description Starts refused by the per-Ask limit of 30 Starts a minute. */
+          burst: number;
+          /** @description Starts refused by your plan (the person saw that it is paused). */
+          paused: number;
+          /** @description Trial Asks only: Starts refused by the network’s trial allowance. */
+          network: number;
+        };
+      };
+      /** @description Respondents in Start order, then by id; one page. */
+      sessions: {
+        id: string;
+        /** @description The respondent Session’s status, as GET /v1/sessions/{id} reads it; `purged` once its content is deleted (a tombstone: times only). */
+        status: 'active' | 'responded' | 'completed' | 'purged';
+        /** @description Its current revision. */
+        revision: number;
+        started_at: string;
+        completed_at: string | null;
+        /** @description Every accepted answer, in order (none for a tombstone). */
+        responses: {
+          event_id: string;
+          /** @description Monotonic per-Session Event sequence. */
+          sequence: number;
+          /** @description The Surface revision it was accepted on. */
+          revision: number;
+          action_id: string;
+          /** @description The normalized typed result, valid against that revision’s response_schema. */
+          data: {
+            [key: string]: unknown;
+          };
+          actor: {
+            /** @constant */
+            assurance: 'link_holder';
+          };
+          /** @description ISO 8601 UTC time of acceptance. */
+          accepted_at: string;
+          /** @description The signed decision receipt: a compact JWS (EdDSA/Ed25519, kid) over the RFC 8785 canonical claims, verifiable with GET /.well-known/sess-receipt-keys.json: typ sess-receipt+jwt (receipt v1) or sess-receipt-2+jwt (receipt v2; verify it with the revision_envelope returned beside it). Issued once in the acceptance transaction and never re-signed. Its exp is at least 720 hours after acceptance and, for an owner-key Session that is purged automatically, no earlier than the Session’s latest possible purge (its Sess link’s expiry plus its retention after it ends). null only for responses accepted before receipts existed. */
+          receipt: string | null;
+          /** @description Present beside a receipt v2: the revision envelope it commits to (verify the receipt with it; a receipt v2 without its envelope is refused with `revision`). Absent beside a receipt v1 (issued before receipt v2) and when there is no receipt. */
+          revision_envelope?: {
+            /**
+             * @description The envelope’s own schema version.
+             * @constant
+             */
+            sess_revision: 2;
+            revision: number;
+            session_id: string;
+            /** @description RFC 8785 SHA-256 of the revision’s normalized Surface (the receipt’s surface.hash): the page, its field schema titles and descriptions included. */
+            surface_hash: string;
+            renderer_version: string;
+            /** @description When the revision was published: RFC 3339 UTC with exactly three fractional digits (the stored time truncated to milliseconds). */
+            published_at: string;
+            /** @description The responsible owner key’s non-secret ID; null for every other publisher (the operator key, a hosted agent host, the hosted demo, an anonymous trial). No key label is carried. */
+            key_id: string | null;
+            /** @description A Session grant’s ID; null when no grant published the revision. */
+            grant_id: string | null;
+            /** @description The registered address the Session was started from, as at Start (its Target, the Target’s version and the address name); null otherwise. */
+            agent_target: {
+              id: string;
+              version: number;
+              name: string;
+            } | null;
+            /** @description The Ask a respondent’s Session belongs to; null otherwise. */
+            ask_id: string | null;
+            /** @description The owner-chosen titles as at publish, under their nonce. "Asked by" shows the most specific: grant_title, else target_title, else owner_name. */
+            titles: {
+              /** @description 16 random bytes drawn when the revision was published (base64url). */
+              nonce: string;
+              grant_title: string | null;
+              target_title: string | null;
+              owner_name: string | null;
+            };
+          };
+        }[];
+      }[];
+      /** @description Pass as `cursor` to read the next page; null on the last page. */
+      next_cursor: string | null;
+    };
+    AskCloseResponse: {
+      id: string;
+      status: 'open' | 'closed';
+      /** @description Which closed it: `max` (the last place was started), `owner` (you closed it) or `deadline`. Null while open. */
+      closed_by: 'max' | 'owner' | 'deadline' | null;
+      closed_at: string | null;
+      max: number;
+      /** @description The Ask’s deadline: an RFC 3339 UTC instant with milliseconds. From it no one new may start. */
+      action_expires_at: string;
+      auto_complete: boolean;
+      counts: {
+        /** @description Starts admitted: each made one respondent Session. */
+        started: number;
+        /** @description Respondents with at least one accepted answer. */
+        answered: number;
+        /** @description Respondents whose Session is completed. */
+        completed: number;
+        refused: {
+          /** @description Starts refused because every place was taken. */
+          full: number;
+          /** @description Starts refused after you closed the Ask. */
+          closed: number;
+          /** @description Starts refused after the deadline. */
+          deadline: number;
+          /** @description Starts refused because less than a minute was left. */
+          minimum_time: number;
+          /** @description Starts refused by the per-Ask limit of 30 Starts a minute. */
+          burst: number;
+          /** @description Starts refused by your plan (the person saw that it is paused). */
+          paused: number;
+          /** @description Trial Asks only: Starts refused by the network’s trial allowance. */
+          network: number;
+        };
+      };
+    };
+    TrialCreateAskResponse: {
+      id: string;
+      /** @description Round one. */
+      revision: number;
+      /** @description The link to share with everyone who should answer. Each person gets their own page. */
+      human_url: string;
+      /** @description The Ask’s deadline: an RFC 3339 UTC instant with milliseconds. From it no one new may start. */
+      action_expires_at: string;
+      max: number;
+      /** @description The trial workspace this Ask belongs to. */
+      workspace_id: string;
+      /** @description Returned once, only when this request created the trial (no Authorization header). */
+      management_credential?: string;
+      /** @description After this instant the trial admits no further respondent or Session. */
+      trial_expires_at: string;
+    };
+    AskClosedDelivery: {
+      /** @constant */
+      type: 'ask.closed';
+      /** @description Stable across retries and redeliveries: deduplicate on it. */
+      event_id: string;
+      ask_id: string;
+      closed_by: 'max' | 'owner';
+      /** @description Starts admitted when it closed. */
+      started: number;
+      closed_at: string;
     };
   };
   responses: never;
@@ -7042,6 +7950,408 @@ export interface operations {
       };
     };
   };
+  createAsk: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateAskRequest'];
+      };
+    };
+    responses: {
+      /** @description Ask created and open. */
+      201: {
+        headers: {
+          /** @description /v1/asks/{id} */
+          Location?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CreateAskResponse'];
+        };
+      };
+      /** @description The body is not valid, `respondents.max` or a lifetime is out of range, or an idempotency key was sent (`INVALID_SCHEMA` or `UNKNOWN_COMPONENT`). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description The API key is missing, wrong, revoked or expired (`UNAUTHORIZED`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description The body is too large (`PAYLOAD_TOO_LARGE`). */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Something went wrong on our side (`INTERNAL`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  getAsk: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The Ask. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AskResponse'];
+        };
+      };
+      /** @description The cursor or limit is not valid (`INVALID_SCHEMA`). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description The API key is missing, wrong, revoked or expired (`UNAUTHORIZED`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Your workspace has no Ask with this ID (`NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Something went wrong on our side (`INTERNAL`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  updateAsk: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The API key is missing, wrong, revoked or expired (`UNAUTHORIZED`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description An Ask cannot be changed (`ACTION_NOT_ALLOWED`). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  closeAsk: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The closed Ask. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AskCloseResponse'];
+        };
+      };
+      /** @description The API key is missing, wrong, revoked or expired (`UNAUTHORIZED`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Your workspace has no Ask with this ID (`NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Something went wrong on our side (`INTERNAL`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  listAskDeliveries: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The delivery log. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DeliveriesResponse'];
+        };
+      };
+      /** @description The API key is missing, wrong, revoked or expired (`UNAUTHORIZED`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Your workspace has no Ask with this ID (`NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  redeliverAskEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Queued, or the delivery already waiting for this event and address. */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RedeliverResponse'];
+        };
+      };
+      /** @description The API key is missing, wrong, revoked or expired (`UNAUTHORIZED`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description This Ask has no such event (`NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description There is no verified webhook address (`WEBHOOK_NOT_CONFIGURED`). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  createTrialAsk: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateAskRequest'];
+      };
+    };
+    responses: {
+      /** @description Ask created and open. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TrialCreateAskResponse'];
+        };
+      };
+      /** @description The body is not valid, `respondents.max` is above 2, or an idempotency key was sent (`INVALID_SCHEMA` or `UNKNOWN_COMPONENT`). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description The key does not open a trial (`NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description A trial limit is reached (`RATE_LIMITED`). */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Something went wrong on our side (`INTERNAL`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description The trial is not set up on this deployment (`TRIAL_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  getTrialAsk: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The Ask. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AskResponse'];
+        };
+      };
+      /** @description The key does not open this Ask (`NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Something went wrong on our side (`INTERNAL`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
   requestSignInLink: {
     parameters: {
       query?: never;
@@ -8788,7 +10098,7 @@ export interface operations {
           'application/json': components['schemas']['Error'];
         };
       };
-      /** @description The Session is already completed, is a display Session, or the idempotency key was used for a different request (`SESSION_COMPLETED`, `ACTION_NOT_ALLOWED` or `IDEMPOTENCY_CONFLICT`). */
+      /** @description The Session is already completed (`SESSION_COMPLETED`); has already ended (`SESSION_ENDED`, with its terminal cause in `reason`: `final_expiry` when its link expired for good, `revoked` when the close of its Ask ended it); or is a display Session (`ACTION_NOT_ALLOWED`). The idempotency key was used for a different request (`IDEMPOTENCY_CONFLICT`). */
       409: {
         headers: {
           [name: string]: unknown;
@@ -8996,7 +10306,7 @@ export interface operations {
           'text/html': unknown;
         };
       };
-      /** @description The question changed, the Session takes no more answers, is completed, or the request was sent before with other values; or the link is past its deadline but can still be extended, so the form returns with the person’s values and Need more time? (`SESSION_REVISION_CONFLICT`, `RESPONSE_LIMIT_REACHED`, `SESSION_COMPLETED`, `IDEMPOTENCY_CONFLICT` or `LINK_LAPSED`). */
+      /** @description The question changed, the Session takes no more answers, is completed, or the request was sent before with other values; or, where link extensions are on, the link is past its deadline but can still be extended, so the form returns with the person’s values and Need more time? (`SESSION_REVISION_CONFLICT`, `RESPONSE_LIMIT_REACHED`, `SESSION_COMPLETED`, `IDEMPOTENCY_CONFLICT` or `LINK_LAPSED`). */
       409: {
         headers: {
           [name: string]: unknown;
@@ -10067,7 +11377,8 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['ArchivalEnvelope'];
+        'application/json':
+          components['schemas']['ArchivalEnvelope'] | components['schemas']['ArchivalPersonEnvelope'];
       };
     };
     responses: {
@@ -10081,6 +11392,66 @@ export interface operations {
         };
       };
       /** @description The body is not JSON (`INVALID_SCHEMA`). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description The body is too large (`PAYLOAD_TOO_LARGE`). */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Too many checks; try again after `Retry-After` (`RATE_LIMITED`). */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+      /** @description Receipts are not set up here, or the 2-second deadline passed and the connection is closed (`SERVICE_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
+    };
+  };
+  verifyClosingReceipt: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClosingVerifyRequest'];
+      };
+    };
+    responses: {
+      /** @description The result of the closing check and how to present it. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClosingVerifyResponse'];
+        };
+      };
+      /** @description The body is not a closing check (`INVALID_SCHEMA`). */
       400: {
         headers: {
           [name: string]: unknown;
@@ -10318,7 +11689,7 @@ export interface operations {
           'application/json': components['schemas']['TargetResponse'];
         };
       };
-      /** @description The name, the description, the attribution or the body is not valid (`VALIDATION_FAILED`, reason `name_invalid`, `name_reserved`, `description_invalid` or `attribution_invalid`; or `INVALID_SCHEMA`). */
+      /** @description The name, the title, the description, the attribution or the body is not valid, or the agent would be shared without a title (`VALIDATION_FAILED`, reason `name_invalid`, `name_reserved`, `title_invalid`, `title_required`, `description_invalid` or `attribution_invalid`; the title’s two carry field `/title`; or `INVALID_SCHEMA`). */
       400: {
         headers: {
           [name: string]: unknown;
@@ -11270,6 +12641,28 @@ export interface operations {
         content: {
           'application/json': components['schemas']['TargetDispatchAnswer'];
         };
+      };
+    };
+  };
+  webhookAskClosed: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AskClosedDelivery'];
+      };
+    };
+    responses: {
+      /** @description Accepted by the endpoint. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

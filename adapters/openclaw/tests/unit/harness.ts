@@ -32,10 +32,10 @@ function canonical(value: unknown): string {
 }
 const digest = (value: unknown) => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
 
-function signReceipt(claims: unknown): string {
-  const header = Buffer.from(
-    JSON.stringify({ alg: 'EdDSA', kid: 'rfc8032-test-1', typ: 'sess-receipt+jwt' }),
-  ).toString('base64url');
+function signReceipt(claims: unknown, typ = 'sess-receipt+jwt'): string {
+  const header = Buffer.from(JSON.stringify({ alg: 'EdDSA', kid: 'rfc8032-test-1', typ })).toString(
+    'base64url',
+  );
   const input = `${header}.${Buffer.from(canonical(claims)).toString('base64url')}`;
   return `${input}.${sign(null, Buffer.from(input), privateKey).toString('base64url')}`;
 }
@@ -69,7 +69,13 @@ export class FakeSess {
     revision: number,
     actionId: string,
     data: Record<string, unknown>,
-    opts: { tamper?: boolean; noReceipt?: boolean; rendererVersion?: string } = {},
+    opts: {
+      tamper?: boolean;
+      noReceipt?: boolean;
+      rendererVersion?: string;
+      /** The protected `typ`; a later Sess receipt type (e.g. `sess-receipt-3+jwt`) is newer. */
+      typ?: string;
+    } = {},
   ) {
     const acceptedAt = new Date(Date.now() - 1000).toISOString();
     const eventId = `evt_01JABCDEFGHJKMNPQRSTVWXY${String(this.responses.length + 1).padStart(2, '0')}`;
@@ -110,7 +116,7 @@ export class FakeSess {
       data: opts.tamper ? { ...data, tampered: true } : data,
       actor: { assurance: 'link_holder' },
       accepted_at: acceptedAt,
-      receipt: opts.noReceipt ? null : signReceipt(claims),
+      receipt: opts.noReceipt ? null : signReceipt(claims, opts.typ),
     });
     this.status = 'responded';
     return eventId;

@@ -1,5 +1,3 @@
-import { SURFACE_TEXT_LIMITS } from './internal/limits.js';
-
 /**
  * Adapter failures surface through the host's tool-error contract (a thrown Error). Messages are
  * fixed, safe text: they never include human URLs, API keys, response bodies or stored paths.
@@ -23,6 +21,7 @@ export type AdapterErrorCode =
   | 'MUTATION_OUTCOME_UNKNOWN'
   | 'MUTATION_REJECTED'
   | 'VERIFICATION_FAILED'
+  | 'RECEIPT_NEWER'
   | 'CANCELLED'
   | 'PROTOCOL_ERROR'
   | 'UNAVAILABLE';
@@ -62,6 +61,9 @@ export const ERROR_CLASSES: Readonly<Record<AdapterErrorCode, ErrorClass>> = Obj
   CONFIGURATION: 'configuration',
   // Non-retryable with no state change; the contract has no dedicated protocol class.
   PROTOCOL_ERROR: 'configuration',
+  // A receipt newer than this plugin can check: not retryable until the plugin is updated, with no
+  // state change and nothing released; never a verification failure.
+  RECEIPT_NEWER: 'configuration',
   CREDENTIAL_MISSING: 'configuration',
   HOST_CAPABILITY_MISSING: 'configuration',
   HOST_BINDING_UNAVAILABLE: 'configuration',
@@ -112,7 +114,7 @@ export function fail(code: AdapterErrorCode, message: string): never {
 /** Sess's own sentences for a length error (`field` is a JSON pointer); the title has its own. */
 export function lengthMessage(field: string, limit: number, length: number): string {
   if (field === '/interaction/title')
-    return `The title can be at most ${limit} characters. Keep it to a short heading, about ${SURFACE_TEXT_LIMITS.titleGuide}.`;
+    return `The title can be at most ${limit} characters. Keep it to a short heading, about 40.`;
   return `${field} is ${length} characters; the limit is ${limit}. Shorten it to at most ${limit} characters.`;
 }
 

@@ -1,12 +1,14 @@
 # Compatibility and evidence
 
-SDK version: **0.2.0**, prepared for the `latest` dist-tag: the rating field and respondents (the
+SDK version: 0.6.0, published on npm as `latest` with provenance, and pinned in release/sdk-candidate.json. Reading a Session's Events returns its closing receipt, and `receipts.verifyClosing()` verifies it. **0.5.0** remains published. It checks Sess's tighter text limits, but it does not read or verify a closing receipt; handed one in place of an answer's receipt, it refuses it as a newer format. **0.4.0** remains published and verifies every receipt as before, but it allows longer texts than Sess now accepts: an agent on 0.4.0 that sends a title over 60 characters gets Sess's refusal instead of the SDK's.
+**0.3.0** remains published: receipt v2 and bundle-v2 verification, with receipt
+v1 and bundle-v1 verified as before; it cannot read an issued receipt v2.
+**0.2.0** remains published: the rating field and respondents (the
 Ask) in `sess.ask`. Their types (the field's `rating`, `/v1/asks`) are written by hand from the
-Sess contract until the reviewed snapshot carries them. **0.1.1** is published on npm under
-`latest` with provenance and pinned in [release/sdk-candidate.json](../release/sdk-candidate.json)
-until the registry transition; its API is that of 0.1.0, unchanged.
+Sess contract until the reviewed snapshot carries them. **0.1.1** remains published; its API is
+that of 0.1.0, unchanged.
 **0.1.0**, the first stable release, remains published; its API is that of 0.1.0-rc.10, unchanged; `next` stays at the last release candidate, `0.1.0-rc.10`. Its
-contract snapshot is unchanged from rc.8 (0.2.0 included): Sess runtime commit
+contract snapshot is unchanged from rc.8 (0.2.0, 0.3.0 and 0.4.0 included): Sess runtime commit
 `2f8500e3da894c00b2a9ac2c4be413851b711c5b`. **0.1.0-rc.10** (short-link redaction in request
 identifiers and a plain message for a key Sess does not accept), **0.1.0-rc.9** (the commerce
 builders `money()`, `items()`, `invoice()`, `receipt()`, `quote()`, `refund()`, `purchaseOrder()`

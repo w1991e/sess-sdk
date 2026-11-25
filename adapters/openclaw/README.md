@@ -6,7 +6,7 @@ An OpenClaw agent asks a person for a structured decision. Sess hosts the form b
 link, the person answers on any device, and the agent receives the answer only after the SDK has
 verified its signed receipt for that exact revision.
 
-> **Status:** `0.1.0` is the first stable release, on the npm dist-tag `latest`. `next` stays at `0.1.0-rc.5`. It depends on `@sess.si/sdk@0.1.0`. Qualified host: OpenClaw 2026.10.3 (Node 24.16 or later). OpenClaw 2026.10.7 (Node 24.22.1 or later) ran the agent-turn round trip on the preview on 27 October; production qualification follows. See [compatibility.json](compatibility.json) for exactly what was tested.
+> **Status:** `0.3.0` is the current release, on the npm dist-tag `latest`. `next` stays at `0.1.0-rc.5`. It depends on `@sess.si/sdk@0.5.0`. Qualified host: OpenClaw 2026.10.3 (Node 24.16 or later). OpenClaw 2026.10.7 (Node 24.22.1 or later) ran the agent-turn round trip on the preview on 27 October; production qualification follows. See [compatibility.json](compatibility.json) for exactly what was tested.
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ verified its signed receipt for that exact revision.
 ## Install and enable
 
 ```bash
-openclaw plugins install npm:@sess.si/openclaw@0.1.0 --no-enable
+openclaw plugins install npm:@sess.si/openclaw@0.3.0 --no-enable
 openclaw sess setup          # preview only: prints exactly what would change
 openclaw sess setup --yes    # apply the previewed change
 openclaw sess doctor
@@ -171,6 +171,7 @@ one class of the shared adapter contract:
 | `CANCELLED`                | `unavailable`         | The local wait was cancelled; nothing was cancelled in Sess            |
 | `AUTHORITY_REVOKED`        | `unavailable`         | The host revoked this invocation; see the note below                   |
 | `PROTOCOL_ERROR`           | `configuration`       | Sess returned an invalid response; not retryable, nothing changed      |
+| `RECEIPT_NEWER`            | `configuration`       | The receipt is newer than this plugin; update it. Nothing was returned |
 | `CONFIGURATION`            | `configuration`       | Plugin configuration is invalid or incomplete                          |
 | `CREDENTIAL_MISSING`       | `configuration`       | The API key variable is not set in the Gateway process                 |
 | `HOST_CAPABILITY_MISSING`  | `configuration`       | The OpenClaw host lacks a required capability                          |
@@ -179,7 +180,7 @@ one class of the shared adapter contract:
 | `STORE_UNAVAILABLE`        | `store`               | Durable plugin state failed; nothing further was sent                  |
 
 Lengths follow Sess, in Unicode code points, and are never truncated: title 60 (about 40 is the
-style), description 200, heading 40, field label 40, option label 30, field description 120,
+style), description 200, heading 40, field labels 40, option labels 30, field description 120,
 action label 16, record caption 200, record key 24 and string value 200, text 4,000; at most 5
 actions. A choice without an `option_labels` entry shows its enum ID, so that ID is held to 30 too (named at
 its enum entry, e.g. `.../schema/enum/1`); a long ID with a short label is fine.

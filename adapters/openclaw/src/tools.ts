@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { SessError, type AcceptedResponse, type InteractiveInteraction } from '@sess.si/sdk';
 import type { GuardedClient } from './client.js';
 import type { AdapterConfig, ResolvedCredential } from './config.js';
+import { PLUGIN_VERSION } from './doctor.js';
 import { SessAdapterError, fail, lengthMessage, type LengthDetail } from './errors.js';
 import { sameBinding, type InvocationLease } from './host.js';
 import { bodyDigest, classifyVerification } from './internal/shared.js';
@@ -118,7 +119,7 @@ const PLAN_LIMIT_MESSAGE =
 
 /**
  * A create that Sess refused with 429 PLAN_LIMIT_REACHED: a definite refusal, nothing created.
- * The SDK pin (0.1.1) has the plan limit in its rejection table and reports it as `rejected`;
+ * The SDK pin (0.2.0) has the plan limit in its rejection table and reports it as `rejected`;
  * an earlier SDK (0.1.0-rc.8) reports it as `unknown_outcome`, but a create is attempted exactly
  * once, so its single coded 429 answer is the whole outcome. A plain rate limit (no code or
  * RATE_LIMITED) and any other status stay uncertain.
@@ -176,6 +177,11 @@ async function cancelled(deps: InvocationDeps, record: RecoveryRecord): Promise<
   );
 }
 
+/** The signed line for an answer whose receipt is newer than this plugin can check. */
+export function receiptNewerMessage(): string {
+  return `This receipt is newer than @sess.si/openclaw ${PLUGIN_VERSION}. Update @sess.si/openclaw to check it. No answer data was returned.`;
+}
+
 const isAborted = (deps: InvocationDeps, error: unknown) =>
   asSessError(error)?.kind === 'aborted' || !!deps.lease.signal?.aborted;
 
@@ -191,6 +197,10 @@ async function verificationFailure(
   verb: string,
 ): Promise<never> {
   const kind = classifyVerification(error);
+  // Newer than this plugin can check (a later Sess receipt type or revision envelope): not a
+  // verification failure. Nothing is released, recorded or blocked; the state is unchanged, so the
+  // same handle releases the answer once the plugin is updated.
+  if (kind === 'newer') fail('RECEIPT_NEWER', receiptNewerMessage());
   if (kind === 'genuine') {
     await block(deps, record, 'verification_failed');
     fail(

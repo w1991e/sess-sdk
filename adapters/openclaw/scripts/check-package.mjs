@@ -76,7 +76,7 @@ const packedList = Array.isArray(packOutput) ? packOutput : Object.values(packOu
 assert(packedList.length === 1, `npm pack reported ${packedList.length} packages`);
 const [packed] = packedList;
 const tarball = join(artifacts, packed.filename);
-assert(packed.filename === 'sess.si-openclaw-0.1.0.tgz' && existsSync(tarball), 'unexpected tarball name');
+assert(packed.filename === 'sess.si-openclaw-0.3.0.tgz' && existsSync(tarball), 'unexpected tarball name');
 const bytes = readFileSync(tarball);
 const sha256 = createHash('sha256').update(bytes).digest('hex');
 
@@ -84,7 +84,6 @@ const sha256 = createHash('sha256').update(bytes).digest('hex');
 const allowed = [
   /^dist\/[a-z-]+\.js$/,
   /^dist\/internal\/shared\.js$/,
-  /^dist\/internal\/limits\.js$/,
   /^openclaw\.plugin\.json$/,
   /^package\.json$/,
   /^skills\/sess\/SKILL\.md$/,
@@ -100,8 +99,6 @@ for (const file of files)
   );
 for (const required of [
   'dist/index.js',
-  // Sess's Surface text limits, generated from the contract (npm run generate); schemas.ts reads them.
-  'dist/internal/limits.js',
   'openclaw.plugin.json',
   'skills/sess/SKILL.md',
   'compatibility.json',

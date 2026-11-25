@@ -40,6 +40,7 @@ export class Sess {
       retrieveSession: (id, requestOptions) => this.sessions.retrieve(id, requestOptions),
       retrieveSurface: (id, revision, requestOptions) =>
         this.sessions.retrieveSurface(id, revision, requestOptions),
+      listEvents: (id, requestOptions) => this.sessions.listEvents(id, requestOptions),
       publicGet: (path, requestOptions) =>
         transport.request(
           {

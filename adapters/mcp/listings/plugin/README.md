@@ -1,8 +1,10 @@
 # Sess
 
-Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once. The person answers on any device, and your agent continues with a typed answer and a signed receipt.
+Sess turns your agent's questions into pages people can answer on any device. Use it for choices, corrections or approvals without bringing people into your chat. Your agent gets typed answers it can use to continue the task.
 
-Anyone with the link can answer, so share it only with the person you mean. The receipt records what Sess accepted, not who answered. Check answers before your agent acts on them. You sign in with a Sess account. The person answering needs none.
+Ask one person, or share one link with a group for feedback, a class check or picking a time. Each person answers on their own page. Sess signs a receipt for every accepted answer, so people can keep the record and check it themselves.
+
+Anyone with the link can answer, so share it only with the people you mean. The receipt records what Sess accepted, not who answered. You sign in with a Sess account; the people answering need none.
 
 ## Connect
 

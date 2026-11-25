@@ -78,7 +78,13 @@ export class FakeSess {
   answerSigned(
     data: Json,
     actionId = 'submit',
-    options: { kid?: string; privateKey?: import('node:crypto').KeyObject; rendererVersion?: string } = {},
+    options: {
+      kid?: string;
+      privateKey?: import('node:crypto').KeyObject;
+      rendererVersion?: string;
+      /** The protected `typ`; a later Sess receipt type (e.g. `sess-receipt-3+jwt`) is newer. */
+      typ?: string;
+    } = {},
   ): string {
     const s = this.session!;
     const eventId = `evt_0000000000000000000000000${s.responses.length + 1}`;
@@ -110,7 +116,11 @@ export class FakeSess {
       actor: { assurance: 'link_holder', subject: `${workspace}:human_link:${s.id}` },
       return_binding: { recipient: workspace, return_channel_id: null },
     };
-    const header = { alg: 'EdDSA', kid: options.kid ?? 'test-receipt-1', typ: 'sess-receipt+jwt' };
+    const header = {
+      alg: 'EdDSA',
+      kid: options.kid ?? 'test-receipt-1',
+      typ: options.typ ?? 'sess-receipt+jwt',
+    };
     const input = `${Buffer.from(JSON.stringify(header)).toString('base64url')}.${Buffer.from(
       canonicalJson(claims),
     ).toString('base64url')}`;

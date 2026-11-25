@@ -2,7 +2,16 @@ export { verifyDecisionReceipt, verifyRendererIdentities } from './verify.js';
 export { BUNDLED_RENDERER_IDENTITIES, BUNDLED_RENDERER_LIST, newerRendererList } from './renderers.js';
 export type { RendererIdentitiesDocument, RendererIdentity, RendererList } from './renderers.js';
 export type {
+  EnvelopeAgentTarget,
+  EnvelopeTitles,
+  RevisionEnvelope,
+  RevisionEnvelopeCompact,
+  RevisionEnvelopeFull,
+} from './envelope.js';
+export type {
   ReceiptClaims,
+  ReceiptClaimsV1,
+  ReceiptClaimsV2,
   ReceiptPublicKey,
   ReceiptKeySet,
   ReceiptKeyResolver,
@@ -16,6 +25,8 @@ export type {
   BundleJwk,
   BundleRejection,
   DecisionBundle,
+  DecisionBundleV1,
+  DecisionBundleV2,
   DecisionBundleVerification,
   ExpectedBundleContext,
   VerifiedReceiptSummary,
@@ -23,7 +34,16 @@ export type {
 } from './bundle.js';
 export type {
   ReceiptResource,
+  VerifyClosingInput,
+  VerifiedClosing,
   VerifyResponseInput,
   VerifiedResponse,
   VerificationRequestOptions,
 } from './resource.js';
+export { verifyClosingReceipt } from './closing.js';
+export type {
+  ClosingCause,
+  ClosingReceiptClaims,
+  VerifyClosingReceiptInput,
+  VerifyClosingReceiptOptions,
+} from './closing.js';

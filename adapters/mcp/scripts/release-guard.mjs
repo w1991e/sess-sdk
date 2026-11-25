@@ -1,8 +1,9 @@
 // Release guards for @sess.si/mcp, used by .github/workflows/mcp-release.yml and exercised
 // locally by scripts/test-release-guard.mjs. Node built-ins only; nothing here publishes.
 //
-//   node scripts/release-guard.mjs prepare    tag/version/identity, registry SDK, master ancestry,
-//                                             clean tree; writes version and dist-tag outputs
+//   node scripts/release-guard.mjs prepare    tag/version/identity, the SDK this version ships on,
+//                                             registry SDK, master ancestry, clean tree; writes
+//                                             version and dist-tag outputs
 //   node scripts/release-guard.mjs artifact   the downloaded artifact is the tested one
 //   node scripts/release-guard.mjs readback   registry metadata equals the tested artifact
 import { execFileSync } from 'node:child_process';
@@ -26,8 +27,45 @@ const refuse = (message) => {
   throw new GuardError(message);
 };
 
-/** Release identity: the tag names exactly this package version at this path. */
-export function checkIdentity({ manifest, server, ref, repository }) {
+/**
+ * The SDK this package version ships on (ASTRA-SDK-81-1). compatibility.json's release entry for
+ * the package version (release.prepared, or release.published once publication is recorded)
+ * names it as `sessSdkVersion`, an exact version. The manifest dependency, the pinned
+ * compatibility.json sessSdk and, when given, the lock must all be exactly that version;
+ * otherwise this package version cannot be released. A version prepared ahead of its SDK's
+ * registry transition (@sess.si/mcp 0.6.0 ships only on @sess.si/sdk 0.6.0 while the records
+ * still pin 0.5.0) is therefore held until the transition moves every record to it.
+ */
+export function checkSdkRequirement({ manifest, compatibility, lock }) {
+  const version = manifest?.version;
+  const entry = [compatibility?.release?.prepared, compatibility?.release?.published].find(
+    (candidate) => candidate?.version === version,
+  );
+  if (!entry) refuse(`compatibility.json has no release.prepared or release.published entry for ${version}`);
+  const required = entry.sessSdkVersion;
+  if (typeof required !== 'string' || !VERSION.test(required))
+    refuse(
+      `compatibility.json's release entry for ${version} must name sessSdkVersion, an exact @sess.si/sdk version`,
+    );
+  const resolved = {
+    'package.json dependency': manifest.dependencies?.['@sess.si/sdk'],
+    'compatibility.json sessSdk.version': compatibility.sessSdk?.version,
+  };
+  if (lock !== undefined)
+    resolved['package-lock.json @sess.si/sdk'] = lock?.packages?.['node_modules/@sess.si/sdk']?.version;
+  for (const [record, value] of Object.entries(resolved))
+    if (value !== required)
+      refuse(
+        `${PACKAGE}@${version} ships only on @sess.si/sdk ${required}, but the ${record} is ${value}; it is held until the SDK's registry transition moves every record to ${required}`,
+      );
+  return required;
+}
+
+/**
+ * Release identity: the tag names exactly this package version at this path, and the version is
+ * not held for the SDK it ships on (checkSdkRequirement).
+ */
+export function checkIdentity({ manifest, server, ref, repository, compatibility }) {
   if (repository !== REPOSITORY) refuse(`repository must be ${REPOSITORY}`);
   if (manifest.name !== PACKAGE) refuse(`package name must be ${PACKAGE}`);
   if (manifest.repository?.directory !== DIRECTORY) refuse(`repository.directory must be ${DIRECTORY}`);
@@ -58,40 +96,52 @@ export function checkIdentity({ manifest, server, ref, repository }) {
     )
       refuse('server.json npm package identifier/version drift');
   }
+  if (!compatibility) refuse('compatibility.json is missing');
+  checkSdkRequirement({ manifest, compatibility });
   // Release candidates never take the default dist-tag.
   return { version: manifest.version, distTag: manifest.version.includes('-rc.') ? 'next' : 'latest' };
 }
 
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/**
+ * compatibility.json is packed and stays in the tarball after publication, so the status of a
+ * version not yet published is a dated snapshot that remains true afterwards (ASTRA-75-R2): it
+ * opens "At this artifact's preparation (YYYY-MM-DD), <version> was prepared" and says the
+ * version was "not yet published".
+ */
+export const preparedSnapshot = (version) =>
+  new RegExp(
+    `^At this artifact's preparation \\(\\d{4}-\\d{2}-\\d{2}\\), ${escapeRegExp(version)} was prepared\\b`,
+  );
+
 /**
  * compatibility.json describes this package version truthfully: a version that is not the
- * recorded publication (release.published) is "<version> prepared ... unpublished" in both the
- * top-level and the release status, and neither claims it is published; the recorded publication
- * is never called prepared.
+ * recorded publication (release.published) has the dated preparation snapshot (preparedSnapshot,
+ * "not yet published") in both the top-level and the release status, so neither opens with a
+ * publication claim; the recorded publication is never called prepared.
  */
 export function checkCompatibilityStatus({ manifest, compatibility }) {
   const version = manifest.version;
   if (compatibility.package?.version !== version)
     refuse('compatibility.json package.version must equal the package version');
+  checkSdkRequirement({ manifest, compatibility });
   const statuses = { status: compatibility.status, 'release.status': compatibility.release?.status };
   const published = compatibility.release?.published?.version === version;
   for (const [field, status] of Object.entries(statuses)) {
     if (typeof status !== 'string') refuse(`compatibility.json ${field} is missing`);
     if (published) {
-      if (status.includes(`${version} prepared`))
+      if (status.includes(`${version} prepared`) || status.includes(`${version} was prepared`))
         refuse(`compatibility.json ${field} calls the published ${version} prepared`);
-    } else if (
-      !status.includes(`${version} prepared`) ||
-      !status.includes('unpublished') ||
-      /^published\b/.test(status)
-    )
+    } else if (!preparedSnapshot(version).test(status) || !status.includes('not yet published'))
       refuse(
-        `compatibility.json ${field} must say ${version} is prepared and unpublished (release.published records ${compatibility.release?.published?.version})`,
+        `compatibility.json ${field} must open "At this artifact's preparation (YYYY-MM-DD), ${version} was prepared" and say it was not yet published (release.published records ${compatibility.release?.published?.version})`,
       );
   }
 }
 
 /** A release requires the genuine registry SDK, never the local candidate tarball. */
 export function checkRegistrySdk({ manifest, lock, compatibility }) {
+  checkSdkRequirement({ manifest, compatibility, lock });
   const pinned = compatibility.sessSdk;
   const entry = lock.packages?.['node_modules/@sess.si/sdk'];
   if (manifest.dependencies?.['@sess.si/sdk'] !== pinned.version)
@@ -140,6 +190,8 @@ export function checkArtifact({ result, bytes, expectedSha256, version, distTag,
   checkArtifactPath({ result, version });
   if (result.node !== RELEASE_NODE) refuse(`artifact was not tested on ${RELEASE_NODE}`);
   if (result.sdkMode !== 'registry') refuse('artifact was tested against the candidate SDK');
+  if (result.releasable !== true)
+    refuse(`artifact is not releasable: ${result.releaseHold ?? 'no release status was recorded'}`);
   if (result.sourceCommit !== sha || result.sourceTreeDirty !== false)
     refuse('artifact source commit/tree drift');
   if ((version.includes('-rc.') ? 'next' : 'latest') !== distTag) refuse('dist-tag drift');
@@ -167,6 +219,33 @@ export function checkPublished({ manifest, result, published, tags, distTag }) {
     refuse('published metadata does not match the tested artifact');
 }
 
+/**
+ * The prepare job's record checks, before Git: identity and the SDK this version ships on, the
+ * registry SDK and the compatibility status. Returns the release identity.
+ */
+export function checkPrepare({ manifest, server, lock, compatibility, ref, repository }) {
+  const identity = checkIdentity({ manifest, server, ref, repository, compatibility });
+  checkRegistrySdk({ manifest, lock, compatibility });
+  checkCompatibilityStatus({ manifest, compatibility });
+  return identity;
+}
+
+/**
+ * The release status recorded with a packed artifact by check-package.mjs: releasable only when
+ * every record resolves the SDK this version ships on and the SDK came from the registry. A held
+ * artifact records why; the artifact guard refuses it.
+ */
+export function releaseStatus({ manifest, lock, compatibility, sdkMode }) {
+  try {
+    checkSdkRequirement({ manifest, compatibility, lock });
+    if (sdkMode !== 'registry') refuse('it was tested against the candidate SDK');
+    return { releasable: true };
+  } catch (error) {
+    if (!(error instanceof GuardError)) throw error;
+    return { releasable: false, releaseHold: error.message };
+  }
+}
+
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
 function output(values) {
   if (!process.env.GITHUB_OUTPUT) return;
@@ -183,15 +262,14 @@ async function main() {
   const manifest = readJson(join(adapter, 'package.json'));
   const command = process.argv[2];
   if (command === 'prepare') {
-    const identity = checkIdentity({
+    const identity = checkPrepare({
       manifest,
       server: readJson(join(adapter, 'server.json')),
+      lock: readJson(join(adapter, 'package-lock.json')),
+      compatibility: readJson(join(adapter, 'compatibility.json')),
       ref: process.env.GITHUB_REF,
       repository: process.env.GITHUB_REPOSITORY,
     });
-    const compatibility = readJson(join(adapter, 'compatibility.json'));
-    checkRegistrySdk({ manifest, lock: readJson(join(adapter, 'package-lock.json')), compatibility });
-    checkCompatibilityStatus({ manifest, compatibility });
     const sha = checkGit({ cwd: adapter });
     output({ version: identity.version, 'dist-tag': identity.distTag });
     console.log(

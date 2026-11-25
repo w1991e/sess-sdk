@@ -1,13 +1,84 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
 
-- Sess's tighter text limits (2026-11-07), read from the repository's contract snapshot
-  (`src/internal/limits.ts`, generated): the tool schemas, their descriptions and the arguments
-  check use title 60 (about 40), description 200, heading 40, field label 40, help 120, option 30,
-  record key 24 and button 16. Within the unreleased `sess-mcp-tools/5`.
-- `CUSTODY_HOLD_ACTIVE` leaves the diagnostics code list: Sess no longer publishes it (an operator
-  route's code).
+Tool schemas stay `sess-mcp-tools/6`; the five tool names are unchanged.
+
+- This release depends on `@sess.si/sdk` 0.6.0, up from 0.5.0, installed from the npm registry. The SDK package's SHA-256 is `ffe29ee2c3ec028ce9a00d9cf6c72467c3fab99dc3f0988ab88bb3734a521fbb`. The adapter uses the SDK to verify the receipts Sess issues.
+- The README's OpenClaw section installs `@sess.si/openclaw@0.3.0`, the current OpenClaw release
+  (was 0.1.0).
+
+## 0.5.0 — 2026-11-22
+
+Tool schemas are `sess-mcp-tools/6`; the five tool names are unchanged.
+
+- Depends on `@sess.si/sdk` 0.5.0 (was 0.4.0; sha256 `84f6e005…7f24`), resolved from the
+  registry. It verifies the receipts Sess issues.
+- Sess's tighter text limits: title 60, description 200, heading 40, field label 40, field help
+  120, option label 30, record key 24, button 16; every other limit is unchanged.
+
+## 0.4.0 — 2026-11-19
+
+Tool schemas stay `sess-mcp-tools/5`; the five tool names are unchanged.
+
+- Depends on `@sess.si/sdk` 0.4.0 (was 0.3.0; sha256 `24408ed8…5187`), resolved from the
+  registry. It verifies the receipts Sess issues.
+- A receipt newer than this package can check (the SDK's `receipt_newer`, code `RECEIPT_NEWER`: a
+  later Sess receipt type, or a revision envelope above `sess_revision: 2`) is a new tool error,
+  `RECEIPT_NEWER`, class `configuration`, not retryable: "This receipt is newer than @sess.si/mcp
+  <version>. Update @sess.si/mcp to check it. No answer data was returned." It is never
+  `VERIFICATION_FAILED` and never blocks. `sess_response` releases no answer data with it, for one
+  person or for any respondent of an Ask, and records nothing; after an update the same handle
+  releases the answer. On `@sess.si/sdk` 0.3.0 a newer receipt cannot be told from a bad one: it
+  blocks the interaction with `VERIFICATION_FAILED`.
+
+## 0.3.0 — 2026-11-10
+
+Tool schemas stay `sess-mcp-tools/5`; the five tool names are unchanged.
+
+- Depends on `@sess.si/sdk` 0.3.0 (was 0.2.0; sha256 `bc3a7a2d…a097`), resolved from the
+  registry. It verifies the receipts Sess issues.
+- The `sess_ask` and `sess_request` descriptions each carry one sentence on which tool to use:
+  `sess_ask` for one question with up to 12 simple fields and one button, or many people on one
+  link; `sess_request` when the person must see records shown as they are or choose between
+  buttons such as Approve and Reject. In `sess_request` it replaces "It is the full form, with
+  approve and reject buttons if you need them; sess_ask is shorter for a plain question."
+- `sess_ask` drops an empty `options: []` on a field that is not `choice` or `multi_choice` before
+  checking it, so a client that fills every schema property (a form-based inspector) is not
+  refused. Nothing is sent for it. A non-empty `options` there is still refused as before, and a
+  `choice` or `multi_choice` field still needs at least one option. The Sess API is unchanged.
+- The README is rewritten: what it does, install, run and what you will see first, then one
+  section per host, each naming `@sess.si/mcp@0.3.0` where it installs the package. What has been
+  run on which host and version moves to COMPATIBILITY.md.
+- The README's Claude Code section no longer says that using Sess on a second computer
+  disconnects the first; that is not established for Claude Code.
+- The README's Claude Code section says to run the command, then start Claude Code from the same
+  terminal, where `SESS_API_KEY` is set.
+- The package description and the README now open with one line: "Let your agent ask people for
+  answers and approvals by link, with signed receipts." The README adds what to do if your agent
+  stops waiting. The keywords add feedback and surveys.
+
+## 0.2.0 — 2026-11-07
+
+Tool schemas `sess-mcp-tools/5` (was `/4`); the five tool names are unchanged. Depends on
+`@sess.si/sdk` 0.2.0 (was 0.1.1; sha256 `38562280…c7ee`), resolved from the registry.
+
+- A rating in `sess_ask`: a field `{ name, label, type: 'rating' }` asks for a whole number from 1
+  to `max` (2 to 10, default 5). The person sees stars up to 5 and numbered choices above. `low`
+  and `high` are optional words at the two ends, at most 24 characters each. The answer is the
+  number chosen. `sess_request` and `sess_publish` take the raw field `rating: { low?, high? }`
+  with the schema exactly `{ type: 'integer', minimum: 1, maximum: N }`, N from 2 to 10, and refuse
+  another shape or a value off the scale before anything is sent.
+- Advanced: `respondents: { max }` on `sess_ask` asks many people through one link, a Sess Ask.
+  Each person who starts gets their own page; the cap is checked when a person starts, so it
+  cannot be overshot. `respondents` also takes `name`, `expires_in` and `respondent_expires_in`.
+  The result carries `interaction.ask` with the Ask's ID and cap. `sess_response` on that handle
+  reads at once, without waiting, and returns the Ask's status, its counts and each person's answer
+  so far, each verified by its signed receipt and bound to the Ask's question. Its state is
+  `waiting` while answers may still come and `closed` once none can. `sess_publish` and
+  `sess_complete` refuse an Ask's handle. A create that may have happened is not kept: an unused
+  Ask reserves nothing, so the same call may be made again. Without `respondents`, `sess_ask` is
+  unchanged.
 
 ## 0.1.1 — 2026-11-05
 

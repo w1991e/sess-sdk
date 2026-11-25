@@ -1,11 +1,25 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-11-22
 
-- Sess's tighter text limits (2026-11-07), read from the repository's contract snapshot
-  (`src/internal/limits.ts`, generated): the tool schema, its description, the skill and the
-  arguments check use title 60 (about 40), description 200, heading 40, field label 40, help 120,
-  option 30, record key 24 and button 16.
+- Depends on `@sess.si/sdk` 0.5.0 (was 0.4.0; sha256 `84f6e005…7f24`), resolved from the
+  registry. It verifies the receipts Sess issues.
+- Sess's tighter text limits: title 60, description 200, heading 40, field label 40, field help
+  120, option label 30, record key 24, button 16; every other limit is unchanged.
+
+## 0.2.0 — 2026-11-19
+
+- Depends on `@sess.si/sdk` 0.4.0 (was 0.1.0; sha256 `24408ed8…5187`), resolved from the
+  registry. It verifies the receipts Sess issues.
+- A receipt newer than this plugin can check (the SDK's `receipt_newer`, code `RECEIPT_NEWER`: a
+  later Sess receipt type, or a revision envelope above `sess_revision: 2`) is a new tool error,
+  `RECEIPT_NEWER`, class `configuration`: "This receipt is newer than @sess.si/openclaw
+  <version>. Update @sess.si/openclaw to check it. No answer data was returned." It is never
+  `VERIFICATION_FAILED` and never blocks. `sess_response` releases no answer data with it and
+  records nothing; `sess_publish` and `sess_complete`, which verify the answer again before
+  advancing, send nothing. After an update, the same handle proceeds. On `@sess.si/sdk` 0.3.0 a
+  newer receipt cannot be told from a bad one: it blocks the interaction with
+  `VERIFICATION_FAILED`.
 
 ## 0.1.0 — 2026-11-01
 

@@ -233,3 +233,161 @@ describe('incoming Standard Webhooks verification', () => {
     expect(verified).not.toHaveProperty('verifiedReceipt');
   });
 });
+
+const askId = 'ask_01JABCDEFGHJKMNPQRSTVWXYZ3';
+const askEventId = 'evt_01JABCDEFGHJKMNPQRSTVWXYZ4';
+
+/** As the Sess server builds it (`deliveryMessage`): `ask_id` right after `session_id`. */
+function respondentEvent() {
+  const { type, event_id, session_id, ...rest } = acceptedEvent();
+  return { type, event_id, session_id, ask_id: askId, ...rest };
+}
+
+/** As the Sess server builds it (`askClosedMessage`), in its key order. */
+function askClosedEvent() {
+  return {
+    type: 'ask.closed' as const,
+    event_id: askEventId,
+    ask_id: askId,
+    closed_by: 'owner' as const,
+    started: 3,
+    closed_at: '2026-10-12T17:59:00.000Z',
+  };
+}
+
+describe('Ask webhook messages (0.3.1)', () => {
+  it("verifies a respondent's response.accepted with its ask_id and returns it typed", () => {
+    const event = respondentEvent();
+    const raw = JSON.stringify(event);
+    const verified = verifyWebhook(raw, transportHeaders(raw), { secret: webhookSecret });
+    expect(verified).toEqual(event);
+    expect(Object.isFrozen(verified)).toBe(true);
+    if (verified.type !== 'response.accepted') throw new Error('expected response.accepted');
+    const typed: string | undefined = verified.ask_id;
+    expect(typed).toBe(askId);
+    // A non-Ask Session's message still verifies without the member.
+    const plain = JSON.stringify(acceptedEvent());
+    expect(verifyWebhook(plain, transportHeaders(plain), { secret: webhookSecret })).not.toHaveProperty(
+      'ask_id',
+    );
+  });
+
+  it('verifies a respondent message carrying both ask_id and revision_envelope', () => {
+    const raw = JSON.stringify({ ...respondentEvent(), revision_envelope: { v: 1 } });
+    expect(verifyWebhook(raw, transportHeaders(raw), { secret: webhookSecret })).toHaveProperty(
+      'ask_id',
+      askId,
+    );
+  });
+
+  it.each([
+    ['wrong prefix', 'ses_01JABCDEFGHJKMNPQRSTVWXYZ3'],
+    ['short', 'ask_01JABCDEFGHJKMNPQRSTVWXYZ'],
+    ['excluded letter', 'ask_01JABCDEFGHJKMNPQRSTVWXYZI'],
+    ['lower case', 'ask_01jabcdefghjkmnpqrstvwxyz3'],
+    ['empty', ''],
+    ['null', null],
+    ['number', 1],
+    ['object', { id: 'ask_01JABCDEFGHJKMNPQRSTVWXYZ3' }],
+  ])('refuses a response.accepted with a malformed ask_id (%s)', (_name, bad) => {
+    const raw = JSON.stringify({ ...respondentEvent(), ask_id: bad });
+    expect(() => verifyWebhook(raw, transportHeaders(raw), { secret: webhookSecret })).toThrow(
+      expect.objectContaining({ code: 'WEBHOOK_INVALID_PAYLOAD' }),
+    );
+  });
+
+  it('verifies ask.closed and returns it typed and frozen', () => {
+    for (const closed_by of ['owner', 'max'] as const) {
+      for (const started of [0, 3]) {
+        const event = { ...askClosedEvent(), closed_by, started };
+        const raw = JSON.stringify(event);
+        const verified = verifyWebhook(raw, transportHeaders(raw, askEventId), { secret: webhookSecret });
+        expect(verified).toEqual(event);
+        expect(Object.isFrozen(verified)).toBe(true);
+        if (verified.type !== 'ask.closed') throw new Error('expected ask.closed');
+        const typed: { ask_id: string; closed_by: 'max' | 'owner'; started: number; closed_at: string } =
+          verified;
+        expect(typed.ask_id).toBe(askId);
+      }
+    }
+  });
+
+  it('refuses an ask.closed whose event_id differs from the webhook-id header', () => {
+    const raw = JSON.stringify(askClosedEvent());
+    expect(() => verifyWebhook(raw, transportHeaders(raw, eventId), { secret: webhookSecret })).toThrow(
+      expect.objectContaining({ code: 'WEBHOOK_INVALID_PAYLOAD' }),
+    );
+  });
+
+  it.each([
+    ['an unknown member', { extra: 1 }],
+    ['a session_id', { session_id: sessionId }],
+    ['a malformed ask_id', { ask_id: 'ask_nope' }],
+    ['a malformed event_id', { event_id: 'evt_nope' }],
+    ['closed_by deadline', { closed_by: 'deadline' }],
+    ['closed_by null', { closed_by: null }],
+    ['a negative started', { started: -1 }],
+    ['a fractional started', { started: 1.5 }],
+    ['a string started', { started: '3' }],
+    ['a non-canonical closed_at', { closed_at: '2026-10-12T17:59:00Z' }],
+  ])('refuses an ask.closed with %s', (_name, change) => {
+    const event: Record<string, unknown> = { ...askClosedEvent(), ...change };
+    const raw = JSON.stringify(event);
+    const id =
+      typeof event.event_id === 'string' && /^[A-Za-z0-9._-]{1,128}$/.test(event.event_id)
+        ? event.event_id
+        : askEventId;
+    expect(() => verifyWebhook(raw, transportHeaders(raw, id), { secret: webhookSecret })).toThrow(
+      expect.objectContaining({ code: 'WEBHOOK_INVALID_PAYLOAD' }),
+    );
+  });
+
+  it.each(['type', 'event_id', 'ask_id', 'closed_by', 'started', 'closed_at'])(
+    'refuses an ask.closed missing %s',
+    (member) => {
+      const event: Record<string, unknown> = askClosedEvent();
+      delete event[member];
+      const raw = JSON.stringify(event);
+      expect(() => verifyWebhook(raw, transportHeaders(raw, askEventId), { secret: webhookSecret })).toThrow(
+        expect.objectContaining({ code: 'WEBHOOK_INVALID_PAYLOAD' }),
+      );
+    },
+  );
+
+  it('still refuses unknown members on response.accepted, with or without ask_id', () => {
+    for (const event of [acceptedEvent(), respondentEvent()]) {
+      const raw = JSON.stringify({ ...event, extra: true });
+      expect(() => verifyWebhook(raw, transportHeaders(raw), { secret: webhookSecret })).toThrow(
+        expect.objectContaining({ code: 'WEBHOOK_INVALID_PAYLOAD' }),
+      );
+    }
+  });
+
+  it('applies the same signature and timestamp rules to Ask messages', () => {
+    for (const [event, id] of [
+      [respondentEvent(), eventId],
+      [askClosedEvent(), askEventId],
+    ] as const) {
+      const raw = JSON.stringify(event);
+      expect(() =>
+        verifyWebhook(raw, transportHeaders(raw, id, [nextSecret]), { secret: webhookSecret }),
+      ).toThrow(expect.objectContaining({ code: 'WEBHOOK_INVALID_SIGNATURE' }));
+      const reformatted = JSON.stringify(event, null, 1);
+      expect(() => verifyWebhook(reformatted, transportHeaders(raw, id), { secret: webhookSecret })).toThrow(
+        expect.objectContaining({ code: 'WEBHOOK_INVALID_SIGNATURE' }),
+      );
+      for (const delta of [-301, 301]) {
+        expect(() =>
+          verifyWebhook(raw, transportHeaders(raw, id, [webhookSecret], Math.floor(now / 1000) + delta), {
+            secret: webhookSecret,
+          }),
+        ).toThrow(expect.objectContaining({ code: 'WEBHOOK_TIMESTAMP_OUT_OF_RANGE' }));
+      }
+      // Authentication still precedes parsing: a wrong secret is a signature failure, not a payload one.
+      const malformed = JSON.stringify({ ...event, extra: 1 });
+      expect(() =>
+        verifyWebhook(malformed, transportHeaders(malformed, id, [nextSecret]), { secret: webhookSecret }),
+      ).toThrow(expect.objectContaining({ code: 'WEBHOOK_INVALID_SIGNATURE' }));
+    }
+  });
+});

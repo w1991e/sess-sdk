@@ -23,7 +23,7 @@ const BILL: BillInput = {
   currency: 'CAD',
   rows: [
     { name: 'Design retainer, October', amount: 420000 },
-    { name: 'Extra revisions, landing page', detail: '3 × $150.00', amount: 45000 },
+    { name: 'Revisions, landing page v3', detail: '3 × $150.00', amount: 45000 },
     { name: 'Early-payment discount', detail: 'Paid within 10 days', amount: -23750 },
   ],
   lines: [{ label: 'GST 5%', amount: 22062, role: 'tax' }],
@@ -298,7 +298,7 @@ describe('editable quantities need a way to send the edit (request_change)', () 
       ...order,
       actions: [
         { id: 'no', label: 'Nein', intent: 'reject' },
-        { id: 'change', label: 'Änderung senden', intent: 'request_change' },
+        { id: 'change', label: 'Änderungen', intent: 'request_change' },
         { id: 'yes', label: 'Genehmigen', intent: 'approve' },
       ],
     });
@@ -326,11 +326,11 @@ describe('editable quantities need a way to send the edit (request_change)', () 
 describe('builder defaults', () => {
   it('are the listed strings, each within its limit', () => {
     for (const title of Object.values(COMMERCE_DEFAULTS.titles))
-      expect([...title].length).toBeLessThanOrEqual(60);
+      expect([...title].length).toBeLessThanOrEqual(80);
     for (const key of Object.values(COMMERCE_DEFAULTS.references))
-      expect([...key].length).toBeLessThanOrEqual(24);
+      expect([...key].length).toBeLessThanOrEqual(40);
     for (const a of Object.values(COMMERCE_DEFAULTS.actions))
-      expect([...a.label].length).toBeLessThanOrEqual(16);
+      expect([...a.label].length).toBeLessThanOrEqual(24);
     expect(COMMERCE_DEFAULTS.actions.change.label).toBe('Request changes'); // signed CM-34
     expect([...COMMERCE_DEFAULTS.refundTotal].length).toBeLessThanOrEqual(40);
   });

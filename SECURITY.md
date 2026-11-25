@@ -15,3 +15,12 @@ fix, and coordinate a GitHub security advisory and a corrected version.
 
 Security fixes target the current 0.1 release line and preserve documented behavior where possible.
 See [security boundaries](docs/security.md) and [release and rollback](docs/releasing.md).
+
+## Dependency audit
+
+CI and the SDK release run `node scripts/audit-dependencies.mjs`: `npm audit` over every
+dependency, development dependencies included, failing on any advisory at moderate or above. Its
+only exceptions are listed, with a reason and an expiry, in `.github/audit-exceptions.json`; the
+script's header states its exact rules.
+
+The audit fails on an exception whose advisory is no longer reported, and on one past its date.

@@ -7,7 +7,6 @@
 import type { ItemsComponent, InteractiveInteraction, SurfaceComponent } from '../types.js';
 import { buildItems, refuse, text, token, tooLong, type ItemsInput } from './items.js';
 import { lintText } from './lint.js';
-import { SURFACE_TEXT_LIMITS } from '../generated/limits.js';
 
 type Action = InteractiveInteraction['actions'][number];
 type RecordValue = string | number | boolean | null;
@@ -38,13 +37,13 @@ export interface BillInput extends ItemsInput {
 export type RefundInput = Omit<BillInput, 'payments'>;
 
 const LIMITS = Object.freeze({
-  title: SURFACE_TEXT_LIMITS.title,
-  description: SURFACE_TEXT_LIMITS.description,
-  recordKey: SURFACE_TEXT_LIMITS.recordKey,
-  recordValue: SURFACE_TEXT_LIMITS.recordValue,
+  title: 60,
+  description: 200,
+  recordKey: 24,
+  recordValue: 200,
   recordFields: 50,
   actions: 5,
-  actionLabel: SURFACE_TEXT_LIMITS.actionLabel,
+  actionLabel: 16,
 });
 const ACTION_ID = /^[a-z][a-z0-9_]{0,31}$/;
 const INTENTS = ['submit', 'continue', 'approve', 'reject', 'request_change'] as const;

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   checkIconFiles,
+  checkOneSource,
   checkPackets,
   cursorDeeplink,
   generate,
@@ -53,8 +54,8 @@ const edit = (files: Map<string, string>, path: string, change: (value: any) => 
 };
 
 describe('tool annotation audit', () => {
-  it('matches each tool’s behaviour; schemas are sess-mcp-tools/5', () => {
-    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/5');
+  it('matches each tool’s behaviour; schemas are sess-mcp-tools/6', () => {
+    expect(TOOL_SCHEMA_VERSION).toBe('sess-mcp-tools/6');
     // The hints; annotations.title is pinned in server.test.ts.
     const table = Object.fromEntries(
       TOOLS.map(({ name, annotations: { title: _title, ...hints } }) => [name, hints]),
@@ -101,6 +102,10 @@ describe('listing.json artifacts', () => {
         'listings/claude-connector.json',
         'listings/cline-issue.md',
         'listings/cursor-install.json',
+        'listings/mcpso-submission.md',
+        'listings/awesome-punkpeye-awesome-mcp-servers.md',
+        'listings/awesome-wong2-awesome-mcp-servers.md',
+        'listings/awesome-punkpeye-awesome-remote-mcp-servers.md',
         'listings/docker/readme.md',
         'listings/docker/server.yaml',
         'listings/docker/tools.json',
@@ -144,16 +149,39 @@ describe('listing.json artifacts', () => {
     // Hosts and stores with no qualified packet say so; none is promoted.
     expect(text).toMatch(/OpenAI: ChatGPT has one production run, not marked qualified .*Codex has none/);
     expect(text).toMatch(/Docker: OAuth through Docker's Toolkit is untested/);
-    // Production serves the icon URLs, so that is no blocker. 0.1.1 is published on npm and listed
-    // in the Registry (founder 2026-11-06 02:50Z), so neither npm blocker remains. Cline's 400x400
-    // stays a blocker until it is deployed and committed here.
+    // Production serves the icon URLs, so that is no blocker. Cline's 400x400 is served at a
+    // read-back URL, so it is no blocker either.
+    // 0.6.0 prep: package.json's version, 0.6.0, is not on npm yet; 0.5.0 stays on latest (npm's
+    // readback of 0.5.0 declares si.sess/sess, 2026-11-22). Both npm blockers stand until 0.6.0 is
+    // published and read back (they stood likewise at the 0.5.0 prep). The Registry's own latest
+    // (0.3.0) is the owner's submission.
     expect(text).not.toMatch(/icon URLs/);
-    expect(text).not.toMatch(/MCP Registry and Cursor stdio/);
-    expect(text).not.toMatch(/MCP Registry( npm package)?:/);
+    expect(text).toMatch(/MCP Registry and Cursor stdio: @sess\.si\/mcp is unpublished on npm/);
+    expect(text).toMatch(/MCP Registry: @sess\.si\/mcp@0\.5\.0 on npm declares mcpName si\.sess\/sess;/);
+    expect(text).not.toMatch(/MCP Registry npm package:/);
+    expect(text).not.toMatch(/Cline: needs a 400x400 PNG/);
+    const unserved = inputs();
+    delete unserved.listing.providers.cline.icon.url;
+    expect(check(unserved).blockers.join('\n')).toMatch(/Cline: needs a 400x400 PNG at a deployed URL/);
+    const wrongIcon = inputs();
+    wrongIcon.listing.providers.cline.icon.url = 'https://sess.si/assets/icons/00c368f1dadd/icon-512.png';
+    const iconUrlError =
+      'providers.cline.icon.url must be an HTTPS URL of source.file under source.iconSetVersion (…/<iconSetVersion>/icon-400.png)';
+    expect(check(wrongIcon).errors).toContain(iconUrlError);
+    // The URL's version segment is the icon set the PNG comes from, never another one.
+    const otherSet = inputs();
+    otherSet.listing.providers.cline.icon.url = 'https://sess.si/assets/icons/24eb73d4a4d9/icon-400.png';
+    expect(check(otherSet).errors).toContain(iconUrlError);
+    // source.file and the URL moved together to another size still fail: the file must be the checked PNG.
+    const otherFile = inputs();
+    otherFile.listing.providers.cline.icon.source.file = 'icon-512.png';
+    otherFile.listing.providers.cline.icon.url = 'https://sess.si/assets/icons/00c368f1dadd/icon-512.png';
+    expect(check(otherFile).errors).toContain(iconUrlError);
+    expect(check(inputs()).errors).not.toContain(iconUrlError);
     expect(text).toMatch(
-      /Cline: needs a 400x400 PNG at a deployed URL; it is in w1991e\/sess PR #1019, not merged at this writing and not deployed until a founder window/,
+      /Cline: listings\/cline-issue\.md has OWNER: lines to resolve, including running Cline with only the README/,
     );
-    expect(text).toMatch(/Cline: listings\/cline-issue\.md has OWNER: lines to resolve/);
+    expect(text).toMatch(/mcp\.so: listings\/mcpso-submission\.md has OWNER: lines to resolve/);
     expect(text).not.toMatch(/no PNG icon yet/);
     expect(text).not.toMatch(/urls\.(privacy|terms)/);
     // A listed package whose npm readback still names an older version or the old name blocks.
@@ -228,11 +256,16 @@ describe('listing.json artifacts', () => {
     expect(check(i, drifted).errors).toContain('server.json websiteUrl must be listing.json homepage');
   });
 
-  it('the long description is the signed listing copy of 2026-11-06, word for word, everywhere it is generated', () => {
-    // Founder 2026-11-06: it replaces the long of 2026-11-04 and opens with the one-liner alone, not
-    // the supporting line of 2026-11-05 00:50Z.
-    const signed =
-      'Let your agent ask a person and continue with their answer. Your agent describes a form and gets a link at once. The person answers on any device, and your agent continues with a typed answer and a signed receipt.\n\nAnyone with the link can answer, so share it only with the person you mean. The receipt records what Sess accepted, not who answered. Check answers before your agent acts on them. You sign in with a Sess account. The person answering needs none.';
+  it('the one-liner, long description, keywords and recovery line are the signed copy of 2026-11-10 20:18Z, everywhere', () => {
+    // Founder 2026-11-10 20:18Z: three paragraphs that replace the long of 2026-11-06 (which opened
+    // with the one-liner of 2026-11-05); the new long does not open with the one-liner. The short
+    // label and the default prompt are unchanged.
+    const oneLiner = 'Let your agent ask people for answers and approvals by link, with signed receipts.';
+    const signed = [
+      "Sess turns your agent's questions into pages people can answer on any device. Use it for choices, corrections or approvals without bringing people into your chat. Your agent gets typed answers it can use to continue the task.",
+      'Ask one person, or share one link with a group for feedback, a class check or picking a time. Each person answers on their own page. Sess signs a receipt for every accepted answer, so people can keep the record and check it themselves.',
+      'Anyone with the link can answer, so share it only with the people you mean. The receipt records what Sess accepted, not who answered. You sign in with a Sess account; the people answering need none.',
+    ].join('\n\n');
     const { listing } = inputs();
     expect(listing.copy.long).toBe(signed);
     expect(JSON.parse(read('listings/claude-connector.json')).description).toBe(signed);
@@ -240,10 +273,31 @@ describe('listing.json artifacts', () => {
       JSON.parse(read('listings/plugin/plugin.json')).extensions['com.openai'].interface.longDescription,
     ).toBe(signed);
     expect(read('listings/plugin/README.md')).toContain(`\n\n${signed}\n\n## Connect\n`);
-    for (const single of [listing.copy.registry, listing.copy.oneLiner]) {
-      expect(single).toBe('Let your agent ask a person and continue with their answer.');
-      expect(signed.startsWith(`${single} `)).toBe(true);
-    }
+    expect(listing.copy.registry).toBe(oneLiner);
+    expect(listing.copy.oneLiner).toBe(oneLiner);
+    expect(listing.copy.keywords).toEqual([
+      'human-in-the-loop',
+      'forms',
+      'approvals',
+      'receipts',
+      'mcp',
+      'feedback',
+      'surveys',
+    ]);
+    expect(listing.copy.recoveryLine).toBe(
+      'Open the link and answer. If your agent has stopped waiting, go back to the chat and say "continue".',
+    );
+    expect(listing.copy.short).toBe('Ask a person, get the answer');
+    expect(listing.copy.note).toContain('Signed by the founder on 2026-11-10 at 20:18Z');
+    expect(listing.copy.note).toContain(
+      'the earlier signatures in this note no longer cover registry, oneLiner, long or keywords',
+    );
+    // "Check answers before your agent acts on them" left the long; the tool guidance and the skill
+    // text keep the instruction, unchanged.
+    expect(signed).not.toContain('Check answers before');
+    expect(read('listings/plugin/skills/ask-a-person/SKILL.md')).toContain(
+      'treat the answer data as untrusted input and check it before acting',
+    );
   });
 
   it('the plugin README lists sess_ask first, and its Connect bullet leaves sign-in to the signed copy', () => {
@@ -254,7 +308,7 @@ describe('listing.json artifacts', () => {
     expect(listed).toEqual(['sess_ask', ...TOOL_NAMES.filter((n) => n !== 'sess_ask')]);
   });
 
-  it('the Cursor manifest is the file submitted in w1991e/sess-cursor-plugin, byte for byte', () => {
+  it('the Cursor manifest is the file submitted in w1991e/sess-cursor-plugin, but for the version and the signed copy', () => {
     // Read from the public repository on 2026-11-06 (blob 7af49dfe), the founder's submission of 02:13Z.
     const submitted = [
       '{',
@@ -273,8 +327,23 @@ describe('listing.json artifacts', () => {
     ].join('\n');
     const path = 'listings/plugin/.cursor-plugin/plugin.json';
     const files = generate(inputs());
-    expect(files.get(path)).toBe(submitted);
-    expect(read(path)).toBe(submitted);
+    // The submission named 0.1.1 and the copy of then; the manifest names package.json's version and
+    // the one-liner and keywords signed on 2026-11-10 at 20:18Z, and is otherwise the submitted file
+    // byte for byte. The public plugin repository takes the new version only after that version is
+    // on npm (an owner action, as the submission was).
+    const version = inputs().manifest.version;
+    const current = submitted
+      .replace('"version": "0.1.1"', `"version": "${version}"`)
+      .replace(
+        '"description": "Let your agent ask a person and continue with their answer."',
+        '"description": "Let your agent ask people for answers and approvals by link, with signed receipts."',
+      )
+      .replace(
+        '"keywords": ["human-in-the-loop", "ask", "approval", "mcp"]',
+        '"keywords": ["human-in-the-loop", "forms", "approvals", "receipts", "mcp", "feedback", "surveys", "ask"]',
+      );
+    expect(files.get(path)).toBe(current);
+    expect(read(path)).toBe(current);
     const blob = createHash('sha1')
       .update(`blob ${Buffer.byteLength(submitted)}\0${submitted}`)
       .digest('hex');
@@ -308,7 +377,10 @@ describe('listing.json artifacts', () => {
 
   it('the one-line description fields (copy.registry, copy.oneLiner) are the MCP adapter README’s first line, word for word', () => {
     const readmeFirstLine = read('README.md').split('\n')[2];
-    expect(readmeFirstLine).toBe('Let your agent ask a person and continue with their answer.');
+    expect(readmeFirstLine).toBe(
+      'Let your agent ask people for answers and approvals by link, with signed receipts.',
+    );
+    expect(inputs().manifest.description).toBe(readmeFirstLine);
     const { listing } = inputs();
     expect(listing.copy.registry).toBe(readmeFirstLine);
     expect(listing.copy.oneLiner).toBe(readmeFirstLine);
@@ -320,6 +392,68 @@ describe('listing.json artifacts', () => {
     expect(files.get('listings/cline-issue.md')).toContain(`\n${readmeFirstLine}\n`);
   });
 
+  // Founder 2026-11-10 04:00Z: the README's first screen is the one-liner, install, run and what you
+  // will see, then one section per host in the signed tab order; every pasteable block names the
+  // exact package version (no <version> placeholder), bumped on release; compatibility notes live in
+  // COMPATIBILITY.md, linked once at the end.
+  it('the README opens with its first screen, then the host sections in order, with exact versions', () => {
+    const readme = read('README.md');
+    const lines = readme.split('\n');
+    const firstSection = lines.findIndex((l) => l.startsWith('## '));
+    const opening = lines.slice(3, firstSection).filter((l) => l.trim() !== '');
+    const firstScreen = opening.slice(0, 3).map((l) => l.split(' ')[0]);
+    expect(firstScreen).toEqual(['**Install:**', '**Run:**', "**You'll"]);
+    // Below the first screen (founder 2026-11-10 20:18Z item 2): the recovery line, then the three
+    // signed paragraphs of copy.long, then the host sections.
+    const { copy } = inputs().listing;
+    expect(opening.slice(3)).toEqual([copy.recoveryLine, ...copy.long.split('\n\n')]);
+    // One prompt everywhere: the docs prompt, word for word, which is also the listing's default
+    // prompt (founder 2026-11-10 05:04Z).
+    const prompt = 'Ask me on my phone what time works for a call tomorrow, using Sess.';
+    expect(inputs().listing.copy.defaultPrompts).toEqual([prompt]);
+    expect(lines).toContain(`**Run:** ask your agent "${prompt}"`);
+    // Grok: Grok Build first, then grok.com Connectors (founder 2026-11-10 05:04Z).
+    const grok = lines.slice(lines.indexOf('## Grok'), lines.indexOf('## Cursor'));
+    expect(grok.filter((l) => l.startsWith('### '))).toEqual([
+      '### Grok Build: remote MCP',
+      '### grok.com: Connectors',
+    ]);
+    expect(grok).toContain('grok mcp add --transport http sess https://mcp.sess.si/mcp');
+    // Claude Code: the second-computer sentence is not established for Claude Code, so it is gone
+    // (founder 2026-11-10 05:47Z and 05:48Z item 3); the sign-in sentence stays.
+    const claudeCode = lines.slice(lines.indexOf('## Claude Code'), lines.indexOf('## claude.ai')).join('\n');
+    expect(claudeCode).toContain('Claude Code opens Sess in your browser. Sign in and choose Allow.\n');
+    expect(readme).not.toMatch(/second\s+computer/);
+    expect(readme).not.toMatch(/disconnects\s+the\s+first/);
+    const hosts = lines.filter((l) => l.startsWith('## ')).slice(0, 9);
+    expect(hosts).toEqual([
+      '## Claude Code',
+      '## claude.ai',
+      '## ChatGPT',
+      '## Grok',
+      '## Cursor',
+      '## Antigravity',
+      '## OpenClaw',
+      '## Cline',
+      '## Your own agent',
+    ]);
+    const blocks = [...readme.matchAll(/```[a-z]*\n([\s\S]*?)```/g)].map((m) => m[1]);
+    for (const block of blocks) expect(block).not.toMatch(/<version>|<your-key>/);
+    const version = inputs().manifest.version;
+    const pins = [...readme.matchAll(/@sess\.si\/mcp@([^\s"`')]+)/g)].map((m) => m[1]);
+    expect(pins.length).toBeGreaterThanOrEqual(4);
+    for (const pin of pins) expect(pin).toBe(version);
+    // The OpenClaw install line names the OpenClaw release that is published (its
+    // compatibility.json publication record), never an earlier one (Sess L-139: 0.5.0's packed
+    // README still said 0.1.0).
+    const openclaw = JSON.parse(read('../openclaw/compatibility.json')).publication.version;
+    const openclawPins = [...readme.matchAll(/npm:@sess\.si\/openclaw@([^\s"`')]+)/g)].map((m) => m[1]);
+    expect(openclawPins).toEqual([openclaw]);
+    expect(readme.match(/\]\(COMPATIBILITY\.md\)/g)).toHaveLength(1);
+    expect(readme).not.toMatch(/_(?:un)?tested_/);
+    expect(existsSync(join(base, 'COMPATIBILITY.md'))).toBe(true);
+  });
+
   it('Claude and Cursor each carry their own status; qualified needs that host’s evidence', () => {
     const files = generate(inputs());
     const claude = () => JSON.parse(files.get('listings/claude-connector.json')!);
@@ -327,8 +461,9 @@ describe('listing.json artifacts', () => {
     expect(claude().status).toBe('qualified');
     expect(cursor().entries.map((e: any) => [e.transport, e.status])).toEqual([
       ['streamable-http', 'qualified'],
-      // The round used the remote link. The stdio link names 0.1.1, published on npm, not qualified.
-      ['stdio', 'published'],
+      // The round used the remote link. 0.6.0 prep: the stdio link names 0.6.0, prepared and not
+      // yet on npm, so it is unpublished.
+      ['stdio', 'unpublished'],
     ]);
     // Cursor's evidence is the founder's round, and it claims no outside user.
     const cursorProvider = inputs().listing.providers.cursorInstall;
@@ -365,11 +500,12 @@ describe('listing.json artifacts', () => {
     const files = generate(inputs());
     const openai = JSON.parse(files.get('listings/plugin/plugin.json')!).extensions['com.openai'];
     // On Cursor a plain "Ask me…" is answered by its own question panel (founder 2026-11-05, C-2).
+    // One prompt everywhere, the docs prompt word for word (founder 2026-11-10 05:04Z); it names
+    // Sess. It replaces the three "Use Sess to ask me…" prompts of 2026-11-05 05:50Z.
     expect(openai.interface.defaultPrompt).toEqual([
-      'Use Sess to ask me on my phone which time works for a call tomorrow, then tell me what I chose.',
-      'Use Sess to ask me to approve the report before you send it, then tell me what I chose.',
-      'Use Sess to ask me three quick questions to plan my weekend, then tell me what I chose.',
+      'Ask me on my phone what time works for a call tomorrow, using Sess.',
     ]);
+    expect(openai.review.test_cases.positive[0].prompt).toBe(openai.interface.defaultPrompt[0]);
     const positive = openai.review.test_cases.positive.map((c: { prompt: string }) => c.prompt);
     expect(positive).toHaveLength(5);
     for (const prompt of positive) expect(prompt).toMatch(/\bSess\b/);
@@ -395,15 +531,150 @@ describe('listing.json artifacts', () => {
       'Everything else in the sections below `## Title` goes into the form as written.',
     );
     expect(issue).toContain('\nhttps://github.com/w1991e/sess-sdk/tree/master/adapters/mcp\n');
-    // Neither required box is ticked; each has an OWNER: line, and so does the undeployed logo.
+    // Neither required box is ticked; each has an OWNER: line. The README-alone run is a real step
+    // the founder runs and records (founder 2026-11-09 21:36Z); it is not claimed here.
     expect(issue).not.toMatch(/- \[x\]/i);
     expect(issue.match(/^- \[ \] /gm)).toHaveLength(2);
-    expect(issue.match(/^OWNER: /gm)).toHaveLength(3);
-    // No PNG exists to point at yet: the only icons are the deployed set, and none is named here.
-    expect(issue).not.toMatch(/icon-\d+\.png|\/assets\/icons\//);
+    expect(issue.match(/^OWNER: /gm)).toHaveLength(2);
+    expect(issue).toContain('\nOWNER: run Cline with only the README, record result here.');
+    expect(issue).toContain(
+      'The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator.',
+    );
+    // The served 400x400 (read back 200 image/png at its pinned SHA-256) is the Logo Image.
+    expect(issue).toContain(
+      '\n## Logo Image\n\nhttps://sess.si/assets/icons/00c368f1dadd/icon-400.png\n\n## Installation Testing\n',
+    );
+    expect(issue).not.toContain('It is not deployed yet.');
+    const unserved = inputs();
+    delete unserved.listing.providers.cline.icon.url;
+    expect(generate(unserved).get('listings/cline-issue.md')).toMatch(/^OWNER: put the URL of the deployed/m);
     expect(issue).toContain('https://mcp.sess.si/mcp');
     expect(issue).toContain('https://sess.si');
     expect(issue).toContain('https://www.npmjs.com/package/@sess.si/mcp');
+    // package.json's version. 0.6.0 prep: 0.6.0 is prepared, not yet on npm (0.5.0 stays on
+    // latest); the issue is a draft, filed only after 0.6.0 is published (was 0.5.0).
+    expect(issue).toContain('/@sess.si/mcp, version 0.6.0 (stdio;');
+  });
+
+  it('the mcp.so draft fills the Remote Server form, quotes only signed copy and marks owner steps', () => {
+    const { listing } = inputs();
+    const draft = generate(inputs()).get('listings/mcpso-submission.md')!;
+    expect(draft.startsWith('# mcp.so submission\n\nUnposted draft for the founder')).toBe(true);
+    for (const heading of ['## Type', '## Remote endpoint URL', '## Name', '## Publishing'])
+      expect(draft).toContain(`\n${heading}\n`);
+    expect(draft).toContain('\n`Remote Server`\n');
+    expect(draft).toContain('\n## Remote endpoint URL\n\nhttps://mcp.sess.si/mcp\n');
+    expect(draft).toContain('\n## Name\n\n`Sess`\n');
+    // The description opens with the signed one-liner, then copy.long as drafted (founder 21:36Z).
+    // The long of 2026-11-10 20:18Z does not open with the one-liner, so both are written, and the
+    // note no longer says it is written once. Tags and category are listing.json's.
+    expect(listing.copy.long.startsWith(listing.copy.oneLiner)).toBe(false);
+    expect(draft).toContain(
+      `\n### Description\n\nNot for the form: the signed one-liner, then the long text as drafted (founder 2026-11-09 21:48Z).\n\n${listing.copy.oneLiner}\n\n${listing.copy.long}\n`,
+    );
+    expect(draft.split(listing.copy.oneLiner)).toHaveLength(2);
+    // A long that opens with the one-liner is written once, and the note says so.
+    const opensWith = inputs();
+    opensWith.listing.copy.long = `${listing.copy.oneLiner} Your agent describes a form and gets a link at once.`;
+    const once = generate(opensWith).get('listings/mcpso-submission.md')!;
+    expect(once).toContain(
+      `the long text opens with the one-liner, so it is written once (founder 2026-11-09 21:48Z).\n\n${opensWith.listing.copy.long}\n`,
+    );
+    expect(once.split(listing.copy.oneLiner)).toHaveLength(2);
+    expect(draft).toContain(`- Tags: ${listing.copy.keywords.join(', ')}\n`);
+    expect(draft).toContain(`- Category: ${listing.categories[0]}\n`);
+    // The review route, by the founder's ruling: no fee option, and no OWNER: line for it.
+    expect(draft).toContain(
+      '\n## Publishing\n\nNot for the form: choose Review, with no fee (founder 2026-11-09 21:36Z).',
+    );
+    expect(draft).not.toMatch(/spending decision/);
+    // Below `## Type`, every line is a heading, an OWNER: line, a "Not for the form:" note or a form
+    // value; the form values are exactly these, so no instruction can be pasted by mistake.
+    const body = draft.slice(draft.indexOf('\n## Type\n'));
+    const values = body
+      .split('\n')
+      .filter(
+        (l) => l && !/^#{2,3} /.test(l) && !l.startsWith('OWNER: ') && !l.startsWith('Not for the form: '),
+      );
+    expect(values).toEqual([
+      '`Remote Server`',
+      'https://mcp.sess.si/mcp',
+      '`Sess`',
+      listing.copy.oneLiner,
+      ...listing.copy.long.split('\n').filter(Boolean),
+      `- Tags: ${listing.copy.keywords.join(', ')}`,
+      `- Category: ${listing.categories[0]}`,
+      '- Website: https://sess.si',
+      '- Docs: https://docs.sess.si/add-to-your-agent/',
+      '- Support: ask@sess.si',
+      '- Repository: https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp',
+      '- License: Apache-2.0',
+    ]);
+    expect(draft).toContain(
+      'Every line that starts with `Not for the form:` is a note for you, never pasted.',
+    );
+    // The other tab and sign-in are the owner's.
+    expect(draft.match(/^OWNER: /gm)).toHaveLength(2);
+    expect(draft).toMatch(/^OWNER: the page offers Sign In/m);
+    expect(draft).toContain(
+      'The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator.',
+    );
+    expect(scanText('listings/mcpso-submission.md', draft)).toEqual([]);
+  });
+
+  it('the awesome-list drafts use each list’s own line format and only the signed one-liner', () => {
+    const { listing } = inputs();
+    const files = generate(inputs());
+    const one = listing.copy.oneLiner;
+    const draft = (repo: string) => files.get(`listings/awesome-${repo.replace('/', '-')}.md`)!;
+    expect(listing.providers.awesomeLists.lists.map((l: { repo: string }) => l.repo)).toEqual([
+      'punkpeye/awesome-mcp-servers',
+      'wong2/awesome-mcp-servers',
+      'punkpeye/awesome-remote-mcp-servers',
+    ]);
+    for (const { repo, output } of listing.providers.awesomeLists.lists) {
+      const text = files.get(output)!;
+      expect(text.startsWith(`# ${repo} entry\n\nUnposted draft for the founder's review.`)).toBe(true);
+      expect(text).toContain(
+        'The founder opens every fork, pull request, issue and form from his own account; nothing posts from the orchestrator.',
+      );
+      expect(text).not.toMatch(/- \[x\]/i);
+      expect(text).not.toMatch(/0\.1\.1/);
+      expect(scanText(output, text)).toEqual([]);
+    }
+    // punkpeye: one line, linked name, Legend markers 🎖️ 📇 ☁️ (founder 21:36Z), " - ", the
+    // one-liner; no badge without a Glama page, and no OWNER: line for the markers.
+    expect(draft('punkpeye/awesome-mcp-servers')).toContain(
+      `\n- [w1991e/sess-sdk](https://github.com/w1991e/sess-sdk/tree/master/adapters/mcp) 🎖️ 📇 ☁️ - ${one}\n`,
+    );
+    expect(draft('punkpeye/awesome-mcp-servers')).not.toContain('badges/score.svg');
+    expect(draft('punkpeye/awesome-mcp-servers')).not.toMatch(/^OWNER: .*(markers|🎖️)/m);
+    // 0.6.0 prep: the draft names package.json's version (was 0.5.0); "on npm" holds only once
+    // 0.6.0 is published, before the draft is posted.
+    expect(draft('punkpeye/awesome-mcp-servers')).toContain('version 0.6.0 on npm');
+    // The remote list: three lines, homepage link, endpoint, connector badge, OAuth marker.
+    expect(draft('punkpeye/awesome-remote-mcp-servers')).toContain(
+      [
+        '- [Sess](https://sess.si) `https://mcp.sess.si/mcp`',
+        '  [![Sess MCP connector](https://glama.ai/mcp/connectors/si.sess/sess/badges/score.svg)](https://glama.ai/mcp/connectors/si.sess/sess)',
+        `  🔐 - ${one}`,
+      ].join('\n'),
+    );
+    expect(one.length).toBeLessThanOrEqual(120);
+    expect(draft('punkpeye/awesome-remote-mcp-servers').match(/^- \[ \] /gm)).toHaveLength(4);
+    expect(draft('punkpeye/awesome-remote-mcp-servers')).toMatch(
+      /^OWNER: .*starred the list: the founder stars it himself\.$/m,
+    );
+    // A 401 sign-in challenge is the right answer from the endpoint (founder 21:36Z): a note, not an owner step.
+    expect(draft('punkpeye/awesome-remote-mcp-servers')).toContain(
+      'a 401 sign-in challenge is the correct answer from our endpoint (founder 2026-11-09 21:36Z)',
+    );
+    expect(draft('punkpeye/awesome-remote-mcp-servers')).not.toMatch(/^OWNER: .*initialize/m);
+    expect(draft('punkpeye/awesome-remote-mcp-servers')).not.toMatch(/proposed, needs your words/);
+    // wong2 takes no pull requests: the draft is its website form, with the fee plan an owner decision.
+    expect(draft('wong2/awesome-mcp-servers')).toContain('Not a pull request: the list takes none.');
+    expect(draft('wong2/awesome-mcp-servers')).toContain(`- Short Description: \`${one}\``);
+    expect(draft('wong2/awesome-mcp-servers')).toMatch(/^OWNER: .*spending decision, yours alone/m);
   });
 
   it('a deferred package leaves server.json remote-only under si.sess/sess', () => {
@@ -443,7 +714,9 @@ describe('listing.json artifacts', () => {
     const server = JSON.parse(generate(i).get('server.json')!);
     expect(server.version).toBe(i.manifest.version);
     expect(server.packages[0].version).toBe(i.manifest.version);
-    expect(server.description).toBe('Let your agent ask a person and continue with their answer.');
+    expect(server.description).toBe(
+      'Let your agent ask people for answers and approvals by link, with signed receipts.',
+    );
     expect(i.listing.providers.mcpRegistry.version).toBeUndefined();
     for (const version of ['0.1.0-rc.4', '0.1.0']) {
       const next = inputs();
@@ -754,6 +1027,48 @@ describe('listing icons', () => {
       expect(pngSize(readBytes(f.path))).toEqual({ width: f.size, height: f.size });
   });
 
+  it('Cline’s icon is the logos script’s 400x400 tile, committed at its pinned SHA-256 and in no host list', () => {
+    const listing = inputs().listing;
+    const icon = listing.providers.cline.icon;
+    expect(icon).toMatchObject({
+      path: 'listings/plugin/assets/icon-400.png',
+      size: 400,
+      sha256: '77fbaa16ce8416d629983211c0c9dba495dd2f303cb1b76245ffd3072df56b4d',
+      source: {
+        repository: 'https://github.com/w1991e/sess',
+        commit: '88f9f89e87939034b0967ed48bd86293b40b352a',
+        generator: 'packages/design-tokens/scripts/logos.ts',
+        file: 'icon-400.png',
+        iconSetVersion: '00c368f1dadd',
+      },
+    });
+    // Read from the PNG's own bytes: the signature, then IHDR width and height.
+    const bytes = readBytes(icon.path)!;
+    expect(bytes.subarray(0, 8)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    expect(bytes.toString('latin1', 12, 16)).toBe('IHDR');
+    expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([400, 400]);
+    expect(createHash('sha256').update(bytes).digest('hex')).toBe(icon.sha256);
+    // In no host icon list: only the Cline issue names it, at its served URL.
+    expect(listing.icons.files.map((f: { path: string }) => f.path)).not.toContain(icon.path);
+    expect(icon.url).toBe('https://sess.si/assets/icons/00c368f1dadd/icon-400.png');
+    for (const [path, content] of generate(inputs()))
+      if (path !== 'listings/cline-issue.md') expect(content, path).not.toContain('icon-400');
+    // A wrong size, a wrong stated size or changed bytes fail the check.
+    expect(
+      checkIconFiles(listing, (p) =>
+        p === icon.path ? readBytes('listings/plugin/assets/icon-512.png') : readBytes(p),
+      ),
+    ).toEqual([
+      'icon listings/plugin/assets/icon-400.png is 512x512, not the stated 400x400',
+      'icon listings/plugin/assets/icon-400.png does not match its recorded SHA-256',
+    ]);
+    const restated = inputs().listing;
+    restated.providers.cline.icon.size = 512;
+    expect(checkIconFiles(restated, readBytes)).toContain(
+      'providers.cline.icon must be 400x400, not 512x512',
+    );
+  });
+
   it('refuses a missing icon, a non-PNG, a wrong size and changed bytes', () => {
     const listing = inputs().listing;
     const real = readBytes('listings/plugin/assets/icon-512.png')!;
@@ -845,10 +1160,14 @@ describe('directory packets', () => {
         '    - human-in-the-loop',
         '    - forms',
         '    - approvals',
+        '    - receipts',
+        '    - mcp',
+        '    - feedback',
+        '    - surveys',
         '    - remote',
         'about:',
         '  title: Sess',
-        '  description: Let your agent ask a person and continue with their answer.',
+        '  description: Let your agent ask people for answers and approvals by link, with signed receipts.',
         '  icon: https://sess.si/assets/icons/24eb73d4a4d9/icon-512.png',
         'remote:',
         '  transport_type: streamable-http',
@@ -875,6 +1194,125 @@ describe('directory packets', () => {
     changed.copy.registry = 'Another registry description.';
     expect(checkPackets(changed, read('LISTINGS.md'))).toEqual([
       'LISTINGS.md owner submission steps do not quote listing.json\'s "Another registry description."',
+    ]);
+  });
+
+  it('Glama: the server listing’s own line is in listing.json, signed, and LISTINGS.md quotes it', () => {
+    const { glama } = inputs().listing.providers;
+    expect(glama.serverLine).toBe(
+      'Runs as a stdio MCP server from npm (@sess.si/mcp); the hosted connector is listed separately.',
+    );
+    expect(glama.serverLineSigned).toBe('founder 2026-11-10 20:28Z');
+    expect(scanText('listing.json providers.glama.serverLine', glama.serverLine)).toEqual([]);
+    const changed = inputs().listing;
+    changed.providers.glama.serverLine = 'Another Glama line.';
+    expect(checkPackets(changed, read('LISTINGS.md'))).toEqual([
+      'LISTINGS.md owner submission steps do not quote listing.json\'s "Another Glama line."',
+    ]);
+    const missing = inputs().listing;
+    delete missing.providers.glama;
+    expect(checkPackets(missing, read('LISTINGS.md'))).toEqual([
+      'listing.json is missing a value the owner submission steps quote (providers.glama.serverLine)',
+    ]);
+  });
+});
+
+// Founder 2026-11-10 20:18Z item 3: check:listing fails if the README's first line, package.json's
+// description or any generated one-liner differs from listing.json's one-liner, or if a keyword list
+// lacks a signed keyword. README.md and package.json are hand-written; nothing generates them.
+describe('one source for the signed one-liner and keywords', () => {
+  const readme = read('README.md');
+  const oneSource = (i: ListingInputs, files = generate(i), text = readme) => checkOneSource(i, files, text);
+
+  it('passes on the checked-in README, package.json and generated files', () => {
+    expect(oneSource(inputs())).toEqual([]);
+    // The generated files as checked in, not only as generated now.
+    const i = inputs();
+    const checkedIn = new Map([...generate(i).keys()].map((path) => [path, read(path)]));
+    expect(oneSource(i, checkedIn)).toEqual([]);
+  });
+
+  it('fails when the README first line, package.json or a generated one-liner differs', () => {
+    const { oneLiner } = inputs().listing.copy;
+    const old = 'Let your agent ask a person and continue with their answer.';
+    // The README's first line.
+    expect(oneSource(inputs(), undefined, readme.replace(`\n${oneLiner}\n`, `\n${old}\n`))).toEqual([
+      "README.md first line differs from listing.json's one-liner",
+    ]);
+    // package.json's description.
+    const pkg = inputs();
+    pkg.manifest.description = old;
+    expect(oneSource(pkg)).toEqual(["package.json's description differs from listing.json's one-liner"]);
+    // Generated artifacts edited after generation: each one names its file.
+    const i = inputs();
+    let files = generate(i);
+    for (const path of [
+      'server.json',
+      'listings/plugin/plugin.json',
+      'listings/plugin/.cursor-plugin/plugin.json',
+    ])
+      files = edit(files, path, (v) => {
+        v.description = old;
+      });
+    files = edit(files, 'listings/claude-connector.json', (v) => {
+      v.oneLiner = old;
+    });
+    for (const path of [
+      'listings/docker/server.yaml',
+      'listings/cline-issue.md',
+      'listings/awesome-wong2-awesome-mcp-servers.md',
+    ])
+      files.set(path, files.get(path)!.split(oneLiner).join(old));
+    expect(oneSource(i, files)).toEqual([
+      "server.json description differs from listing.json's one-liner",
+      "listings/plugin/plugin.json description differs from listing.json's one-liner",
+      "listings/plugin/.cursor-plugin/plugin.json description differs from listing.json's one-liner",
+      "listings/claude-connector.json oneLiner differs from listing.json's one-liner",
+      "listings/docker/server.yaml description differs from listing.json's one-liner",
+      "listings/cline-issue.md differs from listing.json's one-liner (it does not carry it)",
+      "listings/awesome-wong2-awesome-mcp-servers.md differs from listing.json's one-liner (it does not carry it)",
+    ]);
+    // A registry description that is not the one-liner, through the generator.
+    const registry = inputs();
+    registry.listing.copy.registry = old;
+    expect(oneSource(registry)).toEqual([
+      "listing.json copy.registry differs from listing.json's one-liner",
+      "server.json description differs from listing.json's one-liner",
+      "listings/plugin/plugin.json description differs from listing.json's one-liner",
+      "listings/plugin/.cursor-plugin/plugin.json description differs from listing.json's one-liner",
+      "listings/docker/server.yaml description differs from listing.json's one-liner",
+    ]);
+    // The README without the recovery line.
+    const { recoveryLine } = inputs().listing.copy;
+    expect(oneSource(inputs(), undefined, readme.replace(`${recoveryLine}\n`, ''))).toEqual([
+      "README.md does not carry listing.json's recoveryLine",
+    ]);
+  });
+
+  it('fails when package.json or any provider keyword list lacks a signed keyword', () => {
+    const drop = (list: string[], ...words: string[]) => list.filter((k) => !words.includes(k));
+    const pkg = inputs();
+    pkg.manifest.keywords = drop(pkg.manifest.keywords, 'surveys');
+    expect(oneSource(pkg)).toEqual(['package.json keywords is missing the signed keywords surveys']);
+    // Through the generator: the provider source lists in listing.json.
+    const providers = inputs();
+    const p = providers.listing.providers;
+    p.cursorPlugin.keywords = drop(p.cursorPlugin.keywords, 'feedback', 'receipts');
+    p.docker.tags = drop(p.docker.tags, 'mcp');
+    expect(oneSource(providers)).toEqual([
+      'listings/plugin/.cursor-plugin/plugin.json keywords is missing the signed keywords receipts, feedback',
+      'listings/docker/server.yaml tags is missing the signed keywords mcp',
+    ]);
+    // A generated keyword list edited after generation.
+    const i = inputs();
+    let files = edit(generate(i), 'listings/plugin/plugin.json', (v) => {
+      v.keywords = drop(v.keywords, 'forms');
+    });
+    const mcpso = 'listings/mcpso-submission.md';
+    files = new Map(files).set(mcpso, files.get(mcpso)!.replace(', surveys\n', '\n'));
+    expect(oneSource(i, files)).toEqual([
+      'listings/plugin/plugin.json keywords is missing the signed keywords forms',
+      'listings/mcpso-submission.md Tags is missing the signed keywords surveys',
     ]);
   });
 });

@@ -1189,7 +1189,7 @@
     },
     {
       "id": "unsupported-version",
-      "description": "A later bundle version: unsupported_version.",
+      "description": "A later bundle version (3; bundle-v2 exists): unsupported_version.",
       "expected_context": {
         "audience": "wks_corpus",
         "workspaceId": "wks_corpus",
@@ -1199,7 +1199,7 @@
         "actionId": "approve"
       },
       "bundle": {
-        "sha256": "365fbe3de0973b069953e852f81df4b7c21876eea4d3ee7fe918cb0070a916c8",
+        "sha256": "882cac3b569833c87c4fc035d456e281ec1350d030bb69e0f8aced5ba82bb71e",
         "bytes": 2166
       },
       "receipt": {

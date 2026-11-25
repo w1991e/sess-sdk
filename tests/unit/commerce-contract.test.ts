@@ -56,7 +56,7 @@ describe('the runtime contract extract', () => {
       currency: 'CAD',
       rows: [
         { name: 'Design retainer, October', amount: 420000 },
-        { name: 'Extra revisions, landing page', detail: '3 × $150.00', amount: 45000 },
+        { name: 'Revisions, landing page v3', detail: '3 × $150.00', amount: 45000 },
         { name: 'Stock photography licence', detail: '2 × $49.99 · SKU STK-88213-A', amount: 9998 },
         { name: 'Early-payment discount', detail: 'Paid within 10 days', amount: -23750 },
       ],

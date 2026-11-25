@@ -1,12 +1,104 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 — unreleased
 
-- Sess's tighter text limits (2026-11-07), read from the contract snapshot and never typed by hand
-  (`src/generated/limits.ts`): a title 60 (about 40), a description 200, a heading 40, a field
-  label 40, help 120, an option 30, a record key 24, a button 16, an item name 30. `sess.ask()`
-  and the Commerce builders refuse a longer value with the same `field`, `limit` and `length`, and
-  the types' doc comments and the README state the same numbers (`npm run check:limits`).
+- `sess verify <file>` also checks a closing receipt and a kept file (keep-v1 to keep-v4), with
+  `verifyDecisionBundle` for each answer and `verifyClosingReceipt` for the closing receipt and
+  its set. Without `--keys` it fetches the issuer's published key set once (`--issuer` defaults to
+  `https://api.sess.si`); `--keys` and `--issuer` are no longer required.
+- Each answer is now judged at the time Sess says it signed it unless `--now` is given, so an
+  answer past its `exp` still verifies. The signing time is still checked against this
+  computer's clock: an answer or closing receipt dated more than 60 seconds after it is refused
+  (`not_yet_valid`).
+- The summary's words changed: `Verified: …` and `Unverified. …` with a `Reason` row replace
+  `Valid decision bundle.` and `Invalid decision bundle: …`; a `Keys` row says where the keys came
+  from. The `--json` result of a bundle keeps its shape; its `checked_at` is the time the answer
+  was judged at.
+- New exit codes: 4, the published keys could not be fetched or used; 5, not everything in the
+  file could be checked. PDFs, QR receipt codes and a lone round receipt are refused (exit 2).
+- `verifyDecisionBundle`, `verifyClosingReceipt` and every library export are unchanged.
+
+## 0.6.0 — 2026-11-22
+
+- The closing receipt: when a Session ends with at least one accepted answer, Sess signs how it
+  ended and every accepted answer's receipt, in order. `sessions.listEvents()` returns it as
+  `closing`, beside `events`, never as an Event; it is absent otherwise. New type
+  `SessionClosing`.
+- `receipts.verifyClosing({ sessionId, closing })` verifies it against the Session's Event log and
+  the published keys and returns `{ claims, closing }`. `verifyClosingReceipt` in
+  `@sess.si/sdk/receipts` verifies one offline. A round receipt offered as a closing receipt is
+  refused with `UNSUPPORTED_TYPE`; rounds that are not exactly the signed ones with
+  `CLOSING_ROUNDS_MISMATCH`. New types `ClosingReceiptClaims`, `ClosingCause`,
+  `VerifyClosingReceiptInput`, `VerifyClosingReceiptOptions`, `VerifyClosingInput` and
+  `VerifiedClosing`.
+- Unchanged: `verifyDecisionReceipt` still refuses a closing receipt as newer (`RECEIPT_NEWER`),
+  and `verifyWebhook` still refuses every Session message but `response.accepted`.
+- The closing-receipt-v1 specification and conformance corpus are copies from Sess commit
+  `7be0bf3`. The runtime dependencies are unchanged.
+
+## 0.5.0 — 2026-11-21
+
+- Sess's tighter text limits: title 60, description 200, heading 40, field label 40, field help
+  120, option label 30, record key 24, button 16, items row name 30; every other limit is unchanged.
+
+## 0.4.0 — 2026-11-18
+
+- Receipt v2 reads the frozen revision envelope, `sess_revision: 2`, and only it: ten common
+  members (`sess_revision`, `revision`, `session_id`, `surface_hash`, `renderer_version`,
+  `published_at`, `key_id`, `grant_id`, `agent_target`, `ask_id`), then exactly one of `titles`
+  (`nonce`, `grant_title`, `target_title`, `owner_name`) or `titles_digest`. `revision_hash` is
+  the digest of the compact form, so both forms of one round verify the same. Each title is one
+  line of plain text, 1 to 60 code points, under the shared title rule (no bidirectional,
+  zero-width or invisible characters). There is no `key_label`. Both forms, neither, any other
+  member, and the nine-member `sess_revision: 1` envelope that 0.3.0 read (never issued) are
+  refused with `REVISION_ENVELOPE_MISMATCH`. A receipt v2 `action.label` over 24 code points is
+  `INVALID_CLAIMS`. 0.3.x cannot read an issued receipt v2; update to this version.
+- A receipt newer than this release, a later Sess receipt type or an envelope of a later
+  `sess_revision`, is reported as newer, never as a verification failure, and nothing is
+  returned: `verifyDecisionReceipt`, `receipts.verifyResponse()`, and `sess.ask()`'s `answer()`
+  and `read()`, throw a `SessError` of the new kind `receipt_newer` with code `RECEIPT_NEWER`;
+  `verifyDecisionBundle` returns `unsupported_version`; `sess verify` says the bundle is newer and
+  exits with the new status 3.
+- `verifyDecisionBundle` refuses a bundle-v2 whose envelope is the compact form (a QR code's, never
+  a file's) with `revision`. A valid result's `revision_envelope` is the full form.
+- New types `RevisionEnvelopeFull`, `RevisionEnvelopeCompact`, `EnvelopeTitles` and
+  `EnvelopeAgentTarget`; `RevisionEnvelope` is now the union of the two forms. The receipt-v2 and
+  bundle-v2 specifications and the bundle-v2 conformance corpus are copies from Sess commit
+  `33cfc41`.
+- Fix: `verifyWebhook` refused the webhook messages Sess sends for a Sess Ask, with
+  `WEBHOOK_INVALID_PAYLOAD`. It now accepts them:
+  - `response.accepted` for one respondent to an Ask carries `ask_id` (`ask_…`) beside
+    `session_id`. The member is checked as an Ask ID and returned as `WebhookEvent.ask_id`. Any
+    other Session's message is unchanged and has no `ask_id`.
+  - `ask.closed` is its own message: exactly `type`, `event_id`, `ask_id`, `closed_by` (`max` or
+    `owner`), `started` and `closed_at`, each checked, its `event_id` equal to the `webhook-id`
+    header. It is returned as the new exported type `AskClosed`; `VerifiedWebhook` is now the
+    union of `WebhookEvent`, `AskClosed` and `WebhookChallenge`. Code that narrows on `type` and
+    treats every message that is not a challenge as `response.accepted` should check for
+    `ask.closed` too.
+- The runtime dependencies are unchanged. The default `User-Agent` names the new version.
+
+## 0.3.0 — 2026-11-08
+
+- Receipt v2: `verifyDecisionReceipt` and `receipts.verifyResponse()` verify receipts of type
+  `sess-receipt-2+jwt`, which commit by hash (`surface.revision_hash`) to the round's
+  `revision_envelope`: when the round was published and, when one of your API keys published it,
+  that key's ID and its label at the time. A receipt v2 is verified only with its envelope:
+  `verifyResponse()` passes the response's own `revision_envelope`, and `verifyDecisionReceipt`
+  takes it as `revisionEnvelope`. A missing, malformed or different envelope is refused with
+  code `REVISION_ENVELOPE_MISMATCH`, after the issuer, audience, expiry and signature checks.
+  Receipt v1 (`sess-receipt+jwt`) is verified exactly as before.
+- `AcceptedResponse.revision_envelope`, `SessionEvent.revision_envelope` (`GET
+/v1/sessions/{id}/events`) and the `response.accepted` webhook message's `revision_envelope`:
+  present beside a receipt v2, absent beside a receipt v1. `verifyWebhook` accepts the member.
+  New types `RevisionEnvelope`, `ReceiptClaimsV1` and `ReceiptClaimsV2`; `ReceiptClaims` is now
+  their union.
+- `verifyDecisionBundle` and `sess verify` read bundle-v2 (a receipt v2 with its envelope) as well
+  as bundle-v1, with the new reason `revision`. A valid bundle-v2 result carries
+  `surface.revision_hash` and the verified `revision_envelope`. A bundle `version` above 2 is
+  `unsupported_version`. The receipt-v2 and bundle-v2 specifications and the bundle-v2
+  conformance corpus are copies from Sess commit `c67c792`.
+- The runtime dependencies are unchanged. The default `User-Agent` names the new version.
 
 ## 0.2.0 — 2026-11-06
 

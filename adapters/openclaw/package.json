@@ -1,6 +1,6 @@
 {
   "name": "@sess.si/openclaw",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Sess for OpenClaw, maintained by Sess: an agent requests a decision, a person answers in a hosted Sess interface, and the verified answer returns to the agent.",
   "type": "module",
   "license": "Apache-2.0",
@@ -55,7 +55,7 @@
     "test:release-guard": "node --test scripts/test-release-guard.mjs"
   },
   "dependencies": {
-    "@sess.si/sdk": "0.1.1"
+    "@sess.si/sdk": "0.6.0"
   },
   "peerDependencies": {
     "openclaw": "2026.10.3 || 2026.10.7"

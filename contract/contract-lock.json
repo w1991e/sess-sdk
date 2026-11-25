@@ -1,11 +1,11 @@
 {
-  "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (w1991e/sess branch spec/surface-limits-one-source on master 90fe43c2: the founder's 2026-11-07 01:30Z Surface text limits; not yet merged or served by production)",
-  "source_runtime_commit": "34faf417a5196c48a409529d796e30ae1ac71e34",
-  "source_git_blob_sha1": "234df0d1af0c98c7a906b5f77c3e87408951e237",
-  "snapshot_sha256": "896280443dcff12b1a7f667a3f12b55f900dd7c709ed1a410befa753cc7d64a7",
+  "source": "Sess runtime packages/spec/openapi.json at source_runtime_commit (w1991e/sess master: the tighter Surface text limits, sess #1390; the closing receipt beside the Event log, SessionClosing, Decision 0016 car 5, sess #1382; POST /v1/receipts/verify-closing and the kept copy's closing check, Decision 0016 car 4, sess #1391, whose commit 79caadd8 has the same blob)",
+  "source_runtime_commit": "938852bac6d13e7f18a94c1dec49aa4f1b647e4c",
+  "source_git_blob_sha1": "d307b676fccf8385140f704c3b4de27e0e67956a",
+  "snapshot_sha256": "d6cad25e378e87c36ddade879bf9e1c5896ae7bdb7ae23dfe219d50ddc83b86f",
   "generator": "openapi-typescript",
   "generator_version": "7.13.0",
-  "recorded_at": "2026-11-07",
+  "recorded_at": "2026-11-22",
   "formatter": "prettier",
   "formatter_version": "3.9.10"
 }

@@ -1,6 +1,7 @@
 import canonicalize from 'canonicalize';
 import { createHash } from 'node:crypto';
 import { SessError } from '../errors.js';
+import { SDK_VERSION } from '../internal/version.js';
 
 /** JSON-shaped values returned by a verifier are copies, protected at every depth. */
 export type DeepReadonly<T> = T extends readonly (infer U)[]
@@ -12,6 +13,35 @@ export type DeepReadonly<T> = T extends readonly (infer U)[]
 export function verificationError(code: string, message: string): SessError {
   return new SessError('receipt_verification', message, { code });
 }
+
+/**
+ * A receipt newer than this release (a later receipt type, or a later revision envelope): reported
+ * as newer, never as a verification failure, and nothing is returned with it.
+ */
+export function newerReceiptError(): SessError {
+  return new SessError(
+    'receipt_newer',
+    `This receipt is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it. No answer data was returned.`,
+    { code: 'RECEIPT_NEWER' },
+  );
+}
+
+/**
+ * Whether a JWS `typ` names a Sess signed format this release does not know: a later receipt
+ * version or another Sess receipt type, such as a closing receipt (`sess-<name>+jwt`, other than
+ * the two receipt types read here). Any other unknown `typ` is not a Sess format.
+ */
+export function isNewerReceiptTyp(typ: unknown): boolean {
+  return (
+    typeof typ === 'string' &&
+    typ !== 'sess-receipt+jwt' &&
+    typ !== 'sess-receipt-2+jwt' &&
+    /^sess-[a-z0-9]+(?:-[a-z0-9]+)*\+jwt$/.test(typ)
+  );
+}
+
+/** Receipt v2's action label bound in code points: a longer one is not a valid receipt v2. */
+export const RECEIPT_V2_ACTION_LABEL_MAX = 24;
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);

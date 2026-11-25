@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The `sess` executable. The only command is `sess verify <bundle.json>` (see ./verify.ts).
+// The `sess` executable. The only command is `sess verify <file>` (see ./verify.ts).
 import { runCli } from './verify.js';
 
 process.exitCode = await runCli(process.argv.slice(2), {

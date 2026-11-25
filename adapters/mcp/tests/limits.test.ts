@@ -325,3 +325,17 @@ describe('a length error from Sess reaches the model', () => {
     });
   });
 });
+
+describe('bounds the tighter text limits leave alone', () => {
+  it('Sess’s "Your name" respondent field keeps maxLength 80 (its own bound, not the field label limit)', () => {
+    const parsed = parseAskArgs({ ...ASK_EXAMPLE, respondents: { max: 3, name: true } });
+    const stored = (parsed.ask!.surface.source as Schema).components as Schema[];
+    expect(stored.find((c) => c.type === 'field' && c.name === 'name')).toEqual({
+      type: 'field',
+      name: 'name',
+      label: 'Your name',
+      required: true,
+      schema: { type: 'string', minLength: 1, maxLength: 80 },
+    });
+  });
+});

@@ -15,8 +15,8 @@ decide yourself. They are optional tools; if they are not available, say so and 
    of string enum IDs. No HTML, scripts or styles. Do not shorten or alter what the person must
    approve; fix validation errors instead.
    Keep the wording around it short: a title of about 40 characters (at most 60), a question or
-   a task; button labels a verb of 1-3 words (at most 16); field labels at most 40; choices at
-   most 30; help one hint (at most 120). Put long content in a `text` component or an editable field. A value over its
+   a task; button labels a verb of 1-3 words (at most 16); field labels at most 40; help one hint
+   (at most 120). Put long content in a `text` component or an editable field. A value over its
    limit is refused with `INVALID_ARGUMENTS` naming the field, the limit, its length and the fix:
    shorten that wording and call again.
 2. Present the returned `humanUrl` privately to the intended person, and tell them: anyone with
