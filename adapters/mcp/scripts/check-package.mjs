@@ -51,7 +51,7 @@ assert(
   JSON.stringify(manifest.dependencies) ===
     JSON.stringify({
       '@modelcontextprotocol/node': '2.1.1',
-      '@modelcontextprotocol/server': '2.3.1',
+      '@modelcontextprotocol/server': '2.4.0',
       '@sess.si/sdk': compatibility.sessSdk.version,
     }),
   'runtime dependency boundary drift (exact MCP server/node packages and SESS SDK only)',
@@ -108,6 +108,7 @@ const allowedSpecifier = (file, specifier) =>
     resolve(dirname(join(installed, file)), specifier).startsWith(join(installed, 'dist'))) ||
   specifier === '@modelcontextprotocol/server' ||
   specifier === '@modelcontextprotocol/server/stdio' ||
+  specifier === '@modelcontextprotocol/server/ext/skills' ||
   specifier === '@modelcontextprotocol/node' ||
   specifier === '@sess.si/sdk';
 for (const file of packed.files.filter((f) => /\.[cm]?js$/.test(f.path))) {
@@ -234,7 +235,32 @@ process.env = env;
         arguments: { interaction: {}, api_key: 'x', origin: 'https://example.test' },
       },
     },
+    { jsonrpc: '2.0', id: 4, method: 'skills/list', params: {} },
+    { jsonrpc: '2.0', id: 5, method: 'resources/read', params: { uri: 'skill://ask-a-person/SKILL.md' } },
   ]);
+  // The one skill, as the installed package serves it (Sess L-351): the bytes resources/read
+  // returns are the plugin listing's SKILL.md in this repository (whose SHA-256 tests/skill.test.ts
+  // pins), and skills/list names their exact digest and size.
+  const servedSkill = raw[5]?.result?.contents?.[0]?.text;
+  const pluginSkill = await readFile(join(adapter, 'listings/plugin/skills/ask-a-person/SKILL.md'), 'utf8');
+  assert(servedSkill === pluginSkill, 'the packed server does not serve the plugin skill byte for byte');
+  const skillEntries = raw[4]?.result?.skills ?? [];
+  assert(
+    skillEntries.length === 1 &&
+      JSON.stringify(skillEntries[0].resources) ===
+        JSON.stringify([
+          {
+            uri: 'skill://ask-a-person/SKILL.md',
+            digest: `sha256:${createHash('sha256').update(pluginSkill, 'utf8').digest('hex')}`,
+            size: Buffer.byteLength(pluginSkill, 'utf8'),
+          },
+        ]),
+    'the packed skills/list entry does not match the served bytes',
+  );
+  assert(
+    JSON.stringify(raw[1]?.result?.capabilities ?? {}).match(/elicit/i) === null,
+    'the packed server declares elicitation',
+  );
   assert(raw[1]?.result?.protocolVersion === '2025-11-25', 'protocol 2025-11-25 not negotiated');
   assert(
     raw[2]?.result?.isError === true && raw[2].result.content[0].text.includes('INVALID_ARGUMENTS'),
@@ -346,7 +372,8 @@ process.stdout.write(JSON.stringify({
       'installed bin initialize + tools/list via official MCP client',
       'unconfigured call fails closed without writing state',
       'server-side rejection of __proto__ and unknown argument keys',
-      'import boundary: node:, own relative files, @modelcontextprotocol/server(/stdio), @modelcontextprotocol/node and SESS SDK only',
+      'installed bin serves the one skill: resources/read is the plugin SKILL.md byte for byte, skills/list names its digest and size, no elicitation declared',
+      'import boundary: node:, own relative files, @modelcontextprotocol/server(/stdio, /ext/skills), @modelcontextprotocol/node and SESS SDK only',
       'exports: ./http (with types) and ./package.json only',
       '@sess.si/mcp/http from the consumer: tools/list, 401 challenge and unsafe-key rejection without network or store',
     ],

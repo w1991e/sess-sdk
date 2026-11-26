@@ -25,10 +25,10 @@
   },
   "mcpLibrary": {
     "name": "@modelcontextprotocol/server",
-    "version": "2.3.1",
-    "integrity": "sha512-e59MfWuSssj6DoQ96JCTqdW1AXT5/XtnTl0WWd6MU1Ka434fFUGGosCLJbGNySDhHGvxQWoRWK137FXYFkYNWw==",
+    "version": "2.4.0",
+    "integrity": "sha512-rgR9yxSaAJ+bcsi/XroT/S2AfPiIWloXAnrdfYSCms9ivVju0ishu/wW0J21Ho6+ZOR1r7RyeRbjiRuF87ix5Q==",
     "license": "Apache-2.0",
-    "registryLatestAtQualification": "2.3.1",
+    "registryLatestAtQualification": "2.4.0",
     "node": {
       "name": "@modelcontextprotocol/node",
       "version": "2.1.1",
@@ -39,9 +39,9 @@
     "transitive": [
       {
         "name": "@modelcontextprotocol/core",
-        "version": "2.3.1",
+        "version": "2.4.0",
         "license": "Apache-2.0",
-        "integrity": "sha512-laVmIhPGpWi7rG9q+0UigblRN0Hws/Yjlb6qLFtVqryXVLkc4h+yN8z731POD2LnAGQlFe7/tXhUm7Bi0YB91g=="
+        "integrity": "sha512-z8QBKqdfXLPzkLQuG4xp8hrVEMm1PZ1IgxMN2sMbJiFiAKOWXnAzogXn2W4aqIBlP1ea6U5yiqVquvUNM1Cj6Q=="
       },
       {
         "name": "zod",
@@ -64,7 +64,7 @@
         "note": "Pinned by package.json overrides over @modelcontextprotocol/node 2.1.1's ^1.19.9 (GHSA-rmxm-3fg6-px4f, >=1.19.10 <2.1.3: serveStatic decodes the request path a second time; no patched 1.x; then 2.1.6 for GHSA-qv5m-9pm6-hqp3 and GHSA-jpvv-r467-5p4w, 2.0.0-2.1.5). The override applies where this package is the root project: this repository and its packed-package check, which therefore exercise 2.1.6. An install from npm resolves @modelcontextprotocol/node's own range, 1.19.x (last tested here: 1.19.17); that carries the advisory on serveStatic, a code path the adapter never loads (only src/http.ts imports @modelcontextprotocol/node, and only its toNodeHandler)."
       }
     ],
-    "serverApi": "low-level Server (request handlers). stdio: Server.connect(StdioServerTransport) through the raw-message unsafe-key guard, a 2025-era connection exactly as before. HTTP: createMcpHandler with its default legacy: 'stateless' fallback, one server instance per request.",
+    "serverApi": "An McpServer shell over the low-level Server: the five tools keep their own request handlers on McpServer.server (none is registered through McpServer), and the official Skills extension (@modelcontextprotocol/server/ext/skills SkillCatalog, from 2.4.0) is attached to the shell. stdio: McpServer.connect(StdioServerTransport) through the raw-message unsafe-key guard, a 2025-era connection. HTTP: createMcpHandler with its default legacy: 'stateless' fallback, one server instance per request.",
     "previous": {
       "name": "@modelcontextprotocol/sdk",
       "version": "1.32.1",
@@ -85,18 +85,19 @@
       "note": "One endpoint serves both eras: per-request 2026-07-28 traffic and the stateless legacy fallback (initialize answered with 2025-11-25, no session ID)."
     },
     "currentSpecification": "2026-07-28",
-    "offered": "Only the tools capability. No Tasks, Apps, elicitation, sampling, resources or prompts; the human step never depends on elicitation."
+    "offered": "The tools capability, and one skill (ask-a-person, one SKILL.md) through the Skills extension io.modelcontextprotocol/skills, which declares resources (skill:// addresses only). No Tasks, Apps, elicitation, sampling or prompts. Sess sends no elicitation requests and a Sess link never travels in one."
   },
   "clients": [
     {
       "name": "HTTP composition unit tests (loopback node:http, synthetic principals, fake SESS runtime)",
       "packages": [
-        "@modelcontextprotocol/client 2.3.1 pinned to 2026-07-28 (negotiated 2026-07-28)",
-        "@modelcontextprotocol/client 2.3.1 default mode (negotiated 2025-11-25)",
+        "@modelcontextprotocol/client 2.4.0 pinned to 2026-07-28 (negotiated 2026-07-28)",
+        "@modelcontextprotocol/client 2.4.0 default mode (negotiated 2025-11-25)",
         "@modelcontextprotocol/sdk 1.32.1 Client (negotiated 2025-11-25, no session ID)"
       ],
       "tested": [
-        "tests/http.test.ts and tests/http-guard.test.ts in npm test: five tools with byte-identical tools/list in both eras, a receipt-verified round over independent requests, -32022, 415, 413, deadline, 401/403 challenges, Host/Origin, handle isolation between principals, hosts and workspaces, refresh, grant generation, restart and concurrent replay identity, lost create reply, and the raw-body unsafe-key guard in both eras"
+        "tests/http.test.ts and tests/http-guard.test.ts in npm test: five tools with byte-identical tools/list in both eras, a receipt-verified round over independent requests, -32022, 415, 413, deadline, 401/403 challenges, Host/Origin, handle isolation between principals, hosts and workspaces, refresh, grant generation, restart and concurrent replay identity, lost create reply, and the raw-body unsafe-key guard in both eras",
+        "tests/skill.test.ts in npm test: the declared capabilities on server/discover (2026-07-28) and in the initialize result (2025-11-25, stdio and the HTTP fallback), skills/list, skills/get, resources/read and resources/list for the one skill with its hash-locked digest and size, -32602 for any other skill address, and no elicitation request through a whole round with a host that offers form and URL elicitation"
       ],
       "notTested": [
         "any real host (claude.ai, ChatGPT, Claude Code, Cursor or others) over HTTP",
