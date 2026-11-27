@@ -1,0 +1,38 @@
+name: Skill file
+
+# skills/ask-a-person-with-sess/SKILL.md must be the bytes production serves (Sess ledger L-125).
+# Two public GETs to sess.si, no secret and no install: scripts/check-skill.mjs. It skips with a
+# message while production answers 404 for the skill, and fails on any difference once it is
+# published. The daily run catches a production release that changes the skill without a change here.
+on:
+  pull_request:
+  push:
+    branches: [master]
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: skill-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  skill:
+    name: Skill file matches production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+      - name: Check self-test (synthetic responses, no network)
+        run: node --test scripts/test-check-skill.mjs
+      - name: Compare with what sess.si serves
+        run: node scripts/check-skill.mjs
