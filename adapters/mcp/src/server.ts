@@ -1,7 +1,7 @@
 import {
+  McpServer,
   ProtocolError,
   ProtocolErrorCode,
-  Server,
   type CallToolResult,
   type Transport,
 } from '@modelcontextprotocol/server';
@@ -15,6 +15,7 @@ import {
   type ContextAdapterOptions,
   type LocalAdapterOptions,
 } from './operations.js';
+import { SKILLS } from './skill.js';
 import { COMPLETE_RULE, NO_ANSWER_LINE, REWAIT_RULE, TOOLS, TOOL_NAMES, type ToolName } from './tools.js';
 import {
   parseAskArgs,
@@ -27,7 +28,19 @@ import { VERSION } from './version.js';
 
 export const SERVER_NAME = 'sess-mcp';
 
+/**
+ * The server instructions' first sentence: when to reach for Sess (Sess ledger L-351). Signed
+ * 2026-11-27, byte for byte as here: change it only with a new signature. It reuses the skill
+ * description's "approval, sign-off, decision or structured answer" and sess_ask's "A receipt
+ * records what was shown and chosen, not who answered", and makes no claim about identity or
+ * authorization.
+ */
+export const WHEN_TO_USE_SESS =
+  'Use Sess when you need an approval, sign-off, decision or structured answer from a person outside this conversation; a signed receipt records what was shown and chosen, not who answered.';
+
 export const INSTRUCTIONS =
+  WHEN_TO_USE_SESS +
+  ' ' +
   'Sess lets a person answer a structured form on any device. Use sess_request to create the form; it returns a private link at once. ' +
   'Share that link only with the intended person in this private conversation. Then call sess_response; it waits up to 45 seconds. ' +
   REWAIT_RULE +
@@ -131,14 +144,21 @@ export interface ToolServerOptions {
 }
 
 /**
- * The MCP server for the five tools over one adapter. Both compositions use it: stdio connects one
- * instance for the process; HTTP builds one per request from a per-request adapter.
+ * The MCP server for the five tools over one adapter, with the one skill. Both compositions use it:
+ * stdio connects one instance for the process; HTTP builds one per request from a per-request
+ * adapter. The McpServer is a shell: the five tools keep their own low-level request handlers on
+ * its underlying `server` (no tool is registered through McpServer, so their names, schemas,
+ * annotations and results are byte for byte as before), and the official Skills extension attaches
+ * to the shell, which declares `resources` and `io.modelcontextprotocol/skills`. Sess sends no
+ * elicitation requests and a Sess link never travels in one (L-353): nothing here asks the client
+ * for input.
  */
-export function buildToolServer({ adapter, diagnostics, shutdown, flagged }: ToolServerOptions): Server {
-  const server = new Server(
+export function buildToolServer({ adapter, diagnostics, shutdown, flagged }: ToolServerOptions): McpServer {
+  const mcp = new McpServer(
     { name: SERVER_NAME, version: VERSION },
     { capabilities: { tools: { listChanged: false } }, instructions: INSTRUCTIONS },
   );
+  const server = mcp.server;
   server.setRequestHandler('tools/list', async () => ({
     tools: TOOLS.map((tool) => structuredClone(tool)) as never,
   }));
@@ -182,7 +202,8 @@ export function buildToolServer({ adapter, diagnostics, shutdown, flagged }: Too
     }
     throw new ProtocolError(ProtocolErrorCode.InvalidParams, UNKNOWN_TOOL_MESSAGE);
   });
-  return server;
+  SKILLS.attach(mcp);
+  return mcp;
 }
 
 type WithoutDiagnostics<T> = T extends unknown ? Omit<T, 'diagnostics'> : never;
@@ -194,7 +215,7 @@ export type ServerOptions = WithoutDiagnostics<LocalAdapterOptions | ContextAdap
 };
 
 export interface SessMcpServer {
-  server: Server;
+  server: McpServer;
   adapter: SessMcpAdapter;
   /** Connects through the unsafe-key guard. Always use this instead of server.connect. */
   connect(transport: Transport): Promise<void>;

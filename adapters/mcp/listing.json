@@ -204,7 +204,7 @@
       },
       "skill": {
         "name": "ask-a-person",
-        "description": "Ask a person a question through Sess and continue with their checked answer. Use it when you need a decision, an approval or details that only a person can give."
+        "description": "Asks a person outside the conversation for an approval, sign-off, decision or structured answer through a private link they open on any device, and returns a typed answer with a receipt signed by Sess, an independent third party. Use when the user needs someone else's go-ahead, confirmation, choice or details before work continues, especially when that person has no account or is outside the organization, when the answer needs more than yes or no, or when proof of the answer must be signed by someone other than the agent."
       },
       "openai": {
         "category": "Productivity",

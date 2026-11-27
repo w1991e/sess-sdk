@@ -463,8 +463,13 @@ blocks like a definitive rejection.
 - **No wake-up.** A wait is one bounded read of at most 45 seconds. The host is told to call again up
   to three times, then stop. The server cannot wake an agent after its turn ends; the person says
   continue.
+- **One skill.** The server serves one skill, `ask-a-person`, one `SKILL.md`, through the MCP
+  Skills extension (`io.modelcontextprotocol/skills`), which declares `resources` for its
+  `skill://` address only. It is the same file as the plugin's skill, and it changes only with a
+  release.
+- **No elicitation.** Sess sends no elicitation requests and a Sess link never travels in one.
 - **Not in this package:** an HTTP server or bin flag, a hosted server, OAuth, MCP Tasks, Apps,
-  elicitation, resources or prompts (the HTTP composition below is a library for a hosting
+  other resources, or prompts (the HTTP composition below is a library for a hosting
   runtime, not a runnable server). One server process per profile is supported; concurrent processes on the
   same profile are not coordinated. Rotating the key makes earlier handles unusable
   (`BINDING_MISMATCH`).

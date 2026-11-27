@@ -133,4 +133,9 @@ OpenClaw 2026.10.7 and `@sess.si/openclaw` 0.1.0-rc.5 on 2026-10-29. The README'
   2025-era revisions. Tested in unit tests only; no real host over HTTP, no deployed endpoint and no
   OAuth are covered by this package's own tests.
 - Not supported: SSE, sessionful Streamable HTTP, an HTTP bin flag.
-- Offered: the tools capability only. No Tasks, Apps, elicitation, sampling, resources or prompts.
+- Offered: the tools capability, and one skill (`ask-a-person`, one `SKILL.md`) through the Skills
+  extension `io.modelcontextprotocol/skills` (`@modelcontextprotocol/server` 2.4.0), which declares
+  `resources` for `skill://` addresses only. On 2026-07-28 requests `server/discover` declares
+  them; on 2025-era connections the `initialize` result does, as the library ships it. Whether a
+  given host finds or loads the skill is not tested here. No Tasks, Apps, elicitation, sampling or
+  prompts. Sess sends no elicitation requests and a Sess link never travels in one.

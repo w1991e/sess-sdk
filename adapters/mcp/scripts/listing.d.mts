@@ -6,6 +6,8 @@ export interface ListingInputs {
   toolNames: readonly string[];
   envNames: readonly string[];
   askFieldLimit: number;
+  /** The served skill (src/skill-text.ts): the plugin's SKILL.md is these bytes. */
+  skill: { name: string; description: string; markdown: string };
 }
 export interface SchemaTexts {
   registry: string;

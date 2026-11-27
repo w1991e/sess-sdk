@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+Tool schemas stay `sess-mcp-tools/6`; the five tools' names, schemas, annotations and results are
+unchanged.
+
+- The server serves one skill, `ask-a-person`, one `SKILL.md`, through the MCP Skills extension
+  (`io.modelcontextprotocol/skills`). It declares `resources` and the extension beside `tools`, on
+  `server/discover` and in the `initialize` result. The file is the plugin's skill, byte for byte.
+- The skill's description and a section on what the receipt shows and does not show come from
+  Sess's signed skill lines.
+- The server instructions open with one sentence on when to use Sess.
+- Sess sends no elicitation requests and a Sess link never travels in one.
+- Depends on `@modelcontextprotocol/server` 2.4.0, up from 2.3.1, the first with the Skills
+  extension.
+
 ## 0.6.0
 
 Tool schemas stay `sess-mcp-tools/6`; the five tool names are unchanged.

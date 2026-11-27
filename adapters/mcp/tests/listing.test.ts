@@ -15,6 +15,7 @@ import {
   type ListingInputs,
 } from '../scripts/listing.mjs';
 import { ENV } from '../src/config.js';
+import { SKILL_DESCRIPTION, SKILL_MD, SKILL_NAME } from '../src/skill-text.js';
 import { TOOLS, TOOL_NAMES, TOOL_SCHEMA_VERSION } from '../src/tools.js';
 import { ASK_LIMITS } from '../src/validate.js';
 
@@ -29,6 +30,7 @@ function inputs(): ListingInputs {
     toolNames: [...TOOL_NAMES],
     envNames: Object.values(ENV).filter((name) => name !== ENV.insecureLocalhost),
     askFieldLimit: ASK_LIMITS.fields,
+    skill: { name: SKILL_NAME, description: SKILL_DESCRIPTION, markdown: SKILL_MD },
   };
 }
 /** A successor candidate that lists the npm package: its mcpName is the registry name. */
@@ -778,6 +780,29 @@ describe('listing.json artifacts', () => {
     }
     // URLs and encoded links are not prose.
     expect(scanText('x.md', 'See https://cursor.com/marketplace/publish')).toEqual([]);
+  });
+
+  // L-351: the plugin skill is the served skill, which carries signed sentences saying what Sess
+  // does not claim. Only those exact sentences are set aside; the words elsewhere still fail.
+  it('scans the plugin skill with only its signed limiting sentences set aside, each exactly once', () => {
+    const i = inputs();
+    const path = 'listings/plugin/skills/ask-a-person/SKILL.md';
+    const skill = generate(i).get(path)!;
+    expect(skill).toBe(SKILL_MD);
+    expect(check(i).errors).toEqual([]);
+    const errorsWith = (text: string) => check(i, new Map(generate(i)).set(path, text)).errors;
+    expect(errorsWith(`${skill}\nThe receipt is proof of identity.\n`)).toEqual([
+      `${path}: overclaim identity`,
+      `${path}: overclaim proof`,
+    ]);
+    // The same signed sentence twice is not set aside twice.
+    const limit = 'Who answered: someone with the link, not a verified identity.';
+    expect(errorsWith(`${skill}\n${limit}\n`)).toEqual(
+      expect.arrayContaining([`${path}: must carry the signed sentence once: ${limit}`]),
+    );
+    expect(errorsWith(skill.replace(limit, ''))).toEqual(
+      expect.arrayContaining([`${path}: must carry the signed sentence once: ${limit}`]),
+    );
   });
 
   it('validates server.json against the pinned MCP Registry schema', () => {

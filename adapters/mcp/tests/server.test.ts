@@ -54,7 +54,13 @@ describe('MCP server', () => {
         expect.arrayContaining(['api_key', 'origin', 'session_id', 'workspace_id']),
       );
     }
-    expect(client.getServerCapabilities()).toEqual({ tools: { listChanged: false } });
+    // Changed on purpose (L-351): the one skill adds resources and the Skills extension; the tools
+    // capability is as before. tests/skill.test.ts holds both negotiation paths to this.
+    expect(client.getServerCapabilities()).toEqual({
+      tools: { listChanged: false },
+      resources: { listChanged: true },
+      extensions: { 'io.modelcontextprotocol/skills': { directoryRead: true } },
+    });
   });
 
   it('makes sess_complete the rule after an answer, in the server instructions and the sess_response description', async () => {
