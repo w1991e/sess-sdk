@@ -1,0 +1,6 @@
+# Expected failures for scripts/skills-conformance.mjs, one check only. The served skill is one
+# SKILL.md with no subdirectory, so this check reports "Not testable: no child with mimeType
+# inode/directory under skill://ask-a-person". Every other check in the scenario still decides the
+# exit code; if a later suite or skill makes it pass, the suite fails on the stale entry.
+server:
+  - sep-2640-skills-directory:sep-2640-directory-read-subdir-mimetype

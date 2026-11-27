@@ -97,7 +97,8 @@
       ],
       "tested": [
         "tests/http.test.ts and tests/http-guard.test.ts in npm test: five tools with byte-identical tools/list in both eras, a receipt-verified round over independent requests, -32022, 415, 413, deadline, 401/403 challenges, Host/Origin, handle isolation between principals, hosts and workspaces, refresh, grant generation, restart and concurrent replay identity, lost create reply, and the raw-body unsafe-key guard in both eras",
-        "tests/skill.test.ts in npm test: the declared capabilities on server/discover (2026-07-28) and in the initialize result (2025-11-25, stdio and the HTTP fallback), skills/list, skills/get, resources/read and resources/list for the one skill with its hash-locked digest and size, -32602 for any other skill address, and no elicitation request through a whole round with a host that offers form and URL elicitation"
+        "tests/skill.test.ts in npm test: the declared capabilities on server/discover (2026-07-28) and in the initialize result (2025-11-25, stdio and the HTTP fallback), skills/list, skills/get, resources/read and resources/list for the one skill with its hash-locked digest and size, -32602 for any other skill address, and no elicitation request through a whole round with a host that offers form and URL elicitation",
+        "scripts/skills-conformance.mjs (npm run check:skills; the CI job MCP adapter / skills conformance and Inspector) on the built HTTP composition over loopback: @modelcontextprotocol/conformance 0.2.0-alpha.12 scenarios sep-2640-skills-enumeration, sep-2640-skills-manifest and sep-2640-skills-directory (one check baselined: sep-2640-directory-read-subdir-mimetype, not testable on a skill with no subdirectory), and @modelcontextprotocol/inspector 2.16.0 --cli --verify --require-digests over skills/list and skills/get"
       ],
       "notTested": [
         "any real host (claude.ai, ChatGPT, Claude Code, Cursor or others) over HTTP",
