@@ -6,3 +6,5 @@ package-lock.json
 # Verbatim copies of the Sess specifications, checked by digest (scripts/check-spec.mjs).
 docs/spec/*.md
 adapters/mcp/listings/schemas
+# The generated skill file, byte for byte what sess.si serves (scripts/check-skill.mjs).
+skills/
