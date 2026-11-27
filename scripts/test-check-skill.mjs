@@ -59,6 +59,13 @@ test('the same bytes, served and listed, match', async () => {
   assert.equal(r.outcome, 'match');
 });
 
+test('the same bytes, served while the index does not list them, match', async () => {
+  for (const idx of [notFound, [200, index()]]) {
+    const r = await run({ [INDEX_URL]: idx, [SKILL_URL]: [200, local] });
+    assert.equal(r.outcome, 'match');
+  }
+});
+
 test('served bytes that differ fail, listed or not', async () => {
   for (const idx of [notFound, [200, index()], [200, index(entry(other))]]) {
     const r = await run({ [INDEX_URL]: idx, [SKILL_URL]: [200, other] });
