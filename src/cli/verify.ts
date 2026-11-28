@@ -366,7 +366,7 @@ const REASON_TEXT: Record<string, string> = {
 
 const NEWER_FILE = `This file is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`;
 const NEWER_BUNDLE = `This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`;
-// PROPOSED (Sess L-196), each awaiting the founder's signature: why a PDF was not checked. The
+// Proposed wording (Sess L-196), not yet signed: why a PDF was not checked. The
 // PDF's own extractor (./pdf-extract.ts, the Sess profile) says which; one sentence each.
 const PDF_UNREADABLE =
   "this PDF isn't a Sess receipt this command can read: check the kept file (.json) instead";

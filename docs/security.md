@@ -229,8 +229,12 @@ its compact JWS) or a kept file (keep-v1 to keep-v4). It adds no verification of
   own signed `aud` and the context is reported unchecked, as for a bundle.
 - **Key changes.** An answer signed under an older key verifies only while that key is in the
   key set used; otherwise it is `unknown_kid`. The published set carries no key dates.
-- **Not read.** PDFs, QR receipt codes and a round receipt on its own (without its content) are
+- **Not read.** QR receipt codes and a round receipt on its own (without its content) are
   refused with exit 2.
+- **A receipt PDF.** <!-- L-196: proposed for signature; placeholder until signed. --> Read only
+  through the one kept file it carries, by the Sess profile's bounded extractor
+  (`src/receipts/pdf-extract.ts`, the bounds in `src/receipts/pdf-profile.ts`); its pages are never
+  read. Anything outside the profile is refused with exit 2.
 
 ## Keys, rotation, and resource limits
 
