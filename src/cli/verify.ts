@@ -91,8 +91,7 @@ Other:
   --json              print the full result as JSON
   -h, --help          show this help
 
-A receipt PDF from Sess is checked by the kept file it carries inside. It does not read receipt
-codes from a QR code: check the kept file (.json) or the PDF instead.
+It checks a receipt PDF from Sess. It does not read QR codes.
 
 Exit status: 0 verified, 1 unverified, 2 usage or file error, 3 newer than this version checks,
 4 the published keys could not be fetched, 5 not everything in the file could be checked.
@@ -366,20 +365,18 @@ const REASON_TEXT: Record<string, string> = {
 
 const NEWER_FILE = `This file is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`;
 const NEWER_BUNDLE = `This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`;
-// Proposed wording (Sess L-196), not yet signed: why a PDF was not checked. The
-// PDF's own extractor (./pdf-extract.ts, the Sess profile) says which; one sentence each.
-const PDF_UNREADABLE =
-  "this PDF isn't a Sess receipt this command can read: check the kept file (.json) instead";
-const PDF_NO_RECORD = "this PDF doesn't carry a Sess receipt, so there is nothing to check";
-const PDF_AMBIGUOUS = 'this PDF carries more than one Sess receipt, so it was not checked';
+// Why a PDF was not checked (Sess L-196, signed 2026-11-28 18:41Z): one line for anything the
+// Sess profile's extractor (./pdf-extract.ts) cannot read, a PDF with no receipt or more than one
+// included (exactly one is the rule), and one for a PDF past the profile's size bounds.
+const PDF_UNREADABLE = "this PDF can't be read as a Sess receipt, so it was not checked";
 const PDF_TOO_LARGE = 'this PDF is larger than a Sess receipt PDF can be, so it was not read';
 const PDF_REFUSALS: Readonly<Record<ReceiptPdfRejection, string>> = Object.freeze({
   not_pdf: PDF_UNREADABLE,
   malformed: PDF_UNREADABLE,
   outside_profile: PDF_UNREADABLE,
   work_exceeded: PDF_UNREADABLE,
-  no_record: PDF_NO_RECORD,
-  ambiguous_record: PDF_AMBIGUOUS,
+  no_record: PDF_UNREADABLE,
+  ambiguous_record: PDF_UNREADABLE,
   too_large: PDF_TOO_LARGE,
   record_too_large: PDF_TOO_LARGE,
 });

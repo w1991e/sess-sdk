@@ -31,10 +31,9 @@ const SESS_COMMIT = 'afb541341db1a4989b114e18364037be6cccada4';
 const SESS_EXTRACT_SHA256 = 'fbcbe05d78d41bee3cb17826325446615dd2a405bbd57fc1d20e7364483a60a1';
 const SESS_ADVERSARIAL_SHA256 = '63f7426041d20c04dba98c5af683ed74bc082eda49012616da5af42cd3a432a8';
 
-const PDF_UNREADABLE =
-  "sess: this PDF isn't a Sess receipt this command can read: check the kept file (.json) instead";
-const PDF_NO_RECORD = "sess: this PDF doesn't carry a Sess receipt, so there is nothing to check";
-const PDF_AMBIGUOUS = 'sess: this PDF carries more than one Sess receipt, so it was not checked';
+// The signed lines (Sess L-196, 2026-11-28 18:41Z): one refusal for any PDF the profile cannot
+// read, a PDF with no receipt or more than one included (exactly one is the rule), and one for size.
+const PDF_UNREADABLE = "sess: this PDF can't be read as a Sess receipt, so it was not checked";
 const PDF_TOO_LARGE = 'sess: this PDF is larger than a Sess receipt PDF can be, so it was not read';
 
 let dir: string;
@@ -233,12 +232,12 @@ describe('sess verify: a receipt PDF', () => {
     expect(wrong.code).not.toBe(EXIT.valid);
   });
 
-  it('refuses a PDF with no receipt, two receipts, a malformed, cyclic, compressed or oversized one, and a non-receipt attachment, each plainly (exit 2) and without fetching', async () => {
+  it('refuses a PDF with no receipt or two (exactly one is the rule), a malformed, cyclic or oversized one, and a non-receipt attachment, each with its signed line (exit 2) and without fetching', async () => {
     const real = Buffer.from(await fixture('short-approve-ended.pdf'));
     const big = Buffer.alloc(RECEIPT_PDF_BOUNDS.pdfMaxBytes + 1, 32);
     big.write('%PDF-1.7\n', 0, 'latin1');
     const cases: Array<[string, Uint8Array, string]> = [
-      ['none.pdf', classicPdf('1 0 obj\n<< /Type /Catalog >>\nendobj\n', [1]), PDF_NO_RECORD],
+      ['none.pdf', classicPdf('1 0 obj\n<< /Type /Catalog >>\nendobj\n', [1]), PDF_UNREADABLE],
       [
         'two.pdf',
         classicPdf(
@@ -247,7 +246,7 @@ describe('sess verify: a receipt PDF', () => {
             '3 0 obj\n<< /Type /EmbeddedFile /Subtype /application#2Fjson /Length 2 >>\nstream\n{}\nendstream\nendobj\n',
           [1, 2, 3],
         ),
-        PDF_AMBIGUOUS,
+        PDF_UNREADABLE,
       ],
       ['truncated.pdf', real.subarray(0, real.length - 200), PDF_UNREADABLE],
       ['cyclic.pdf', cyclicPdf('pair'), PDF_UNREADABLE],
@@ -264,5 +263,24 @@ describe('sess verify: a receipt PDF', () => {
       expect(r.stdout, name).toBe('');
       expect(r.fetched, `${name}: nothing fetched`).toEqual([]);
     }
+  });
+});
+
+describe('sess verify: the receipt PDF lines, as signed (Sess L-196, 2026-11-28 18:41Z)', () => {
+  it('the help, the README, the security note and the changelog say exactly the signed words', async () => {
+    const SIGNED_06 =
+      "`sess verify` checks a Sess receipt PDF by the kept file it carries. It never reads the PDF's pages, and it refuses anything outside the Sess profile with exit 2.";
+    let help = '';
+    await runCli(['--help'], { stdout: (s) => (help += s), stderr: () => {} });
+    expect(help).toContain('\nIt checks a receipt PDF from Sess. It does not read QR codes.\n');
+    const text = (p: string) => readFile(new URL(`../../${p}`, import.meta.url), 'utf8');
+    const flat = (s: string) => s.replace(/\s+/g, ' ');
+    expect(flat(await text('README.md'))).toContain(
+      'It does not read QR codes, and in a kept file it checks the receipts, not the archival records, holder keys or witness evidence.',
+    );
+    expect(flat(await text('docs/security.md'))).toContain(`**A receipt PDF.** ${SIGNED_06}`);
+    expect(flat(await text('CHANGELOG.md'))).toContain(`- ${SIGNED_06}`);
+    for (const p of ['README.md', 'docs/security.md', 'CHANGELOG.md'])
+      expect(await text(p), p).not.toMatch(/L-196|placeholder|does not read PDFs/);
   });
 });

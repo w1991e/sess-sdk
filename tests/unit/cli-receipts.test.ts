@@ -487,7 +487,7 @@ describe('sess verify: what it does not read', () => {
         [],
         // Changed expectation (Sess L-196): a PDF is read now; this one is too short to be a
         // receipt PDF of the Sess profile, so it is refused as one this command cannot read.
-        "sess: this PDF isn't a Sess receipt this command can read: check the kept file (.json) instead",
+        "sess: this PDF can't be read as a Sess receipt, so it was not checked",
       ],
       [
         'code.txt',

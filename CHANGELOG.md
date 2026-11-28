@@ -16,8 +16,7 @@
   was judged at.
 - New exit codes: 4, the published keys could not be fetched or used; 5, not everything in the
   file could be checked. QR receipt codes and a lone round receipt are refused (exit 2).
-- <!-- L-196: proposed for signature; placeholder until signed. --> `sess verify` reads a Sess
-  receipt PDF by the kept file it carries.
+- `sess verify` checks a Sess receipt PDF by the kept file it carries. It never reads the PDF's pages, and it refuses anything outside the Sess profile with exit 2.
 - `verifyDecisionBundle`, `verifyClosingReceipt` and every library export are unchanged.
 
 ## 0.6.0 — 2026-11-22
