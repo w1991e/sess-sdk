@@ -15,7 +15,8 @@
   from. The `--json` result of a bundle keeps its shape; its `checked_at` is the time the answer
   was judged at.
 - New exit codes: 4, the published keys could not be fetched or used; 5, not everything in the
-  file could be checked. PDFs, QR receipt codes and a lone round receipt are refused (exit 2).
+  file could be checked. QR receipt codes and a lone round receipt are refused (exit 2).
+- `sess verify` checks a Sess receipt PDF by the kept file it carries. It never reads the PDF's pages, and it refuses anything outside the Sess profile with exit 2.
 - `verifyDecisionBundle`, `verifyClosingReceipt` and every library export are unchanged.
 
 ## 0.6.0 — 2026-11-22
