@@ -91,10 +91,10 @@ Other:
   --json              print the full result as JSON
   -h, --help          show this help
 
-It checks a receipt PDF from Sess. It does not read QR codes.
-
 Exit status: 0 verified, 1 unverified, 2 usage or file error, 3 newer than this version checks,
 4 the published keys could not be fetched, 5 not everything in the file could be checked.
+
+It checks a receipt PDF from Sess. It does not read QR codes.
 `;
 
 class UsageError extends Error {}

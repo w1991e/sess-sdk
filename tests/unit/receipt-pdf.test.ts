@@ -272,7 +272,10 @@ describe('sess verify: the receipt PDF lines, as signed (Sess L-196, 2026-11-28 
       "`sess verify` checks a Sess receipt PDF by the kept file it carries. It never reads the PDF's pages, and it refuses anything outside the Sess profile with exit 2.";
     let help = '';
     await runCli(['--help'], { stdout: (s) => (help += s), stderr: () => {} });
-    expect(help).toContain('\nIt checks a receipt PDF from Sess. It does not read QR codes.\n');
+    // VR-PDF-05 is the help's last line.
+    expect(help.trimEnd().split('\n').at(-1)).toBe(
+      'It checks a receipt PDF from Sess. It does not read QR codes.',
+    );
     const text = (p: string) => readFile(new URL(`../../${p}`, import.meta.url), 'utf8');
     const flat = (s: string) => s.replace(/\s+/g, ' ');
     expect(flat(await text('README.md'))).toContain(
