@@ -143,7 +143,7 @@ function safe(text: string): string {
  * Reads a whole file into one buffer of its size, refusing it above `max` before reading. No
  * chunks are concatenated: the bytes are held once, and a file that changes size while it is read
  * is refused. With `pdf`, a file that starts `%PDF-` is held to the receipt PDF profile's own
- * bound instead (Sess L-196; ASTRA-SDK-87-1): only its first bytes are read to know it, and past
+ * bound instead (Sess L-196): only its first bytes are read to know it, and past
  * that bound it is refused before the rest is read or any buffer of its size is allocated.
  */
 async function readBounded(
