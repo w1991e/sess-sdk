@@ -20,6 +20,7 @@ import { verifyClosingReceipt, type ClosingReceiptClaims } from '../receipts/clo
 import { SDK_VERSION } from '../internal/version.js';
 import { BUNDLED_RENDERER_IDENTITIES } from '../receipts/renderers.js';
 import { validateKeySet, verifyRendererIdentities, type ReceiptKeySet } from '../receipts/verify.js';
+import { extractReceiptPdfRecord, type ReceiptPdfRejection } from '../receipts/pdf-extract.js';
 import { isKeptFile, MAX_KEPT_FILE_BYTES, readKeptFile, type KeptRound } from './kept.js';
 import { fetchPublishedKeys, keySetUrl, type FetchKeys } from './keys.js';
 
@@ -90,7 +91,8 @@ Other:
   --json              print the full result as JSON
   -h, --help          show this help
 
-It does not read PDFs or receipt codes from a QR code: check the kept file (.json) instead.
+A receipt PDF from Sess is checked by the kept file it carries inside. It does not read receipt
+codes from a QR code: check the kept file (.json) or the PDF instead.
 
 Exit status: 0 verified, 1 unverified, 2 usage or file error, 3 newer than this version checks,
 4 the published keys could not be fetched, 5 not everything in the file could be checked.
@@ -364,8 +366,23 @@ const REASON_TEXT: Record<string, string> = {
 
 const NEWER_FILE = `This file is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`;
 const NEWER_BUNDLE = `This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Update @sess.si/sdk to check it.`;
-const REFUSE_PDF =
-  'this file is a PDF, and this command does not read PDFs: check the kept file (.json) instead';
+// PROPOSED (Sess L-196), each awaiting the founder's signature: why a PDF was not checked. The
+// PDF's own extractor (./pdf-extract.ts, the Sess profile) says which; one sentence each.
+const PDF_UNREADABLE =
+  "this PDF isn't a Sess receipt this command can read: check the kept file (.json) instead";
+const PDF_NO_RECORD = "this PDF doesn't carry a Sess receipt, so there is nothing to check";
+const PDF_AMBIGUOUS = 'this PDF carries more than one Sess receipt, so it was not checked';
+const PDF_TOO_LARGE = 'this PDF is larger than a Sess receipt PDF can be, so it was not read';
+const PDF_REFUSALS: Readonly<Record<ReceiptPdfRejection, string>> = Object.freeze({
+  not_pdf: PDF_UNREADABLE,
+  malformed: PDF_UNREADABLE,
+  outside_profile: PDF_UNREADABLE,
+  work_exceeded: PDF_UNREADABLE,
+  no_record: PDF_NO_RECORD,
+  ambiguous_record: PDF_AMBIGUOUS,
+  too_large: PDF_TOO_LARGE,
+  record_too_large: PDF_TOO_LARGE,
+});
 const REFUSE_QR =
   'this looks like a receipt code from a QR code, and this command does not read receipt codes: check the kept file (.json) instead';
 const REFUSE_LONE_ROUND =
@@ -824,7 +841,15 @@ type FileKind =
 
 /** What the file is, from its bytes; a refusal is a usage error (exit 2). */
 function classify(bytes: Buffer): FileKind {
-  if (bytes.subarray(0, 5).toString('latin1') === '%PDF-') throw new UsageError(REFUSE_PDF);
+  // A receipt PDF (Sess L-196): the kept file it carries, read by the Sess profile's own bounded
+  // extractor (never the visible pages), is checked exactly as that file on its own would be.
+  if (bytes.subarray(0, 5).toString('latin1') === '%PDF-') {
+    const extracted = extractReceiptPdfRecord(bytes);
+    if (!extracted.ok) throw new UsageError(PDF_REFUSALS[extracted.reason]);
+    const json = parseJson(extracted.text);
+    if (!json.ok || !isKeptFile(json.value)) throw new UsageError(PDF_UNREADABLE);
+    return { kind: 'kept', value: json.value };
+  }
   const text = decodeUtf8(bytes);
   const trimmed = text?.trim();
   if (trimmed !== undefined && COMPACT_JWS.test(trimmed)) {

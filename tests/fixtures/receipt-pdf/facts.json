@@ -1,0 +1,19 @@
+{
+  "issuer": "https://api.sess.test",
+  "cases": {
+    "short-approve-ended": {
+      "pdf_bytes": 56863,
+      "kept_bytes": 5790,
+      "rounds": 1,
+      "first_iat": 1791547200,
+      "first_exp": 1794139200
+    },
+    "invoices-strings": {
+      "pdf_bytes": 65150,
+      "kept_bytes": 6282,
+      "rounds": 1,
+      "first_iat": 1791547200,
+      "first_exp": 1794139200
+    }
+  }
+}
