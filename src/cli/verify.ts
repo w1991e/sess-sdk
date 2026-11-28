@@ -21,6 +21,7 @@ import { SDK_VERSION } from '../internal/version.js';
 import { BUNDLED_RENDERER_IDENTITIES } from '../receipts/renderers.js';
 import { validateKeySet, verifyRendererIdentities, type ReceiptKeySet } from '../receipts/verify.js';
 import { extractReceiptPdfRecord, type ReceiptPdfRejection } from '../receipts/pdf-extract.js';
+import { RECEIPT_PDF_BOUNDS } from '../receipts/pdf-profile.js';
 import { isKeptFile, MAX_KEPT_FILE_BYTES, readKeptFile, type KeptRound } from './kept.js';
 import { fetchPublishedKeys, keySetUrl, type FetchKeys } from './keys.js';
 
@@ -141,9 +142,16 @@ function safe(text: string): string {
 /**
  * Reads a whole file into one buffer of its size, refusing it above `max` before reading. No
  * chunks are concatenated: the bytes are held once, and a file that changes size while it is read
- * is refused.
+ * is refused. With `pdf`, a file that starts `%PDF-` is held to the receipt PDF profile's own
+ * bound instead (Sess L-196; ASTRA-SDK-87-1): only its first bytes are read to know it, and past
+ * that bound it is refused before the rest is read or any buffer of its size is allocated.
  */
-async function readBounded(path: string, max: number, what: string): Promise<Buffer> {
+async function readBounded(
+  path: string,
+  max: number,
+  what: string,
+  pdf?: { max: number; refusal: string },
+): Promise<Buffer> {
   let handle: Awaited<ReturnType<typeof open>>;
   try {
     handle = await open(path, 'r');
@@ -159,6 +167,17 @@ async function readBounded(path: string, max: number, what: string): Promise<Buf
     } catch (e) {
       if (e instanceof UsageError) throw e;
       throw new UsageError(`cannot read ${what}: ${safe(path)}`);
+    }
+    if (pdf && size >= PDF_MAGIC.length) {
+      const head = Buffer.alloc(PDF_MAGIC.length);
+      let read = 0;
+      try {
+        read = (await handle.read(head, 0, head.length, 0)).bytesRead;
+      } catch {
+        throw new UsageError(`cannot read ${what}: ${safe(path)}`);
+      }
+      if (read === head.length && head.toString('latin1') === PDF_MAGIC && size > pdf.max)
+        throw new UsageError(pdf.refusal);
     }
     if (size > max) throw new UsageError(`${what} is larger than ${max} bytes: ${safe(path)}`);
     const bytes = Buffer.allocUnsafe(size);
@@ -370,6 +389,8 @@ const NEWER_BUNDLE = `This bundle is newer than @sess.si/sdk ${SDK_VERSION}. Upd
 // included (exactly one is the rule), and one for a PDF past the profile's size bounds.
 const PDF_UNREADABLE = "this PDF can't be read as a Sess receipt, so it was not checked";
 const PDF_TOO_LARGE = 'this PDF is larger than a Sess receipt PDF can be, so it was not read';
+/** The first bytes of every PDF: what makes a file one, read before anything else. */
+const PDF_MAGIC = '%PDF-';
 const PDF_REFUSALS: Readonly<Record<ReceiptPdfRejection, string>> = Object.freeze({
   not_pdf: PDF_UNREADABLE,
   malformed: PDF_UNREADABLE,
@@ -840,7 +861,7 @@ type FileKind =
 function classify(bytes: Buffer): FileKind {
   // A receipt PDF (Sess L-196): the kept file it carries, read by the Sess profile's own bounded
   // extractor (never the visible pages), is checked exactly as that file on its own would be.
-  if (bytes.subarray(0, 5).toString('latin1') === '%PDF-') {
+  if (bytes.subarray(0, PDF_MAGIC.length).toString('latin1') === PDF_MAGIC) {
     const extracted = extractReceiptPdfRecord(bytes);
     if (!extracted.ok) throw new UsageError(PDF_REFUSALS[extracted.reason]);
     const json = parseJson(extracted.text);
@@ -898,7 +919,12 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
       return EXIT.valid;
     }
     // The file first: a file this command refuses, or cannot read, never causes a fetch.
-    const file = classify(await readBounded(parsed.file, MAX_KEPT_FILE_BYTES, 'the file'));
+    const file = classify(
+      await readBounded(parsed.file, MAX_KEPT_FILE_BYTES, 'the file', {
+        max: RECEIPT_PDF_BOUNDS.pdfMaxBytes,
+        refusal: PDF_TOO_LARGE,
+      }),
+    );
     if (file.kind === 'bundle' && file.bytes > MAX_BUNDLE_FILE_BYTES)
       throw new UsageError(
         `the bundle file is larger than ${MAX_BUNDLE_FILE_BYTES} bytes: ${safe(parsed.file)}`,
